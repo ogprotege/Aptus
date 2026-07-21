@@ -1,0 +1,369 @@
+{
+  "cluster_count": 38,
+  "clusters": [
+    {
+      "cluster_id": "sha256:027671aab0d8d44086e1485c68783c8fd9418291f47e59907650dc48286264cf",
+      "paths": [
+        "tests/test_optimizer 2.py",
+        "tests/test_optimizer.py"
+      ],
+      "sha256": "027671aab0d8d44086e1485c68783c8fd9418291f47e59907650dc48286264cf",
+      "size_bytes": 22433
+    },
+    {
+      "cluster_id": "sha256:1006d210c66a9020b48bd2ad3d1297b492f6e025ebad7a1808b6f954c0e35a76",
+      "paths": [
+        "Legal Docs/terms-of-service 2.md",
+        "Legal Docs/terms-of-service.md"
+      ],
+      "sha256": "1006d210c66a9020b48bd2ad3d1297b492f6e025ebad7a1808b6f954c0e35a76",
+      "size_bytes": 9875
+    },
+    {
+      "cluster_id": "sha256:140362af22e117ce5dbd45c4136f160aa9ac3b13418610dab95fa865b320a7ef",
+      "paths": [
+        "DeploymentOptions/dockerfile_v2",
+        "dockerfile_v2"
+      ],
+      "sha256": "140362af22e117ce5dbd45c4136f160aa9ac3b13418610dab95fa865b320a7ef",
+      "size_bytes": 466
+    },
+    {
+      "cluster_id": "sha256:189f2cf8e27f8940b0b73f5325269a36b00c6f6e9b22274b391ee2ef4d79cdba",
+      "paths": [
+        "DeploymentOptions/railway.toml",
+        "railway.toml"
+      ],
+      "sha256": "189f2cf8e27f8940b0b73f5325269a36b00c6f6e9b22274b391ee2ef4d79cdba",
+      "size_bytes": 208
+    },
+    {
+      "cluster_id": "sha256:1ae7982844c101a238000881a40b82b0306249a06c4305d6549741567e07efa8",
+      "paths": [
+        "fly_v2 2.txt",
+        "fly_v2.toml"
+      ],
+      "sha256": "1ae7982844c101a238000881a40b82b0306249a06c4305d6549741567e07efa8",
+      "size_bytes": 571
+    },
+    {
+      "cluster_id": "sha256:1daaf7086a3b7a4988b7e73e7198f3b49872e3e63b9bc73ffe8311c11f248d18",
+      "paths": [
+        "hyperparameter_mcp 2.py",
+        "hyperparameter_mcp.py"
+      ],
+      "sha256": "1daaf7086a3b7a4988b7e73e7198f3b49872e3e63b9bc73ffe8311c11f248d18",
+      "size_bytes": 5815
+    },
+    {
+      "cluster_id": "sha256:24d7d3e4c61713c535d0871e97115cdabc88c2dd1eb7b2c935cea95ddef37428",
+      "paths": [
+        "src/python 2/script_generator_v2.py",
+        "src/python/script_generator_v2.py"
+      ],
+      "sha256": "24d7d3e4c61713c535d0871e97115cdabc88c2dd1eb7b2c935cea95ddef37428",
+      "size_bytes": 16823
+    },
+    {
+      "cluster_id": "sha256:2b09ac049433ec05f591713ed183a4a396dd7317045f8a5faf7c36b3b196aa5b",
+      "paths": [
+        "HyperTune-NEW_stuff_05-16-25/config.py",
+        "src/python/config.py"
+      ],
+      "sha256": "2b09ac049433ec05f591713ed183a4a396dd7317045f8a5faf7c36b3b196aa5b",
+      "size_bytes": 2289
+    },
+    {
+      "cluster_id": "sha256:3ce0f20aa34574a9be19d38f96dc216c9ab7143d376a0f33c02f110aecf80485",
+      "paths": [
+        "Complete Guide to Building & Deploying.py",
+        "Complete Guide to Building-Deploying.md",
+        "hypertune-mcp-guide.md"
+      ],
+      "sha256": "3ce0f20aa34574a9be19d38f96dc216c9ab7143d376a0f33c02f110aecf80485",
+      "size_bytes": 92075
+    },
+    {
+      "cluster_id": "sha256:4bfbb1a5f977f606e516949fd6a360f745384e880bb3116c8351252199b6a0f2",
+      "paths": [
+        "docs/reft_implementation_guide 2.md",
+        "docs/reft_implementation_guide.md"
+      ],
+      "sha256": "4bfbb1a5f977f606e516949fd6a360f745384e880bb3116c8351252199b6a0f2",
+      "size_bytes": 5694
+    },
+    {
+      "cluster_id": "sha256:51e1081fede0ad21077b82a816a4deab0515a929c2875858b8c9209825c4ee94",
+      "paths": [
+        "tests/run_tests 2.py",
+        "tests/run_tests.py"
+      ],
+      "sha256": "51e1081fede0ad21077b82a816a4deab0515a929c2875858b8c9209825c4ee94",
+      "size_bytes": 5258
+    },
+    {
+      "cluster_id": "sha256:61de766d73dd62ea0c5d7d76fab8944fcbaa7e93a2e646869ea24941bcd6b021",
+      "paths": [
+        "src/hypertuner/evaluation/lora_evaluator.py",
+        "src/hypertuner/training/lora_evaluator.py"
+      ],
+      "sha256": "61de766d73dd62ea0c5d7d76fab8944fcbaa7e93a2e646869ea24941bcd6b021",
+      "size_bytes": 2916
+    },
+    {
+      "cluster_id": "sha256:654029fced39c90c2bcd73476d86444442cf043a8196440effe47675f50fa8cf",
+      "paths": [
+        "hypertune_cli 2.py",
+        "hypertune_cli.py"
+      ],
+      "sha256": "654029fced39c90c2bcd73476d86444442cf043a8196440effe47675f50fa8cf",
+      "size_bytes": 5682
+    },
+    {
+      "cluster_id": "sha256:69ee41735589da6370f48b38839e25f7ef4d9be3b18d2356694673b1f0944bf2",
+      "paths": [
+        "src/hparam_methods_reference.md",
+        "src/types.ts"
+      ],
+      "sha256": "69ee41735589da6370f48b38839e25f7ef4d9be3b18d2356694673b1f0944bf2",
+      "size_bytes": 158
+    },
+    {
+      "cluster_id": "sha256:758f8500c94f7ba40f6150e2bc94a82cfff1cfac380ce8d0f9488a65d11655f5",
+      "paths": [
+        "Random/hyper-p-long.md",
+        "src/formulas/learning_parameters.ts"
+      ],
+      "sha256": "758f8500c94f7ba40f6150e2bc94a82cfff1cfac380ce8d0f9488a65d11655f5",
+      "size_bytes": 15343
+    },
+    {
+      "cluster_id": "sha256:7805c05c6e088cc4cbe61a67c631a28788d59c20e60d14cefec3cc2cfd0cfce1",
+      "paths": [
+        "fly 2.txt",
+        "fly.toml"
+      ],
+      "sha256": "7805c05c6e088cc4cbe61a67c631a28788d59c20e60d14cefec3cc2cfd0cfce1",
+      "size_bytes": 360
+    },
+    {
+      "cluster_id": "sha256:87b9c509a82d8d8a8b3bf98b14fedddc811001654a0cbc5f42ee723eb9dc0f06",
+      "paths": [
+        "Random/script_generator_info 2.md",
+        "Random/script_generator_info.md"
+      ],
+      "sha256": "87b9c509a82d8d8a8b3bf98b14fedddc811001654a0cbc5f42ee723eb9dc0f06",
+      "size_bytes": 3042
+    },
+    {
+      "cluster_id": "sha256:897814acbcc10ac9a7e2ba0c2002041d711bbb9699d649a9887b0e9b2c395af1",
+      "paths": [
+        "Legal Docs/eula 2.md",
+        "Legal Docs/eula.md"
+      ],
+      "sha256": "897814acbcc10ac9a7e2ba0c2002041d711bbb9699d649a9887b0e9b2c395af1",
+      "size_bytes": 8954
+    },
+    {
+      "cluster_id": "sha256:8b23973a6deeccad51f6e3b86a6e3cd848b38fbbed5370742460b4ea733b5950",
+      "paths": [
+        ".gitignore",
+        ".gitignore 2.txt"
+      ],
+      "sha256": "8b23973a6deeccad51f6e3b86a6e3cd848b38fbbed5370742460b4ea733b5950",
+      "size_bytes": 384
+    },
+    {
+      "cluster_id": "sha256:9c6f32130f9d4cbc8b31fed3072abadfe89b6e722757f4c651bb3046d5c5bebf",
+      "paths": [
+        "HyperTune-NEW_stuff_05-16-25/requirements.txt",
+        "requirements.txt"
+      ],
+      "sha256": "9c6f32130f9d4cbc8b31fed3072abadfe89b6e722757f4c651bb3046d5c5bebf",
+      "size_bytes": 457
+    },
+    {
+      "cluster_id": "sha256:9e01fe58b0ec2697c1e5dd3a091a49593652aeed33b783e51658ee965e112f08",
+      "paths": [
+        "DeploymentOptions/render.yaml",
+        "render.yaml"
+      ],
+      "sha256": "9e01fe58b0ec2697c1e5dd3a091a49593652aeed33b783e51658ee965e112f08",
+      "size_bytes": 335
+    },
+    {
+      "cluster_id": "sha256:9ed583dae6bbc7684cf36a1f91821af46dbf3bb178bc91618777c0a145f1a709",
+      "paths": [
+        "server 2.txt",
+        "server.js"
+      ],
+      "sha256": "9ed583dae6bbc7684cf36a1f91821af46dbf3bb178bc91618777c0a145f1a709",
+      "size_bytes": 12355
+    },
+    {
+      "cluster_id": "sha256:a9a97c8f3a98add7c0e8b79c986c66ef06af63231f9daee6e6bd0e392ff6b8d7",
+      "paths": [
+        "src/python 2/hyperparameter_mcp.py",
+        "src/python/hyperparameter_mcp.py"
+      ],
+      "sha256": "a9a97c8f3a98add7c0e8b79c986c66ef06af63231f9daee6e6bd0e392ff6b8d7",
+      "size_bytes": 16764
+    },
+    {
+      "cluster_id": "sha256:aa357eb66556b19f65d8cc067941b48e3443f760c02cfb80c7fecbe822bd7c7e",
+      "paths": [
+        "Legal Docs/privacy-policy 2.md",
+        "Legal Docs/privacy-policy.md"
+      ],
+      "sha256": "aa357eb66556b19f65d8cc067941b48e3443f760c02cfb80c7fecbe822bd7c7e",
+      "size_bytes": 9821
+    },
+    {
+      "cluster_id": "sha256:adfdefbe1db9b811886d1f5aa33698d0fe0659fa73ecfe0db64899a842264a22",
+      "paths": [
+        "DeploymentOptions/dockerfile",
+        "dockerfile"
+      ],
+      "sha256": "adfdefbe1db9b811886d1f5aa33698d0fe0659fa73ecfe0db64899a842264a22",
+      "size_bytes": 641
+    },
+    {
+      "cluster_id": "sha256:b2f4d539a5166da88635f01bc1b2f06a92cd4f81561c1ab62293aece84427244",
+      "paths": [
+        ".env.example",
+        "HyperTune-NEW_stuff_05-16-25/env-example.txt"
+      ],
+      "sha256": "b2f4d539a5166da88635f01bc1b2f06a92cd4f81561c1ab62293aece84427244",
+      "size_bytes": 505
+    },
+    {
+      "cluster_id": "sha256:b4e1dde8dc2d769664e3b7e88addfbe83ae5958acadf9b8abe753dd21d5e8074",
+      "paths": [
+        "docs/reft_methods_guide 2.md",
+        "docs/reft_methods_guide.md"
+      ],
+      "sha256": "b4e1dde8dc2d769664e3b7e88addfbe83ae5958acadf9b8abe753dd21d5e8074",
+      "size_bytes": 7113
+    },
+    {
+      "cluster_id": "sha256:b9794453e8f4e7e0b96d09fec1a618b428ace4ce6202cc14913a9096d19b1c83",
+      "paths": [
+        "tests/integration 2/test_workflow.py",
+        "tests/integration/test_workflow.py"
+      ],
+      "sha256": "b9794453e8f4e7e0b96d09fec1a618b428ace4ce6202cc14913a9096d19b1c83",
+      "size_bytes": 13050
+    },
+    {
+      "cluster_id": "sha256:ba5e2de5359e6855f54b787a69bdafe47fad469a9f3e999cba6a187abff345db",
+      "paths": [
+        "tests/integration 2/run_integration_tests.py",
+        "tests/integration/run_integration_tests.py"
+      ],
+      "sha256": "ba5e2de5359e6855f54b787a69bdafe47fad469a9f3e999cba6a187abff345db",
+      "size_bytes": 6017
+    },
+    {
+      "cluster_id": "sha256:bbba9414fdd81f875c6e8d6daa33ea39d47e03d1ad96f341adf8f2cab5283792",
+      "paths": [
+        "tests/__init__ 2.py",
+        "tests/__init__.py"
+      ],
+      "sha256": "bbba9414fdd81f875c6e8d6daa33ea39d47e03d1ad96f341adf8f2cab5283792",
+      "size_bytes": 27
+    },
+    {
+      "cluster_id": "sha256:d209a91a52b7750c5c183f05a9b1dc77e22d5f7ed6a9e19ff9c28bab24a7fd60",
+      "paths": [
+        ".dockerfile",
+        "DeploymentOptions/.dockerfile"
+      ],
+      "sha256": "d209a91a52b7750c5c183f05a9b1dc77e22d5f7ed6a9e19ff9c28bab24a7fd60",
+      "size_bytes": 195
+    },
+    {
+      "cluster_id": "sha256:def515655c16b0964485831a89263f3839aa630e40def77d30281f829d506348",
+      "paths": [
+        "tests/test_dataset_analyzer 2.py",
+        "tests/test_dataset_analyzer.py"
+      ],
+      "sha256": "def515655c16b0964485831a89263f3839aa630e40def77d30281f829d506348",
+      "size_bytes": 10566
+    },
+    {
+      "cluster_id": "sha256:e271ad689b8d9db70a1b8384fa3448de09776f47545adf4f1b9d58f275fb3017",
+      "paths": [
+        "tests/test_resource_scanner 2.py",
+        "tests/test_resource_scanner.py"
+      ],
+      "sha256": "e271ad689b8d9db70a1b8384fa3448de09776f47545adf4f1b9d58f275fb3017",
+      "size_bytes": 11921
+    },
+    {
+      "cluster_id": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "paths": [
+        "api/auth/create-key.ts",
+        "api/auth/verify-key.ts",
+        "api/subscription/check.ts",
+        "api/subscription/create.ts",
+        "api/subscription/update.ts",
+        "docs/api.md",
+        "docs/methods.md",
+        "prisma/schema.prisma",
+        "public/index.html",
+        "scripts/seed-models.ts",
+        "scripts/test-optimizations.ts",
+        "src/auth/index.ts",
+        "src/methods/premium/alora.ts",
+        "src/methods/premium/hydrora.ts",
+        "src/methods/premium/moe_lora.ts",
+        "src/methods/premium/priolora.ts",
+        "src/models/gemma.ts",
+        "src/models/llama.ts",
+        "src/models/premium/claude.ts",
+        "src/models/premium/gemini.ts",
+        "src/models/premium/gpt.ts",
+        "src/models/premium/grok.ts",
+        "src/output/huggeface.ts"
+      ],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "cluster_id": "sha256:e3ba84114f9c8fe624f5f59c5c53dcd7decd8f0f24d92435caee5332f36db9dd",
+      "paths": [
+        "tests/integration 2/fixtures.py",
+        "tests/integration/fixtures.py"
+      ],
+      "sha256": "e3ba84114f9c8fe624f5f59c5c53dcd7decd8f0f24d92435caee5332f36db9dd",
+      "size_bytes": 7762
+    },
+    {
+      "cluster_id": "sha256:e505c19ffc41b78017e958858a2b3836d89ffd13dba163ff34ae2e8cc90f9f3d",
+      "paths": [
+        "HyperTune-NEW_stuff_05-16-25/dev-server.py",
+        "src/python/dev_server.py"
+      ],
+      "sha256": "e505c19ffc41b78017e958858a2b3836d89ffd13dba163ff34ae2e8cc90f9f3d",
+      "size_bytes": 1520
+    },
+    {
+      "cluster_id": "sha256:e5a426df71061d6829e0edb68100f9df7dc36474cb33e0da596e3ebcbf3d00e3",
+      "paths": [
+        "src/python 2/model_registry.py",
+        "src/python/model_registry.py"
+      ],
+      "sha256": "e5a426df71061d6829e0edb68100f9df7dc36474cb33e0da596e3ebcbf3d00e3",
+      "size_bytes": 3240
+    },
+    {
+      "cluster_id": "sha256:f3e06b0ed669d377ac1cb40515497880d53910da8200ccf173093eec5768d5bc",
+      "paths": [
+        "tests/integration 2/__init__.py",
+        "tests/integration/__init__.py"
+      ],
+      "sha256": "f3e06b0ed669d377ac1cb40515497880d53910da8200ccf173093eec5768d5bc",
+      "size_bytes": 39
+    }
+  ]
+}

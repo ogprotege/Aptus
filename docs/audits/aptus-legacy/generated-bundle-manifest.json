@@ -1,0 +1,14 @@
+{
+  "files": {
+    "baseline-manifest.json": "6bcd3fba4e4ed6800778d4020082ecbd6257a4b08cdf934270b45202005ca4c2",
+    "classification-summary.json": "28b24aa3425e5e0bf4abd7d6caa2b67e4048d535da46687acf83041bbb6dcdbf",
+    "classification.jsonl": "17b9380b9c9159ae2c2080479d35087e2549ef0d0880c63035a23b8ab680bebc",
+    "duplicate-clusters.json": "bf9f219f3579850f8664d947b129a784f7183f74bce23d8dbe34aea4ade71b2b",
+    "inventory.jsonl": "3ff7d8cc77f13eceeced4cb115ff6d220881b4114c22c7e0e5fbc0e8b1523dd8",
+    "reference-map.json": "90ea1e490d8e06a5c6908660315e7819cfa39f411660ea6fcf2896ed12eb74f1",
+    "secret-scan.json": "9d2cfb05e7b89231928aa1fc43b1c5d3f4da72c7dc4ff356b67ceb5a6b18e5fc",
+    "version-families.json": "32df14f73770a2ec3dcb6bd3440669028217b012ea47d63d7f286c5f4c48bc94"
+  },
+  "source_manifest_sha256": "44156dd49da5f283aa2761baca7eb614cb0b07475dc65289da4409f585367084",
+  "source_root": "/Users/biscuit/Aptus/HyperTune"
+}

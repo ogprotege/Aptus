@@ -1,0 +1,53 @@
+{
+  "adapt_candidates": [
+    "Integration_Architecture.md",
+    "SystemArchitecture.md",
+    "api/FastAPI/main.py",
+    "docs/reft_methods_guide.md",
+    "hypertune_cli.py",
+    "src/formulas/batch_size_v2.ts",
+    "src/formulas/learning_rate_2.ts",
+    "src/formulas/rank_v2.ts",
+    "src/formulas/target_modules.ts",
+    "src/formulas/weight_decay_v2.ts",
+    "src/hypertuner/evaluation/lora_evaluator.py",
+    "src/hypertuner/methodSelector.ts",
+    "src/hypertuner/task-configs.ts",
+    "src/hypertuner/training/lora_trainer.py",
+    "src/method-constraints.ts",
+    "src/model-database-update.ts",
+    "src/model-database.ts",
+    "src/optimizer.ts",
+    "src/output/command_line.ts",
+    "src/output/config_file.ts",
+    "src/python/config.py",
+    "src/python/core_optimizer.py",
+    "src/python/dataset_analyzer.py",
+    "src/python/dora_decomposer.py",
+    "src/python/export_model.py",
+    "src/python/flexora_optimizer.py",
+    "src/python/model_registry.py",
+    "src/python/reft_adapter.py",
+    "src/python/reft_enhanced.py",
+    "src/python/reft_setup.py",
+    "src/python/register_dataset.py",
+    "src/python/register_model.py",
+    "src/python/resource_scanner.py",
+    "src/python/script_generator_v2.py",
+    "src/python/train.py"
+  ],
+  "artifact_count": 228,
+  "baseline_manifest_sha256": "44156dd49da5f283aa2761baca7eb614cb0b07475dc65289da4409f585367084",
+  "dispositions": {
+    "ADAPT": 35,
+    "ARCHIVE": 126,
+    "DISCARD": 67
+  },
+  "warning_counts": {
+    "DO_NOT_SHIP_FABRICATED_DATA": 1,
+    "DO_NOT_SHIP_FAKE_METRICS": 1,
+    "DO_NOT_SHIP_PARSE_FAILURE": 3,
+    "DO_NOT_SHIP_PLACEHOLDER_LEGAL": 3,
+    "DO_NOT_SHIP_PROVENANCE": 21
+  }
+}

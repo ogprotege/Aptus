@@ -1,0 +1,3 @@
+{"text":"Aptus turns explicit model, dataset, hardware, and target facts into a transparent fine-tuning plan."}
+{"text":"The generated bundle is parsed and validated before any training dependency or model is loaded."}
+{"text":"Every recommendation includes assumptions, rejection reasons, memory components, evidence labels, and confidence."}

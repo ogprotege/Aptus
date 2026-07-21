@@ -1,0 +1,16 @@
+{
+  "duplicate_cluster_count": 38,
+  "duplicate_file_count": 98,
+  "file_count": 228,
+  "generated_at_utc": "2026-07-21T20:12:22.016314+00:00",
+  "kind_counts": {
+    "binary": 4,
+    "empty": 23,
+    "symlink": 0,
+    "text": 201
+  },
+  "manifest_sha256": "44156dd49da5f283aa2761baca7eb614cb0b07475dc65289da4409f585367084",
+  "source_root": "/Users/biscuit/Aptus/HyperTune",
+  "total_bytes": 1879017,
+  "version_family_count": 30
+}

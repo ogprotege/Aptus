@@ -1,0 +1,248 @@
+{
+  "families": [
+    {
+      "family_id": "normalized:DeploymentOptions/dockerfile",
+      "normalized_path": "DeploymentOptions/dockerfile",
+      "paths": [
+        "DeploymentOptions/dockerfile",
+        "DeploymentOptions/dockerfile_v2"
+      ]
+    },
+    {
+      "family_id": "normalized:Legal Docs/eula.md",
+      "normalized_path": "Legal Docs/eula.md",
+      "paths": [
+        "Legal Docs/eula 2.md",
+        "Legal Docs/eula.md"
+      ]
+    },
+    {
+      "family_id": "normalized:Legal Docs/privacy-policy.md",
+      "normalized_path": "Legal Docs/privacy-policy.md",
+      "paths": [
+        "Legal Docs/privacy-policy 2.md",
+        "Legal Docs/privacy-policy.md"
+      ]
+    },
+    {
+      "family_id": "normalized:Legal Docs/terms-of-service.md",
+      "normalized_path": "Legal Docs/terms-of-service.md",
+      "paths": [
+        "Legal Docs/terms-of-service 2.md",
+        "Legal Docs/terms-of-service.md"
+      ]
+    },
+    {
+      "family_id": "normalized:Random/script_generator_info.md",
+      "normalized_path": "Random/script_generator_info.md",
+      "paths": [
+        "Random/script_generator_info 2.md",
+        "Random/script_generator_info.md"
+      ]
+    },
+    {
+      "family_id": "normalized:dockerfile",
+      "normalized_path": "dockerfile",
+      "paths": [
+        "dockerfile",
+        "dockerfile_v2"
+      ]
+    },
+    {
+      "family_id": "normalized:docs/reft_implementation_guide.md",
+      "normalized_path": "docs/reft_implementation_guide.md",
+      "paths": [
+        "docs/reft_implementation_guide 2.md",
+        "docs/reft_implementation_guide.md"
+      ]
+    },
+    {
+      "family_id": "normalized:docs/reft_methods_guide.md",
+      "normalized_path": "docs/reft_methods_guide.md",
+      "paths": [
+        "docs/reft_methods_guide 2.md",
+        "docs/reft_methods_guide.md"
+      ]
+    },
+    {
+      "family_id": "normalized:fly.toml",
+      "normalized_path": "fly.toml",
+      "paths": [
+        "fly.toml",
+        "fly_v2.toml"
+      ]
+    },
+    {
+      "family_id": "normalized:fly.txt",
+      "normalized_path": "fly.txt",
+      "paths": [
+        "fly 2.txt",
+        "fly_v2 2.txt"
+      ]
+    },
+    {
+      "family_id": "normalized:hyperparameter_mcp.py",
+      "normalized_path": "hyperparameter_mcp.py",
+      "paths": [
+        "hyperparameter_mcp 2.py",
+        "hyperparameter_mcp.py"
+      ]
+    },
+    {
+      "family_id": "normalized:hypertune_cli.py",
+      "normalized_path": "hypertune_cli.py",
+      "paths": [
+        "hypertune_cli 2.py",
+        "hypertune_cli.py"
+      ]
+    },
+    {
+      "family_id": "normalized:requirements.txt",
+      "normalized_path": "requirements.txt",
+      "paths": [
+        "requirements 2.txt",
+        "requirements.txt",
+        "requirements_v2 2.txt",
+        "requirements_v2.txt"
+      ]
+    },
+    {
+      "family_id": "normalized:src/formulas/batch_size.ts",
+      "normalized_path": "src/formulas/batch_size.ts",
+      "paths": [
+        "src/formulas/batch_size.ts",
+        "src/formulas/batch_size_v2.ts"
+      ]
+    },
+    {
+      "family_id": "normalized:src/formulas/learning_rate.ts",
+      "normalized_path": "src/formulas/learning_rate.ts",
+      "paths": [
+        "src/formulas/learning_rate.ts",
+        "src/formulas/learning_rate_2.ts"
+      ]
+    },
+    {
+      "family_id": "normalized:src/formulas/rank.ts",
+      "normalized_path": "src/formulas/rank.ts",
+      "paths": [
+        "src/formulas/rank.ts",
+        "src/formulas/rank_v2.ts"
+      ]
+    },
+    {
+      "family_id": "normalized:src/formulas/weight_decay.ts",
+      "normalized_path": "src/formulas/weight_decay.ts",
+      "paths": [
+        "src/formulas/weight_decay.ts",
+        "src/formulas/weight_decay_v2.ts"
+      ]
+    },
+    {
+      "family_id": "normalized:src/index.ts",
+      "normalized_path": "src/index.ts",
+      "paths": [
+        "src/index.ts",
+        "src/index_v2.ts"
+      ]
+    },
+    {
+      "family_id": "normalized:src/python/hyperparameter_mcp.py",
+      "normalized_path": "src/python/hyperparameter_mcp.py",
+      "paths": [
+        "src/python 2/hyperparameter_mcp.py",
+        "src/python/hyperparameter_mcp.py"
+      ]
+    },
+    {
+      "family_id": "normalized:src/python/model_registry.py",
+      "normalized_path": "src/python/model_registry.py",
+      "paths": [
+        "src/python 2/model_registry.py",
+        "src/python/model_registry.py"
+      ]
+    },
+    {
+      "family_id": "normalized:src/python/script_generator.py",
+      "normalized_path": "src/python/script_generator.py",
+      "paths": [
+        "src/python 2/script_generator_v2.py",
+        "src/python/script_generator.py",
+        "src/python/script_generator_v2.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/__init__.py",
+      "normalized_path": "tests/__init__.py",
+      "paths": [
+        "tests/__init__ 2.py",
+        "tests/__init__.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/integration/__init__.py",
+      "normalized_path": "tests/integration/__init__.py",
+      "paths": [
+        "tests/integration 2/__init__.py",
+        "tests/integration/__init__.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/integration/fixtures.py",
+      "normalized_path": "tests/integration/fixtures.py",
+      "paths": [
+        "tests/integration 2/fixtures.py",
+        "tests/integration/fixtures.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/integration/run_integration_tests.py",
+      "normalized_path": "tests/integration/run_integration_tests.py",
+      "paths": [
+        "tests/integration 2/run_integration_tests.py",
+        "tests/integration/run_integration_tests.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/integration/test_workflow.py",
+      "normalized_path": "tests/integration/test_workflow.py",
+      "paths": [
+        "tests/integration 2/test_workflow.py",
+        "tests/integration/test_workflow.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/run_tests.py",
+      "normalized_path": "tests/run_tests.py",
+      "paths": [
+        "tests/run_tests 2.py",
+        "tests/run_tests.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/test_dataset_analyzer.py",
+      "normalized_path": "tests/test_dataset_analyzer.py",
+      "paths": [
+        "tests/test_dataset_analyzer 2.py",
+        "tests/test_dataset_analyzer.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/test_optimizer.py",
+      "normalized_path": "tests/test_optimizer.py",
+      "paths": [
+        "tests/test_optimizer 2.py",
+        "tests/test_optimizer.py"
+      ]
+    },
+    {
+      "family_id": "normalized:tests/test_resource_scanner.py",
+      "normalized_path": "tests/test_resource_scanner.py",
+      "paths": [
+        "tests/test_resource_scanner 2.py",
+        "tests/test_resource_scanner.py"
+      ]
+    }
+  ],
+  "family_count": 30
+}

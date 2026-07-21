@@ -1,0 +1,5564 @@
+{
+  "files": [
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": {
+        "line": 3,
+        "message": "unterminated string literal (detected at line 3) (Complete Guide to Building & Deploying.py, line 3)",
+        "type": "SyntaxError"
+      },
+      "parse_status": "failed",
+      "path": "Complete Guide to Building & Deploying.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "HyperTune-NEW_stuff_05-16-25/config.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "uvicorn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "dotenv",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "HyperTune-NEW_stuff_05-16-25/dev-server.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "HyperTune-NEW_stuff_05-16-25/merge-model-data.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "requests",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "time",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "concurrent.futures",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "HyperTune-NEW_stuff_05-16-25/model-scraper.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "dataclasses",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "task_config",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "evaluate",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "transformers.utils",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "transformers.trainer_utils",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 28,
+          "resolved_path": null,
+          "specifier": "pyreft",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/loreft/compute_metrics.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "copy",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "random",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "collections",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "task_config",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "templates",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "pyreft",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/loreft/dataset.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "from",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "templates",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/loreft/task_config.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/loreft/templates.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "transformers.trainer_utils",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "wandb",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "evaluate",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "datetime",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "math",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "copy",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 25,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 26,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 28,
+          "resolved_path": null,
+          "specifier": "task_config",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 29,
+          "resolved_path": null,
+          "specifier": "dataset",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 30,
+          "resolved_path": null,
+          "specifier": "compute_metrics",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 32,
+          "resolved_path": null,
+          "specifier": "pyreft",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 50,
+          "resolved_path": null,
+          "specifier": "peft",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 292,
+          "resolved_path": null,
+          "specifier": "peft",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/loreft/train.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "collections",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "task_config",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "copy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "templates",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "io",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/data.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "collections",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "pyvene.models.layers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "transformers.activations",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/interventions.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "from",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "templates",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/task_config.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "transformers.trainer_utils",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "wandb",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "evaluate",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "datetime",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "math",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 25,
+          "resolved_path": null,
+          "specifier": "data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 26,
+          "resolved_path": null,
+          "specifier": "trainer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 33,
+          "resolved_path": null,
+          "specifier": "interventions",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/task_steer.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/templates.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "dataclasses",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "task_config",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "evaluate",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "transformers.utils",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "transformers.trainer_utils",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/original-code/trainer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/config.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "collections",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "transformers.activations",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/interventions.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "from",
+          "line": 1,
+          "resolved_path": "PyReft-Repo/pyreft/interventions.py",
+          "specifier": ".interventions",
+          "status": "resolved"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": ".trainer",
+          "status": "missing"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/mapping.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/reft_model.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "pyvene",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "torch.utils.data.sampler",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "transformers.trainer_utils",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "dataclasses",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 26,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 27,
+          "resolved_path": null,
+          "specifier": "torch.nn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 28,
+          "resolved_path": null,
+          "specifier": "transformers.utils",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 29,
+          "resolved_path": null,
+          "specifier": "torch.distributed",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/reft_trainer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "enum",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 2,
+          "resolved_path": "PyReft-Repo/pyreft/reft_model.py",
+          "specifier": ".reft_model",
+          "status": "resolved"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "PyReft-Repo/pyreft/utils.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "from",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "fastapi",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "fastapi.responses",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "script_generator",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 297,
+          "resolved_path": null,
+          "specifier": "uvicorn",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "api/FastAPI/main.py"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/auth/create-key.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/auth/verify-key.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "express",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "../model-database",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "../methods",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "../hypertuner/task-configs",
+          "status": "missing"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/comparison.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "next",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/optimizer.ts",
+          "specifier": "../src/optimizer",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/auth/api_key.ts",
+          "specifier": "../src/auth/api_key",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/auth/rate_limiting.ts",
+          "specifier": "../src/auth/rate_limiting",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/optimize.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/subscription/check.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/subscription/create.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "api/subscription/update.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "deploy/config.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "deploy/config_big.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "fastapi",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "enum",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "src.python.core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "src.python.model_registry",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "src.python.script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 147,
+          "resolved_path": null,
+          "specifier": "uvicorn",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "hyperparameter_mcp 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "fastapi",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "enum",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "src.python.core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "src.python.model_registry",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "src.python.script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 147,
+          "resolved_path": null,
+          "specifier": "uvicorn",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "hyperparameter_mcp.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "requests",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "hypertune_cli 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "requests",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "hypertune_cli.py"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "scripts/seed-models.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "scripts/test-optimizations.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "node-fetch",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "scripts/test-request.js"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "express",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "cors",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "body-parser",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "python-shell",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "path",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "fs",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "uuid",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "dotenv",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "server.js"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "next",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "@prisma/client",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/auth/api_key.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/auth/index.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "next",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "@prisma/client",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "rate-limiter-flexible",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/auth/rate_limiting.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/alpha.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/batch_size.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/batch_size_v2.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/droprate.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/formulas/learning_rate.ts",
+          "specifier": "./learning_rate",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/formulas/rank.ts",
+          "specifier": "./rank",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": "src/formulas/batch_size.ts",
+          "specifier": "./batch_size",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": "src/formulas/weight_decay.ts",
+          "specifier": "./weight_decay",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": "src/formulas/target_modules.ts",
+          "specifier": "./target_modules",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 9,
+          "resolved_path": "src/formulas/alpha.ts",
+          "specifier": "./alpha",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 10,
+          "resolved_path": "src/formulas/training_steps.ts",
+          "specifier": "./training_steps",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 11,
+          "resolved_path": "src/formulas/warmup.ts",
+          "specifier": "./warmup",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/index.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 105,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 106,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 187,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 188,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 259,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 260,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 375,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 376,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 454,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 455,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/learning_parameters.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/learning_rate.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/learning_rate_2.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/lora_alpha.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/rank.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/rank_v2.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/target_modules.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/training_steps.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/warmup.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/weight_decay.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/formulas/weight_decay_v2.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "peft",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/hypertuner/evaluation/lora_evaluator.py"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/hypertuner/methodSelector.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 12,
+          "resolved_path": "src/hypertuner/methods/base.ts",
+          "specifier": "./base",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "../utils/shell",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 81,
+          "resolved_path": null,
+          "specifier": "fs",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/hypertuner/methods/base.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/model-database.ts",
+          "specifier": "../model-database",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/hypertuner/task-configs.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/hypertuner/test/test_hypertune_mcp.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "peft",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/hypertuner/training/lora_evaluator.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "peft",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/hypertuner/training/lora_trainer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/optimizer.ts",
+          "specifier": "./optimizer",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/auth/api_key.ts",
+          "specifier": "./auth/api_key",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/index.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/methods.ts",
+          "specifier": "./methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/types.ts",
+          "specifier": "./types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": "src/llm_integrations.ts",
+          "specifier": "./llm_integrations",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/index_v2.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/integrations/types.ts",
+          "specifier": "../types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "axios",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 117,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/deployment/vercel.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/integrations/types.ts",
+          "specifier": "../types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 46,
+          "resolved_path": null,
+          "specifier": "langchain/chat_models/openai",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 47,
+          "resolved_path": null,
+          "specifier": "langchain/prompts",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 48,
+          "resolved_path": null,
+          "specifier": "langchain/chains",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/framework/langchain.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "../methods/reft_enhanced",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/model-database-update.ts",
+          "specifier": "../model-database-update",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/model-database.ts",
+          "specifier": "../model-database",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/reft_integration.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/integrations/types.ts",
+          "specifier": "./types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": "src/integrations/training/huggingface.ts",
+          "specifier": "./training/huggingface",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": "src/integrations/training/runpod.ts",
+          "specifier": "./training/runpod",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "./training/togetherai",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "./training/paperspace",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "./training/deepinfra",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "./training/novita",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 15,
+          "resolved_path": "src/integrations/deployment/vercel.ts",
+          "specifier": "./deployment/vercel",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "./deployment/firebase",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "./deployment/digitalocean",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "./deployment/replicate",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "./deployment/awslambda",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "./deployment/cloudrun",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "./model/openai",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "./model/anthropic",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 25,
+          "resolved_path": null,
+          "specifier": "./model/meta",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 26,
+          "resolved_path": null,
+          "specifier": "./model/google",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 27,
+          "resolved_path": null,
+          "specifier": "./model/mistral",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 28,
+          "resolved_path": null,
+          "specifier": "./model/together",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 29,
+          "resolved_path": null,
+          "specifier": "./model/groq",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 32,
+          "resolved_path": null,
+          "specifier": "./framework/transformers",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 33,
+          "resolved_path": "src/integrations/framework/langchain.ts",
+          "specifier": "./framework/langchain",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 34,
+          "resolved_path": null,
+          "specifier": "./framework/ollama",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 35,
+          "resolved_path": null,
+          "specifier": "./framework/wandb",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 36,
+          "resolved_path": null,
+          "specifier": "./framework/llamaindex",
+          "status": "missing"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/registry.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/integrations/types.ts",
+          "specifier": "../types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "axios",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/training/huggingface.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/integrations/types.ts",
+          "specifier": "../types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "axios",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/training/runpod.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/integrations/types.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": "src/types.ts",
+          "specifier": "./types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "fs",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "path",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/llm_integrations.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/hypertuner/methodSelector.ts",
+          "specifier": "./hypertuner/methodSelector",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "./hypertuner/methods/lora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "./hypertuner/methods/dora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "./hypertuner/methods/qlora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 181,
+          "resolved_path": null,
+          "specifier": "fs",
+          "status": "external"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/mcp_index.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "@modelcontextprotocol/sdk",
+          "status": "external"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/hypertuner/methodSelector.ts",
+          "specifier": "./hypertuner/methodSelector",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": "src/providers/huggingface.ts",
+          "specifier": "./providers/huggingface",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "./providers/runpod",
+          "status": "missing"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/mem_index.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/method-constraints.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/types.ts",
+          "specifier": "./types",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "./methods/lora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "./methods/qlora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "./methods/dora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "./methods/adalora",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "./methods/reft",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "./methods/spectral",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "./methods/mixture",
+          "status": "missing"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/methods.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/methods/premium/alora.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/methods/premium/hydrora.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/methods/premium/moe_lora.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/methods/premium/priolora.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/model-database.ts",
+          "specifier": "./model-database",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/model-database-update.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/model-database.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/gemma.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 59,
+          "resolved_path": "src/models/llama.ts",
+          "specifier": "./llama",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 60,
+          "resolved_path": "src/models/mistral.ts",
+          "specifier": "./mistral",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 61,
+          "resolved_path": "src/models/gemma.ts",
+          "specifier": "./gemma",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 70,
+          "resolved_path": null,
+          "specifier": "./premium/mixtral",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 71,
+          "resolved_path": "src/models/premium/claude.ts",
+          "specifier": "./premium/claude",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 72,
+          "resolved_path": "src/models/premium/gpt.ts",
+          "specifier": "./premium/gpt",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/index.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/llama.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "./index",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/mistral.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/premium/claude.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/premium/gemini.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/premium/gpt.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/models/premium/grok.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/methods.ts",
+          "specifier": "./methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "./models",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "./utils/estimation",
+          "status": "missing"
+        },
+        {
+          "kind": "module",
+          "line": 5,
+          "resolved_path": "src/formulas/learning_rate.ts",
+          "specifier": "./formulas/learning_rate",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 6,
+          "resolved_path": "src/formulas/rank.ts",
+          "specifier": "./formulas/rank",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 7,
+          "resolved_path": "src/formulas/batch_size.ts",
+          "specifier": "./formulas/batch_size",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 8,
+          "resolved_path": "src/formulas/weight_decay.ts",
+          "specifier": "./formulas/weight_decay",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 9,
+          "resolved_path": "src/output/command_line.ts",
+          "specifier": "./output/command_line",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 10,
+          "resolved_path": "src/output/config_file.ts",
+          "specifier": "./output/config_file",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "./output/huggingface",
+          "status": "missing"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/optimizer.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/output-generators.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/output/command_line.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "module",
+          "line": 2,
+          "resolved_path": "src/methods.ts",
+          "specifier": "../methods",
+          "status": "resolved"
+        },
+        {
+          "kind": "module",
+          "line": 3,
+          "resolved_path": "src/models/index.ts",
+          "specifier": "../models",
+          "status": "resolved"
+        }
+      ],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/output/config_file.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/output/huggeface.ts"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/providers/huggingface.ts"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "model_registry",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 56,
+          "resolved_path": null,
+          "specifier": "script_generator",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 59,
+          "resolved_path": null,
+          "specifier": "script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 262,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python 2/hyperparameter_mcp.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python 2/model_registry.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "jinja2",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python 2/script_generator_v2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/config.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": {
+        "line": 1021,
+        "message": "unexpected indent (core_optimizer.py, line 1021)",
+        "type": "IndentationError"
+      },
+      "parse_status": "failed",
+      "path": "src/python/core_optimizer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "csv",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "random",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "pydantic",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/dataset_analyzer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "uvicorn",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "dotenv",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/dev_server.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "math",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/dora_decomposer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 81,
+          "resolved_path": null,
+          "specifier": "bitsandbytes",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 82,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/export_model.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/flexora_optimizer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 15,
+          "resolved_path": null,
+          "specifier": "script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 16,
+          "resolved_path": null,
+          "specifier": "model_registry",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 56,
+          "resolved_path": null,
+          "specifier": "script_generator",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 59,
+          "resolved_path": null,
+          "specifier": "script_generator_v2",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 262,
+          "resolved_path": null,
+          "specifier": "re",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/hyperparameter_mcp.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/merge_model_data.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/model_registry.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "pathlib",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "pyreft",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 160,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 163,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 166,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 170,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 174,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 226,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/reft_adapter.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "pathlib",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "pyreft",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 175,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 279,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 370,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 484,
+          "resolved_path": null,
+          "specifier": "traceback",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/reft_enhanced.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/reft_setup.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "uuid",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/register_dataset.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/register_model.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "platform",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "subprocess",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "psutil",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/resource_scanner.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": {
+        "line": 308,
+        "message": "f-string: valid expression required before '}' (script_generator.py, line 308)",
+        "type": "SyntaxError"
+      },
+      "parse_status": "failed",
+      "path": "src/python/script_generator.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "jinja2",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/script_generator_v2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "numpy",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "datasets",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 8,
+          "resolved_path": null,
+          "specifier": "torch.utils.data",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 9,
+          "resolved_path": null,
+          "specifier": "tqdm",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 83,
+          "resolved_path": null,
+          "specifier": "transformers",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/train.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 7,
+          "resolved_path": null,
+          "specifier": "typing",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "src/python/tune_service.py"
+    },
+    {
+      "imports": [],
+      "language": "javascript-typescript",
+      "parse_error": null,
+      "parse_status": "not_checked",
+      "path": "src/types.ts"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/__init__ 2.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/__init__.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration 2/__init__.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "shutil",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "csv",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration 2/fixtures.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "time",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "traceback",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 30,
+          "resolved_path": null,
+          "specifier": "test_workflow",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration 2/run_integration_tests.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "fixtures",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration 2/test_workflow.py"
+    },
+    {
+      "imports": [],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration/__init__.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "shutil",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "csv",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration/fixtures.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "time",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "logging",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "traceback",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 30,
+          "resolved_path": null,
+          "specifier": "test_workflow",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration/run_integration_tests.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 12,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 13,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 14,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "fixtures",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/integration/test_workflow.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "time",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 30,
+          "resolved_path": null,
+          "specifier": "test_optimizer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/run_tests 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 17,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 18,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 19,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 20,
+          "resolved_path": null,
+          "specifier": "argparse",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 21,
+          "resolved_path": null,
+          "specifier": "time",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 22,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 23,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 24,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 30,
+          "resolved_path": null,
+          "specifier": "test_optimizer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/run_tests.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_dataset_analyzer 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "json",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "tempfile",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 6,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 11,
+          "resolved_path": null,
+          "specifier": "dataset_analyzer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_dataset_analyzer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_optimizer 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "torch",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "core_optimizer",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_optimizer.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "platform",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_resource_scanner 2.py"
+    },
+    {
+      "imports": [
+        {
+          "kind": "import",
+          "line": 1,
+          "resolved_path": null,
+          "specifier": "unittest",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 2,
+          "resolved_path": null,
+          "specifier": "sys",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 3,
+          "resolved_path": null,
+          "specifier": "os",
+          "status": "external"
+        },
+        {
+          "kind": "import",
+          "line": 4,
+          "resolved_path": null,
+          "specifier": "platform",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 5,
+          "resolved_path": null,
+          "specifier": "unittest.mock",
+          "status": "external"
+        },
+        {
+          "kind": "from",
+          "line": 10,
+          "resolved_path": null,
+          "specifier": "resource_scanner",
+          "status": "external"
+        }
+      ],
+      "language": "python",
+      "parse_error": null,
+      "parse_status": "passed",
+      "path": "tests/test_resource_scanner.py"
+    }
+  ],
+  "summary": {
+    "javascript_typescript_file_count": 72,
+    "missing_relative_imports": 40,
+    "python_file_count": 71,
+    "python_parse_failures": 3,
+    "relative_import_count": 128,
+    "script_file_count": 143
+  }
+}

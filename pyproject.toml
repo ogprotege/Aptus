@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aptus"
+version = "0.1.0"
+description = "Evidence-backed fine-tuning planning and artifact validation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "William Sherman" }
+]
+dependencies = []
+
+[project.scripts]
+aptus = "aptus.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.coverage.run]
+source = ["aptus"]
+
+[tool.coverage.report]
+show_missing = true

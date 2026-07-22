@@ -31,13 +31,21 @@ continued privacy unsafe, coordinate the minimum necessary disclosure first.
 
 Aptus is a single-user, local-host tool. The API can read local datasets, write
 bundles and job state, fetch bounded model metadata, and start Python training
-processes. It has no authentication, tenant isolation, CSRF protection, or
-remote-user authorization.
+processes. The ordinary `aptus serve` interface has no authentication, tenant
+isolation, CSRF protection, or remote-user authorization.
 
 Keep `aptus serve` on `127.0.0.1`. `--allow-non-loopback` is an explicit
 acknowledgment, not a security control. A non-loopback deployment requires an
 external authenticated boundary, origin controls, TLS, and filesystem
 isolation.
+
+Aptus for Mac starts a distinct service on an ephemeral loopback port. Every
+route requires a random per-launch HttpOnly, SameSite Strict cookie installed
+by the native host. WebKit stays on the exact session origin. This protects the
+desktop sidecar from unrelated local web pages, but it does not create a remote
+or multi-user service boundary. Desktop responses enforce a same-origin content
+security policy and deny framing. The desktop sidecar also rejects runtime
+validation and job submission; CUDA actions must run on the target host.
 
 ## Data copies
 

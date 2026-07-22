@@ -240,7 +240,6 @@ not a second hand-edited copy source.
 
 The following paths are not maintained repository documentation:
 
-- `EXAMPLE/`, ignored local intake that can contain private or unpublished work
 - `.audit-sandboxes/`, ignored disposable generated bundles
 - `src/aptus.egg-info/`, generated package metadata
 - `build/`, generated build output

@@ -44,6 +44,8 @@ Lifecycle conflicts use structured fields:
 | `400` | `invalid_request` | A value or operation violated an Aptus contract |
 | `400` | `filesystem_error` | An uncategorized operating-system filesystem error occurred |
 | `403` | `path_forbidden` | The service process lacks permission for a path |
+| `403` | `desktop_session_required` | The private macOS service did not receive its per-launch session cookie |
+| `403` | `desktop_execution_disabled` | The macOS sidecar received a runtime validation or job submission; transfer the bundle to a CUDA host |
 | `404` | `path_not_found` | A required filesystem path does not exist |
 | `404` | `plan_not_found` | The requested content-addressed plan is not persisted |
 | `404` | `job_not_found` | The requested job record is not persisted |

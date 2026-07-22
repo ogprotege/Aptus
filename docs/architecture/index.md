@@ -11,7 +11,9 @@ Read these pages in order when learning the implementation:
 4. [Artifact compiler](artifact-compiler.md) for no-clobber bundle publication.
 5. [Execution orchestrator](execution-orchestrator.md) for jobs, admission,
    cancellation, recovery, and completion.
-6. [Security boundaries](security-boundaries.md) for the local trust model.
+6. [macOS desktop host](macos-desktop.md) for the native lifecycle, bridge,
+   private session, and packaging boundary.
+7. [Security boundaries](security-boundaries.md) for the local trust model.
 
 The architecture explains why Aptus behaves as it does. Exact public values
 belong in the [reference index](../reference/index.md).

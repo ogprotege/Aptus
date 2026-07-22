@@ -5,6 +5,7 @@ import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { RunConsole } from "../components/RunConsole";
 import { StageHeader } from "../components/StageHeader";
 import { StatusBadge } from "../components/StatusBadge";
+import { getDesktopBridge } from "../desktopBridge";
 import { canStartAction, nextForwardAction } from "../lib/plan";
 
 interface RunStageProps {
@@ -19,6 +20,10 @@ interface RunStageProps {
   onReturnToValidate: () => void;
 }
 
+function quotePosixShellArgument(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
 export function RunStage({
   bundle,
   report,
@@ -30,6 +35,7 @@ export function RunStage({
   onCancelJob,
   onReturnToValidate,
 }: RunStageProps) {
+  const desktopBridge = getDesktopBridge();
   const [mode, setMode] = useState<"dependency" | "model-data" | "preflight" | "pilot" | "train">("dependency");
   const [confirmed, setConfirmed] = useState(false);
   const activeReport = report ?? bundle?.report ?? null;
@@ -39,6 +45,7 @@ export function RunStage({
   const jobMatchesBundle = Boolean(
     job && bundle && job.bundle_dir && job.bundle_dir === bundle.bundle_dir,
   );
+  const macDesktop = desktopBridge?.platform === "macos";
 
   useEffect(() => {
     setConfirmed(false);
@@ -84,7 +91,7 @@ export function RunStage({
         </>
       ) : null}
     </>
-  ) : (
+  ) : macDesktop ? null : (
     <section className="run-empty-log">
       <h2>No job has started.</h2>
       <p>Select a mode and complete the preflight. Aptus will poll the persisted job log and show it here.</p>
@@ -121,6 +128,16 @@ export function RunStage({
   }
 
   const trainNeedsConfirmation = mode === "train";
+  const targetBundle = quotePosixShellArgument(
+    `./${bundle.bundle_dir.split("/").filter(Boolean).at(-1) ?? "aptus-bundle"}`,
+  );
+  const handoffCommands = [
+    `aptus run ${targetBundle} --action dependency`,
+    `aptus run ${targetBundle} --action model-data`,
+    `aptus run ${targetBundle} --action preflight`,
+    `aptus run ${targetBundle} --action pilot`,
+    `aptus run ${targetBundle} --action train --confirm-full-train`,
+  ].join("\n");
 
   return (
     <>
@@ -135,81 +152,100 @@ export function RunStage({
         <div>
           <p className="eyebrow">Execution boundary</p>
           <h2 id="run-preflight-title">Run preflight</h2>
-          <p>The next forward action is selected automatically. You can still rerun an earlier passed gate. The job executes the compiled bundle at <code>{bundle.bundle_dir}</code>.</p>
+          {desktopBridge?.platform === "macos" ? (
+            <p className="desktop-handoff-intro">
+              This Mac can prepare and inspect the bundle. The current training runtime still requires a CUDA host. Transfer <code>{bundle.bundle_dir}</code> to the target machine before measured preflight, pilot, or training.
+            </p>
+          ) : (
+            <p>The next forward action is selected automatically. You can still rerun an earlier passed gate. The job executes the compiled bundle at <code>{bundle.bundle_dir}</code>.</p>
+          )}
           <p className="fact-boundary dependency-contract-note" role="note">
             <code>requirements.txt</code> contains exact direct package pins for the selected method. It is not a complete transitive lock.
           </p>
         </div>
-        <fieldset>
-          <legend>Run mode</legend>
-          <div className="run-mode-grid">
-            <label>
-              <input type="radio" name="run-mode" value="dependency" checked={mode === "dependency"} onChange={() => chooseMode("dependency")} />
-              <span><strong>Dependency check</strong><small>Verify the exact direct package pins in this bundle.</small></span>
-            </label>
-            <label>
-              <input type="radio" name="run-mode" value="model-data" checked={mode === "model-data"} onChange={() => chooseMode("model-data")} />
-              <span><strong>Model and data</strong><small>Inspect the pinned model and tokenize every canonical row.</small></span>
-            </label>
-            <label>
-              <input type="radio" name="run-mode" value="preflight" checked={mode === "preflight"} onChange={() => chooseMode("preflight")} />
-              <span><strong>Measured preflight</strong><small>Run dependency, model-data, and synthetic CUDA method checks.</small></span>
-            </label>
-            <label>
-              <input type="radio" name="run-mode" value="pilot" checked={mode === "pilot"} onChange={() => chooseMode("pilot")} />
-              <span><strong>Measured pilot</strong><small>Run step 1, manifest a checkpoint, start a fresh process, and continue through step 2.</small></span>
-            </label>
-            <label>
-              <input type="radio" name="run-mode" value="train" checked={mode === "train"} onChange={() => chooseMode("train")} />
-              <span><strong>Training job</strong><small>Use the pinned model and local dataset.</small></span>
-            </label>
-          </div>
-        </fieldset>
-
-        {trainNeedsConfirmation ? (
-          <>
-            <label className="check-row run-confirmation">
-              <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-              <span>
-                <strong>I reviewed the exact plan, paths, resource estimate, warnings, pilot metrics, and attestation bindings.</strong>
-                <small>Training receives a unique run-ID-bound directory. Aptus verifies the file tree at completion, but does not make the directory immutable. Full-training resume remains fail-closed.</small>
-              </span>
-            </label>
-            <p className="fact-boundary submit-admission-note">
-              The server performs the authoritative admission atomically when you submit: it acquires the host lease, deeply verifies the pilot bindings, and probes current VRAM, host RAM, and disk. A stale browser snapshot never authorizes training.
+        {macDesktop ? (
+          <section className="target-host-handoff" aria-labelledby="target-host-handoff-title">
+            <p className="eyebrow">Target-host handoff</p>
+            <h3 id="target-host-handoff-title">Continue on the CUDA machine.</h3>
+            <p>
+              The macOS app never submits CUDA work locally, including plans that describe a remote CUDA machine. Copy the complete bundle to that host, install Aptus there, then run each gate in order.
             </p>
-          </>
-        ) : null}
+            <pre className="handoff-commands" aria-label="CUDA host commands"><code>{handoffCommands}</code></pre>
+          </section>
+        ) : (
+          <>
+            <fieldset>
+              <legend>Run mode</legend>
+              <div className="run-mode-grid">
+                <label>
+                  <input type="radio" name="run-mode" value="dependency" checked={mode === "dependency"} onChange={() => chooseMode("dependency")} />
+                  <span><strong>Dependency check</strong><small>Verify the exact direct package pins in this bundle.</small></span>
+                </label>
+                <label>
+                  <input type="radio" name="run-mode" value="model-data" checked={mode === "model-data"} onChange={() => chooseMode("model-data")} />
+                  <span><strong>Model and data</strong><small>Inspect the pinned model and tokenize every canonical row.</small></span>
+                </label>
+                <label>
+                  <input type="radio" name="run-mode" value="preflight" checked={mode === "preflight"} onChange={() => chooseMode("preflight")} />
+                  <span><strong>Measured preflight</strong><small>Run dependency, model-data, and synthetic CUDA method checks.</small></span>
+                </label>
+                <label>
+                  <input type="radio" name="run-mode" value="pilot" checked={mode === "pilot"} onChange={() => chooseMode("pilot")} />
+                  <span><strong>Measured pilot</strong><small>Run step 1, manifest a checkpoint, start a fresh process, and continue through step 2.</small></span>
+                </label>
+                <label>
+                  <input type="radio" name="run-mode" value="train" checked={mode === "train"} onChange={() => chooseMode("train")} />
+                  <span><strong>Training job</strong><small>Use the pinned model and local dataset.</small></span>
+                </label>
+              </div>
+            </fieldset>
 
-        <div className="preflight-action">
-          <div>
-            <span>Validation state</span>
-            <StatusBadge state={activeReport?.state ?? "unknown"} />
-          </div>
-          <button
-            type="button"
-            className="button button-primary"
-            disabled={busy !== null || demoMode || Boolean(activeJob) || !canStartAction(activeReport?.state, mode) || (trainNeedsConfirmation && !confirmed)}
-            onClick={startJob}
-          >
-            {busy === "job" ? "Starting…" : mode === "train" ? "Start training" : mode === "pilot" ? "Run measured pilot" : mode === "preflight" ? "Run measured preflight" : mode === "model-data" ? "Inspect model and data" : "Check dependencies"}
-          </button>
-        </div>
-        {demoMode ? <p className="example-inline">Execution is disabled for example data. Clear the example and profile real inputs to create a job.</p> : null}
-        {activeJob && job ? <p className="example-inline">Job {job.id} is active for this local user and host. V0.2 permits one Aptus execution job at a time across state roots.</p> : null}
-        {!demoMode && !canStartAction(activeReport?.state, mode) ? (
-          <p className="example-inline">
-            {mode === "dependency"
-              ? "Pass static validation before checking the runtime dependencies."
-              : mode === "model-data"
-                ? "Complete the dependency check before inspecting the model and data."
-                : mode === "preflight"
-                  ? "Complete model-data validation before running measured preflight."
-              : mode === "pilot"
-                ? "Select Measured preflight and complete it before starting the pilot."
-                : "Select Measured pilot and observe both checkpoint-continuation phases before starting training."}
-          </p>
-        ) : null}
+            {trainNeedsConfirmation ? (
+              <>
+                <label className="check-row run-confirmation">
+                  <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
+                  <span>
+                    <strong>I reviewed the exact plan, paths, resource estimate, warnings, pilot metrics, and attestation bindings.</strong>
+                    <small>Training receives a unique run-ID-bound directory. Aptus verifies the file tree at completion, but does not make the directory immutable. Full-training resume remains fail-closed.</small>
+                  </span>
+                </label>
+                <p className="fact-boundary submit-admission-note">
+                  The server performs the authoritative admission atomically when you submit: it acquires the host lease, deeply verifies the pilot bindings, and probes current VRAM, host RAM, and disk. A stale browser snapshot never authorizes training.
+                </p>
+              </>
+            ) : null}
+
+            <div className="preflight-action">
+              <div>
+                <span>Validation state</span>
+                <StatusBadge state={activeReport?.state ?? "unknown"} />
+              </div>
+              <button
+                type="button"
+                className="button button-primary"
+                disabled={busy !== null || demoMode || Boolean(activeJob) || !canStartAction(activeReport?.state, mode) || (trainNeedsConfirmation && !confirmed)}
+                onClick={startJob}
+              >
+                {busy === "job" ? "Starting…" : mode === "train" ? "Start training" : mode === "pilot" ? "Run measured pilot" : mode === "preflight" ? "Run measured preflight" : mode === "model-data" ? "Inspect model and data" : "Check dependencies"}
+              </button>
+            </div>
+            {demoMode ? <p className="example-inline">Execution is disabled for example data. Clear the example and profile real inputs to create a job.</p> : null}
+            {activeJob && job ? <p className="example-inline">Job {job.id} is active for this local user and host. V0.2 permits one Aptus execution job at a time across state roots.</p> : null}
+            {!demoMode && !canStartAction(activeReport?.state, mode) ? (
+              <p className="example-inline">
+                {mode === "dependency"
+                  ? "Pass static validation before checking the runtime dependencies."
+                  : mode === "model-data"
+                    ? "Complete the dependency check before inspecting the model and data."
+                    : mode === "preflight"
+                      ? "Complete model-data validation before running measured preflight."
+                      : mode === "pilot"
+                        ? "Select Measured preflight and complete it before starting the pilot."
+                        : "Select Measured pilot and observe both checkpoint-continuation phases before starting training."}
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
 
       {jobMonitor}

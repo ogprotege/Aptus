@@ -255,7 +255,8 @@ not part of the immutable manifest.
 validation guard. Runtime levels with `run: false` return the direct static
 report plus `RUNTIME_NOT_EXECUTED`. Runtime levels with `run: true` return
 `409 runtime_validation_requires_job` and a `suggested_action`. Runtime work
-must use jobs so it is serialized and cancellable.
+must use jobs so it is serialized and cancellable. The macOS sidecar has
+execution disabled and returns `403 desktop_execution_disabled` instead.
 
 ## Jobs
 
@@ -270,7 +271,8 @@ must use jobs so it is serialized and cancellable.
 The endpoint rejects forward skips with `409 job_prerequisite_not_met`. It
 rejects a competing job with `409 active_job_conflict`. Confirmation is valid
 only for `train`, and training requires it to be true. No resume field is
-accepted.
+accepted. Aptus for Mac rejects every submission here with
+`403 desktop_execution_disabled`; its bundles must continue on a CUDA host.
 
 Train submission validates the immutable bundle and prior state, then deeply
 checks the current pilot, environment, hardware, free VRAM, host RAM, disk,
@@ -320,13 +322,15 @@ then inspect the remaining fields.
 | HTTP status | Emitted errors |
 | ---: | --- |
 | `400` | `invalid_request`, `filesystem_error` |
-| `403` | `path_forbidden` |
+| `403` | `path_forbidden`, `desktop_session_required` |
 | `404` | `path_not_found`, `plan_not_found`, `job_not_found`, route `not_found` |
 | `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job` |
 | `422` | `request_validation`, `no_feasible_plan` |
 
 An explicit framework HTTP error with non-object detail uses `http_error`.
 Invalid Host headers are rejected by middleware before the endpoint contract.
+The internal macOS desktop entrypoint enables `desktop_session_required` for
+every route. Ordinary `aptus serve` does not enable that cookie boundary.
 
 ## Static workbench routes
 

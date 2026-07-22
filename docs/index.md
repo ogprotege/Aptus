@@ -11,7 +11,7 @@ operational evidence, future work, research inputs, and historical records.
 | I want to... | Read this first | Then continue with |
 | --- | --- | --- |
 | Understand what Aptus does | [Product vision](product/vision.md) | [Current capabilities](product/current-capabilities.md) |
-| Run something safely on this Mac | [Choose your path](getting-started/choose-your-path.md) | [First-plan tutorial](getting-started/first-plan.md) |
+| Run something safely on this Mac | [Install Aptus for Mac](getting-started/install.md#build-aptus-for-mac) | [Choose your path](getting-started/choose-your-path.md) |
 | Plan for a CUDA host | [Model, dataset, and hardware facts](guides/model-dataset-hardware.md) | [Compare plans](guides/compare-plans.md) |
 | Choose a fine-tuning method | [Method selection guide](guides/choose-a-method.md) | [Method taxonomy](methodology/method-taxonomy.md) |
 | Prepare a dataset | [Prepare a dataset](guides/prepare-a-dataset.md) | [Dataset schemas](reference/dataset-schemas.md) |
@@ -81,6 +81,7 @@ Authority labels have a separate meaning:
 - [Artifact compiler](architecture/artifact-compiler.md)
 - [Execution orchestrator](architecture/execution-orchestrator.md)
 - [Security boundaries](architecture/security-boundaries.md)
+- [macOS desktop host](architecture/macos-desktop.md)
 - [UI and UX contract](product/ui-ux.md)
 - [Product vision](product/vision.md)
 - [Claim language](product/claim-language.md)

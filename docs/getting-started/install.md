@@ -14,6 +14,39 @@ The planner, compiler, contract checks, static checks, API, and workbench can ru
 without CUDA. That does not establish that a training candidate works on the
 intended target host.
 
+## Build Aptus for Mac
+
+The native app requires macOS 13 or newer, Xcode, XcodeGen, Node.js, `uv`, and
+an installed `uv` Python 3.12 runtime. From the repository root, run:
+
+```bash
+desktop/macos/build.sh
+```
+
+The build verifies the React application, packages Aptus and its server into a
+relocatable arm64 sidecar, compiles the AppKit host, assembles and ad-hoc signs
+the app, and creates these local artifacts:
+
+```text
+desktop/macos/dist/Aptus.app
+desktop/macos/dist/Aptus-macOS-arm64.dmg
+```
+
+Launch the app with Finder or:
+
+```bash
+open desktop/macos/dist/Aptus.app
+```
+
+The development artifact is locally signed but not notarized for public
+distribution. The app uses an ephemeral loopback port and a random private
+session cookie. It does not expose the desktop API to the ordinary browser.
+Application state lives under `~/Library/Application Support/Aptus`, and the
+backend log lives under `~/Library/Logs/Aptus`.
+
+The Mac app does not run CUDA actions. It prepares and statically validates the
+bundle, then shows the ordered commands to run on the intended CUDA host.
+
 ## Development install
 
 ```bash
@@ -53,6 +86,8 @@ aptus serve --host 127.0.0.1 --port 8787
 
 Keep the service on loopback. The local jobs API can launch processes and has no
 built-in authentication. See [security boundaries](../architecture/security-boundaries.md).
+This statement applies to `aptus serve`. The native Mac host adds a per-launch
+cookie boundary around its private service.
 
 ## Bundle environments
 

@@ -70,6 +70,79 @@ class ApiContractTests(unittest.TestCase):
         self.assertIsNotNone(workbench)
         self.assertTrue((workbench / "index.html").is_file())
 
+    @unittest.skipIf(
+        TestClient is None,
+        "Install the server and test extras for endpoint integration tests.",
+    )
+    def test_desktop_session_token_is_required_and_constant_time_checked(self) -> None:
+        token = "desktop-session-token-that-is-long-enough"
+        with tempfile.TemporaryDirectory() as temporary:
+            client = TestClient(
+                create_app(
+                    state_dir=Path(temporary) / "state",
+                    session_token=token,
+                )
+            )
+            try:
+                rejected = client.get("/api/v1/health")
+                client.cookies.set("aptus_desktop_session", token)
+                accepted = client.get("/api/v1/health")
+            finally:
+                client.close()
+        self.assertEqual(rejected.status_code, 403)
+        self.assertEqual(rejected.json()["error"], "desktop_session_required")
+        self.assertEqual(accepted.status_code, 200)
+        self.assertEqual(accepted.json()["status"], "ok")
+        self.assertEqual(accepted.headers["x-content-type-options"], "nosniff")
+        self.assertIn("default-src 'self'", accepted.headers["content-security-policy"])
+        self.assertEqual(rejected.headers["x-frame-options"], "DENY")
+
+    def test_desktop_session_token_rejects_short_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "at least 32"):
+            create_app(session_token="too-short")
+
+    @unittest.skipIf(
+        TestClient is None,
+        "Install the server and test extras for endpoint integration tests.",
+    )
+    def test_desktop_server_enforces_the_no_execution_boundary(self) -> None:
+        token = "desktop-session-token-that-is-long-enough"
+        with tempfile.TemporaryDirectory() as temporary:
+            client = TestClient(
+                create_app(
+                    state_dir=Path(temporary) / "state",
+                    session_token=token,
+                    execution_enabled=False,
+                )
+            )
+            client.cookies.set("aptus_desktop_session", token)
+            try:
+                job_response = client.post(
+                    "/api/v1/jobs",
+                    json={"bundle_dir": "/tmp/untrusted-bundle", "action": "train"},
+                )
+                validation_response = client.post(
+                    "/api/v1/validate",
+                    json={
+                        "bundle_dir": "/tmp/untrusted-bundle",
+                        "level": "dependency",
+                        "run": True,
+                    },
+                )
+            finally:
+                client.close()
+
+        self.assertEqual(job_response.status_code, 403)
+        self.assertEqual(
+            job_response.json()["error"],
+            "desktop_execution_disabled",
+        )
+        self.assertEqual(validation_response.status_code, 403)
+        self.assertEqual(
+            validation_response.json()["error"],
+            "desktop_execution_disabled",
+        )
+
 
 @unittest.skipIf(
     TestClient is None,

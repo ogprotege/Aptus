@@ -13,6 +13,12 @@ enough.
   runtime modules, including the typed method registry.
 - Installed-wheel CLI, API, static assets, plan, compile, and static validation
   smoke tests pass outside the source tree.
+- The arm64 macOS build embeds the current tested workbench and Python runtime,
+  starts outside the repository without Homebrew or `.venv`, enforces its
+  per-launch cookie, passes native bridge tests, and verifies every nested and
+  outer code signature.
+- The DMG installs and launches on a clean supported Mac. A public artifact is
+  Developer ID signed and notarized. An ad-hoc signature is local evidence only.
 - Generated bundles install from `requirements.txt` in clean environments.
 - Resolved transitive distributions are captured in the environment binding.
 
@@ -125,6 +131,9 @@ For each claimed executable method and placement:
 - Keyboard, focus, live-region, contrast, and narrow-viewport checks pass against
   the packaged build.
 - Example mode is visibly non-executed on every stage.
+- The macOS app supplies native dataset and output pickers, reveals generated
+  artifacts in Finder, blocks all local CUDA actions, and shows exact target-host
+  handoff commands.
 
 ## 7. Security and data handling
 
@@ -132,6 +141,8 @@ For each claimed executable method and placement:
 - Cleartext source, canonical, pilot, archive, cache, checkpoint, and export
   copies are documented and tested for expected placement.
 - Loopback is the default and non-loopback requires explicit acknowledgment.
+- Desktop sessions use an ephemeral loopback port and a random token that is
+  absent from URLs, readiness files, application state, JavaScript, and logs.
 - Provider data is treated as untrusted and cannot set training permission.
 - Generated source and dependency changes receive manual review.
 

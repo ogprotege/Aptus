@@ -1,11 +1,18 @@
-# EXAMPLE forensic review and salvage ledger
+# EXAMPLE forensic review, integration, and removal ledger
 
 > **Status:** Archived | **Authority:** Historical provenance ledger | **Snapshot:** 2026-07-22 | **Audience:** Maintainers and researchers | **Review:** Only when the recorded intake or disposition is challenged
 
-Status: all 75 local intake files reviewed on 2026-07-22. This ledger covers 58
-non-PDF files and 17 PDFs. The raw `EXAMPLE/` folder is ignored and remains
-local. None of its code, credentials, databases, or unpublished material is
-part of the repository change.
+Status: all 75 intake files were reviewed on 2026-07-22. This ledger covers 58
+non-PDF files and 17 PDFs. Every accepted finding or requirement was integrated
+into the canonical Aptus code, contracts, research records, examples, or
+roadmap. The raw `EXAMPLE/` folder was then removed in full at the user's
+direction. No legacy code, credentials, databases, unpublished material, or
+PDF binary from that folder was retained in the repository.
+
+In this ledger, `Retain` means retain a citation, bounded finding, or derived
+requirement in Aptus. It never means vendor or preserve the reviewed PDF or
+other source binary. Original paths and hashes identify the reviewed snapshot
+after the source files themselves are gone.
 
 ## What the work was trying to accomplish
 
@@ -44,7 +51,7 @@ phases must agree. BitFit remains experimental until an exact architecture
 exposes a meaningful existing bias set and a bias-delta save and reload path
 passes.
 
-## Salvage implemented now
+## Salvage integrated
 
 | Historical intent | Aptus implementation |
 |---|---|
@@ -87,13 +94,11 @@ must never trigger training automatically.
 ## Complete non-PDF ledger
 
 `Salvage` means the named requirement was carried into Aptus. `Archive` means
-the file is useful only as historical intent. `Discard` means no implementation
-or factual claim should be imported. The local source remains untouched unless
-the user later chooses to clean the intake copy. Hashes record the bytes seen at
-review time. They are not assertions about the current ignored `EXAMPLE/` tree,
-which the user may continue to edit. Finder `.DS_Store` files are volatile junk,
-so their snapshot hashes are provenance only and must not be used as live
-identity checks.
+only the bounded historical finding in this ledger remains useful. `Discard`
+means no implementation or factual claim was imported. Hashes record the final
+bytes reviewed before the source folder was removed. Finder `.DS_Store` files
+are volatile junk, so their snapshot hashes are provenance only and must not be
+used as live identity checks.
 
 | Path | SHA-256 | Disposition | Finding |
 |---|---|---|---|
@@ -115,12 +120,12 @@ identity checks.
 | `EXAMPLE/Chainlit_05-03-25/export_data.py` | `0a0106f76c247e0b95a3433be105fb0f2ab09f1a3748f891fb73a8ce31df0f52` | Discard code | Raw identifying export is unsafe; approved SFT and preference exporters need hashes and lineage |
 | `EXAMPLE/Chainlit_05-03-25/gitignore.txt` | `c05e37c183b58c14cebb490ec1080ef9f333479aa413f959fcb16247258ebd99` | Salvage selectively | Credential, database, and cache exclusions are useful; the broad JSON exclusion is not |
 | `EXAMPLE/Chainlit_05-03-25/huggingface_spaces_README.md` | `7df5e617b55438bdac150b31e318f39fb0e3e0cae8e739e02b926291bb2c23ac` | Discard | Stale deployment recipe with unsupported security claims |
-| `EXAMPLE/Chainlit_05-03-25/requirements.txt` | `ec593ce9d476ed92b50fb1a5f1c3ebc90cfa3a9942609d6322b6bb6aa25dfd5a` | Discard | Stale unlocked application dependency set |
+| `EXAMPLE/Chainlit_05-03-25/requirements.txt` | `ec593ce9d476ed92b50fb1a5f1c3ebc90cfa3a9942609d6322b6bb6aa25dfd5a` | Discard | Stale direct pins without a transitive or hash-locked environment contract |
 | `EXAMPLE/Chainlit_05-03-25/simple-deployment-plan.md` | `b99d471d0b356ce47d91dfa0330f1db3b888cca028196ce73f435f6a1fe4fae3` | Discard | No auth, storage, retention, or worker isolation contract |
 | `EXAMPLE/Chainlit_05-03-25/test_together_api.py` | `8d00606e23dcd1f41f8066cfa5e7faabe288a069e38b344bcf8b872caa296369` | Salvage pattern | Provider smoke tests should cover streaming, nonstreaming, latency, assertions, and token accounting |
-| `EXAMPLE/Chainlit_05-03-25/text 2.txt` | `0d141957830ba62c5b761ee00a5e3c44815b12d3ed2d4c676109aec67a144d6d` | Discard | Empty or whitespace-only junk |
-| `EXAMPLE/Chainlit_05-03-25/text 3.txt` | `691f0783706990a5a89644e2d41550ceaea21b765424b89fd2770764c1a0a6a1` | Discard | Empty or whitespace-only junk |
-| `EXAMPLE/Chainlit_05-03-25/text.txt` | `6e31d965edfefe25d29131fbe444e1bd28e75004861b5f581b5b7d42bdab76fd` | Discard | Empty or whitespace-only junk |
+| `EXAMPLE/Chainlit_05-03-25/text 2.txt` | `0d141957830ba62c5b761ee00a5e3c44815b12d3ed2d4c676109aec67a144d6d` | Discard | Share-label placeholder with no implementation or research content |
+| `EXAMPLE/Chainlit_05-03-25/text 3.txt` | `691f0783706990a5a89644e2d41550ceaea21b765424b89fd2770764c1a0a6a1` | Discard | Share-label placeholder with no implementation or research content |
+| `EXAMPLE/Chainlit_05-03-25/text.txt` | `6e31d965edfefe25d29131fbe444e1bd28e75004861b5f581b5b7d42bdab76fd` | Discard | Share-label placeholder with no implementation or research content |
 | `EXAMPLE/FT-New_4-20-25/.DS_Store` | `e4902606c6f2e1f66229e3f110ce031e0c9e6a062109ac0dab78ffc6f38abafd` | Discard | Finder metadata only |
 | `EXAMPLE/FT-New_4-20-25/Finals/ft-phase1-streamlined-v2-70b.py` | `de258fa07cb2683cbe5d98483eb24e97539ec46c69dd24b212da4d26bb1d036c` | Discard code | Invalid or nonserializable FSDP configuration and no trustworthy evaluation or resume proof |
 | `EXAMPLE/FT-New_4-20-25/Finals/gemini-ft-phase1-pro-70b.py` | `8c3175e575ca3f1014b88005fbae5e8c71fd7d05fe24296960c3a92baea67bf6` | Salvage intent | Run summary, effective batch, and telemetry survive; runtime configuration does not |
@@ -159,12 +164,14 @@ identity checks.
 ## Complete PDF ledger
 
 Every PDF was extracted in full and its first page was rendered for visual
-verification. Paper results describe their own models, tasks, ranks, software,
-and hardware. They are not Aptus capacity constants.
+verification before the local binary was removed. Paper results describe their
+own models, tasks, ranks, software, and hardware. They are not Aptus capacity
+constants. Any retained item below is a citation or bounded finding in Aptus,
+not a vendored copy of the paper.
 
 | Path | SHA-256 | Identity | Disposition and Aptus use |
 |---|---|---|---|
-| `EXAMPLE/Fine-Tuning/1-s2.0-S2949719125000202-main.pdf` | `e83d8a5f1a464ce6165f6b8b1efb232396549e56f0132bf482f2ecceec3ba3f3` | Pratap et al., *The fine art of fine-tuning*, 2025 | Retain as a secondary taxonomy and citation map; do not use heterogeneous comparison tables as calibration |
+| `EXAMPLE/Fine-Tuning/1-s2.0-S2949719125000202-main.pdf` | `e83d8a5f1a464ce6165f6b8b1efb232396549e56f0132bf482f2ecceec3ba3f3` | Pratap et al., *The fine art of fine-tuning*, 2025 | Retain its citation and bounded taxonomy findings; do not use heterogeneous comparison tables as calibration |
 | `EXAMPLE/Fine-Tuning/1-s2.0-main.pdf` | `e79c012f98381800c33bc58bc5a7316a330341e936946d7b9dccdb8c80840403` | Same article as prior row | Discard duplicate; extracted content differs only by an Elsevier logo line and the first-page render is malformed |
 | `EXAMPLE/Fine-Tuning/14bfffd6ccb59d615a65d40605c7af5c2f7a.pdf` | `725abeed0fffaddbed010784046b2f7514c747a4e42108139c96f3b787cd35da` | Ersoy and Ersahin, *Benchmarking Llama 3 70B for Code Generation*, 2024 | Low-confidence archive; reported scores omit the run facts needed for planning or comparison |
 | `EXAMPLE/Fine-Tuning/1907.10902v1.pdf` | `a1ec86ba21a3f2e7bb774c00f8b108dc955993f39feed72f5d8ee3910b6d8a51` | Akiba et al., *Optuna*, arXiv:1907.10902 | Roadmap a bounded search layer over feasible plans with persistent trial provenance and validation-only objectives |
@@ -178,7 +185,7 @@ and hardware. They are not Aptus capacity constants.
 | `EXAMPLE/Fine-Tuning/2403.13269v3.pdf` | `8e5e2a6db49a0be0ecd8309f15f45a35a02860f827b281ee7b2e6cbc253b6b07` | Liu et al., *AFLoRA*, arXiv:2403.13269 | Research-only dynamic-freezing compiler; preserve score, schedule, frozen-set history, optimizer state, and restart equivalence |
 | `EXAMPLE/Fine-Tuning/2404.03592v3.pdf` | `0a05f0a333aaa5a660fcd04ebe773904a880168480990dd5e42ab5e0ec56e32b` | Wu et al., *ReFT and LoReFT*, arXiv:2404.03592 | Separate representation-intervention runtime and artifact; not mergeable LoRA weights |
 | `EXAMPLE/Fine-Tuning/2406.10785v1.pdf` | `4e815a0f236a8040cbfc9b6b9d728104ff247bbdfa65a5e2cea3b2bc6443e143` | Song et al., *ShareLoRA*, arXiv:2406.10785 | Experimental shared-factor topology; require shape grouping, unique parameter accounting, serialization, and distributed synchronization |
-| `EXAMPLE/Fine-Tuning/2408.13296v3.pdf` | `d5cb9007312a04536661b28b9e84bee495e963fb6032e5a68c2a1c3d2ebfd8ae` | Parthasarathy et al., exhaustive fine-tuning review v1.1 | Retain as a lifecycle checklist; reject its universal defaults and incorrect claim that QLoRA quantizes adapter weights |
+| `EXAMPLE/Fine-Tuning/2408.13296v3.pdf` | `d5cb9007312a04536661b28b9e84bee495e963fb6032e5a68c2a1c3d2ebfd8ae` | Parthasarathy et al., exhaustive fine-tuning review v1.1 | Retain its bounded lifecycle-checklist findings; reject its universal defaults and incorrect claim that QLoRA quantizes adapter weights |
 | `EXAMPLE/Fine-Tuning/2408.13296v3v2.pdf` | `8e08c69874e74f07ae3e7676cb23e9135bdd86c126e8cc372f9a341b07d6bb29` | Byte-identical extracted text to prior row | Discard duplicate |
 | `EXAMPLE/Fine-Tuning/Definitive Guide to Testing LLM Applications.pdf` | `3d23e9b5d0ae20070291c9e702863cad58750cbd2621f3ae9cace00f4c7dd497` | LangChain, *The Definitive Guide to Testing LLM Applications* | Salvage vendor-neutral test suites, evaluator versioning, human review, repeated judges, CI subsets, and production-failure regression intake; do not require LangSmith |
 
@@ -193,8 +200,8 @@ and hardware. They are not Aptus capacity constants.
 - no automatic training from captured model responses or ratings.
 
 The old credential strings in historical scripts are intentionally omitted
-from this ledger. The user identified them as obsolete. Keeping `EXAMPLE/`
-ignored prevents the intake copy from entering a commit.
+from this ledger. No credential value or source script was retained. Removing
+the complete intake folder eliminated the local raw copy after review.
 
 ## Related documentation
 

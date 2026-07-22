@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { api, ApiError } from "./api";
+import {
+  DESKTOP_WORKBENCH_READY_MARKER,
+  getDesktopBridge,
+} from "./desktopBridge";
 import { FitLedger } from "./components/FitLedger";
 import { summarizeHardwareProbe } from "./lib/hardware";
 import { applyProviderModelInspection } from "./lib/modelInspection";
@@ -234,6 +238,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [bootstrapReady, setBootstrapReady] = useState(false);
   const [serviceVersion, setServiceVersion] = useState<string | undefined>();
   const [demoMode, setDemoMode] = useState(false);
   const [hardwareScanned, setHardwareScanned] = useState(false);
@@ -243,6 +248,7 @@ export default function App() {
   const [validationLevel, setValidationLevel] = useState<ValidateRequest["level"]>("static");
   const bundleRef = useRef<CompileResponse | null>(null);
   const draftVersionRef = useRef(0);
+  const workbenchReadyReportedRef = useRef(false);
 
   useEffect(() => {
     bundleRef.current = bundle;
@@ -323,6 +329,7 @@ export default function App() {
           applyJobUpdate(bootstrap.job);
           if (ACTIVE_JOB_STATES.has(bootstrap.job.state)) setStage("run");
         }
+        setBootstrapReady(true);
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") return;
@@ -330,6 +337,17 @@ export default function App() {
       });
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!bootstrapReady || workbenchReadyReportedRef.current) return;
+    const desktopBridge = getDesktopBridge();
+    if (!desktopBridge) return;
+
+    workbenchReadyReportedRef.current = true;
+    void desktopBridge.reportWorkbenchReady().catch(() => {
+      workbenchReadyReportedRef.current = false;
+    });
+  }, [bootstrapReady]);
 
   useEffect(() => {
     document.querySelector<HTMLElement>("#stage-heading")?.focus();
@@ -719,7 +737,12 @@ export default function App() {
         onSelect={setStage}
       />
 
-      <main id="main-content" className="workbench" aria-busy={busy !== null}>
+      <main
+        id="main-content"
+        className="workbench"
+        aria-busy={busy !== null}
+        data-aptus-workbench-ready={bootstrapReady ? DESKTOP_WORKBENCH_READY_MARKER : undefined}
+      >
         <MobileStageBar current={stage} completed={completed} runState={job?.phase ?? job?.state} onSelect={setStage} />
 
         <div className="workbench-topline">

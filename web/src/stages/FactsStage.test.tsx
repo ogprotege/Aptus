@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EXAMPLE_DRAFT } from "../demo";
+import type { AptusDesktopBridge } from "../desktopBridge";
 import type { MethodDescriptor } from "../types";
 import { FactsStage } from "./FactsStage";
 
@@ -41,6 +43,33 @@ const methods: MethodDescriptor[] = [
     pilot_requirement: "A non-empty trainable census is required.",
   },
 ];
+
+afterEach(() => {
+  delete window.aptusDesktop;
+});
+
+function FactsHarness() {
+  const [draft, setDraft] = useState(structuredClone(EXAMPLE_DRAFT));
+  return (
+    <FactsStage
+      draft={draft}
+      setDraft={setDraft}
+      profile={null}
+      busy={null}
+      demoMode={false}
+      onLoadExample={vi.fn()}
+      onClearExample={vi.fn()}
+      onProfile={vi.fn(async () => undefined)}
+      onModelInspect={vi.fn(async () => undefined)}
+      onInvalidateModelInspection={vi.fn()}
+      onPlan={vi.fn(async () => undefined)}
+      onHardwareScan={vi.fn(async () => undefined)}
+      hardwareScanned={false}
+      modelInspection={null}
+      methodCatalog={methods}
+    />
+  );
+}
 
 describe("FactsStage", () => {
   it("uses the API method registry and explains Apple unified memory", () => {
@@ -95,5 +124,44 @@ describe("FactsStage", () => {
     expect(screen.queryByLabelText("BF16 supported")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("8-bit backend supported")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("4-bit backend supported")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Choose file" })).not.toBeInTheDocument();
+  });
+
+  it("uses the native data picker only in the desktop host", async () => {
+    const bridge: AptusDesktopBridge = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => "/Users/wilson/training.jsonl"),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    window.aptusDesktop = bridge;
+    render(<FactsHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose file" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Dataset path")).toHaveValue("/Users/wilson/training.jsonl");
+    });
+    expect(bridge.pickDataset).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Choose a local JSONL, JSON, CSV, or text file/i)).toBeInTheDocument();
+  });
+
+  it("keeps the current data path when the native picker is cancelled", async () => {
+    const bridge: AptusDesktopBridge = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    window.aptusDesktop = bridge;
+    render(<FactsHarness />);
+    const originalPath = EXAMPLE_DRAFT.dataset.source_path;
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose file" }));
+
+    await waitFor(() => expect(bridge.pickDataset).toHaveBeenCalledOnce());
+    expect(screen.getByLabelText("Dataset path")).toHaveValue(originalPath);
   });
 });

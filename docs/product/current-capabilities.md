@@ -50,6 +50,9 @@ still lacks target CUDA release evidence.
 - Unique run-ID output directories, parent-owned completion promotion, and
   structural safetensors file-tree verification.
 - Local same-origin API and React workbench.
+- Native macOS application host with automatic private backend startup, native
+  dataset and output selection, Finder reveal actions, persisted local state,
+  and explicit CUDA-host handoff.
 
 ## Conditional behavior
 
@@ -67,6 +70,8 @@ still lacks target CUDA release evidence.
 - CPU, MPS, MLX, and ROCm execution. Apple Silicon total shared memory can be
   discovered, but the current compiler does not execute there and does not
   claim current free unified memory when the host cannot provide it.
+- CUDA execution inside the macOS application. A manually entered CUDA profile
+  describes another host and never enables local Mac run controls.
 - Full-parameter FP16 training.
 - Full-parameter FSDP.
 - int8-LoRA FSDP and QLoRA FSDP.

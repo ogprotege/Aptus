@@ -112,6 +112,8 @@ is fail-closed on Windows in v0.2. Use the managed service there.
 
 ## Interfaces
 
+- Aptus for Mac: native AppKit lifecycle, WebKit host, private session, native
+  path selection, and CUDA-host handoff over the same React workbench.
 - CLI: local scripting and operator use.
 - FastAPI: same-origin local workbench and programmatic control.
 - React workbench: five-stage planning and execution flow.
@@ -127,3 +129,4 @@ are future seams. They are not part of the v0.2 execution graph.
 - [Artifact compiler](artifact-compiler.md)
 - [Execution orchestrator](execution-orchestrator.md)
 - [Security boundaries](security-boundaries.md)
+- [macOS desktop host](macos-desktop.md)

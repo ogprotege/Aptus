@@ -43,6 +43,7 @@ first. No child process can mark its own artifacts complete.
 
 | Area | Current Aptus 0.2 contract |
 | --- | --- |
+| macOS application | Native AppKit host with authenticated bundled service and React workbench |
 | Objective | Supervised fine-tuning only |
 | Selectable methods | Full, LoRA, int8-LoRA, and QLoRA |
 | Visible nonselectable methods | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT, AFLoRA, and BiLoRA |
@@ -60,7 +61,24 @@ the detailed method, placement, precision, and backend rules.
 
 ## Choose your starting path
 
-### I want to understand Aptus on this Mac
+### I want to use Aptus on this Mac
+
+Build the native application, then open it from Finder:
+
+```bash
+desktop/macos/build.sh
+open desktop/macos/dist/Aptus.app
+```
+
+The app starts its private planning service, opens the five-stage workbench,
+provides native file and folder pickers, and stores state under
+`~/Library/Application Support/Aptus`. It can profile data, compare methods,
+compile a bundle, and run static validation on this Mac. It hands CUDA runtime
+actions to the target host because macOS CUDA execution is not supported.
+
+[Install Aptus for Mac](docs/getting-started/install.md#build-aptus-for-mac)
+
+### I want a planning-only tutorial
 
 Run the planning-only tutorial. It profiles bundled synthetic data, creates a
 real plan, compiles a bundle, and validates it statically. It downloads no
@@ -68,7 +86,7 @@ model, allocates no accelerator memory, and starts no training process.
 
 [Run the first-plan tutorial](docs/getting-started/first-plan.md)
 
-### I want to use the local workbench
+### I want to use the browser workbench
 
 Install the server extra and start the same-origin API and React application:
 
@@ -170,6 +188,7 @@ Review [dataset schemas](docs/reference/dataset-schemas.md), the
 ```text
 src/aptus/       planner, compiler, validators, API, CLI, and execution service
 web/             React workbench source
+desktop/macos/   native AppKit host, packaging, and macOS tests
 docs/            current product, methodology, architecture, reference, and operations docs
 Reference/       retained research inputs with explicit non-normative status
 examples/        synthetic datasets and examples
@@ -185,6 +204,7 @@ contract, tests, and documentation owner.
 | If you are... | Start here |
 | --- | --- |
 | New to Aptus | [Choose your path](docs/getting-started/choose-your-path.md) |
+| Building the Mac app | [Install Aptus](docs/getting-started/install.md#build-aptus-for-mac) |
 | Running a first local check | [First plan](docs/getting-started/first-plan.md) |
 | Preparing real training data | [Prepare a dataset](docs/guides/prepare-a-dataset.md) |
 | Choosing a method | [Method selection guide](docs/guides/choose-a-method.md) |

@@ -49,6 +49,15 @@ validation action also reruns the lower validation levels inside its own job,
 so an earlier pass is both an admission prerequisite and a recorded checkpoint
 in the operator workflow.
 
+Model-data validation prepares the selected method before any optimizer exists.
+It rejects zero or non-finite trainable parameters. The `full` path requires
+every model tensor to remain trainable. LoRA, int8-LoRA, and QLoRA permit only
+the compiled LoRA tensors to be trainable and require exactly one A/B pair for
+every inspected target instance. Optimizer construction then proves its parameter
+identities equal the validated trainable set. Measured preflight records the same
+census contract for the synthetic method path. Both real-model pilot phases must
+record identical census objects.
+
 ## Authorize full training
 
 A pilot pass is necessary but not sufficient. At train submission, Aptus deeply
@@ -57,7 +66,8 @@ rechecks:
 - compiler manifest and plan identity;
 - source dataset and pinned model revision;
 - installed environment binding;
-- pilot metrics, checkpoint trees, and pilot export trees;
+- preflight and pilot metrics, including the selected method's trainable census;
+- pilot checkpoint trees and pilot export trees;
 - current CUDA identities and free VRAM;
 - current free host RAM;
 - current free disk using measured checkpoint and export sizes.
@@ -88,6 +98,19 @@ is the parent that chooses the
 interpreter-bound single or Accelerate command, waits for aggregate completion,
 verifies pending artifacts, and promotes the report.
 
+The full trainer computes one deterministic split over the complete canonical
+JSONL. Ungrouped data uses `deterministic-exact-row-count-sha256`. Data with at
+least one declared `split_group` uses
+`deterministic-size-aware-group-sha256`. Every declared group stays on one side.
+The solver reaches the requested row count whenever a declared-group subset plus
+the available ungrouped rows makes it attainable. Otherwise an indivisible group
+can force a different realized size. The evidence records both sizes and the row
+error.
+
+The trainer hashes the canonical file during each split pass, binds every rank
+to the same canonical and assignment digests, and rechecks the file before and
+during lazy consumption. A change aborts the run.
+
 ## Completion contract
 
 Each full run receives a unique `run_*` directory. Aptus does not overwrite it.
@@ -99,6 +122,10 @@ stays `execution-approved`. The parent then verifies:
 - positive completed step count;
 - exact plan, candidate, run, distribution, world-size, and rank bindings;
 - measured CUDA peaks;
+- a positive finite trainable census with the selected method's exact scope and
+  a valid descriptor digest;
+- internally consistent dataset-split strategy, digests, counts, target size,
+  realized fraction, and row error;
 - expected safetensors files and nonempty tensor keys;
 - adapter or full-model provenance;
 - recursive path, size, and hash manifest coverage.

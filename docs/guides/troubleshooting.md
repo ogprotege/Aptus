@@ -9,9 +9,13 @@ silently change sequence length, effective batch size, method, or hardware.
 
 ## Hardware scan unavailable
 
-The API returns a manual-facts option when CUDA inspection is unavailable. Enter
-facts for planning, but run preflight and pilot on the actual CUDA host before
-training. The current development Mac cannot provide CUDA evidence.
+On Darwin arm64 without CUDA, a successful scan returns an `mps` discovery
+record for measured shared unified memory. It can inform hardware inventory, but
+it cannot authorize MPS or MLX execution. Current memory availability may remain
+unknown. If no supported probe can measure the host, the API returns a
+manual-facts option. Manual facts can support planning, but preflight and pilot
+must run on the actual CUDA host before training. The current development Mac
+cannot provide CUDA execution evidence.
 
 ## Static validation fails
 
@@ -29,13 +33,24 @@ package index access, and the resolved installed-environment report.
 Confirm network or cache access, repository ID, immutable revision, tokenizer,
 model family, parameter count, gated-model credentials, and every canonical
 training row. Provider inspection does not guarantee that the training runtime
-can load the revision.
+can load the revision. Also inspect the trainable census. Full training rejects
+any frozen model tensor, while LoRA-based paths reject trainable tensors outside
+the compiled LoRA parameter scope.
 
 ## Preflight or pilot runs out of memory
 
 Free VRAM can change after planning. Stop unrelated GPU work or choose different
 explicit facts and replan. Do not treat the analytic estimate as a measured
 ceiling. A pilot failure blocks full training.
+
+## Dataset split is rejected
+
+Top-level and `metadata.split_group` values must be non-empty strings and must
+agree when both are present. Aptus rejects a canonical dataset that changes
+while its split is computed or consumed. In distributed runs, every rank must
+observe the same canonical digest, assignment digest, and row counts. Large
+declared groups may prevent an exact evaluation fraction. Use the recorded
+target, realized fraction, and row error to review the result.
 
 ## Full FSDP is rejected
 

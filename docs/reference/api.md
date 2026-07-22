@@ -18,13 +18,26 @@ embedded plan is returned too. A standalone plan that was never compiled is not
 selected automatically after restart. Authorization shown here can be cached.
 Train admission performs the authoritative deep recheck.
 
+`capabilities.methods` contains only methods accepted by the current planner.
+`capabilities.method_catalog` is the wider typed registry. Each descriptor
+separates research identity, lifecycle, selectable state, compiler and export
+contracts, supported backends and distributions, evidence IDs, required pilot,
+and any blocker. The registry contains four selectable `gated-executable`
+descriptors, four nonselectable `experimental` descriptors, and three
+nonselectable `research-only` descriptors. A method appearing in that catalog
+does not make it executable.
+
 ## Fact inspection
 
 ### `GET /api/v1/hardware`
 
 Measures CUDA devices, free VRAM, host RAM, free host RAM, reserve, and disk on
-the service host. Returns `status: unavailable` when measurement cannot run.
-Hardware inspection is blocked while a managed Aptus GPU job is active.
+the service host. On Darwin arm64 without CUDA, it returns one `mps` record for
+the measured Apple shared unified-memory pool. That record is discovery
+evidence, not MPS or MLX execution support. Availability remains `null` when the
+host cannot measure it. Aptus never substitutes total unified memory for free
+unified memory. Returns `status: unavailable` when measurement cannot run.
+Hardware inspection is blocked while a managed Aptus accelerator job is active.
 
 ### `POST /api/v1/models/inspect`
 
@@ -101,7 +114,9 @@ canonical training set.
 ```
 
 With `hardware.discovery=local-scan`, local scanning is blocked during an active
-managed job. Manual facts do not probe CUDA.
+managed job. Manual facts do not probe the declared backend. A local Apple
+Silicon scan produces unsupported candidate rows because v0.2 execution remains
+CUDA-only.
 
 ### `GET /api/v1/plans/{plan_id}`
 

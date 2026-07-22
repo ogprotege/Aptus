@@ -29,15 +29,25 @@ families include:
 - unsafe path or generated-source structure;
 - direct requirement-set mismatch;
 - dependency or environment mismatch;
-- pinned model, tokenizer, parameter-count, or target-module mismatch;
+- pinned model, tokenizer, parameter-count, target-module, method capability, or
+  trainable-scope mismatch;
 - canonical-row transformation failure;
+- invalid or conflicting `split_group` declaration;
+- canonical dataset mutation, split-assignment disagreement, or inconsistent
+  split strategy, digest, count, target, realized-fraction, or row-error evidence;
 - CUDA, precision, quantization, distribution, or world-size mismatch;
+- zero, non-finite, boolean-typed, unplanned, incomplete-LoRA-pair, optimizer-set,
+  malformed, or cross-phase-inconsistent trainable-parameter census;
 - pilot checkpoint continuation or artifact-manifest failure;
 - stale report bindings or insufficient current capacity;
 - full-run metrics, rank evidence, or structural export failure.
 
 Consumers must not decide success from the absence of one named code. Use the
 report state and inspect every finding.
+
+Some runtime failures are attached to a failed job as an error message rather
+than a portable static finding code. The job state and complete log remain part
+of the operator decision.
 
 ## Operator response
 

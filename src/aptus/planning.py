@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import replace
 
-from .catalog import METHOD_EVIDENCE, target_modules_for
+from .catalog import target_modules_for
 from .domain import (
     Backend,
     CandidatePlan,
@@ -23,6 +23,7 @@ from .domain import (
     to_primitive,
 )
 from .evidence import evidence_for
+from .methods import method_descriptor, selectable_method_descriptors
 from .plan_contract import candidate_id_for_payload, plan_id_for_payload
 
 
@@ -231,6 +232,12 @@ def estimate_candidate(
     unsupported: list[str] = []
     infeasible: list[str] = []
     conditional: list[str] = []
+    descriptor = method_descriptor(method)
+    if distribution.value not in descriptor.supported_distributions:
+        unsupported.append(
+            f"The {descriptor.method_id} registry contract does not support "
+            f"{distribution.value} distribution."
+        )
     try:
         target_modules = (
             () if method == Method.FULL else target_modules_for(model.family)
@@ -250,8 +257,15 @@ def estimate_candidate(
     )
     if not devices:
         unsupported.append("At least one CUDA GPU is required.")
-    elif any(device.backend != Backend.CUDA for device in participating_devices):
-        unsupported.append("Aptus v0.2 execution supports CUDA GPUs only.")
+    elif any(
+        device.backend.value not in descriptor.supported_backends
+        for device in participating_devices
+    ):
+        supported = ", ".join(descriptor.supported_backends) or "none"
+        unsupported.append(
+            f"The {descriptor.method_id} registry contract supports these backends: "
+            f"{supported}."
+        )
     if target.sequence_length > model.context_length:
         infeasible.append("Requested sequence length exceeds the model context length.")
     if dataset.schema_name not in {
@@ -514,7 +528,7 @@ def estimate_candidate(
         preference_score=0.0,
         confidence="uncalibrated-pilot-required",
         assumptions=selected_memory.assumptions + tuple(policy_assumptions),
-        evidence=METHOD_EVIDENCE[method],
+        evidence=descriptor.evidence_ids,
         candidate_id="",
         status=status,
         distribution=distribution,
@@ -607,7 +621,8 @@ def plan_training(
             hardware=hardware,
             target=target,
         )
-        for method in Method
+        for descriptor in selectable_method_descriptors()
+        for method in (Method(descriptor.method_id),)
         for distribution in _distributions()
     )
     candidates = _mark_frontier(candidates)

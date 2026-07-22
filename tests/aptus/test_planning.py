@@ -2,8 +2,10 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from aptus.domain import CandidateStatus, Distribution, Method, Objective, gibibytes
+from aptus.methods import METHOD_REGISTRY
 from aptus.planning import NoFeasiblePlanError, plan_training
 
 from tests.aptus.helpers import make_plan
@@ -45,6 +47,32 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(multi)
         self.assertTrue(
             all(item.status == CandidateStatus.UNSUPPORTED for item in multi)
+        )
+
+    def test_registry_distribution_support_is_an_authoritative_gate(self) -> None:
+        restricted = replace(
+            METHOD_REGISTRY["lora"], supported_distributions=("single",)
+        )
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(METHOD_REGISTRY, {"lora": restricted}),
+        ):
+            plan = make_plan(Path(temporary), gpu_count=2)
+        distributed_lora = [
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA
+            and item.distribution in {Distribution.DDP, Distribution.FSDP}
+        ]
+        self.assertTrue(distributed_lora)
+        self.assertTrue(
+            all(item.status == CandidateStatus.UNSUPPORTED for item in distributed_lora)
+        )
+        self.assertTrue(
+            all(
+                any("registry contract" in reason for reason in item.rejection_reasons)
+                for item in distributed_lora
+            )
         )
 
     def test_quantized_fsdp_is_fail_closed(self) -> None:

@@ -29,6 +29,7 @@ try:
 except ImportError:  # pragma: no cover - POSIX uses fcntl.
     msvcrt = None
 
+from .attestation import require_trainable_parameter_census
 from .domain import RunState, ValidationState
 from .plan_contract import (
     sha256_file,
@@ -698,6 +699,16 @@ def _verify_pilot_artifacts(bundle: Path, metrics: dict[str, Any]) -> tuple[int,
     phases = (metrics.get("phase_one"), metrics.get("phase_two_resumed"))
     if not all(isinstance(phase, dict) for phase in phases):
         raise ValueError("Pilot phase metrics are missing.")
+    censuses = tuple(
+        require_trainable_parameter_census(
+            phase.get("trainable_parameter_census"),
+            method=str(plan["recommended"]["method"]),
+        )
+        for phase in phases
+        if isinstance(phase, dict)
+    )
+    if len(censuses) != 2 or censuses[0] != censuses[1]:
+        raise ValueError("Pilot phases do not bind the same trainable parameter set.")
     try:
         expected_final_export_bytes = max(
             int(phase["final_export"]["total_bytes"])

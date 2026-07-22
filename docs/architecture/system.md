@@ -31,11 +31,13 @@ become permission facts automatically.
 
 ## 2. Planning
 
-The planner enumerates the versioned v0.2 candidate matrix, applies support
-rules, calculates transparent point and upper memory estimates, and ranks viable
+The planner reads only the registry's four selectable `gated-executable`
+methods, enumerates the versioned 12-row placement matrix, applies support rules,
+calculates transparent point and upper memory estimates, and ranks viable
 `feasible` and `conditional` candidates, with feasible candidates first. Plan
 and candidate IDs derive from canonical semantic payloads. Changing a bound fact
-changes identity.
+changes identity. Experimental, research-only, and documentation-only methods
+cannot enter enumeration.
 
 Planning is analytic. It does not import the selected training stack or allocate
 CUDA memory.
@@ -63,6 +65,10 @@ Each runtime level binds its output to the bundle, plan, candidate, dataset,
 model revision, environment, hardware, and prior artifacts as applicable. A
 higher state does not turn estimates into quality measurements.
 
+Model-data prepares the selected method and enforces its trainable scope.
+Measured preflight persists a synthetic-path census. Both real-model pilot
+phases must carry identical census records before the pilot can pass.
+
 ## 5. Execution
 
 The local `JobService` persists jobs and logs under a selected state root. It
@@ -83,10 +89,19 @@ Train submission holds the global lease and record locks while it deeply
 revalidates pilot and capacity evidence. It then assigns a unique job and run ID.
 The training child writes pending evidence to that run directory.
 
-After child success, the parent enters `verifying`. It checks metrics, bindings,
-rank records, final-export structure, paths, sizes, and hashes. It persists the
-attestation and promotes the report to `measured-run-pass` in an idempotent
-transaction. Child exit alone cannot declare completion.
+The full trainer computes a deterministic group-aware split over the complete
+canonical JSONL. It binds canonical and assignment digests, detects mutation,
+requires distributed agreement, and records requested and realized evaluation
+sizes. Its grouped subset solver reaches the target when the atomic group sizes
+make that possible. It also recomputes the method-scope census before optimizer
+construction, binds one LoRA A/B pair to each inspected target instance, and
+requires exact optimizer membership.
+
+After child success, the parent enters `verifying`. It checks metrics, split and
+census evidence, bindings, rank records, final-export structure, paths, sizes,
+and hashes. It persists the attestation and promotes the report to
+`measured-run-pass` in an idempotent transaction. Child exit alone cannot
+declare completion.
 
 For direct portable execution on POSIX, `run.py` performs the same parent role,
 holds the shared lease through completion promotion, and recovers complete

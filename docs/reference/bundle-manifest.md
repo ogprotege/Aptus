@@ -61,7 +61,9 @@ The compiler file list excludes `.validation-report.lock`,
 as `pilot-output/` and `runs/`. These paths can change after compilation. The
 report binds `preflight-metrics.json` by digest and structured content. Pilot and
 run outputs use separate metrics and recursive file-tree manifests. The lock
-file carries no evidence.
+file carries no evidence. Measured preflight, pilot, and full-run metrics carry
+the selected method's trainable census. Full-run metrics also carry the
+canonical dataset and split-assignment evidence.
 
 ## Mutation rule
 

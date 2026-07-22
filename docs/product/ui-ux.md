@@ -30,9 +30,16 @@ provider-declared facts, and can infer a normalized Aptus family through an
 explicit alias rule. The UI distinguishes that inferred family from the raw
 provider evidence and shows warnings. Inspection cannot check the
 training-permission box or decide a license. Hardware scanning clearly names the
-server host. The preview explains that single-device rows bind the strongest
-method-compatible visible GPU, while distributed rows use limiting VRAM and
-capabilities shared by every participating GPU.
+server host. Apple Silicon scans label the shared unified-memory pool and state
+that the current compiler remains fail-closed. CUDA previews explain that
+single-device rows bind the strongest method-compatible visible GPU, while
+distributed rows use limiting VRAM and capabilities shared by every
+participating GPU.
+
+The method preference is populated from the API's selectable registry entries.
+The readiness board uses a separate status lane for gated executable,
+experimental, and research-only identities. Every unavailable method states the
+missing proof. Presence in that board never makes a method selectable.
 
 Profiling statistics can be sampled, but the UI explains that compilation writes
 every canonical row.

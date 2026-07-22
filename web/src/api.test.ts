@@ -41,6 +41,43 @@ describe("typed API client", () => {
     expect(bootstrap.job?.state).toBe("cancelling");
   });
 
+  it("rejects unknown method lifecycles at the bootstrap boundary", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            capabilities: {
+              method_catalog: [
+                {
+                  schema_version: "aptus.method-descriptor.v1",
+                  method_id: "future-method",
+                  display_name: "Future method",
+                  summary: "Unknown lifecycle fixture.",
+                  lifecycle: "secretly-executable",
+                  selectable: false,
+                  parameter_scope: "unknown",
+                  parameterization: "unknown",
+                  base_storage: "unknown",
+                  compiler_id: null,
+                  export_kind: null,
+                  supported_backends: [],
+                  supported_distributions: [],
+                  evidence_ids: ["fixture"],
+                  pilot_requirement: "Unknown",
+                  blocker: "Unknown",
+                },
+              ],
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    await expect(api.bootstrap()).rejects.toThrow(/violates its API contract/i);
+  });
+
   it("translates the UI fact draft into the strict v0.2 plan request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

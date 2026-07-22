@@ -17,3 +17,9 @@ The example supports contract and static product checks without downloading a
 model. Runtime validation and training still require a real immutable model
 revision, training rights, compatible dependencies, and supported CUDA
 hardware.
+
+`reviewed-sft.jsonl` demonstrates the governed-feedback shape described in the
+[reviewed corpus contract](../docs/reference/reviewed-corpus-contract.md). Its
+rows are synthetic. Two rows share each `split_group`, so the generated trainer
+must keep the related source material on one side of the train/evaluation
+boundary.

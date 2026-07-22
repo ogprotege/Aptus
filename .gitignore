@@ -25,3 +25,6 @@ coverage/
 
 # Disposable audit environments
 /.audit-sandboxes/
+
+# Local intake material may contain credentials, corpora, or unpublished work.
+/EXAMPLE/

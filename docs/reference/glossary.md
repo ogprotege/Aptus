@@ -33,6 +33,13 @@ partition of a global batch.
 The exact top-level package versions emitted in `requirements.txt`. They do not
 form a complete transitive dependency lock.
 
+## Dataset-split evidence
+
+The full-run record that binds the deterministic split strategy, canonical
+JSONL digest, assignment digest, train and evaluation counts, declared-group and
+split-unit counts, target evaluation size, realized fraction, and row error.
+Grouped datasets do not promise an exact target fraction.
+
 ## FSDP
 
 Fully Sharded Data Parallel. V0.2 treats LoRA FSDP as conditional and rejects
@@ -49,10 +56,18 @@ unrelated programs that bypass Aptus.
 A 40 to 64 character hexadecimal provider commit identifier. Mutable branches
 and tags are outside the model contract.
 
+## Method descriptor
+
+A versioned runtime record for one accepted method identity. It carries a
+lifecycle, selectable flag, parameter scope, evidence, blocker, and required
+proof. Only `gated-executable` descriptors with `selectable=true`, a compiler,
+an export contract, and supported execution values can enter the planner.
+
 ## Model-data validation
 
 The runtime level that resolves the pinned model and tokenizer, verifies model
-facts and adapter targets, and transforms every canonical row.
+facts and adapter targets, prepares the selected method, enforces its trainable
+scope, and transforms every canonical row.
 
 ## Parent promotion
 
@@ -75,6 +90,19 @@ failures before the real-model pilot.
 
 A recursive path, size, and digest manifest plus safetensors structure and
 provenance checks. It does not evaluate model behavior.
+
+## Split group
+
+An optional non-empty string at top level or `metadata.split_group`. All rows
+with the same declared value remain in one full-run partition. Group identity is
+not included in public split evidence.
+
+## Trainable-parameter census
+
+A method-scope record containing trainable and frozen tensor and parameter
+counts, finite-value status, unexpected-trainable count, and a SHA-256 digest
+over sorted trainable names, shapes, and dtypes. The digest does not disclose
+the names or parameter values.
 
 ## Training authorization
 

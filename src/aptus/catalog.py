@@ -35,17 +35,6 @@ STACK_VERSIONS = {
     "safetensors": "0.8.0",
 }
 
-METHOD_EVIDENCE = {
-    Method.FULL: ("method.full.transformers", "estimate.memory.v2"),
-    Method.LORA: ("method.lora.paper", "estimate.memory.v2"),
-    Method.INT8_LORA: (
-        "method.lora.paper",
-        "method.bitsandbytes.int8",
-        "estimate.memory.v2",
-    ),
-    Method.QLORA: ("method.qlora.paper", "estimate.memory.v2"),
-}
-
 
 def bundle_requirements(method: str | Method) -> tuple[str, ...]:
     normalized = Method(method)

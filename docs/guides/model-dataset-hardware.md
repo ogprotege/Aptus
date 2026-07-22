@@ -42,6 +42,22 @@ row shape. Compilation then:
 The sample limit bounds profiling statistics. It does not truncate the canonical
 training data placed in the bundle.
 
+Rows may declare a non-empty `split_group` either at the top level or under
+`metadata.split_group`. When both locations are present, they must agree. Full
+training assigns every row with the same declared value to one deterministic
+train or evaluation side. The metrics record row, declared-group, split-unit,
+target, realized, row-error, dataset-digest, and assignment-digest evidence
+without publishing group names. Ungrouped data uses
+`deterministic-exact-row-count-sha256`; grouped data uses
+`deterministic-size-aware-group-sha256`. The grouped solver finds an exact
+declared-group row-count subset when one can reach the target with the available
+ungrouped rows. Otherwise it selects the globally closest feasible row count. A
+large indivisible group can therefore still prevent an exact requested fraction.
+The trainer rejects canonical data that changes across split passes or lazy
+consumption, and distributed ranks must agree on the binding. Rows without a
+group remain independent split units. Keep a final test set outside the training
+JSONL.
+
 Inspect source and compiled rows for secrets, private data, consent, rights,
 malformed turns, label leakage, and task mismatch before compilation.
 
@@ -57,12 +73,21 @@ For a manual homogeneous CUDA profile, provide:
 - per-device reserve;
 - currently free disk.
 
-Local scanning preserves each visible device. A single-device row binds the
-method-compatible CUDA GPU with the greatest usable free VRAM after reserve,
-with the lowest visible index breaking ties. Distributed rows bind every
-visible GPU and use the limiting VRAM plus capabilities shared by all ranks.
-The plan records the exact device indices. The manual API describes one device
-profile repeated by GPU count, so use local scan for heterogeneous hosts.
+Local CUDA scanning preserves each visible device. A single-device row binds
+the method-compatible CUDA GPU with the greatest usable free VRAM after
+reserve, with the lowest visible index breaking ties. Distributed rows bind
+every visible GPU and use the limiting VRAM plus capabilities shared by all
+ranks. The plan records the exact device indices. The manual API describes one
+device profile repeated by GPU count, so use local scan for heterogeneous CUDA
+hosts.
+
+On Darwin arm64 without CUDA, local discovery records one `mps` device backed
+by the measured shared unified-memory pool. It does not call that pool dedicated
+VRAM, infer unsupported precision or quantization flags, or substitute total
+memory when current availability is unknown. All v0.2 execution candidates then
+remain explicitly unsupported. See the separate
+[Apple Silicon pilot matrix](../operations/apple-silicon-pilot.md) for the
+proposed MLX validation sequence.
 
 Manual facts are useful for planning a different host, but Aptus does not
 accept a manually entered compute-capability value as runtime evidence.
@@ -72,9 +97,9 @@ pilot remains required.
 
 The current executable catalog requires CUDA. Full fine-tuning also requires
 BF16. Adapter methods can select FP16, but the exact path must pass the pilot.
-Declaring total VRAM is not enough. Train admission checks current free VRAM
-against the measured pilot peak plus reserve. It also checks current free host
-RAM and disk.
+Declaring total VRAM is not enough. CUDA train admission checks current free
+VRAM against the measured pilot peak plus reserve. It also checks current free
+host RAM and disk.
 
 ## Distributed facts
 

@@ -1,14 +1,15 @@
 {
   "schema_version": "aptus.method-research-catalog.v1",
-  "updated_at": "2026-07-21",
+  "updated_at": "2026-07-22",
   "authority": {
     "kind": "documentation-only",
     "runtime_sources": [
       "src/aptus/domain.py",
+      "src/aptus/methods/registry.py",
       "src/aptus/planning.py",
       "src/aptus/generation.py"
     ],
-    "warning": "Presence in research_index does not mean implemented, selectable, compatible, or supported."
+    "warning": "This file is documentation-only. src/aptus/methods/registry.py is authoritative for runtime descriptors and selectable state. Presence in research_index does not mean implemented, selectable, compatible, or supported."
   },
   "axes": [
     "objective",
@@ -266,6 +267,9 @@
     "parameterizations": [
       "dora",
       "adalora",
+      "bilora",
+      "aflora",
+      "sharelora",
       "prompt-tuning",
       "prefix-tuning",
       "p-tuning-v2",
@@ -324,8 +328,9 @@
       "nvme-offload",
       "flashattention-selection",
       "sequence-packing",
-      "rocm",
-      "mps",
+      "rocm-execution",
+      "mps-execution",
+      "mlx-execution",
       "cpu-training",
       "managed-cloud-runner"
     ],

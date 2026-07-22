@@ -201,6 +201,26 @@ export interface CandidatePlan {
   [key: string]: unknown;
 }
 
+export interface MethodDescriptor {
+  schema_version: string;
+  method_id: string;
+  display_name: string;
+  summary: string;
+  lifecycle: "gated-executable" | "experimental" | "research-only";
+  selectable: boolean;
+  parameter_scope: string;
+  parameterization: string;
+  base_storage: string;
+  compiler_id: string | null;
+  export_kind: string | null;
+  supported_backends: string[];
+  supported_distributions: string[];
+  evidence_ids: string[];
+  pilot_requirement: string;
+  blocker?: string | null;
+  aliases?: string[];
+}
+
 export interface EvidenceRecord {
   evidence_id: string;
   claim: string;
@@ -420,7 +440,11 @@ export interface BootstrapResponse {
     task?: string;
     packing?: boolean;
   };
-  capabilities?: Record<string, unknown>;
+  capabilities?: {
+    methods?: string[];
+    method_catalog?: MethodDescriptor[];
+    [key: string]: unknown;
+  };
   plan?: TrainingPlan | null;
   bundle?: CompileResponse | null;
   job?: Job | null;
@@ -436,10 +460,10 @@ export interface HardwareProbeResponse {
   devices?: Array<{
     name?: string;
     backend?: string;
-    total_vram_bytes?: number;
-    total_vram_gib?: number;
-    free_vram_bytes?: number;
-    free_vram_gib?: number;
+    total_vram_bytes?: number | null;
+    total_vram_gib?: number | null;
+    free_vram_bytes?: number | null;
+    free_vram_gib?: number | null;
     supports_bf16?: boolean;
     supports_8bit?: boolean;
     supports_4bit?: boolean;
@@ -447,14 +471,14 @@ export interface HardwareProbeResponse {
   gpu_count?: number;
   backend?: string;
   vram_gib?: number;
-  host_ram_bytes?: number;
-  host_ram_gib?: number;
-  host_ram_free_bytes?: number;
-  host_ram_free_gib?: number;
-  reserve_per_device_bytes?: number;
-  reserve_gib?: number;
-  disk_free_bytes?: number;
-  disk_free_gib?: number;
+  host_ram_bytes?: number | null;
+  host_ram_gib?: number | null;
+  host_ram_free_bytes?: number | null;
+  host_ram_free_gib?: number | null;
+  reserve_per_device_bytes?: number | null;
+  reserve_gib?: number | null;
+  disk_free_bytes?: number | null;
+  disk_free_gib?: number | null;
   provenance?: Record<string, unknown>;
   [key: string]: unknown;
 }

@@ -33,7 +33,8 @@ replace a populated output.
 ## Generated execution material
 
 - `requirements.txt`: exact direct method pins, not a transitive lock.
-- `config/trainer.json`: Trainer arguments selected by the plan.
+- `config/trainer.json`: Trainer arguments plus the selected descriptor's
+  compiler and export identifiers.
 - `config/accelerate.yaml`: distributed launch configuration when applicable.
 - `validate.py`: portable validation parent.
 - `preflight.py`: selected-method synthetic CUDA check.
@@ -57,6 +58,12 @@ The bundle contains:
 
 These are cleartext copies and are also present in the ZIP.
 
+The generated full trainer computes the train and evaluation split at runtime.
+It keeps declared `split_group` units intact, binds canonical and assignment
+digests, detects mutation, and records requested and realized split sizes. The
+same generated runtime enforces the selected method's trainable scope before it
+constructs an optimizer.
+
 ## Integrity boundary
 
 The compiler manifest covers compiler-created inputs and programs. Runtime
@@ -69,7 +76,10 @@ editing generated source or configuration in place.
 
 ## Current method boundary
 
-The compiler can emit single-device and DDP configurations for supported
-methods, plus conditional LoRA FSDP. It refuses full-parameter FSDP and
-quantized FSDP. It does not emit cloud infrastructure, provider provisioning,
-evaluation pipelines, MCP tools, or deployment exporters.
+The typed registry exposes four selectable `gated-executable` methods. The
+compiler can emit their guarded single-device and DDP configurations, plus
+conditional LoRA FSDP. Experimental and research-only descriptors have no
+compiler or export identifiers and cannot enter this boundary. The compiler
+refuses full-parameter FSDP and quantized FSDP. It does not emit cloud
+infrastructure, provider provisioning, evaluation pipelines, MCP tools, or
+deployment exporters.

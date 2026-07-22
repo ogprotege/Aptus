@@ -33,7 +33,30 @@ It does not import that file's editorial ranking as an Aptus quality score. The
 complete source disposition is recorded in the
 [reconciliation ledger](../research/reference-and-to-review-reconciliation.md).
 The documentation-only [machine-readable catalog](method-catalog.json) mirrors
-the current 12-row matrix and keeps research names outside runtime authority.
+the current 12-row planner matrix and indexes a wider research backlog. Runtime
+authority for method identity and readiness belongs to the 11 descriptors in
+`src/aptus/methods/registry.py`. Four are selectable and
+`gated-executable`. DoRA, BitFit, AdaLoRA, and ShareLoRA are `experimental`.
+LoReFT, AFLoRA, and BiLoRA are `research-only`. The seven nonselectable
+descriptors have no compiler or export contract.
+
+## Registry lifecycle
+
+The lifecycle value and selectable flag answer different questions:
+
+- `gated-executable` means the descriptor is selectable and names a compiler,
+  export contract, supported backend, and supported placement. Every plan still
+  needs the normal feasibility and runtime evidence gates.
+- `experimental` means Aptus has accepted the method identity and a concrete
+  path to implementation. It remains nonselectable, carries an explicit
+  blocker and pilot requirement, and cannot enter a plan.
+- `research-only` means Aptus tracks the primary mechanism and missing proof,
+  but has not accepted an implementation path. It is also nonselectable.
+- A name present only in the documentation research index has no runtime
+  descriptor or product lifecycle.
+
+The bootstrap API returns all runtime descriptors for explanation. Only its
+separate selectable method list can populate planner preferences.
 
 ## Axis 1: objective and data contract
 
@@ -62,8 +85,9 @@ Parameter scope answers which existing parameters may change.
 |---|---|---|
 | All parameters | Every base parameter is trainable | `full` path |
 | Frozen base plus injected parameters | Base parameters remain frozen; added adapter parameters train | LoRA-based paths |
-| Selected existing parameters | Biases, selected layers, tokens, or another sparse subset train | Research only |
-| Representation intervention | Base remains frozen; learned operations alter hidden representations | Research only |
+| Selected existing biases | Existing bias tensors train while all other model parameters remain frozen | BitFit is experimental and nonselectable |
+| Other selected existing parameters | Selected layers, tokens, or another sparse subset train | Research index only |
+| Representation intervention | Base remains frozen; learned operations alter hidden representations | LoReFT is research-only and nonselectable |
 | Student parameters | A student trains against a teacher | Research only |
 
 Scope is distinct from objective. SFT can train all parameters or a LoRA
@@ -78,12 +102,14 @@ Parameterization defines the trainable mathematical object.
 |---|---|---|
 | Dense full weights | All parameters | Executable as `full` |
 | LoRA low-rank update | Frozen base plus injected low-rank matrices | Executable as `lora`, `int8-lora`, and the LoRA part of `qlora` |
-| DoRA magnitude and direction | Frozen base plus magnitude and low-rank directional update | Research only |
-| Adaptive or initialized LoRA variants: AdaLoRA, PiSSA, rsLoRA, LoRA+, LoftQ | Variant-specific | Research only |
-| Prompt, prefix, and P-Tuning v2 | Learned prompt representations | Research only |
-| Adapters, IA3, VeRA, BOFT/OFT, MiSS | Added or transformed PEFT parameters | Research only |
-| BitFit and LISA | Selected existing parameters | Research only |
-| ReFT and LoReFT | Hidden-representation interventions | Research only |
+| DoRA magnitude and direction | Frozen base plus magnitude and low-rank directional update | Experimental, nonselectable |
+| AdaLoRA adaptive budget | Changing low-rank budget and importance state | Experimental, nonselectable |
+| ShareLoRA shared factors | Low-rank factors shared across compatible layers | Experimental, nonselectable |
+| BitFit | Selected existing bias tensors | Experimental, nonselectable |
+| LoReFT | Hidden-representation interventions | Research-only, nonselectable |
+| AFLoRA dynamic freezing | Low-rank parameter groups freeze under a scored schedule | Research-only, nonselectable |
+| BiLoRA bilevel update | Disjoint data partitions drive inner and outer optimization | Research-only, nonselectable |
+| PiSSA, rsLoRA, LoRA+, prompt, prefix, P-Tuning v2, adapters, IA3, VeRA, BOFT/OFT, MiSS, and LISA | Variant-specific | Documentation research index only |
 
 DoRA means Weight-Decomposed Low-Rank Adaptation
 ([primary paper](https://arxiv.org/abs/2402.09353)). ReFT means Representation
@@ -186,7 +212,9 @@ V0.2 currently verifies operational behavior:
 This does not prove that a model meets a user quality target. MMLU, HellaSwag,
 GSM8K, TruthfulQA, custom task metrics, safety evaluations, regression
 baselines, and contamination checks are future evaluation contracts. The
-benchmark names in `TO-REVIEW/server.ts` are interface ideas only.
+benchmark names in the removed staging sketch are interface ideas only; their
+disposition is preserved in the
+[reconciliation ledger](../research/reference-and-to-review-reconciliation.md).
 
 ## Axis 9: export
 
@@ -206,8 +234,9 @@ serving-latency, GGUF, ONNX, or deployment proof.
 
 GGUF, ONNX, PyTorch pickle export, adapter merge, quantized serving conversion,
 model registry publication, and provider deployment are future exporter
-contracts. The declarations in `TO-REVIEW/server.ts` do not make them current
-features.
+contracts. Historical declarations are recorded in the
+[reconciliation ledger](../research/reference-and-to-review-reconciliation.md)
+and do not make those features current.
 
 ## Current executable matrix
 
@@ -239,27 +268,35 @@ Every eligible row still requires:
 No row bypasses these gates because a paper, README, or user preference calls a
 method efficient.
 
-## Research-only and future method families
+## Nonselectable and future method families
 
-The following names are indexed for future evidence work. They are not
-implemented, selectable, compiled, or validated by Aptus v0.2.
+The runtime registry exposes seven nonselectable descriptors so the API and
+workbench can explain their evidence and blockers:
+
+- Experimental: DoRA, BitFit, AdaLoRA, and ShareLoRA.
+- Research-only: LoReFT, AFLoRA, and BiLoRA.
+
+None has a compiler ID, export contract, supported backend, or supported
+placement. The documentation research index also tracks the following broader
+backlog. Those names have no runtime descriptor unless listed above.
 
 - Objectives: continued pretraining, DAPT, TAPT, instruction-specific
   multitask tuning, DPO, IPO, ORPO, SimPO, KTO, BCO, PPO, GRPO, DAPO, GSPO,
   Dr. GRPO, RLOO, REINFORCE++, CISPO, KD, GKD, MiniLLM, and from-scratch
   causal-LM pretraining.
-- Parameterizations: DoRA, AdaLoRA, Prompt Tuning, Prefix-Tuning, P-Tuning v2,
-  PiSSA, Houlsby adapters, IA3, LoRA+, rsLoRA, BitFit, VeRA, LoReFT, BOFT,
-  OFT, MiSS, LoHa, LoKr, X-LoRA, Poly, HRA, RandLoRA, SHiRA, RoAd, C3A,
-  FourierFT, MoRA, and Trainable Tokens.
+- Additional parameterizations: Prompt Tuning, Prefix-Tuning, P-Tuning v2,
+  PiSSA, Houlsby adapters, IA3, LoRA+, rsLoRA, VeRA, BOFT, OFT, MiSS, LoHa,
+  LoKr, X-LoRA, Poly, HRA, RandLoRA, SHiRA, RoAd, C3A, FourierFT, MoRA, and
+  Trainable Tokens.
 - Recipes and pipelines: LoftQ, QPiSSA, RLHF, RLAIF, RAFT, STaR,
   Self-Instruct, and SPIN.
 - Modifiers and update strategies: NEFTune, EWC, Experience Replay, LwF,
   GaLore, LISA, LOMO, MeZO, SAM, Sophia, and Adam-mini.
 - Infrastructure: ZeRO, tensor parallelism, pipeline parallelism, CPU or NVMe
   offload, FlashAttention selection, and sequence packing.
-- Backends and runners: ROCm, MPS, CPU training, managed cloud runners, and
-  provider execution connectors.
+- Backends and runners: ROCm execution, MPS execution, MLX execution, CPU
+  training, managed cloud runners, and provider execution connectors. Apple
+  Silicon MPS hardware discovery is current inventory behavior, not execution.
 - Evaluation and export: named benchmark suites, custom target thresholds,
   inference-parity checks, GGUF, ONNX, adapter merge, publication, and
   deployment.
@@ -270,7 +307,8 @@ first require a primary source and a distinct mechanism.
 
 ## Admission rule for a new executable method
 
-A research item becomes executable only when all of these exist:
+A nonselectable descriptor or documentation-only research item becomes
+executable only when all of these exist:
 
 1. primary-source identity and a stable, distinct definition;
 2. a pinned dependency and model-family compatibility rule;
@@ -282,4 +320,6 @@ A research item becomes executable only when all of these exist:
 8. a bounded real-model pilot with continuation evidence;
 9. cancellation, lease, restart, unique no-clobber run directories, and completion attestation;
 10. an artifact verifier and negative tests for every unsupported combination;
-11. real CUDA evidence for the pinned stack before a release support claim.
+11. a gated runtime descriptor with a compiler ID, export contract, supported
+    backend and placement, and `selectable=true`; and
+12. real CUDA evidence for the pinned stack before a release support claim.

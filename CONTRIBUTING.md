@@ -1,5 +1,7 @@
 # Contributing
 
+> **Status:** Active | **Authority:** Normative contribution policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the quality gate changes
+
 ## Scope
 
 Aptus changes must preserve evidence boundaries. Planner output is a reasoned
@@ -18,11 +20,11 @@ cd web && npm ci
 ## Required checks
 
 ```bash
-.venv/bin/ruff format --check src tests
-.venv/bin/ruff check src tests
+.venv/bin/ruff format --check src/aptus tests/aptus
+.venv/bin/ruff check src tests tools
 PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
   .venv/bin/python -m unittest discover -s tests -t . -v
-PYTHONPATH=src .venv/bin/python -m compileall -q src tests
+PYTHONPATH=src .venv/bin/python -m compileall -q src tests tools
 git diff --check
 cd web && npm test && npm run typecheck && npm run build
 ```
@@ -67,3 +69,10 @@ Describe the changed contract, the tests run, the target hardware used, and any
 evidence still missing. Include generated-bundle diffs when compiler output
 changes. Never include private datasets, tokens, caches, checkpoints, or model
 weights.
+
+## Related documentation
+
+- [Contributor index](docs/contributing/index.md)
+- [Code map](docs/architecture/code-map.md)
+- [Documentation policy](docs/maintenance/documentation-policy.md)
+- [Release gates](docs/operations/release-gates.md)

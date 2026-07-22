@@ -1,5 +1,7 @@
 # Preflight and Calibration
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a runtime gate changes
+
 Methodology version: `aptus-preflight-v2`.
 
 V0.2 separates a synthetic method check from the first exact model and data
@@ -10,15 +12,19 @@ step. Neither establishes final task quality.
 The model-data gate uses the pinned revision to resolve the configuration,
 tokenizer, and exact model weights. It validates the loaded parameter count and
 plan-driving structural config fields against the plan, confirms every adapter
-target-module name exists, transforms
-every canonical row under the selected sequence length, and confirms visible
-CUDA device count. Quantized candidates use the same 4-bit or 8-bit base-load
-contract as training. The gate then releases the loaded model.
+target-module name exists, transforms every canonical row under the selected
+sequence length, and confirms visible CUDA device count. Quantized candidates
+use the same 4-bit or 8-bit base-load contract as training.
 
-This gate does not inject adapters, enable checkpointing, run a batch, compute a
-loss, mutate weights, or take an optimizer step. Its temporary allocation is not
-recorded as calibrated fit evidence. Those measured execution claims belong to
-the pilot.
+The gate prepares the selected method exactly far enough to prove its trainable
+scope. It disables model cache use, enables gradient checkpointing, performs
+k-bit preparation when required, injects PEFT LoRA for adapter methods, and
+computes the plan-bound trainable census. It then releases the model.
+
+This gate does not construct the optimizer, run a batch, compute a loss, mutate
+weights, or take an optimizer step. Its temporary allocation is not recorded as
+calibrated fit evidence. Those measured execution claims belong to measured
+preflight and the real-model pilot.
 
 ## Measured preflight
 
@@ -71,3 +77,10 @@ A future calibrated release must:
 
 Until those gates pass, `M_upper` remains an analytical planning envelope, not
 a calibrated quantile.
+
+## Related documentation
+
+- [Validation states](../reference/validation-states.md)
+- [Method registry](../reference/method-registry.md)
+- [Compile, validate, and run](../guides/compile-validate-run.md)
+- [Memory estimation](memory-estimation.md)

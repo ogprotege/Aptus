@@ -1,5 +1,7 @@
 # Security Boundaries
 
+> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a trust-boundary change
+
 ## Local trusted-user boundary
 
 The FastAPI service can read data, write files, fetch model metadata, and launch
@@ -71,3 +73,10 @@ benchmark quality, safety, or deployment fitness.
 V0.2 has no secure multi-user service, cloud credential broker, provider
 provisioner, MCP authorization policy, full-run resume contract, or evaluation
 policy engine. Those are future designs, not hidden current features.
+
+## Related documentation
+
+- [Security policy](../../SECURITY.md)
+- [Data and identity flow](data-and-identity-flow.md)
+- [Bundle manifest](../reference/bundle-manifest.md)
+- [Operator checklist](../operations/operator-checklist.md)

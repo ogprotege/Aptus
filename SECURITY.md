@@ -1,11 +1,31 @@
 # Security Policy
 
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a trust-boundary change
+
 ## Supported status
 
 Aptus v0.2 is an engineering preview. It has not passed the required CUDA pilot
-and release evidence gates. Report security issues privately to the repository
-owner. Do not include credentials, private datasets, or model tokens in a public
-issue.
+and release evidence gates. Use GitHub's
+[private vulnerability-reporting flow](https://github.com/ogprotege/Aptus/security/advisories/new)
+when it is available. Otherwise contact the repository owner through an
+existing private channel before sharing technical details. Do not include
+credentials, private datasets, model tokens, exploit details, or unredacted
+logs in a public issue.
+
+| Version | Security fixes | Status |
+|---|---|---|
+| `0.2.x` and current `main` | Yes | Engineering preview |
+| `0.1.x` and legacy audit sources | No | Archived or superseded |
+
+Include the affected commit or version, impact, minimal reproduction, and the
+smallest redacted evidence needed to verify the report. The maintainer target is
+an acknowledgment within three business days and an initial assessment within
+seven. These are response targets, not a service-level guarantee.
+
+Keep the report private until the maintainer confirms a fix or agrees to a
+disclosure date. The project will credit reporters who request attribution and
+will not publish sensitive reproduction material. If active exploitation makes
+continued privacy unsafe, coordinate the minimum necessary disclosure first.
 
 ## Trust model
 
@@ -83,3 +103,10 @@ Generated `requirements.txt` contains exact direct pins for the selected method.
 It is not a transitive dependency lock. Install in an isolated environment,
 review resolved dependencies, and retain the environment binding. Do not run
 untrusted bundles or install unreviewed packages on a sensitive host.
+
+## Related documentation
+
+- [Security boundaries](docs/architecture/security-boundaries.md)
+- [Operator checklist](docs/operations/operator-checklist.md)
+- [Bundle manifest](docs/reference/bundle-manifest.md)
+- [Reviewed corpus contract](docs/reference/reviewed-corpus-contract.md)

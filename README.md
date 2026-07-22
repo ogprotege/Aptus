@@ -1,130 +1,103 @@
 # Aptus
 
+> **Status:** Active | **Authority:** Product entry point | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or on a support-contract change
+
 Aptus is an evidence-backed fine-tuning planner and artifact compiler. Give it
 explicit model, dataset, hardware, and training-target facts. It compares the
-strategies that its current catalog can represent, explains assumptions and
-tradeoffs, and emits a portable training bundle.
+strategies its current catalog can represent, explains assumptions and
+tradeoffs, and emits a validated, ready-to-execute training bundle.
 
-Aptus v0.2 is an engineering preview. It does not promise a universally optimal
-strategy, model quality, wall-clock time, cost, or VRAM fit. Analytic estimates
-remain estimates until the selected bundle passes runtime checks on the target
-host.
+The product goal is simple: remove the repeated compatibility, memory,
+configuration, and orchestration work that makes fine-tuning slow to start and
+hard to reproduce. Aptus does not hide uncertainty. It turns assumptions into
+named evidence gates and refuses combinations it cannot support.
 
-## What v0.2 does
+Aptus 0.2 is an engineering preview. Its planner and compiler are usable now.
+Its CUDA execution paths remain unreleased until the
+[release gates](docs/operations/release-gates.md) have real target-host
+evidence.
 
-- Validates every source training row from local JSON, JSONL, CSV, or text data
-  and records a source digest.
-- During full training, keeps related rows with the same explicit `split_group`
-  on one side of the deterministic train and evaluation boundary. It records
-  target and realized sizes because indivisible groups can prevent an exact
-  requested fraction.
-- Accepts an immutable model revision plus explicit architecture and permission
-  facts.
-- Enumerates full fine-tuning, LoRA, int8-LoRA, and QLoRA across supported
-  single-device and distributed placements.
-- Publishes a typed method-readiness catalog that separates those executable
-  paths from experimental and research-only methods.
-- Enforces a positive, finite, method-specific trainable-parameter census before
-  optimizer construction. Adapter paths require one LoRA A/B pair for every
-  inspected target instance. The optimizer parameter identities must then equal
-  that validated set. Measured evidence records its name-shape-dtype digest.
-- Produces point and upper memory estimates with cited assumptions.
-- Compiles a no-clobber bundle containing data, plan, evidence, direct package
-  pins, launch configuration, validators, and training code.
-- Enforces five managed runtime actions in order: dependency, model-data,
-  preflight, pilot, then train. Higher validation actions also recheck lower
-  levels inside their job.
-- Persists local managed jobs, streams logs, supports cancellation, and uses one
-  host-global Aptus execution lease per user.
-- Writes every full run under a unique run ID and promotes a completed run only
-  after the parent process verifies metrics, bindings, and the structural export
-  file tree.
+## What Aptus produces
 
-## Current boundaries
+One planning request produces three connected outputs:
 
-- CUDA is the only execution backend in the v0.2 support contract. Other
-  backends can appear as known values but are not execution-ready. Local Apple
-  Silicon inspection records its shared unified-memory pool without treating
-  it as dedicated VRAM or pretending the CUDA compiler can run there.
-- Full fine-tuning requires BF16. Adapter methods can select FP16 when BF16 is
-  not declared, subject to the exact pilot gate.
-- Full-parameter FSDP is unsupported. LoRA FSDP is conditional. Quantized FSDP
-  combinations are unsupported.
-- Full-training resume is fail-closed. Pilot continuation is a bounded validation
-  exercise, not a general resume feature.
-- Model inspection reads bounded provider-declared metadata. The user must still
-  supply and confirm license and training-permission facts.
-- Evaluation targets, exporter plugins, cloud providers, and MCP adapters are
-  future extension seams. They are not current execution features.
+1. **A decision record.** Every candidate retains its status, rejection or
+   conditional reason, memory ledger, ranking basis, and evidence references.
+2. **An identity-bound plan.** Model, data, hardware, target, strategy, and
+   formula versions determine the plan and candidate identities.
+3. **A portable training bundle.** The compiler writes validated data, direct
+   package pins, configuration, generated Python entry points, a runbook, and a
+   hash manifest to a new no-clobber directory.
 
-No real CUDA pilot has been completed on the current development Mac. The
-repository is therefore not release-ready. See
-[`docs/operations/release-gates.md`](docs/operations/release-gates.md).
+Runtime checks then strengthen the evidence in order:
 
-## Install
-
-Python 3.11 or newer is required.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[server,test]'
+```text
+plan -> compile -> static -> dependency -> model-data -> preflight -> pilot
+     -> train admission -> unique full run -> parent verification
 ```
 
-The React source is in `web/`. A packaged build is already served from
-`src/aptus/_web`.
+No planning estimate becomes a measured fact merely because a candidate ranks
+first. No child process can mark its own artifacts complete.
 
-## Start the workbench
+## Current support snapshot
+
+| Area | Current Aptus 0.2 contract |
+| --- | --- |
+| Objective | Supervised fine-tuning only |
+| Selectable methods | Full, LoRA, int8-LoRA, and QLoRA |
+| Visible nonselectable methods | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT, AFLoRA, and BiLoRA |
+| Placement | Single CUDA device and DDP where feasible; LoRA FSDP is conditional |
+| Execution backend | CUDA only |
+| Apple Silicon | Hardware inventory only; MPS and MLX execution are not implemented |
+| Input files | JSON, JSONL, CSV, and text |
+| Task data | Text, prompt-completion, instruction-output, and chat-message SFT rows |
+| Validation | Contract, static, dependency, model-data, measured preflight, and pilot |
+| Full-run resume | Unsupported and fail-closed |
+| Export proof | Structural safetensors and provenance checks, not quality evaluation |
+
+See the normative [capability matrix](docs/reference/capability-matrix.md) for
+the detailed method, placement, precision, and backend rules.
+
+## Choose your starting path
+
+### I want to understand Aptus on this Mac
+
+Run the planning-only tutorial. It profiles bundled synthetic data, creates a
+real plan, compiles a bundle, and validates it statically. It downloads no
+model, allocates no accelerator memory, and starts no training process.
+
+[Run the first-plan tutorial](docs/getting-started/first-plan.md)
+
+### I want to use the local workbench
+
+Install the server extra and start the same-origin API and React application:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[server,test]'
 aptus serve --host 127.0.0.1 --port 8787
 ```
 
 Open `http://127.0.0.1:8787`. Keep the service on loopback. The jobs API is a
-trusted-user local interface and has no authentication boundary.
+trusted-user local interface that can read files and launch processes. It has
+no authentication boundary.
 
-The workbench follows five stages:
+The workbench uses five stages:
 
 1. Enter and inspect facts.
-2. Compare viable candidates, including explicitly conditional rows.
-3. Compile a selected plan.
-4. Validate the bundle.
-5. Run the five ordered execution actions.
+2. Compare viable, conditional, infeasible, and unsupported candidates.
+3. Compile the recommended candidate.
+4. Validate the exact bundle.
+5. Run the ordered target-host actions.
 
-## CLI example
+### I have a CUDA host and want to train
 
-The repository includes `examples/support-sft.jsonl`. Replace the model facts and
-hardware facts with measured values for the intended run.
+Start with the [quickstart](docs/getting-started/quickstart.md), then use the
+[operator checklist](docs/operations/operator-checklist.md). Replace every
+example model and hardware value with measured facts for the intended host.
 
-```bash
-aptus spec-plan \
-  --model-id provider/model \
-  --revision IMMUTABLE_COMMIT \
-  --family llama \
-  --parameters-b 7 \
-  --hidden-size 4096 \
-  --intermediate-size 11008 \
-  --layers 32 \
-  --context-length 4096 \
-  --license LICENSE_NAME \
-  --confirm-training-allowed \
-  --dataset examples/support-sft.jsonl \
-  --gpu-count 1 \
-  --vram-gib 24 \
-  --free-vram-gib 22 \
-  --bf16 --four-bit --eight-bit \
-  --host-ram-gib 64 \
-  --host-ram-free-gib 48 \
-  --disk-free-gib 200 \
-  --objective memory \
-  --sequence-length 1024 \
-  --output ./work/plan.json
-
-aptus compile --plan ./work/plan.json --output ./work/bundle
-aptus validate ./work/bundle --level static
-```
-
-Use managed jobs for the runtime sequence:
+The managed action sequence is:
 
 ```bash
 aptus run ./work/bundle --action dependency
@@ -134,47 +107,116 @@ aptus run ./work/bundle --action pilot
 aptus run ./work/bundle --action train --confirm-full-train
 ```
 
-Wait for each action to finish successfully before starting the next. Inspect
-state with `aptus jobs` or `aptus jobs --id JOB_ID`.
+Launch the sequence from an external environment that contains both Aptus and
+the generated bundle requirements. The quickstart creates that environment.
+Wait for each action to complete. Inspect state with `aptus jobs` and
+`aptus jobs --id JOB_ID`. Train submission repeats deep authorization against
+current artifacts, environment, CUDA identity, free VRAM, host RAM, and disk.
 
-## Portable bundle execution
+## The decisions Aptus makes
 
-Inside a compiled bundle:
+Aptus resolves a bounded planning problem. It does not perform unconstrained
+hyperparameter search.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python validate.py --level dependency
-python validate.py --level model-data
-python validate.py --level measured-preflight
-python validate.py --level pilot
-python run.py --confirm-full-train
+- It reads only the four selectable descriptors from the runtime method
+  registry.
+- It forms twelve visible rows from four methods and three placements.
+- It applies model, task, backend, precision, quantization, batch, memory, host
+  RAM, disk, and distribution rules.
+- It calculates named point and upper memory components.
+- It marks viable Pareto-frontier rows.
+- It ranks feasible rows before conditional rows under the requested memory,
+  speed, or quality policy.
+- It preserves every unsupported row and reason in the plan.
+
+The recommendation means “highest-ranked within the enumerated Aptus 0.2
+candidate set.” It never means universally optimal, guaranteed to fit, or
+guaranteed to improve the model.
+
+## The evidence Aptus requires
+
+Planning uses explicit and inferred facts. Runtime validation adds stronger
+evidence without rewriting planning history.
+
+| Stage | What Aptus checks | What it still does not prove |
+| --- | --- | --- |
+| Static | Contracts, identities, generated source, paths, hashes, direct pins | Imports, model load, CUDA fit |
+| Dependency | Exact direct pins and resolved environment binding | Model or data compatibility |
+| Model-data | Pinned model facts, target modules, method scope, trainable census, every canonical row | Optimizer behavior or planned-model fit |
+| Measured preflight | Synthetic selected-method forward, backward, optimizer step, CUDA peak | Exact model and real-data behavior |
+| Pilot | Two fresh real-model phases, checkpoint continuation, artifacts, measured peaks | Full-run completion or task quality |
+| Measured run | Parent-verified metrics, split evidence, census, ranks, and export tree | Benchmark quality, safety, or deployment fitness |
+
+Read [validation states](docs/reference/validation-states.md) for the complete
+state and binding contract.
+
+## Dataset and artifact safety
+
+Compilation creates cleartext copies of the dataset in the bundle and its ZIP.
+Runtime can add model caches, logs, checkpoints, metrics, tokenizer files, and
+final model or adapter artifacts. Treat all of them as sensitive.
+
+Related rows can declare `split_group`. The generated full trainer keeps each
+declared group entirely in train or evaluation, records the requested and
+realized evaluation sizes, and binds canonical and assignment digests. A large
+indivisible group can prevent an exact requested fraction.
+
+Review [dataset schemas](docs/reference/dataset-schemas.md), the
+[reviewed-corpus contract](docs/reference/reviewed-corpus-contract.md), and the
+[security policy](SECURITY.md) before using private or governed data.
+
+## Repository map
+
+```text
+src/aptus/       planner, compiler, validators, API, CLI, and execution service
+web/             React workbench source
+docs/            current product, methodology, architecture, reference, and operations docs
+Reference/       retained research inputs with explicit non-normative status
+examples/        synthetic datasets and examples
+tests/           Python and workbench contract tests
+tools/           legacy recovery-audit tooling
 ```
 
-`requirements.txt` is the direct, method-specific pinned input set. It is not a
-complete transitive lock file. Capture and retain the installed-environment
-binding produced by validation.
+The [code map](docs/architecture/code-map.md) connects each source module to its
+contract, tests, and documentation owner.
 
-`run.py` is the portable full-run parent. It launches the selected single or
-distributed command, waits for aggregate completion, verifies the pending
-artifacts, and promotes the validation report to `measured-run-pass` only when
-those checks succeed. These direct portable commands are supported on POSIX.
-On Windows, use the managed `aptus run` path because direct portable child
-execution is fail-closed in v0.2.
+## Documentation by reader
 
-## Documentation
+| If you are... | Start here |
+| --- | --- |
+| New to Aptus | [Choose your path](docs/getting-started/choose-your-path.md) |
+| Running a first local check | [First plan](docs/getting-started/first-plan.md) |
+| Preparing real training data | [Prepare a dataset](docs/guides/prepare-a-dataset.md) |
+| Choosing a method | [Method selection guide](docs/guides/choose-a-method.md) |
+| Operating a CUDA run | [Operator checklist](docs/operations/operator-checklist.md) |
+| Inspecting results | [Inspect results](docs/guides/inspect-results.md) |
+| Integrating the API | [API reference](docs/reference/api.md) |
+| Extending Aptus | [Contributor documentation](docs/contributing/index.md) |
+| Comparing research methods | [Research index](docs/research/index.md) |
+| Maintaining the docs | [Documentation policy](docs/maintenance/documentation-policy.md) |
 
-- [Documentation index](docs/index.md)
-- [Current capabilities](docs/product/current-capabilities.md)
-- [Quickstart](docs/getting-started/quickstart.md)
-- [System architecture](docs/architecture/system.md)
-- [Validation states](docs/reference/validation-states.md)
-- [Release gates](docs/operations/release-gates.md)
-- [Apple Silicon pilot matrix](docs/operations/apple-silicon-pilot.md)
-- [Reviewed corpus contract](docs/reference/reviewed-corpus-contract.md)
+The complete navigation hub is [docs/index.md](docs/index.md).
+
+## Development and verification
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the full local quality
+gate. Documentation changes must update the canonical contract page, related
+examples, user-facing help, and drift tests together.
+
+Current release evidence is intentionally incomplete. No real CUDA pilot has
+been completed on this development Mac. The exact remaining proof is listed in
+[release gates](docs/operations/release-gates.md).
+
+## Project records
+
+- [Changelog](CHANGELOG.md)
+- [Roadmap](ROADMAP.md)
 - [Security policy](SECURITY.md)
+- [Support](SUPPORT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Documentation health](docs/maintenance/documentation-health.md)
+- [Documentation debt](docs/maintenance/documentation-debt.md)
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).

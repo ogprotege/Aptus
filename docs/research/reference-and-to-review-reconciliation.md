@@ -1,5 +1,7 @@
 # Reference and TO-REVIEW reconciliation
 
+> **Status:** Archived | **Authority:** Historical provenance ledger | **Snapshot:** 2026-07-22 | **Audience:** Maintainers and researchers | **Review:** Only when the recorded intake or disposition is challenged
+
 Status: reviewed against the Aptus v0.2 source tree, salvaged, and removed from
 the working tree on 2026-07-22.
 
@@ -424,10 +426,12 @@ drafts in place:
 - Provider, evaluator, exporter, cloud, and MCP ideas remain typed roadmap
   seams. The unauthenticated server and deployment sketches were not retained.
 
-## Complete reviewed snapshot
+## Complete reviewed source snapshot
 
-These SHA-256 digests bind this ledger to the exact reviewed files, including
-the removed staging snapshot.
+These SHA-256 digests bind this ledger to the exact source bytes reviewed before
+documentation-governance banners were added. They also bind the removed staging
+snapshot. The retained `Reference/` files intentionally have different current
+digests because the historical bodies now carry visible authority warnings.
 
 | Path | SHA-256 |
 |---|---|
@@ -448,3 +452,22 @@ the removed staging snapshot.
 | `TO-REVIEW/railway.json` | `33994dec931fcad23b82c35c7787a9cd31a30919fbe6512d73df20c6c8d48948` |
 | `TO-REVIEW/server.ts` | `2e66b15867845447ffad1484c8197265fee10a386678e4d723d0f3338b53ec42` |
 | `TO-REVIEW/v3_README.md` | `84e4fb92eab731c3a40c60fde29c5c63ce0cde49895b1eac09f5c988f607167a` |
+
+### Current retained Reference copies
+
+These hashes cover the source body plus the governance banner present in the
+current repository snapshot.
+
+| Path | Current SHA-256 |
+|---|---|
+| `Reference/Fine-Tuning_Methods.md` | `8a3925231d2edd3d963ebcfe7bc45b38dcec62ddb947e466fd926130a266d74f` |
+| `Reference/FineTuneX.README.md` | `272fc109344bc7979a0154cb2b8b6a3ae207a3a11109add7d3f242c5bfa0017b` |
+| `Reference/hparam_methods_reference.md` | `d6246d615cc652e864066b3cf65d6efe937971f7bfc9ade0942d6746f5470872` |
+| `Reference/top-50-llm-training-methods.pplx.md` | `7138bd9dc88c42a5dd14f72f5c782f2a14b1a5d6a8acfa2b3ed2afb72250e047` |
+
+## Related documentation
+
+- [Research index](index.md)
+- [Retained Reference packet](../../Reference/README.md)
+- [Method taxonomy](../methodology/method-taxonomy.md)
+- [Historical archive index](../archive/index.md)

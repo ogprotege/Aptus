@@ -1,0 +1,40 @@
+name: Documentation correction
+description: Report inaccurate, incomplete, stale, or hard-to-find Aptus documentation.
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Document location
+      description: Provide the repository path, heading, CLI command, API route, or generated file.
+      placeholder: docs/reference/cli.md, aptus run --help, or bundle/runbook.md
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Quote only the short claim needed to identify the issue and explain why it is wrong or unclear.
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Evidence or implementation authority
+      description: Link the code, test, command output, schema, or measured evidence that establishes the correction.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Proposed correction
+      description: Describe the smallest accurate replacement and any related pages that also need review.
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Safety check
+      options:
+        - label: This report contains no token, private dataset, model weight, checkpoint, cache, or unredacted local path.
+          required: true

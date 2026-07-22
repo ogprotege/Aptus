@@ -1,5 +1,19 @@
 # FineTuneX MCP Ecosystem
 
+> **Documentation status:** Archived product history
+>
+> **Authority:** Historical intake only. The described services, pricing,
+> deployment, and compatibility claims are not current Aptus features.
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2027-07-22, or when its archive disposition changes
+>
+> Use [current capabilities](../docs/product/current-capabilities.md) for the
+> product boundary. See the
+> [reconciliation ledger](../docs/research/reference-and-to-review-reconciliation.md)
+> for the concepts retained from this file.
+
 Our ecosystem consists of two complementary MCP servers that work together to solve different aspects of the fine-tuning challenge:
 
 ## 1. FineTuneX Script Generator

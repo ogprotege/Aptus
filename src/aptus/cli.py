@@ -39,41 +39,158 @@ def _write_json(value: Any, output: Path | None) -> None:
 
 
 def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--model-id", required=True)
-    parser.add_argument("--revision", required=True)
-    parser.add_argument("--family", required=True)
-    parser.add_argument("--parameters-b", required=True, type=float)
-    parser.add_argument("--hidden-size", required=True, type=int)
-    parser.add_argument("--intermediate-size", type=int)
-    parser.add_argument("--layers", required=True, type=int)
-    parser.add_argument("--context-length", required=True, type=int)
-    parser.add_argument("--license", required=True)
-    parser.add_argument("--confirm-training-allowed", action="store_true")
-    parser.add_argument("--dataset", required=True, type=Path)
-    parser.add_argument("--sample-limit", type=int, default=512)
     parser.add_argument(
-        "--backend", default="cuda", choices=[item.value for item in Backend]
+        "--model-id", required=True, help="Provider repository ID, such as org/model."
     )
-    parser.add_argument("--gpu-count", required=True, type=int)
-    parser.add_argument("--vram-gib", required=True, type=float)
-    parser.add_argument("--free-vram-gib", type=float)
-    parser.add_argument("--bf16", action="store_true")
-    parser.add_argument("--four-bit", action="store_true")
-    parser.add_argument("--eight-bit", action="store_true")
-    parser.add_argument("--host-ram-gib", required=True, type=float)
-    parser.add_argument("--host-ram-free-gib", type=float)
-    parser.add_argument("--reserve-gib", type=float, default=2.0)
-    parser.add_argument("--disk-free-gib", type=float)
     parser.add_argument(
-        "--objective", default="memory", choices=[item.value for item in Objective]
+        "--revision",
+        required=True,
+        help="Immutable 40-to-64-character hexadecimal provider commit.",
     )
-    parser.add_argument("--sequence-length", required=True, type=int)
-    parser.add_argument("--effective-batch-size", type=int, default=16)
-    parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--prefer-method", choices=[item.value for item in Method])
-    parser.add_argument("--evaluation-fraction", type=float, default=0.1)
-    parser.add_argument("--checkpoint-steps", type=int, default=100)
-    parser.add_argument("--packing", action="store_true")
+    parser.add_argument(
+        "--family",
+        required=True,
+        help="Aptus architecture family from the current target-module catalog.",
+    )
+    parser.add_argument(
+        "--parameters-b",
+        required=True,
+        type=float,
+        help="Model parameter count in billions.",
+    )
+    parser.add_argument(
+        "--hidden-size", required=True, type=int, help="Model hidden width."
+    )
+    parser.add_argument(
+        "--intermediate-size",
+        type=int,
+        help="Optional MLP intermediate width; planner fallback is 4x hidden size.",
+    )
+    parser.add_argument("--layers", required=True, type=int, help="Model layer count.")
+    parser.add_argument(
+        "--context-length",
+        required=True,
+        type=int,
+        help="Maximum model context length.",
+    )
+    parser.add_argument(
+        "--license", required=True, help="Operator-reviewed model license label."
+    )
+    parser.add_argument(
+        "--confirm-training-allowed",
+        action="store_true",
+        help="Attest that the intended model training is permitted.",
+    )
+    parser.add_argument(
+        "--dataset",
+        required=True,
+        type=Path,
+        help="Local JSON, JSONL, CSV, or text data.",
+    )
+    parser.add_argument(
+        "--sample-limit",
+        type=int,
+        default=512,
+        help="Rows used for deterministic length statistics (default: 512).",
+    )
+    parser.add_argument(
+        "--backend",
+        default="cuda",
+        choices=[item.value for item in Backend],
+        help="Planned backend; Aptus 0.2 execution supports CUDA only (default: cuda).",
+    )
+    parser.add_argument(
+        "--gpu-count",
+        required=True,
+        type=int,
+        help="Number of repeated manual device profiles.",
+    )
+    parser.add_argument(
+        "--vram-gib",
+        required=True,
+        type=float,
+        help="Total memory per declared device in GiB.",
+    )
+    parser.add_argument(
+        "--free-vram-gib",
+        type=float,
+        help="Optional current free memory per device in GiB.",
+    )
+    parser.add_argument(
+        "--bf16", action="store_true", help="Declare BF16 support on every device."
+    )
+    parser.add_argument(
+        "--four-bit",
+        action="store_true",
+        help="Declare the four-bit base-load path supported.",
+    )
+    parser.add_argument(
+        "--eight-bit",
+        action="store_true",
+        help="Declare the eight-bit base-load path supported.",
+    )
+    parser.add_argument(
+        "--host-ram-gib", required=True, type=float, help="Total host memory in GiB."
+    )
+    parser.add_argument(
+        "--host-ram-free-gib",
+        type=float,
+        help="Optional current free host memory in GiB.",
+    )
+    parser.add_argument(
+        "--reserve-gib",
+        type=float,
+        default=2.0,
+        help="Per-device memory excluded from the fit budget (default: 2).",
+    )
+    parser.add_argument(
+        "--disk-free-gib",
+        type=float,
+        help="Optional current free staging and output disk in GiB.",
+    )
+    parser.add_argument(
+        "--objective",
+        default="memory",
+        choices=[item.value for item in Objective],
+        help="Deterministic ranking policy (default: memory).",
+    )
+    parser.add_argument(
+        "--sequence-length",
+        required=True,
+        type=int,
+        help="Compiled maximum token sequence length.",
+    )
+    parser.add_argument(
+        "--effective-batch-size",
+        type=int,
+        default=16,
+        help="Required exact global effective batch (default: 16).",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=3, help="Maximum training epochs (default: 3)."
+    )
+    parser.add_argument(
+        "--prefer-method",
+        choices=[item.value for item in Method],
+        help="Secondary method preference; cannot override feasibility.",
+    )
+    parser.add_argument(
+        "--evaluation-fraction",
+        type=float,
+        default=0.1,
+        help="Requested full-run evaluation fraction (default: 0.1).",
+    )
+    parser.add_argument(
+        "--checkpoint-steps",
+        type=int,
+        default=100,
+        help="Checkpoint interval in optimizer steps (default: 100).",
+    )
+    parser.add_argument(
+        "--packing",
+        action="store_true",
+        help="Request sequence packing; unsupported and fail-closed in Aptus 0.2.",
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -84,10 +201,26 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     profile = commands.add_parser("profile", help="Profile a local training dataset.")
-    profile.add_argument("--dataset", required=True, type=Path)
-    profile.add_argument("--sample-limit", type=int, default=512)
-    profile.add_argument("--sequence-length", type=int)
-    profile.add_argument("--output", type=Path)
+    profile.add_argument(
+        "--dataset",
+        required=True,
+        type=Path,
+        help="Local JSON, JSONL, CSV, or text data.",
+    )
+    profile.add_argument(
+        "--sample-limit",
+        type=int,
+        default=512,
+        help="Rows used for deterministic length statistics (default: 512).",
+    )
+    profile.add_argument(
+        "--sequence-length", type=int, help="Optional truncation-analysis token limit."
+    )
+    profile.add_argument(
+        "--output",
+        type=Path,
+        help="Write JSON to this path instead of standard output.",
+    )
 
     for name, help_text in (
         ("spec-plan", "Write a persisted v2 plan JSON without compiling."),
@@ -96,21 +229,36 @@ def _parser() -> argparse.ArgumentParser:
     ):
         command = commands.add_parser(name, help=help_text)
         _add_fact_arguments(command)
-        command.add_argument("--output", required=True, type=Path)
+        command.add_argument(
+            "--output",
+            required=True,
+            type=Path,
+            help="Plan JSON for spec-plan; no-clobber bundle directory otherwise.",
+        )
         if name in {"plan", "build"}:
-            command.add_argument("--plan-output", type=Path)
+            command.add_argument(
+                "--plan-output",
+                type=Path,
+                help="Optional path for the standalone plan JSON.",
+            )
 
     compile_command = commands.add_parser(
         "compile", help="Compile a persisted plan JSON into a portable bundle."
     )
-    compile_command.add_argument("--plan", required=True, type=Path)
-    compile_command.add_argument("--output", required=True, type=Path)
-    compile_command.add_argument("--archive", type=Path)
+    compile_command.add_argument(
+        "--plan", required=True, type=Path, help="Persisted Aptus v2 plan JSON."
+    )
+    compile_command.add_argument(
+        "--output", required=True, type=Path, help="New or empty bundle directory."
+    )
+    compile_command.add_argument(
+        "--archive", type=Path, help="Optional no-clobber ZIP path outside the bundle."
+    )
 
     validate = commands.add_parser(
         "validate", help="Validate a bundle at one explicit evidence level."
     )
-    validate.add_argument("bundle", type=Path)
+    validate.add_argument("bundle", type=Path, help="Compiled bundle directory.")
     validate.add_argument(
         "--level",
         choices=(
@@ -122,37 +270,70 @@ def _parser() -> argparse.ArgumentParser:
             "pilot",
         ),
         default="static",
+        help="Required evidence level (default: static).",
     )
     validate.add_argument(
         "--run",
         action="store_true",
         help="Execute checks required above static validation.",
     )
-    validate.add_argument("--state-dir", type=Path, default=Path(".aptus-state"))
+    validate.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Managed job state root for --run (default: .aptus-state).",
+    )
 
     run = commands.add_parser(
-        "run", help="Start a persisted local preflight, pilot, or training job."
+        "run",
+        help="Start one ordered dependency, model-data, preflight, pilot, or training job.",
     )
-    run.add_argument("bundle", type=Path)
+    run.add_argument("bundle", type=Path, help="Compiled bundle directory.")
     run.add_argument(
         "--action",
         choices=("dependency", "model-data", "preflight", "pilot", "train"),
         default="preflight",
+        help="Ordered runtime action (default: preflight).",
     )
-    run.add_argument("--confirm-full-train", action="store_true")
-    run.add_argument("--state-dir", type=Path, default=Path(".aptus-state"))
+    run.add_argument(
+        "--confirm-full-train",
+        action="store_true",
+        help="Required explicit confirmation for the train action.",
+    )
+    run.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Managed job state root (default: .aptus-state).",
+    )
 
     jobs = commands.add_parser("jobs", help="List or inspect persisted local jobs.")
-    jobs.add_argument("--state-dir", type=Path, default=Path(".aptus-state"))
-    jobs.add_argument("--id")
+    jobs.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Managed job state root (default: .aptus-state).",
+    )
+    jobs.add_argument("--id", help="Return one reconciled job instead of the job list.")
 
     serve = commands.add_parser(
         "serve", help="Serve the local API and built React app from one origin."
     )
-    serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8787)
-    serve.add_argument("--state-dir", type=Path, default=Path(".aptus-state"))
-    serve.add_argument("--web-dist", type=Path)
+    serve.add_argument(
+        "--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)."
+    )
+    serve.add_argument(
+        "--port", type=int, default=8787, help="Bind port (default: 8787)."
+    )
+    serve.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Plans and managed job state root (default: .aptus-state).",
+    )
+    serve.add_argument(
+        "--web-dist", type=Path, help="Optional workbench build directory override."
+    )
     serve.add_argument(
         "--allow-non-loopback",
         action="store_true",
@@ -160,7 +341,8 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     commands.add_parser(
-        "hardware", help="Inspect CUDA hardware on this local Aptus host."
+        "hardware",
+        help="Inspect local CUDA hardware or fail-closed Apple Silicon inventory.",
     )
     inspect = commands.add_parser(
         "inspect", help="Inspect local hardware or bounded provider model facts."
@@ -168,9 +350,18 @@ def _parser() -> argparse.ArgumentParser:
     inspect_commands = inspect.add_subparsers(dest="inspect_command", required=True)
     inspect_commands.add_parser("hardware")
     model = inspect_commands.add_parser("model")
-    model.add_argument("--model-id", required=True)
-    model.add_argument("--revision", required=True)
-    model.add_argument("--timeout", type=float, default=10.0)
+    model.add_argument(
+        "--model-id", required=True, help="Provider repository ID, such as org/model."
+    )
+    model.add_argument(
+        "--revision", required=True, help="Immutable provider commit to inspect."
+    )
+    model.add_argument(
+        "--timeout",
+        type=float,
+        default=10.0,
+        help="HTTP timeout in seconds (default: 10).",
+    )
     return parser
 
 

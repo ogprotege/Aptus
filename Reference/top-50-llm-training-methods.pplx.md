@@ -1,5 +1,19 @@
 # The Top 50 Algorithmic Methods for Adapting, Fine-Tuning, Aligning, and Training Large Language Models
 
+> **Documentation status:** Active research-only source
+>
+> **Authority:** Non-normative. A listed method or library mapping is not an
+> Aptus capability.
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2026-10-22, or when the research cutoff changes
+>
+> Read the [Reference packet boundary](README.md) and
+> [reconciliation ledger](../docs/research/reference-and-to-review-reconciliation.md)
+> before using this material. Revalidate library support against Aptus's pinned
+> runtime before implementation.
+
 A source-grounded technical reference. Every factual claim links to a primary paper, official documentation, or authoritative repository fetched during research. Methods are algorithms, objectives, or parameterizations implementable in a Python script with PyTorch or JAX plus open-source libraries; libraries are treated as implementation aids, not as methods.
 
 Research cutoff: July 21, 2026. Library-support claims reflect Hugging Face TRL, PEFT (through v0.17.0 plus the current main branch), and mlx-lm documentation as fetched on that date.

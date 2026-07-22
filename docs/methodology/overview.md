@@ -1,5 +1,7 @@
 # Methodology Overview
 
+> **Status:** Active | **Authority:** Normative methodology index | **Applies to:** Aptus 0.2 | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a methodology version changes
+
 Methodology version: `aptus-methodology-v2`.
 
 Aptus separates factual resolution, hard feasibility, resource estimation,
@@ -75,3 +77,10 @@ recommendation.
 - [Accelerate](https://huggingface.co/docs/accelerate/index)
 - [PyTorch FSDP](https://docs.pytorch.org/docs/stable/fsdp.html)
 - [PyTorch AMP](https://docs.pytorch.org/docs/stable/amp.html)
+
+## Related documentation
+
+- [Method selection guide](../guides/choose-a-method.md)
+- [Method registry](../reference/method-registry.md)
+- [System architecture](../architecture/system.md)
+- [Validation states](../reference/validation-states.md)

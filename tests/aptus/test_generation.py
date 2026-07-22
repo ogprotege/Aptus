@@ -374,9 +374,10 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("python run.py --confirm-full-train", readme)
         self.assertIn("python run.py --confirm-full-train", runbook)
         self.assertIn(
-            "verify parameter count and adapter target-module presence", runbook
+            "checks plan-driving architecture\nfacts and target modules", runbook
         )
-        self.assertIn("does not mutate weights or claim calibrated fit", runbook)
+        self.assertIn("It constructs no optimizer and takes no training step", runbook)
+        self.assertIn("beside it, never\ninside it", runbook)
         self.assertIn("Full-training resume is fail-closed", runbook)
         self.assertNotIn("--resume-from", runbook)
         self.assertEqual(manifest["entrypoints"]["run"], "run.py")
@@ -1021,6 +1022,61 @@ class BundleGenerationTests(unittest.TestCase):
             )
             rows = module.load_rows(dataset)
         self.assertEqual(rows, [{"prompt": "question", "completion": "answer"}])
+
+    def test_generated_schema_precedence_matches_the_profiler(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_schema_precedence")
+            tokenizer = FakeTokenizer()
+            messages = [
+                {"role": "user", "content": "chat prompt"},
+                {"role": "assistant", "content": "chat answer"},
+            ]
+
+            self.assertEqual(
+                module.record_to_parts(
+                    {
+                        "text": "plain text",
+                        "prompt": "prompt",
+                        "completion": "completion",
+                        "messages": messages,
+                    },
+                    tokenizer,
+                ),
+                ("", "plain text", True),
+            )
+            self.assertEqual(
+                module.record_to_parts(
+                    {
+                        "prompt": "prompt",
+                        "completion": "completion",
+                        "messages": messages,
+                        "content": "content alias",
+                    },
+                    tokenizer,
+                ),
+                ("prompt", "completion", False),
+            )
+            instruction_prompt, completion, supervise_all = module.record_to_parts(
+                {
+                    "instruction": "instruction",
+                    "output": "output",
+                    "messages": messages,
+                },
+                tokenizer,
+            )
+            self.assertIn("instruction", instruction_prompt)
+            self.assertEqual((completion, supervise_all), ("output", False))
+            message_prompt, completion, supervise_all = module.record_to_parts(
+                {"messages": messages, "content": "content alias"}, tokenizer
+            )
+            self.assertIn("chat prompt", message_prompt)
+            self.assertEqual((completion, supervise_all), ("chat answer", False))
+
+            encoded = module.encode_record(
+                {"text": "plain text", "messages": messages}, tokenizer, 128
+            )
+            self.assertNotIn(-100, encoded["labels"])
 
     def test_generated_pilot_uses_bounded_deterministic_pressure_rows(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

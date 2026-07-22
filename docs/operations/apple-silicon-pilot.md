@@ -1,5 +1,7 @@
 # Apple Silicon fine-tuning pilot matrix
 
+> **Status:** Experimental | **Authority:** Proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or before any model download
+
 Status: machine-specific recommendation for the measured 64 GB M5 Pro host.
 These are proposed experiments, not completed Aptus validation runs.
 
@@ -134,3 +136,10 @@ No model or package download and no fine-tuning run is part of this repository
 change. Model downloads range from several gigabytes to tens of gigabytes, and
 training creates new artifacts. Start only after the model, corpus revision,
 method, disk budget, and output directory are explicitly chosen.
+
+## Related documentation
+
+- [Current capabilities](../product/current-capabilities.md)
+- [Method selection guide](../guides/choose-a-method.md)
+- [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)
+- [Release evidence template](release-evidence-template.md)

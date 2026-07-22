@@ -1,5 +1,7 @@
 # Facts and Provenance
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when fact provenance changes
+
 Fact contract version: `aptus.facts.v2`.
 
 V0.2 accepts explicit facts and preserves the provenance that the current
@@ -116,3 +118,10 @@ packing.
 Changing an input requires a new plan. V0.2 does not serialize a field-level
 override actor, reason, or conflict-resolution history. A future fact ledger
 must retain original and replacement values instead of overwriting evidence.
+
+## Related documentation
+
+- [Model, dataset, and hardware facts](../guides/model-dataset-hardware.md)
+- [Data and identity flow](../architecture/data-and-identity-flow.md)
+- [Evidence records](../reference/evidence-records.md)
+- [Plan schema](../reference/plan-schema.md)

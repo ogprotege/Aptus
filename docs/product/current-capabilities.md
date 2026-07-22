@@ -1,5 +1,7 @@
 # Current Capabilities
 
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 and every release
+
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased and
 still lacks target CUDA release evidence.
 
@@ -91,3 +93,10 @@ still lacks target CUDA release evidence.
 Static and local tests can confirm contracts and platform-independent behavior.
 No real CUDA pilot has been run on the current development Mac. Aptus must not be
 described as release-ready until the release record passes every applicable gate.
+
+## Related documentation
+
+- [Capability matrix](../reference/capability-matrix.md)
+- [Method registry](../reference/method-registry.md)
+- [Release gates](../operations/release-gates.md)
+- [Claim language](claim-language.md)

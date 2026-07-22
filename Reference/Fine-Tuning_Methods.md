@@ -1,3 +1,16 @@
+> **Documentation status:** Archived and rejected as factual authority
+>
+> **Authority:** Historical name intake only. This file contains known factual
+> errors and uncited method descriptions.
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2027-07-22, or when its archive disposition changes
+>
+> Do not use this file to define a method or planner default. Use the
+> [method taxonomy](../docs/methodology/method-taxonomy.md) and read the
+> [documented corrections](../docs/research/reference-and-to-review-reconciliation.md#referencefine-tuning_methodsmd).
+
 FineTuning Methods
 
 
@@ -305,8 +318,6 @@ SPLoRA  (Sparse Low-Rank Adaptation)
 
 
 Laplace-LoRA (Laplace Distribution Low-Rank Adaptation):
-
-
 
 
 

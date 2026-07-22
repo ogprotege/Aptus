@@ -897,21 +897,23 @@ def record_to_parts(record: dict[str, Any], tokenizer: Any) -> tuple[str, str, b
     """Return prompt, supervised completion, and whether the whole text is supervised."""
     if isinstance(record.get("text"), str) and record["text"].strip():
         return "", record["text"], True
-    if isinstance(record.get("content"), str) and record["content"].strip():
-        return "", record["content"], True
-    if isinstance(record.get("prompt"), str) and isinstance(record.get("completion"), str):
-        if not record["completion"].strip():
+    prompt, completion = record.get("prompt"), record.get("completion")
+    if isinstance(prompt, str) or isinstance(completion, str):
+        if not isinstance(prompt, str) or not isinstance(completion, str) or not completion.strip():
             raise ValueError("Prompt/completion rows require a non-empty completion.")
-        return record["prompt"], record["completion"], False
-    if isinstance(record.get("instruction"), str) and isinstance(record.get("output"), str):
-        if not record["output"].strip():
+        return prompt, completion, False
+    instruction, output = record.get("instruction"), record.get("output")
+    if isinstance(instruction, str) or isinstance(output, str):
+        if not isinstance(instruction, str) or not isinstance(output, str) or not output.strip():
             raise ValueError("Instruction/output rows require a non-empty output.")
-        prompt = "### Instruction:\n" + record["instruction"].strip() + "\n"
+        prompt = "### Instruction:\n" + instruction.strip() + "\n"
         if isinstance(record.get("input"), str) and record["input"].strip():
             prompt += "### Input:\n" + record["input"].strip() + "\n"
-        return prompt + "### Response:\n", record["output"], False
+        return prompt + "### Response:\n", output, False
     messages = record.get("messages")
-    if isinstance(messages, list) and messages:
+    if isinstance(messages, list):
+        if not messages:
+            raise ValueError("Messages rows require at least one message.")
         if not all(isinstance(item, dict) for item in messages):
             raise ValueError("Every message must be an object.")
         if (
@@ -922,12 +924,22 @@ def record_to_parts(record: dict[str, Any], tokenizer: Any) -> tuple[str, str, b
             raise ValueError("A messages row must end with a non-empty assistant message.")
         prompt = tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
         return prompt, messages[-1]["content"], False
-    raise ValueError("Row does not match text, prompt/completion, instruction/output, or messages schema.")
+    if isinstance(record.get("content"), str) and record["content"].strip():
+        return "", record["content"], True
+    raise ValueError("Row does not match text, prompt/completion, instruction/output, messages, or content schema.")
 
 
 def encode_record(record: dict[str, Any], tokenizer: Any, max_length: int) -> dict[str, list[int]]:
     messages = record.get("messages")
-    if isinstance(messages, list) and messages:
+    prompt_value, completion_value = record.get("prompt"), record.get("completion")
+    instruction_value, output_value = record.get("instruction"), record.get("output")
+    uses_messages_schema = (
+        not isinstance(record.get("text"), str)
+        and not (isinstance(prompt_value, str) or isinstance(completion_value, str))
+        and not (isinstance(instruction_value, str) or isinstance(output_value, str))
+        and isinstance(messages, list)
+    )
+    if uses_messages_schema and messages:
         # Validate the final assistant turn, then preserve the tokenizer's complete chat template.
         record_to_parts(record, tokenizer)
         prompt_text = tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
@@ -4579,8 +4591,10 @@ Formula: `{plan.formula_version}`. Point estimates sum named point components. U
 
 ## Selected execution contract
 
+- Candidate status: `{plan.recommended.status.value}`
 - Method: `{plan.recommended.method.value}`
 - Distribution and world size: `{plan.recommended.distribution.value}`, `{plan.recommended.world_size}`
+- Planned visible device indices: `{", ".join(str(item) for item in plan.recommended.device_indices)}`
 - Precision and quantization: `{plan.recommended.precision}`, `{plan.recommended.quantization or "none"}`
 - Adapter rank and alpha: `{plan.recommended.rank}`, `{plan.recommended.alpha}`
 - Learning rate: `{plan.recommended.learning_rate:g}`
@@ -4588,8 +4602,11 @@ Formula: `{plan.formula_version}`. Point estimates sum named point components. U
 - Truncation policy: completion first, then keep the prompt suffix that fits; refuse rows with no supervised tokens
 - Target modules: `{target_modules}`
 - Per-device micro-batch and accumulation: `{plan.recommended.micro_batch_size}`, `{plan.recommended.gradient_accumulation_steps}`
+- Required host RAM: `{plan.recommended.required_host_ram_bytes}` bytes
+- Required staging and output disk: `{plan.recommended.required_disk_bytes}` bytes
 - Checkpoint-retention estimate: `{plan.recommended.checkpoint_retention_bytes}` bytes for up to three retained checkpoints
 - Final-export estimate: `{plan.recommended.final_export_bytes}` bytes
+- Confidence label: `{plan.recommended.confidence}`
 - Pareto frontier: `{str(plan.recommended.pareto_frontier).lower()}`
 
 ## Assumptions
@@ -4611,9 +4628,23 @@ This ranking does not claim measured throughput or model quality. Those require 
 def _readme(plan: TrainingPlan) -> str:
     return f"""# Aptus training bundle
 
-This portable bundle contains candidate `{plan.recommended.candidate_id}` from plan `{plan.plan_id}`. Review `decision-report.md`, then follow `runbook.md`.
+This portable bundle contains candidate `{plan.recommended.candidate_id}` from
+plan `{plan.plan_id}`.
 
-The analytic point estimate and heuristic upper envelope are not calibration results. Run the selected method preflight and bounded real-model/data pilot before full training.
+## Before execution
+
+1. Review `decision-report.md`, `plan.json`, and `evidence.jsonl`.
+2. Confirm the model revision, data rights, target facts, and selected hardware.
+3. Create the Python environment outside this directory. An in-bundle virtual
+   environment is an unexpected path and invalidates the manifest.
+4. Install the exact direct pins from `requirements.txt`.
+5. Follow `runbook.md` in order.
+
+The analytic point estimate and heuristic upper envelope are not calibration
+results. The selected method must pass dependency, model-data, measured
+preflight, and bounded real-model pilot gates before full training.
+
+## Portable commands
 
 ```bash
 python validate.py --level static
@@ -4623,21 +4654,109 @@ python validate.py --level measured-preflight
 python validate.py --level pilot
 python run.py --confirm-full-train
 ```
+
+Do not launch `train.py` directly. `run.py` owns the full-run lease, aggregate
+exit handling, artifact verification, and completion promotion.
+
+## Evidence boundary
+
+`pilot-pass` authorizes a later deep train-admission check. It does not guarantee
+that current resources still suffice. `measured-run-pass` proves the bound run,
+metrics, trainable census, dataset split, and structural export file tree passed
+parent verification. It does not prove model quality, safety, or deployment
+fitness.
 """
 
 
 def _runbook(plan: TrainingPlan) -> str:
     return """# Runbook
 
-1. Create an isolated environment and install the direct pins in `requirements.txt`.
-2. Run `python validate.py --level dependency`.
-3. Run `python validate.py --level model-data` to load the pinned model weights, verify parameter count and adapter target-module presence, then tokenize every canonical row. This inspection does not mutate weights or claim calibrated fit.
-4. Run `python validate.py --level measured-preflight` for a measured synthetic check of the selected method.
-5. Run `python validate.py --level pilot`. Each phase reads only the compiler-produced pressure set. The compiler supplies at least two effective batches, repeats real rows when needed, and the pilot collator pads to the target sequence length. Evaluation stays disabled. Phase one saves `checkpoint-1`. A fresh process resumes that checkpoint and completes step two.
-6. Review both pilot phases in `pilot-output/metrics.json` and the recorded CUDA peak memory.
-7. Start full training only after a passing pilot: `python run.py --confirm-full-train`. This parent entrypoint waits for the aggregate worker exit, verifies the final file tree, and promotes the pending measured-run evidence.
+## 1. Protect the bundle
 
-Full-training resume is fail-closed in Aptus v0.2. Training checkpoints are emitted, but Aptus will not resume one until the resume contract binds complete model, optimizer, scheduler, scaler, RNG, environment, plan, and distributed state. New run outputs are written beneath `runs/` in unique, run-ID-bound directories.
+Keep the bundle unchanged. Create the isolated environment beside it, never
+inside it. For example, while your shell is in the bundle directory:
+
+```bash
+python -m venv ../aptus-runtime-env
+source ../aptus-runtime-env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+`requirements.txt` contains exact direct pins, not a transitive lock. Preserve
+the installed-environment binding written by validation.
+
+## 2. Validate dependencies
+
+```bash
+python validate.py --level dependency
+```
+
+This cumulatively checks the contract and static levels, then verifies the exact
+direct requirements in the active environment.
+
+## 3. Validate model and data
+
+```bash
+python validate.py --level model-data
+```
+
+This loads the pinned model and tokenizer, checks plan-driving architecture
+facts and target modules, prepares the selected method, enables its compiled
+checkpointing path, enforces the trainable-parameter census, and transforms
+every canonical row. It constructs no optimizer and takes no training step.
+
+## 4. Run measured preflight
+
+```bash
+python validate.py --level measured-preflight
+```
+
+This runs the selected broad method on a small synthetic CUDA model. It performs
+a forward pass, backward pass, optimizer step, finite-loss check, census check,
+and peak-memory measurement. It is method and kernel evidence, not planned-model
+fit evidence.
+
+## 5. Run the real-model pilot
+
+```bash
+python validate.py --level pilot
+```
+
+Each pilot phase reads only the compiler-produced pressure set. The compiler
+supplies at least two effective batches and repeats real rows when needed. Phase
+one writes a checkpoint. A fresh process continues from it and completes phase
+two. Both phases must report the same plan-bound trainable census.
+
+Review `pilot-output/metrics.json`, the checkpoint and export manifests, the
+recorded CUDA peaks, and `validation-report.json`. A pilot failure blocks full
+training.
+
+## 6. Start a unique full run
+
+```bash
+python run.py --confirm-full-train
+```
+
+Do not launch `train.py` directly. `run.py` rechecks admission, holds the shared
+lease, chooses the single or distributed command, waits for aggregate exit,
+verifies pending metrics and the structural export, and promotes completion.
+
+New outputs appear under a unique `runs/run_*` directory. The trainer binds the
+full canonical dataset, deterministic train and evaluation assignment, rank
+evidence, optimizer membership, trainable census, metrics, and export tree.
+
+## 7. Interpret the result
+
+Read `validation-report.json`, the selected run metrics, and the final export
+manifest. `measured-run-pass` is operational and structural evidence. Use a
+separate evaluation contract before making a quality claim.
+
+## Recovery boundary
+
+Full-training resume is fail-closed in Aptus v0.2. Checkpoints are emitted, but
+Aptus will not resume one until a future contract binds complete model,
+optimizer, scheduler, scaler, RNG, environment, plan, data progress, and
+distributed state. Preserve a failed run for diagnosis and start a new run ID.
 """
 
 

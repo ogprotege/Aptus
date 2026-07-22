@@ -1,5 +1,7 @@
 # Model, Dataset, and Hardware Facts
 
+> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when fact contracts change
+
 A plan is only as credible as its facts. Aptus records provenance and refuses to
 infer permission or unsupported hardware capability.
 
@@ -118,3 +120,10 @@ claim safely. Quantized FSDP combinations are also unsupported.
 - `unknown`: no defensible value is available.
 
 Do not relabel an inferred value as measured.
+
+## Related documentation
+
+- [Prepare a dataset](prepare-a-dataset.md)
+- [Dataset schemas](../reference/dataset-schemas.md)
+- [Facts and provenance](../methodology/facts-and-provenance.md)
+- [Configuration and defaults](../reference/configuration-defaults.md)

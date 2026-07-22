@@ -1,0 +1,164 @@
+# Workbench Development
+
+> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+
+The React workbench is a local operator interface over the same strict FastAPI
+contracts used by the CLI. It must expose uncertainty, blocked actions, current
+job state, and evidence boundaries without inventing a separate product model.
+
+## Source map
+
+| Path | Responsibility |
+|---|---|
+| [`web/src/App.tsx`](../../web/src/App.tsx) | Application state, bootstrap restoration, stage transitions, polling, and active-job guards |
+| [`web/src/api.ts`](../../web/src/api.ts) | API requests, strict response normalization, and error handling |
+| [`web/src/types.ts`](../../web/src/types.ts) | Browser-side facts, plans, candidates, reports, jobs, and bootstrap types |
+| [`web/src/stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
+| [`web/src/components/`](../../web/src/components) | Workflow rail, candidate comparison, fit ledger, validation gates, artifact tree, and run console |
+| [`web/src/lib/`](../../web/src/lib) | Hardware, model-inspection, and plan presentation helpers |
+| [`web/src/demo.ts`](../../web/src/demo.ts) | Labeled non-executed example content |
+| [`web/src/styles.css`](../../web/src/styles.css) | Fonts, tokens, layout, status treatments, responsive rules, focus, and reduced motion |
+
+## Five-stage contract
+
+1. Facts collects model, dataset, hardware, and target values with provenance.
+2. Compare displays every candidate status and the selected recommendation.
+3. Compile writes a new no-clobber bundle and archive.
+4. Validate shows the evidence ladder and starts static validation.
+5. Run exposes dependency, model-data, preflight, pilot, and confirmed training
+   as separate ordered actions.
+
+The UI can guide the sequence. It cannot bypass the API's strict schemas,
+planner rules, manifest checks, job prerequisites, host-global lease, current
+train admission, or parent completion verification.
+
+## API ownership
+
+The browser should obtain capability and readiness data from
+`GET /api/v1/bootstrap`. `capabilities.methods` is the planner-selectable set.
+`capabilities.method_catalog` is the wider runtime registry. Never populate the
+preference control from the wider catalog.
+
+When adding an API field:
+
+1. change the Pydantic model and endpoint;
+2. add API success and rejection tests;
+3. update `types.ts`;
+4. update request construction or response normalization in `api.ts`;
+5. update restoration and stage state in `App.tsx`;
+6. add component or stage tests;
+7. update the API and UI documentation.
+
+Preserve `null` for unknown resource values. Do not turn a missing free-memory
+measurement into total memory.
+
+## Safety invariants
+
+Keep these behaviors visible and tested:
+
+- model inspection cannot confirm training permission or choose a license;
+- inferred model family remains distinct from provider-declared fields;
+- hardware scanning names the service host;
+- Apple shared unified memory is not labeled dedicated VRAM;
+- MPS inventory does not expose CUDA or MLX capability checkboxes;
+- experimental and research-only methods remain nonselectable;
+- conditional candidates retain their unresolved reasons;
+- compile requires a new path and explains no-clobber behavior;
+- runtime actions cannot skip forward;
+- current train admission is authoritative, not cached bootstrap text;
+- training requires explicit high-cost confirmation;
+- `verifying` is shown before completion;
+- full-run resume is not offered;
+- export checks are labeled structural, not quality evidence;
+- example mode is labeled as non-executed on every relevant stage.
+
+## Active-job behavior
+
+Facts that can conflict with an executing host, local hardware scanning,
+compilation selection, and competing runtime submissions are blocked while a
+managed job is active. Polling should remain cheap. Cancellation stays
+available until the parent enters its non-cancellable completion commit.
+
+Display both `state` and `phase`. A job can be `running` with phase
+`verifying`. Do not map phase text into a false persisted state.
+
+## Accessibility requirements
+
+- Give every input a programmatic label and useful error association.
+- Move focus to the selected stage heading.
+- Announce ordinary status changes through a polite live region.
+- Use an alert for blocking errors.
+- Never use color as the only state signal.
+- Keep every action and disclosure keyboard reachable.
+- Preserve action order and evidence labels on narrow screens.
+- Respect reduced-motion preferences.
+- Maintain visible focus and readable contrast in the packaged build.
+
+Test semantic behavior with Testing Library queries that reflect how a user
+finds the control. Avoid tests that pass only because of internal component
+structure.
+
+## Build and test
+
+From `web/`:
+
+```bash
+npm ci
+npm test
+npm run typecheck
+npm run build
+```
+
+`npm run build` runs the type check, then writes directly to
+`src/aptus/_web`. Vite clears the previous output. The Python package includes
+that directory as package data.
+
+After the build:
+
+1. inspect the changed hashed assets and `index.html`;
+2. run the Python API tests;
+3. build a wheel;
+4. install it outside the source tree;
+5. fetch `/` and the referenced hashed asset through the packaged FastAPI app.
+
+Do not commit a source change without the corresponding packaged assets when
+the user-facing build changed.
+
+## Local development
+
+Run the API on loopback:
+
+```bash
+aptus serve --host 127.0.0.1 --port 8787
+```
+
+The Vite development configuration uses `127.0.0.1:4173` and proxies `/api` to
+`http://127.0.0.1:8787` by default. `APTUS_API_ORIGIN` can select another local
+API origin for the proxy. `VITE_API_BASE_URL` can set a browser API base at
+build or development time.
+
+Do not use development proxy settings as a remote deployment security model.
+The Aptus API has no built-in authentication or tenant isolation.
+
+## Visual and interaction review
+
+For any material UI change, inspect:
+
+- empty, loading, success, warning, failure, cancelling, and verifying states;
+- all five workflow stages;
+- a conditional and unsupported candidate;
+- method readiness on CUDA and Apple inventory;
+- long paths, error text, and logs;
+- keyboard-only operation;
+- reduced motion;
+- narrow and wide viewports;
+- example-mode labels;
+- the installed-wheel build, not only the Vite source server.
+
+## Related documentation
+
+- [UI and UX contract](../product/ui-ux.md)
+- [API reference](../reference/api.md)
+- [Current capabilities](../product/current-capabilities.md)
+- [Security boundaries](../architecture/security-boundaries.md)
+- [Code map](../architecture/code-map.md)

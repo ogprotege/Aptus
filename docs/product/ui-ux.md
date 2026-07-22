@@ -1,5 +1,7 @@
 # UI and UX Contract
 
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the workbench changes
+
 The workbench is a local operator interface for the same API contracts exposed by
 the CLI. It must make evidence state and blocked actions visible.
 
@@ -108,3 +110,10 @@ inspection, plan, compile, validation, pilot, or run result.
 
 The canonical visual tokens and components live in `web/src/styles.css` and
 `web/src/components/`.
+
+## Related documentation
+
+- [Workbench development](../contributing/workbench.md)
+- [Current capabilities](current-capabilities.md)
+- [Validation states](../reference/validation-states.md)
+- [Claim language](claim-language.md)

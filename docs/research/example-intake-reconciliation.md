@@ -1,5 +1,7 @@
 # EXAMPLE forensic review and salvage ledger
 
+> **Status:** Archived | **Authority:** Historical provenance ledger | **Snapshot:** 2026-07-22 | **Audience:** Maintainers and researchers | **Review:** Only when the recorded intake or disposition is challenged
+
 Status: all 75 local intake files reviewed on 2026-07-22. This ledger covers 58
 non-PDF files and 17 PDFs. The raw `EXAMPLE/` folder is ignored and remains
 local. None of its code, credentials, databases, or unpublished material is
@@ -87,11 +89,15 @@ must never trigger training automatically.
 `Salvage` means the named requirement was carried into Aptus. `Archive` means
 the file is useful only as historical intent. `Discard` means no implementation
 or factual claim should be imported. The local source remains untouched unless
-the user later chooses to clean the intake copy.
+the user later chooses to clean the intake copy. Hashes record the bytes seen at
+review time. They are not assertions about the current ignored `EXAMPLE/` tree,
+which the user may continue to edit. Finder `.DS_Store` files are volatile junk,
+so their snapshot hashes are provenance only and must not be used as live
+identity checks.
 
 | Path | SHA-256 | Disposition | Finding |
 |---|---|---|---|
-| `EXAMPLE/.DS_Store` | `4feb8a2682c6e24987053db816a1c60ed83f0d9bacde080d79ee69848136844a` | Discard | Finder metadata only |
+| `EXAMPLE/.DS_Store` | reviewed snapshot `4feb8a2682c6e24987053db816a1c60ed83f0d9bacde080d79ee69848136844a`; live hash intentionally untracked | Discard | Volatile Finder metadata only |
 | `EXAMPLE/5-10-25/README.md` | `2004d4c7fc8d810804646ad81268f30c6774c43398a5b1a98643c3ef04cba528` | Archive | Describes a nonexistent production-ready tree; LR search, calibration, bias monitoring, and dashboards survive only as future requirements |
 | `EXAMPLE/5-26-25/prompt.txt` | `7d3ba5f9c408aff140b14edbc4689773430ccea4aff3481a02fa1516addf196a` | Salvage | Tester-gated, chronological, human-corrected corpus intent maps to the reviewed corpus contract |
 | `EXAMPLE/Chainlit_05-03-25/README.md` | `b15d71b4446bfe19522e5ab6e45dbab2b436efd5bb9726e8e362d17f2e6ef86e` | Discard | Security and completeness claims exceed the application |
@@ -189,3 +195,10 @@ and hardware. They are not Aptus capacity constants.
 The old credential strings in historical scripts are intentionally omitted
 from this ledger. The user identified them as obsolete. Keeping `EXAMPLE/`
 ignored prevents the intake copy from entering a commit.
+
+## Related documentation
+
+- [Research index](index.md)
+- [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)
+- [Apple Silicon experiment matrix](../operations/apple-silicon-pilot.md)
+- [Retained Reference packet](../../Reference/README.md)

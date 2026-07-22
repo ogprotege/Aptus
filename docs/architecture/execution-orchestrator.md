@@ -1,5 +1,7 @@
 # Execution Orchestrator
 
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when job semantics change
+
 The orchestrator turns runtime validation and training into persisted,
 cancellable local jobs. It is a single-user local process manager, not a remote
 scheduler.
@@ -84,3 +86,10 @@ that transaction after a parent crash when the persisted evidence still passes.
 
 Terminal job state does not imply model quality. It means the execution and
 artifact contracts passed or failed as recorded.
+
+## Related documentation
+
+- [Run states](../reference/run-states.md)
+- [Validation states](../reference/validation-states.md)
+- [Operator checklist](../operations/operator-checklist.md)
+- [Recovery and resume boundary](../guides/resume-recover.md)

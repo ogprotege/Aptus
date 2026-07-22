@@ -1,5 +1,7 @@
 # Compare Plans
 
+> **Status:** Active | **Authority:** Explanatory planning guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when ranking changes
+
 Aptus enumerates a bounded candidate matrix. It applies explicit support rules,
 estimates resources, and ranks viable candidates. Viable means `feasible` or
 `conditional`, with fully feasible candidates ranked ahead of conditional ones.
@@ -58,3 +60,10 @@ If no candidate is viable, change an explicit input or use different hardware.
 A conditional recommendation still carries unresolved assumptions and requires
 its exact pilot. Do not silently shorten the sequence, reduce the batch, or
 change the method.
+
+## Related documentation
+
+- [Choose a method](choose-a-method.md)
+- [Candidate enumeration](../methodology/candidate-enumeration.md)
+- [Memory estimation](../methodology/memory-estimation.md)
+- [Ranking and uncertainty](../methodology/ranking-uncertainty.md)

@@ -1,5 +1,7 @@
 # Release Gates
 
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-07-22 | **Review by:** Every release candidate
+
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests on a non-CUDA development Mac is not
 enough.
@@ -153,3 +155,10 @@ For each claimed executable method and placement:
 
 Not passed. No real CUDA pilot or full training evidence has been completed on
 the current development Mac. Aptus v0.2 is not release-ready.
+
+## Related documentation
+
+- [Release evidence template](release-evidence-template.md)
+- [Current capabilities](../product/current-capabilities.md)
+- [Operator checklist](operator-checklist.md)
+- [Documentation health](../maintenance/documentation-health.md)

@@ -1,6 +1,20 @@
 
 # MCP Hyperparameter Optimization Method Catalog
 
+> **Documentation status:** Archived research intake
+>
+> **Authority:** Non-normative. Its uncited ranges and formulas are not Aptus
+> planner defaults.
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2027-07-22, or when its archive disposition changes
+>
+> Use the [method taxonomy](../docs/methodology/method-taxonomy.md) for current
+> classification. See the
+> [reconciliation ledger](../docs/research/reference-and-to-review-reconciliation.md#referencehparam_methods_referencemd)
+> for accepted concepts and rejected numeric claims.
+
 This file contains extracted and structured tuning methods from key academic papers. Each method includes a description, use case, and any known formulas or configuration heuristics.
 
 ---

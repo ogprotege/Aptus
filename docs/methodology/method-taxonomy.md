@@ -1,0 +1,285 @@
+# Fine-tuning method taxonomy
+
+Aptus models a training plan as a composition of independent choices. It does
+not treat every named paper, optimizer, precision, and distributed system as a
+peer "method."
+
+The normalized profile is:
+
+```text
+facts
++ objective and data contract
++ parameter scope
++ parameterization
++ recipes and modifiers
++ optimizer and schedule
++ compute precision and storage quantization
++ distribution
++ evaluation contract
++ export contract
+= one identity-bound candidate
+```
+
+Changing any term can change feasibility, behavior, dependencies, checkpoints,
+or artifacts. Candidate and plan identity therefore bind the normalized model,
+dataset, hardware, target, strategy, resource, and memory-policy facts used to
+compile the artifact. Runtime reports separately bind the installed dependency
+environment, measured hardware, and validation evidence to that plan and
+candidate identity.
+
+This taxonomy incorporates the useful distinctions in
+[`Reference/top-50-llm-training-methods.pplx.md`](../../Reference/top-50-llm-training-methods.pplx.md).
+It does not import that file's editorial ranking as an Aptus quality score. The
+complete source disposition is recorded in the
+[reconciliation ledger](../research/reference-and-to-review-reconciliation.md).
+The documentation-only [machine-readable catalog](method-catalog.json) mirrors
+the current 12-row matrix and keeps research names outside runtime authority.
+
+## Axis 1: objective and data contract
+
+The objective defines the loss and the data needed to compute it.
+
+| Objective family | Required data | Current Aptus status |
+|---|---|---|
+| Supervised fine-tuning (`sft`) | Text or supervised completion/chat rows with non-empty target tokens | Executable, subject to all gates |
+| Instruction tuning | Multitask instruction and response rows plus task/template policy | Representable as SFT data, but no separate multitask quality contract |
+| Continued pretraining, DAPT, TAPT | Packed raw corpus and causal-LM continuation policy | Research only |
+| Offline paired preference optimization: DPO, IPO, ORPO, SimPO | Prompt, chosen, and rejected response contract, with objective-specific variants | Research only |
+| Unpaired feedback: KTO, BCO | Prompt, completion, and binary desirability contract | Research only |
+| Online RL: PPO, GRPO, DAPO, GSPO, Dr. GRPO, RLOO, REINFORCE++, CISPO | Prompt sampler, reward contract, reference policy rules, rollout system, and online evaluation | Research only |
+| Distillation: KD, GKD, MiniLLM | Student inputs plus a versioned teacher and divergence contract | Research only |
+| Pretraining from scratch | Architecture definition, corpus, tokenizer, and corpus-scale compute policy | Out of scope for v0.2 |
+
+V0.2 accepts `task="sft"` only. Sequence packing is fail-closed because the
+current masking compiler does not implement it. A non-SFT label must never be
+routed through the SFT loss merely because a library exposes a trainer class.
+
+## Axis 2: parameter scope
+
+Parameter scope answers which existing parameters may change.
+
+| Scope | Meaning | Current Aptus status |
+|---|---|---|
+| All parameters | Every base parameter is trainable | `full` path |
+| Frozen base plus injected parameters | Base parameters remain frozen; added adapter parameters train | LoRA-based paths |
+| Selected existing parameters | Biases, selected layers, tokens, or another sparse subset train | Research only |
+| Representation intervention | Base remains frozen; learned operations alter hidden representations | Research only |
+| Student parameters | A student trains against a teacher | Research only |
+
+Scope is distinct from objective. SFT can train all parameters or a LoRA
+adapter. A future DPO objective could do the same. The objective determines what
+is optimized. Scope determines where updates are allowed.
+
+## Axis 3: parameterization
+
+Parameterization defines the trainable mathematical object.
+
+| Parameterization | Scope | Current Aptus status |
+|---|---|---|
+| Dense full weights | All parameters | Executable as `full` |
+| LoRA low-rank update | Frozen base plus injected low-rank matrices | Executable as `lora`, `int8-lora`, and the LoRA part of `qlora` |
+| DoRA magnitude and direction | Frozen base plus magnitude and low-rank directional update | Research only |
+| Adaptive or initialized LoRA variants: AdaLoRA, PiSSA, rsLoRA, LoRA+, LoftQ | Variant-specific | Research only |
+| Prompt, prefix, and P-Tuning v2 | Learned prompt representations | Research only |
+| Adapters, IA3, VeRA, BOFT/OFT, MiSS | Added or transformed PEFT parameters | Research only |
+| BitFit and LISA | Selected existing parameters | Research only |
+| ReFT and LoReFT | Hidden-representation interventions | Research only |
+
+DoRA means Weight-Decomposed Low-Rank Adaptation
+([primary paper](https://arxiv.org/abs/2402.09353)). ReFT means Representation
+Finetuning, and LoReFT is a low-rank linear subspace representation
+intervention ([primary paper](https://arxiv.org/abs/2404.03592)). The conflicting
+expansions in `Reference/Fine-Tuning_Methods.md` are rejected.
+
+## Axis 4: recipes, pipelines, and modifiers
+
+A recipe is a named composition. A pipeline is an outer loop around one or more
+training objectives. A modifier alters another training objective.
+
+| Class | Examples | Aptus treatment |
+|---|---|---|
+| Recipe | QLoRA, LoftQ, QPiSSA | Expand into atomic choices and validate each one |
+| Pipeline | RLHF, RLAIF, RAFT, STaR, Self-Instruct, SPIN | Model as a versioned state machine with evidence between stages |
+| Modifier | NEFTune, EWC, replay, LwF | Attach to an objective with explicit compatibility and evaluation rules |
+| Infrastructure modifier | Gradient checkpointing, sequence packing, offload, FlashAttention | Record as execution policy, not as a fine-tuning objective |
+
+QLoRA is not a new loss. It combines a frozen four-bit base, LoRA adapters, NF4,
+double quantization, and a memory-aware training recipe
+([Dettmers et al.](https://arxiv.org/abs/2305.14314)). Aptus currently compiles
+the frozen NF4 base, double quantization, and LoRA adapter path. Its optimizer
+choice remains an explicit Aptus policy, not an implied paper default.
+
+## Axis 5: optimizer and schedule
+
+An optimizer changes the update rule. It does not by itself define the
+objective or parameter scope.
+
+V0.2 compiles these explicit defaults:
+
+- PyTorch AdamW;
+- linear scheduler;
+- zero weight decay;
+- zero warmup steps;
+- maximum gradient norm of 1.0;
+- method-class learning-rate priors, not tuned optima.
+
+Sophia, Adam-mini, SAM, and PagedAdamW8bit are not current Aptus optimizer
+choices. The numeric suggestions in `Reference/hparam_methods_reference.md`
+remain unverified priors.
+
+GaLore, LOMO, MeZO, and LISA require more than changing an optimizer string.
+They change gradient representation, update storage, gradient estimation, or
+active parameter scope. They need dedicated compilers, memory models,
+checkpoint contracts, and pilots before they can become executable.
+
+## Axis 6: compute precision and storage quantization
+
+Compute precision and base-weight storage are separate facts.
+
+| Aptus method label | Base storage | Compute | Current rule |
+|---|---|---|---|
+| `full` | Unquantized | BF16 when all participating GPUs support it | Full FP16 is fail-closed because the generated path does not retain verified FP32 trainable master weights |
+| `lora` | Unquantized frozen base | BF16 or FP16 from participating-device capability | Requires target-module inspection and pilot |
+| `int8-lora` | Bitsandbytes eight-bit frozen base | BF16 or FP16 | Every participating GPU must explicitly support the LLM.int8 path and compute capability 7.5 or newer |
+| `qlora` | NF4 four-bit frozen base with double quantization | BF16 or FP16 | Every participating GPU must explicitly support the four-bit path and compute capability 6.0 or newer |
+
+The planner does not assume that nominal total VRAM proves a quantized kernel
+works. Declared capability permits planning. Dependency validation, model-data
+inspection, measured preflight, and a bounded pilot provide progressively
+stronger evidence.
+
+## Axis 7: distribution
+
+Distribution determines placement and communication. It is infrastructure, not
+a fine-tuning method.
+
+| Distribution | Meaning | Current rule |
+|---|---|---|
+| Single | One selected CUDA GPU | Eligible when the candidate and resource gates pass |
+| DDP | One complete replica per participating GPU | Requires at least two CUDA GPUs, per-device fit, and exact global-batch divisibility |
+| FSDP | Selected state is sharded across ranks | Only LoRA is a conditional v0.2 candidate; it uses `use_orig_params=true`, and exact behavior requires the real-model pilot |
+
+DDP never adds device VRAM into one pool. Every replica must fit. Host staging
+budgets one model materialization per rank.
+
+Full-parameter FSDP is fail-closed in v0.2. The pinned runtime can upcast
+trainable shards and full-state export to FP32, while Aptus has not calibrated
+that transient path. Eight-bit LoRA and QLoRA with FSDP are also unsupported.
+These rows remain visible so the planner explains the failed rule.
+
+## Axis 8: evaluation
+
+Evaluation must name a target, dataset, metric, baseline, threshold, direction,
+sample policy, and uncertainty rule. Operational evidence and quality evidence
+are different.
+
+V0.2 currently verifies operational behavior:
+
+- the exact model and tokenizer resolve at the pinned revision;
+- supported rows transform without empty supervision;
+- target modules exist;
+- a bounded pilot performs training work on the compiler-produced pressure set;
+- losses are finite and training steps are positive;
+- checkpoint continuation is observed across the two pilot phases;
+- measured resources and output sizes are recorded.
+
+This does not prove that a model meets a user quality target. MMLU, HellaSwag,
+GSM8K, TruthfulQA, custom task metrics, safety evaluations, regression
+baselines, and contamination checks are future evaluation contracts. The
+benchmark names in `TO-REVIEW/server.ts` are interface ideas only.
+
+## Axis 9: export
+
+Export is an output contract, not a successful-training synonym.
+
+V0.2 emits one of two structural forms:
+
+- full fine-tuning: pinned model configuration, tokenizer material, and
+  safetensors weight files;
+- LoRA-based training: pinned adapter configuration, tokenizer material, and
+  safetensors adapter weights that retain base-model provenance.
+
+The verifier opens safetensors files, checks non-empty tensor keys, checks index
+mappings when present, and binds the file tree and metrics to the run. This is
+structural file-tree verification. It is not an inference-parity, merged-model,
+serving-latency, GGUF, ONNX, or deployment proof.
+
+GGUF, ONNX, PyTorch pickle export, adapter merge, quantized serving conversion,
+model registry publication, and provider deployment are future exporter
+contracts. The declarations in `TO-REVIEW/server.ts` do not make them current
+features.
+
+## Current executable matrix
+
+The planner enumerates four Aptus method labels across three distribution
+choices, producing 12 visible candidates. "Eligible" below means the compiler
+has a guarded path. It does not mean that every model, dataset, GPU, or pinned
+library combination has passed a real CUDA pilot.
+
+| SFT parameter and storage path | Single | DDP | FSDP |
+|---|---|---|---|
+| Full, unquantized | Eligible only with BF16 and all resource gates | Eligible only with BF16, two or more GPUs, per-replica fit, and exact batch arithmetic | **Unsupported, fail-closed** |
+| LoRA, unquantized base | Eligible with target-module and resource gates | Eligible with two or more GPUs, per-replica fit, and exact batch arithmetic | **Conditional** under an uncalibrated sharding prior; real pilot required |
+| Eight-bit LoRA | Eligible with explicit eight-bit capability and resource gates | Eligible with explicit capability on every rank, per-replica fit, and exact batch arithmetic | **Unsupported** |
+| QLoRA, NF4 plus double quantization | Eligible with explicit four-bit capability and resource gates | Eligible with explicit capability on every rank, per-replica fit, and exact batch arithmetic | **Unsupported** |
+
+Every eligible row still requires:
+
+1. a CUDA backend and supported model family;
+2. an immutable provider model commit and explicit training permission;
+3. a supported SFT dataset schema and content-bound digest;
+4. sequence length within the model context;
+5. point and upper memory checks, host RAM, disk, and user reserve;
+6. dependency and environment validation;
+7. model-data inspection and measured preflight;
+8. the exact bounded pilot and current full-training admission;
+9. explicit full-run confirmation;
+10. aggregate process success and artifact verification.
+
+No row bypasses these gates because a paper, README, or user preference calls a
+method efficient.
+
+## Research-only and future method families
+
+The following names are indexed for future evidence work. They are not
+implemented, selectable, compiled, or validated by Aptus v0.2.
+
+- Objectives: continued pretraining, DAPT, TAPT, instruction-specific
+  multitask tuning, DPO, IPO, ORPO, SimPO, KTO, BCO, PPO, GRPO, DAPO, GSPO,
+  Dr. GRPO, RLOO, REINFORCE++, CISPO, KD, GKD, MiniLLM, and from-scratch
+  causal-LM pretraining.
+- Parameterizations: DoRA, AdaLoRA, Prompt Tuning, Prefix-Tuning, P-Tuning v2,
+  PiSSA, Houlsby adapters, IA3, LoRA+, rsLoRA, BitFit, VeRA, LoReFT, BOFT,
+  OFT, MiSS, LoHa, LoKr, X-LoRA, Poly, HRA, RandLoRA, SHiRA, RoAd, C3A,
+  FourierFT, MoRA, and Trainable Tokens.
+- Recipes and pipelines: LoftQ, QPiSSA, RLHF, RLAIF, RAFT, STaR,
+  Self-Instruct, and SPIN.
+- Modifiers and update strategies: NEFTune, EWC, Experience Replay, LwF,
+  GaLore, LISA, LOMO, MeZO, SAM, Sophia, and Adam-mini.
+- Infrastructure: ZeRO, tensor parallelism, pipeline parallelism, CPU or NVMe
+  offload, FlashAttention selection, and sequence packing.
+- Backends and runners: ROCm, MPS, CPU training, managed cloud runners, and
+  provider execution connectors.
+- Evaluation and export: named benchmark suites, custom target thresholds,
+  inference-parity checks, GGUF, ONNX, adapter merge, publication, and
+  deployment.
+
+Names found only in the rejected unsourced list, including DoReFT, FishDip,
+FAR, CIAT, KODA, MerA, PHA, and PaFi, are not in the research catalog. They
+first require a primary source and a distinct mechanism.
+
+## Admission rule for a new executable method
+
+A research item becomes executable only when all of these exist:
+
+1. primary-source identity and a stable, distinct definition;
+2. a pinned dependency and model-family compatibility rule;
+3. objective-specific data and evaluation schemas;
+4. typed configuration with bounded values and explicit defaults;
+5. deterministic compiler output and a portable entry point;
+6. transparent VRAM, host RAM, disk, checkpoint, and export estimates;
+7. static, dependency, environment, model-data, and measured preflight gates;
+8. a bounded real-model pilot with continuation evidence;
+9. cancellation, lease, restart, unique no-clobber run directories, and completion attestation;
+10. an artifact verifier and negative tests for every unsupported combination;
+11. real CUDA evidence for the pinned stack before a release support claim.

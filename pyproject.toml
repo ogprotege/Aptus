@@ -4,21 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aptus"
-version = "0.1.0"
-description = "Evidence-backed fine-tuning planning and artifact validation"
+version = "0.2.0"
+description = "Evidence-backed fine-tuning planning, compilation, validation, and local execution"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [
-  { name = "William Sherman" }
+authors = [{ name = "William Sherman" }]
+dependencies = [
+  "pydantic>=2.10,<3",
 ]
-dependencies = []
+
+[project.optional-dependencies]
+server = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1"]
+test = ["httpx>=0.28,<1", "ruff>=0.15,<1"]
 
 [project.scripts]
 aptus = "aptus.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+aptus = ["_web/index.html", "_web/assets/*"]
 
 [tool.coverage.run]
 source = ["aptus"]

@@ -89,9 +89,7 @@ def generate_evidence_bundle(source: Path, output: Path) -> dict[str, Any]:
         staging = Path(temp_dir)
         inventory_summary = generate_inventory_bundle(source, staging)
         records = _read_jsonl(staging / "inventory.jsonl")
-        duplicate_clusters = _read_json(staging / "duplicate-clusters.json")[
-            "clusters"
-        ]
+        duplicate_clusters = _read_json(staging / "duplicate-clusters.json")["clusters"]
 
         reference_report = analyze_references(source)
         write_json(staging / "reference-map.json", reference_report)
@@ -122,9 +120,7 @@ def generate_evidence_bundle(source: Path, output: Path) -> dict[str, Any]:
             "dispositions": dict(sorted(dispositions.items())),
             "warning_counts": dict(sorted(warnings.items())),
             "adapt_candidates": [
-                item["path"]
-                for item in decisions
-                if item["disposition"] == "ADAPT"
+                item["path"] for item in decisions if item["disposition"] == "ADAPT"
             ],
         }
         write_json(staging / "classification-summary.json", summary)
@@ -140,8 +136,7 @@ def generate_evidence_bundle(source: Path, output: Path) -> dict[str, Any]:
                 "source_root": str(source),
                 "source_manifest_sha256": inventory_summary["manifest_sha256"],
                 "files": {
-                    filename: _sha256(staging / filename)
-                    for filename in bundle_files
+                    filename: _sha256(staging / filename) for filename in bundle_files
                 },
             },
         )

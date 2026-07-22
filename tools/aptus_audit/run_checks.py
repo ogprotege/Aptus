@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import shutil
 import sys
 import tempfile
@@ -303,9 +302,7 @@ def execute_legacy_checks(
         ):
             dependencies = spec.get("requires", [])
             dependency_statuses = {
-                dependency: results_by_id.get(dependency, {}).get(
-                    "status", "not_run"
-                )
+                dependency: results_by_id.get(dependency, {}).get("status", "not_run")
                 for dependency in dependencies
             }
             if spec.get("execution_policy") == "blocked_without_installed_environment":
@@ -383,10 +380,7 @@ def main() -> int:
         )
 
     repository_root = Path(__file__).resolve().parents[2]
-    output_path = (
-        repository_root
-        / "docs/audits/aptus-legacy/sandbox-results.jsonl"
-    )
+    output_path = repository_root / "docs/audits/aptus-legacy/sandbox-results.jsonl"
     results = execute_legacy_checks(
         repository_root,
         output_path,

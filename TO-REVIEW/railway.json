@@ -1,0 +1,36 @@
+# railway.json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install && npm run build"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  },
+  "mounts": [
+    {
+      "path": "/app/models",
+      "volume": "model-storage"
+    }
+  ],
+  "environments": [
+    {
+      "name": "production",
+      "gpu": {
+        "type": "NVIDIA_TESLA_T4",
+        "count": 1
+      },
+      "memory": 8192,
+      "cpuCores": 4
+    },
+    {
+      "name": "development",
+      "gpu": null,
+      "memory": 4096,
+      "cpuCores": 2
+    }
+  ]
+}

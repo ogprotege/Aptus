@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible Aptus defect without sensitive material.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Aptus 0.2 is an engineering preview. Do not attach tokens, private data,
+        model weights, checkpoints, caches, or unredacted logs. Report security
+        issues through the repository Security tab.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Observed outcome
+      description: State what happened, including the validation state or finding code.
+      placeholder: Aptus returned ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected outcome
+      description: State the behavior you expected from the documented contract.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe command sequence and redact local paths as needed.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and identities
+      description: Include Aptus commit, Python version, OS, backend, device names, plan ID, candidate ID, and job ID when applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Non-sensitive evidence
+      description: Include exit status, finding codes, and a redacted error excerpt. Identify facts as measured, provider-declared, user-attested, inferred, or unknown.
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, private data, weights, checkpoints, caches, and personal machine details.
+          required: true
+        - label: I checked the current capabilities and troubleshooting guides.
+          required: true

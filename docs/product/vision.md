@@ -1,5 +1,7 @@
 # Product Vision
 
+> **Status:** Active | **Authority:** Product direction | **Applies to:** Aptus 0.2 and later | **Audience:** All readers | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when product scope changes
+
 Fine-tuning setup consumes time because model, data, hardware, objective,
 precision, quantization, memory, distribution, dependencies, and artifacts must
 agree. Aptus makes those decisions explicit and testable.
@@ -38,3 +40,9 @@ contract and its own evidence gate.
 
 V0.2 is the local CUDA core. It does not yet implement those later integrations
 and has not completed release CUDA evidence.
+
+## Related documentation
+
+- [Current capabilities](current-capabilities.md)
+- [System architecture](../architecture/system.md)
+- [Roadmap](../../ROADMAP.md)

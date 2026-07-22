@@ -1,49 +1,195 @@
-# Run States
+# Managed Run States
 
-Managed jobs persist one of these states:
+| Metadata | Value |
+| --- | --- |
+| Status | Active |
+| Audience | Operators, UI developers, and job-service integrators |
+| Authority | Normative lifecycle reference for persisted Aptus jobs |
+| Last reviewed | 2026-07-22 |
+| Next review | 2026-10-22, or sooner when `src/aptus/execution.py` changes |
 
-| State | Meaning |
-|---|---|
-| `queued` | Record and global lease exist; child launch has not completed |
-| `running` | Runtime action or parent-owned work is active |
-| `cancelling` | Termination was requested and is being reconciled |
-| `completed` | Action-specific checks passed; train completion includes parent verification |
-| `failed` | Launch, child execution, admission-adjacent work, or verification failed |
-| `cancelled` | Termination completed without success promotion |
+Aptus runtime validation and training use persisted local jobs. A job state
+describes process lifecycle. It is not the same as validation evidence state.
 
-The record can include a more specific phase such as `verifying` while state is
-still nonterminal. Consumers should display `phase` when present and use `state`
-for lifecycle logic.
+## State machine
 
-## Job record
+```text
+queued -> running -> completed
+   |         |  \
+   |         |   -> failed
+   |         -> cancelling -> cancelled
+   -> failed
+   -> cancelling -> cancelled
+```
 
-Common fields include:
+Startup or polling reconciliation can also convert an unattached active record
+to `failed` when Aptus cannot prove a valid live owner or child.
 
-- `id` and `job_id`;
-- `action` and current `state`;
-- `phase` when available;
-- `bundle_dir`, `command`, and `log`;
-- owner, process, and process-group identities;
-- creation, start, and finish timestamps;
-- `return_code` and `error`;
-- `run_id` and `run_output_dir` for train;
-- `prelaunch_capacity_check` for admitted train jobs;
-- completion attestation and artifact-integrity status for completed train jobs.
+| State | Terminal | Meaning |
+| --- | ---: | --- |
+| `queued` | No | Record and global lease exist; child launch has not completed |
+| `running` | No | Runtime child or parent-owned verification is active |
+| `cancelling` | No | Termination was requested and is being reconciled |
+| `completed` | Yes | Action-specific completion checks passed |
+| `failed` | Yes | Admission-adjacent persistence, launch, child execution, ownership, or verification failed |
+| `cancelled` | Yes | Owned process termination completed without success promotion |
+
+`completed` is action-specific. A completed dependency job proves the dependency
+gate. A completed train job additionally requires parent verification and report
+promotion. Neither result proves task quality.
+
+## Actions and prerequisites
+
+| Action | Required report state or later | Command behavior |
+| --- | --- | --- |
+| `dependency` | `static-pass` | Runs portable dependency validation |
+| `model-data` | `dependency-pass` | Reruns lower levels, then exact model and data validation |
+| `preflight` | `model-data-pass` | Reruns lower levels, then synthetic measured preflight |
+| `pilot` | `measured-preflight-pass` | Reruns lower levels, then the two-phase pilot |
+| `train` | `pilot-pass` | Performs deep admission, then launches full training |
+
+The prerequisite check accepts a later valid state, so operators can explicitly
+recheck an earlier action. It rejects forward skips. Full training also requires
+`confirm_full_train=true` and a current deep pilot authorization.
+
+## Job record fields
+
+### Persisted submission fields
+
+| Field | Meaning |
+| --- | --- |
+| `id`, `job_id` | Same `job_` plus UUID-hex identity |
+| `state` | Persisted lifecycle state |
+| `action` | One of the five managed actions |
+| `bundle_dir` | Resolved bundle root |
+| `command` | Exact argument vector, never a shell command string |
+| `log` | Persisted combined stdout and stderr path |
+| `return_code` | Child exit code when known |
+| `resume_from` | Always null through public v0.2 APIs |
+| `run_id` | `run_` identity for train, otherwise null |
+| `run_output_dir` | Unique full-run path for train, otherwise null |
+| `created_at`, `started_at`, `finished_at` | UTC lifecycle timestamps |
+| `error` | Current terminal or cancellation error text |
+| `owner_pid`, `owner_process_identity` | Submitting service identity |
+| `process_pid`, `process_identity` | Managed launcher identity |
+| `process_group_id` | POSIX group identity when available |
+| `prelaunch_capacity_check` | Deep current train-admission evidence |
+
+Launch can add `launch_protocol`, `cancel_requested_at`, and completion
+transaction fields. Train verification can add `verified_pending_evidence`,
+`completion_attestation`, `artifact_integrity_status`, and verification
+timestamps.
+
+### Computed read fields
+
+`JobService.get()` adds or refreshes:
+
+| Field | Meaning |
+| --- | --- |
+| `phase` | Usually the lifecycle state; `verifying` during parent completion checks |
+| `cancellable` | True only when this live service owns active work and is not verifying |
+| `owner_status` | `owning-service`, `external-service`, `orphan-child`, `unavailable`, or `terminal` |
+| `cancellation_note` | Human-readable ownership and cancellation guidance |
+| `log_tail` | Last 16,000 bytes of the combined log |
+| `validation_report` | Current bundle report on single-job reads |
+| `validation_report_error` | Reason the report could not be attached |
+| `artifact_integrity` | Cheap post-completion presence status for completed train jobs |
+
+Job list responses omit the attached validation report but still reconcile
+records and include the log tail.
+
+## Queued and launch protocol
+
+Submission writes the queued record, creates the host-global lease, and then
+starts a local worker thread. The worker writes a launch specification, starts a
+permit-file launcher in a new process group where supported, records process
+identity, changes the job to `running`, binds the global lease to the child, and
+only then releases the launch permit.
+
+This sequence narrows the interval in which a child could start without a
+durable identity. Worker-start or lease-persistence failure records `failed` and
+releases the lease where possible.
+
+## `verifying` phase
+
+After the child tree exits, the record receives `return_code` and a completion
+verification timestamp while state remains active. Reads expose
+`phase: verifying` and `cancellable: false`.
+
+For train, the parent then:
+
+1. verifies run marker, metrics, rank evidence, finite guards, census, split,
+   and structural export;
+2. persists verified pending evidence in the job record;
+3. promotes the bundle report to `measured-run-pass`; and
+4. writes a completion attestation.
+
+A zero child exit with failed parent verification becomes `failed`, not
+`completed`.
 
 ## Cancellation
 
-POSIX cancellation targets the recorded process group and can escalate after a
-grace period. The service verifies process identity to reduce PID-reuse risk.
-Cancellation does not convert a dead child into a successful job. A train job
-cannot be cancelled while its parent is committing verified completion evidence.
+On POSIX, Aptus starts the launcher in a process group. Cancellation records
+`cancelling`, sends termination to the recorded group, and escalates when
+required. It validates process identity to reduce PID-reuse risk.
 
-## Concurrency
+Cancellation rules:
 
-One Aptus GPU action runs for the same user and host across state roots. Managed
-jobs and POSIX portable entrypoints share the host-global lease. The lease does
-not include unrelated CUDA programs.
+- terminal records are returned unchanged;
+- only the live owning `JobService` can cancel its active worker;
+- external owners must receive cancellation through their own service;
+- `verifying` is non-cancellable;
+- an exited child without an available verifier is marked failed; and
+- Aptus never infers success from a dead process alone.
 
-## Resume
+Windows uses the managed direct-process termination path. Portable direct child
+execution is fail-closed on Windows.
 
-There is no supported full-run resume state or request field in v0.2. Every new
-train job receives a new immutable run ID.
+## Concurrency and ownership
+
+The service combines an in-process lock, a state-root records lock, and a
+per-user host-global lease. Managed jobs across different state roots and POSIX
+portable bundle entrypoints participate in the same lease.
+
+The lease coordinates Aptus only. It does not reserve CUDA against unrelated
+software. A foreign live Aptus service retains ownership of its record and
+cannot be cancelled by another service instance.
+
+## Reconciliation after interruption
+
+Startup and reads compare recorded owner and process identities with live
+processes. Outcomes include:
+
+- preserve a valid live external owner;
+- report an orphan child and require operating-system intervention;
+- mark an unattached active record failed;
+- preserve `cancelling` while a recorded child group remains live; or
+- complete a pending train promotion when verified evidence was already
+  persisted and still passes.
+
+Reconciliation is intentionally fail-closed. It does not relabel uncertain work
+as successful.
+
+## Artifact status after completion
+
+For a completed train job, polling checks only for `.aptus-run.json`,
+`final-export.json`, `metrics.json`, and `final/`. It reports either
+`verified-at-completion-not-rehashed` or `missing-since-completion`.
+
+This is historical integrity plus current presence. It is not a fresh recursive
+hash. The deep file-tree check occurred before completion promotion.
+
+## Resume boundary
+
+There is no supported full-run resume request or state. Every train submission
+gets a new run ID and output directory. Pilot phase two is a bounded checkpoint
+continuation test, not a general resume feature.
+
+## Related documentation
+
+- [Validation states](validation-states.md)
+- [API reference](api.md)
+- [CLI reference](cli.md)
+- [Bundle manifest](bundle-manifest.md)
+- [Error and finding codes](error-codes.md)
+- [Execution orchestrator](../architecture/execution-orchestrator.md)

@@ -1,5 +1,7 @@
 # Reviewed corpus contract
 
+> **Status:** Active | **Authority:** Normative intake contract | **Applies to:** Aptus 0.2 SFT inputs | **Audience:** Dataset owners and reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when corpus governance changes
+
 Status: accepted intake contract for supervised fine-tuning rows. Aptus does
 not yet provide a chat-capture service or reviewer application.
 
@@ -134,3 +136,10 @@ It does not verify consent, reviewer signatures, rubric contents, source
 licenses, PII decisions, or revocation records. Those checks belong to a future
 typed corpus-ingestion service and must not be implied by a successful training
 bundle.
+
+## Related documentation
+
+- [Prepare a dataset](../guides/prepare-a-dataset.md)
+- [Dataset schemas](dataset-schemas.md)
+- [Design an evaluation](../guides/design-an-evaluation.md)
+- [Security policy](../../SECURITY.md)

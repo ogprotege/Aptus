@@ -1,5 +1,7 @@
 # Troubleshooting
 
+> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a new failure class
+
 ## No feasible candidate
 
 Read every candidate's unsupported reason. Common causes are missing BF16,
@@ -85,3 +87,10 @@ misbound metrics and export files cause parent verification to fail.
 Full-run resume is fail-closed. Preserve the checkpoint for investigation and
 start a new immutable run after correcting the cause. See
 [recovery and the resume boundary](resume-recover.md).
+
+## Related documentation
+
+- [Error and finding codes](../reference/error-codes.md)
+- [Validation states](../reference/validation-states.md)
+- [Operator checklist](../operations/operator-checklist.md)
+- [Compile, validate, and run](compile-validate-run.md)

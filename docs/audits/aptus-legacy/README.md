@@ -1,5 +1,18 @@
 # Aptus Legacy Recovery Audit
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic snapshot of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2027-07-22, or when provenance or reproduction paths change
+>
+> Preserve the historical reports and machine-readable records as one evidence
+> bundle. They do not describe current Aptus behavior. Use the
+> [historical index](../../archive/index.md) and
+> [current capabilities](../../product/current-capabilities.md) for orientation.
+
 This directory contains the preserved evidence and conclusions from the
 forensic review of the former legacy `HyperTune/` source folder. HyperTune is
 the historical source name; Aptus is the product name. The working legacy

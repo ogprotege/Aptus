@@ -10,9 +10,22 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "William Sherman" }]
+keywords = ["fine-tuning", "llm", "lora", "qlora", "machine-learning"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
 dependencies = [
   "pydantic>=2.10,<3",
 ]
+
+[project.urls]
+Documentation = "https://github.com/ogprotege/Aptus/tree/main/docs"
+Repository = "https://github.com/ogprotege/Aptus"
+Issues = "https://github.com/ogprotege/Aptus/issues"
+Changelog = "https://github.com/ogprotege/Aptus/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 server = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1"]

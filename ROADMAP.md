@@ -1,5 +1,7 @@
 # Roadmap
 
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-22 | **Review by:** Every release-planning cycle
+
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
 target-host evidence all agree.
@@ -78,3 +80,9 @@ conditional until its runtime gate is complete.
 
 Aptus will not claim universal strategy optimality, guaranteed fit, guaranteed
 quality, or automatic permission to train a model or dataset.
+
+## Related documentation
+
+- [Current capabilities](docs/product/current-capabilities.md)
+- [Method selection guide](docs/guides/choose-a-method.md)
+- [Documentation debt](docs/maintenance/documentation-debt.md)

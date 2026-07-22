@@ -1,5 +1,18 @@
 # Aptus Core Smoke Evidence
 
+> **Documentation status:** Deprecated
+>
+> **Applies to:** Superseded Aptus v0.1 tiny-model smoke evidence
+>
+> **Last reviewed:** 2026-07-22
+>
+> **Next scheduled review:** 2027-07-22, or when this signpost or a successor moves
+>
+> This record does not authorize v0.2 execution. Use the
+> [validation states](../reference/validation-states.md),
+> [release gates](../operations/release-gates.md), and
+> [historical index](../archive/index.md).
+
 This v0.1 tiny-model smoke record is superseded. A generic tiny LoRA optimizer
 step does not validate a selected v0.2 candidate.
 

@@ -1,5 +1,7 @@
 # Candidate Enumeration
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when candidate rules change
+
 Methodology version: `aptus-candidates-v2`.
 
 Aptus v0.2 enumerates a fixed, finite strategy set. It does not ask an
@@ -95,3 +97,10 @@ facts, the ordered candidate IDs, and the recommended candidate ID.
 User-bounded rank grids, optimizer choices, attention backends, selected-layer
 search, inspected module shapes, search-truncation records, and partial-window
 reporting are future work. They are not implicit v0.2 dimensions.
+
+## Related documentation
+
+- [Method registry](../reference/method-registry.md)
+- [Configuration and defaults](../reference/configuration-defaults.md)
+- [Memory estimation](memory-estimation.md)
+- [Ranking and uncertainty](ranking-uncertainty.md)

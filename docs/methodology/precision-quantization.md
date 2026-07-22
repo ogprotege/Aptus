@@ -1,5 +1,7 @@
 # Precision and Quantization
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when runtime dtype policy changes
+
 Methodology version: `aptus-precision-v2`.
 
 V0.2 serializes one compute `precision` string and one optional `quantization`
@@ -58,3 +60,10 @@ and compiled data.
 
 Future schemas may add separate base, compute, adapter, gradient, optimizer,
 master-weight, and reduction dtypes. Those fields are not implicit in v0.2.
+
+## Related documentation
+
+- [Capability matrix](../reference/capability-matrix.md)
+- [Method selection guide](../guides/choose-a-method.md)
+- [Memory estimation](memory-estimation.md)
+- [Preflight and calibration](preflight-calibration.md)

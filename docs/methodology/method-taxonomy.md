@@ -1,5 +1,7 @@
 # Fine-tuning method taxonomy
 
+> **Status:** Active | **Authority:** Normative taxonomy | **Applies to:** Aptus 0.2 and the research backlog | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a method lifecycle changes
+
 Aptus models a training plan as a composition of independent choices. It does
 not treat every named paper, optimizer, precision, and distributed system as a
 peer "method."
@@ -323,3 +325,10 @@ executable only when all of these exist:
 11. a gated runtime descriptor with a compiler ID, export contract, supported
     backend and placement, and `selectable=true`; and
 12. real CUDA evidence for the pinned stack before a release support claim.
+
+## Related documentation
+
+- [Method selection guide](../guides/choose-a-method.md)
+- [Method registry](../reference/method-registry.md)
+- [Research index](../research/index.md)
+- [Adding a method](../contributing/adding-a-method.md)

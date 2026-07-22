@@ -1,5 +1,7 @@
 # Claim Language
 
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-07-22 | **Review by:** Every release
+
 Product language must match the strongest available evidence.
 
 ## Planning claims
@@ -57,3 +59,9 @@ the artifact was benchmarked, judged safe, or proven deployable.
 
 Do not call v0.2 release-ready while the release gates lack real CUDA pilot and
 full-run evidence. Repository tests on the current Mac are not a substitute.
+
+## Related documentation
+
+- [Current capabilities](current-capabilities.md)
+- [Validation states](../reference/validation-states.md)
+- [Release gates](../operations/release-gates.md)

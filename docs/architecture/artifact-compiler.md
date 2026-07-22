@@ -1,5 +1,7 @@
 # Artifact Compiler
 
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when bundle generation changes
+
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
 
@@ -37,8 +39,10 @@ replace a populated output.
   compiler and export identifiers.
 - `config/accelerate.yaml`: distributed launch configuration when applicable.
 - `validate.py`: portable validation parent.
-- `preflight.py`: selected-method synthetic CUDA check.
-- `train.py`: pilot and full training child implementation.
+- `preflight.py`: cumulative runtime-validation orchestrator for dependency,
+  model-data, measured-preflight, and pilot levels.
+- `train.py`: model-data preparation, `--synthetic-preflight`, pilot, and full
+  training child implementation.
 - `run.py`: portable full-run parent and completion promoter.
 - `plan_contract.py`: self-contained plan and manifest contract checks.
 - `runtime_lease.py`: self-contained per-user host lease and process-group
@@ -83,3 +87,10 @@ compiler or export identifiers and cannot enter this boundary. The compiler
 refuses full-parameter FSDP and quantized FSDP. It does not emit cloud
 infrastructure, provider provisioning, evaluation pipelines, MCP tools, or
 deployment exporters.
+
+## Related documentation
+
+- [Bundle manifest](../reference/bundle-manifest.md)
+- [Generated-code workflow](../contributing/generated-code.md)
+- [Data and identity flow](data-and-identity-flow.md)
+- [Security boundaries](security-boundaries.md)

@@ -1,5 +1,7 @@
 # Ranking and Uncertainty
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when ranking changes
+
 Methodology version: `aptus-ranking-v2`.
 
 Ranking never makes an infeasible or unsupported candidate viable. V0.2 ranks
@@ -61,3 +63,10 @@ No v0.2 VRAM envelope may be labeled 90%, 95%, or 99% confidence.
 Normalized weighted scoring, benchmark-scoped quality metrics, predicted
 throughput, evidence-derived confidence tiers, and user-defined scoring weights
 remain future work.
+
+## Related documentation
+
+- [Compare plans](../guides/compare-plans.md)
+- [Candidate enumeration](candidate-enumeration.md)
+- [Memory estimation](memory-estimation.md)
+- [Claim language](../product/claim-language.md)

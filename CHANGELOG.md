@@ -1,5 +1,7 @@
 # Changelog
 
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-22 | **Review by:** Every release
+
 All notable changes are recorded here.
 
 ## 0.2.0 - Unreleased
@@ -37,6 +39,13 @@ All notable changes are recorded here.
 - A governed reviewed-corpus contract, Apple Silicon pilot matrix, and complete
   reconciliation ledgers for the retained Reference packet, removed TO-REVIEW
   staging files, and ignored local EXAMPLE intake.
+- A task-oriented documentation system with section indexes, first-run and
+  method-selection guides, code-derived reference contracts, operator and
+  contributor procedures, lifecycle metadata, maintenance policy, debt and
+  health records, support guidance, and repository workflow templates.
+- Documentation checks for links and anchors, navigation reachability, review
+  metadata, CLI and API surface coverage, method-catalog overlap, stale
+  contracts, and sealed-bundle environment safety.
 
 ### Changed
 
@@ -51,6 +60,12 @@ All notable changes are recorded here.
 - Full-parameter FSDP is fail-closed. LoRA FSDP is conditional.
 - A successful process exit is no longer enough to mark a training job complete.
   The parent verifies and promotes pending evidence.
+- Profiling and generated training code now use the same deterministic dataset
+  schema precedence for rows that contain fields from more than one supported
+  shape.
+- Installed CLI help and generated bundle reports now explain defaults,
+  side effects, evidence boundaries, ordered validation, external environment
+  setup, and the fail-closed recovery contract.
 
 ### Removed
 
@@ -65,3 +80,9 @@ All notable changes are recorded here.
 Repository tests and static checks are necessary but not sufficient for release.
 No real CUDA pilot has been completed on the current development Mac. Version
 0.2.0 remains unreleased.
+
+## Related documentation
+
+- [Current capabilities](docs/product/current-capabilities.md)
+- [Release gates](docs/operations/release-gates.md)
+- [Roadmap](ROADMAP.md)

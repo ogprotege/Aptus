@@ -1,5 +1,7 @@
 # Memory Estimation
 
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when the formula version changes
+
 Methodology version: `aptus-memory-v2`.
 
 Aptus v0.2 emits a point estimate and a heuristic upper planning envelope. The
@@ -30,7 +32,8 @@ Components are:
 - communication buffers $C$;
 - kernel workspaces $K$;
 - load and checkpoint transients $T$;
-- allocator and fragmentation allowance $F$.
+- allocator and fragmentation allowance $F$; and
+- an upper-only uncertainty allowance $U$, whose point contribution is zero.
 
 The envelopes are:
 
@@ -42,7 +45,7 @@ $$
 $$
 M_{\mathrm{upper},d} = \left\lceil
 u_{W,d} + u_{Q,d} + u_{A,d} + u_{G,d} + u_{O,d} + u_{X,d} +
-u_{C,d} + u_{K,d} + u_{T,d} + u_{F,d}
+u_{C,d} + u_{K,d} + u_{T,d} + u_{F,d} + u_{U,d}
 \right\rceil
 $$
 
@@ -179,6 +182,12 @@ terms and apply:
   and $1.50F$;
 - uncertainty: $0.10M_{point}$.
 
+Thus $p_U=0$ and:
+
+$$
+u_U = 0.10M_{point}
+$$
+
 Therefore:
 
 $$
@@ -274,3 +283,10 @@ generated wrapping path must pass a real-model pilot.
 The analytical activation, workspace, transient, fragmentation, and FSDP terms
 are uncalibrated priors. Their upper values are planning allowances. See
 [preflight and calibration](preflight-calibration.md).
+
+## Related documentation
+
+- [Compare plans](../guides/compare-plans.md)
+- [Configuration and defaults](../reference/configuration-defaults.md)
+- [Ranking and uncertainty](ranking-uncertainty.md)
+- [Preflight and calibration](preflight-calibration.md)

@@ -1,5 +1,7 @@
 # User Workflows
 
+> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a workflow changes
+
 ## Plan for a known CUDA host
 
 1. Pin the model repository to an immutable commit.
@@ -30,7 +32,8 @@ higher validation job cumulatively rechecks the lower validation levels.
 Manual hardware facts can compare candidates before access to the target host.
 Label them as user-attested. Transfer the compiled bundle only after reviewing
 its cleartext dataset copies. On the target host, create an isolated environment
-and repeat the entire runtime sequence.
+outside the bundle directory and repeat the entire runtime sequence. An
+in-bundle virtual environment invalidates the manifest.
 
 ## Inspect a provider model
 
@@ -59,3 +62,10 @@ with a new run ID.
 passed parent verification. Review output under the recorded `run_output_dir`.
 Use a separate, explicit evaluation process before making quality or deployment
 claims.
+
+## Related documentation
+
+- [Choose your path](../getting-started/choose-your-path.md)
+- [Operator checklist](../operations/operator-checklist.md)
+- [Inspect results](../guides/inspect-results.md)
+- [Recovery and resume boundary](../guides/resume-recover.md)

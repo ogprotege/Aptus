@@ -1,5 +1,7 @@
 # System Architecture
 
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a system boundary changes
+
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
 
@@ -117,3 +119,11 @@ is fail-closed on Windows in v0.2. Use the managed service there.
 
 Cloud provider adapters, evaluation targets, exporter plugins, and MCP adapters
 are future seams. They are not part of the v0.2 execution graph.
+
+## Related documentation
+
+- [Code map](code-map.md)
+- [Data and identity flow](data-and-identity-flow.md)
+- [Artifact compiler](artifact-compiler.md)
+- [Execution orchestrator](execution-orchestrator.md)
+- [Security boundaries](security-boundaries.md)

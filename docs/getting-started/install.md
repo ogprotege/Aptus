@@ -1,5 +1,7 @@
 # Install Aptus
 
+> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when packaging changes
+
 ## Requirements
 
 - Python 3.11 or newer.
@@ -55,21 +57,32 @@ built-in authentication. See [security boundaries](../architecture/security-boun
 ## Bundle environments
 
 Each bundle contains `requirements.txt`, an exact set of direct pins selected by
-method. Install those pins in an isolated environment:
+method. Create the isolated environment outside the bundle. The manifest rejects
+unexpected files, including an in-bundle `.venv` directory.
 
 ```bash
+python -m venv /path/to/aptus-bundle-env
+source /path/to/aptus-bundle-env/bin/activate
+python -m pip install -r /path/to/bundle/requirements.txt
 cd /path/to/bundle
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
 python validate.py --level dependency
 ```
 
 The file is not a complete transitive lock. Dependency validation records the
-installed environment for later binding checks.
+installed environment for later binding checks. Portable `python validate.py`
+does not require the Aptus package in that environment. Managed `aptus run`
+does: install Aptus and the bundle requirements into the same external
+environment because jobs inherit the interpreter that launched the CLI.
 
 ## CUDA evidence status
 
 The current development Mac cannot provide the required CUDA runtime evidence.
 Before release, repeat installation and the full five-action sequence on each
 claimed CUDA configuration.
+
+## Related documentation
+
+- [Choose your path](choose-your-path.md)
+- [First planning-only run](first-plan.md)
+- [Security boundaries](../architecture/security-boundaries.md)
+- [Bundle manifest](../reference/bundle-manifest.md)

@@ -1,5 +1,7 @@
 # Recovery and the Resume Boundary
 
+> **Status:** Active | **Authority:** Operational recovery guide | **Applies to:** Aptus 0.2 | **Audience:** Operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when recovery changes
+
 ## Full-training resume is unsupported
 
 Aptus v0.2 rejects `resume_from` for full training. The CLI and API do not expose
@@ -58,3 +60,10 @@ preflight, and pilot actions.
 Historical completion records retain a completion-time attestation and perform
 only cheap presence checks during polling. V0.2 has no explicit command to
 deep-rehash a historical full run. That command is roadmap work.
+
+## Related documentation
+
+- [Execution orchestrator](../architecture/execution-orchestrator.md)
+- [Run states](../reference/run-states.md)
+- [Operator checklist](../operations/operator-checklist.md)
+- [Troubleshooting](troubleshooting.md)

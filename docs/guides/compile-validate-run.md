@@ -1,5 +1,7 @@
 # Compile, Validate, and Run
 
+> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when runtime actions change
+
 ## Compile once
 
 ```bash
@@ -12,35 +14,48 @@ create a new plan and a new bundle path.
 
 ## Install the bundle stack
 
+From the repository root, keep an absolute bundle path and create the runtime
+environment beside the bundle:
+
 ```bash
-cd ./work/bundle
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
+BUNDLE_DIR="$(pwd)/work/bundle"
+python -m venv ./work/bundle-env
+source ./work/bundle-env/bin/activate
+python -m pip install -e .
+python -m pip install -r "$BUNDLE_DIR/requirements.txt"
 ```
 
 `requirements.txt` contains exact direct pins for the selected method. It does
-not enumerate every transitive package selected by the installer.
+not enumerate every transitive package selected by the installer. Keep the
+environment outside the bundle. An in-bundle `.venv` is an unexpected path and
+invalidates the compiler manifest. Managed jobs use the interpreter that
+launched `aptus`, so that environment must contain both Aptus and the bundle
+stack. When operating from an installed wheel instead of a checkout, install
+that Aptus wheel in place of the editable command above.
 
 ## Validate in order
 
-Portable execution uses:
+Portable execution uses the same activated environment. A subshell keeps the
+operator's working directory stable:
 
 ```bash
-python validate.py --level static
-python validate.py --level dependency
-python validate.py --level model-data
-python validate.py --level measured-preflight
-python validate.py --level pilot
+(
+  cd "$BUNDLE_DIR"
+  python validate.py --level static
+  python validate.py --level dependency
+  python validate.py --level model-data
+  python validate.py --level measured-preflight
+  python validate.py --level pilot
+)
 ```
 
 The repository CLI exposes the same runtime work as cancellable jobs:
 
 ```bash
-aptus run ./work/bundle --action dependency
-aptus run ./work/bundle --action model-data
-aptus run ./work/bundle --action preflight
-aptus run ./work/bundle --action pilot
+aptus run "$BUNDLE_DIR" --action dependency
+aptus run "$BUNDLE_DIR" --action model-data
+aptus run "$BUNDLE_DIR" --action preflight
+aptus run "$BUNDLE_DIR" --action pilot
 ```
 
 Wait for each action. The local orchestrator allows one managed Aptus job at a
@@ -80,13 +95,16 @@ text is informational.
 Managed execution:
 
 ```bash
-aptus run ./work/bundle --action train --confirm-full-train
+aptus run "$BUNDLE_DIR" --action train --confirm-full-train
 ```
 
-Portable execution from inside the bundle:
+Portable execution with the same external environment:
 
 ```bash
-python run.py --confirm-full-train
+(
+  cd "$BUNDLE_DIR"
+  python run.py --confirm-full-train
+)
 ```
 
 Direct portable child execution is supported on POSIX. On Windows, use the
@@ -133,3 +151,11 @@ stays `execution-approved`. The parent then verifies:
 Only a successful parent verification promotes the report to
 `measured-run-pass`. This proves the stated run and file-tree contract. It does
 not prove task quality.
+
+## Related documentation
+
+- [Operator checklist](../operations/operator-checklist.md)
+- [Validation states](../reference/validation-states.md)
+- [Bundle manifest](../reference/bundle-manifest.md)
+- [Recovery and resume boundary](resume-recover.md)
+- [Inspect results](inspect-results.md)

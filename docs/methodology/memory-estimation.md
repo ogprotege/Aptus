@@ -2,7 +2,8 @@
 
 > **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when the formula version changes
 
-Methodology version: `aptus-memory-v2`.
+Methodology versions: `aptus-memory-v2` for the CUDA compiler and
+`aptus-memory-mlx-v1` for the MLX-LM compiler.
 
 Aptus v0.2 emits a point estimate and a heuristic upper planning envelope. The
 upper value is not a proven bound or statistical confidence interval. No
@@ -84,9 +85,9 @@ $$
 The v0.2 compiler uses the optimizer-state coefficient below. A future compiler
 must version any additional optimizer policy and its state tensors.
 
-## V0.2 state coefficients
+## CUDA state coefficients
 
-The current v0.2 rule set uses these explicit analytical priors:
+The `aptus-memory-v2` CUDA rule set uses these explicit analytical priors:
 
 | Term | Point rule |
 | --- | --- |
@@ -105,7 +106,7 @@ state-sharding divisor. For single and DDP, $s=1$. The simplified v0.2 FSDP
 prior sets $s$ to world size for the listed state terms. This division does not
 model an exact FSDP schedule.
 
-These coefficients describe the generated v0.2 trainer. They are not universal
+These coefficients describe the generated CUDA trainer. They are not universal
 constants for other optimizers, FSDP policies, or libraries.
 
 For adapter methods, v0.2 estimates trainable parameters from the catalog
@@ -114,9 +115,46 @@ $2hr$ parameters. `gate_proj`, `up_proj`, and `down_proj` each add
 $(h+i)r$, where $h$ is hidden size, $i$ is intermediate size, and $r$ is rank.
 When intermediate size is absent, the estimator uses $i=4h$.
 
-## Activation prior
+## MLX-LM unified-memory coefficients
 
-Before measurement, v0.2 uses this explicit activation prior:
+The `aptus-memory-mlx-v1` estimator applies only to single-device MLX-LM LoRA
+and QLoRA. It models one shared Apple memory pool and does not add a second
+CUDA-style host staging pool. For LoRA, base weights use $2P$ bytes. For QLoRA,
+base weights use $0.5P$ bytes and quantization metadata uses $0.0625P$ bytes.
+MLX QLoRA means an already four-bit pinned MLX model. It does not imply
+bitsandbytes or NF4.
+
+Adapter weights and gradients each use $4P_t$ bytes. AdamW state uses $8P_t$
+bytes. The activation prior is:
+
+$$
+X_{\mathrm{MLX}} = b \times q \times h \times L \times 2 \times 3.0
+$$
+
+For $WQ=W+Q$, the MLX point allowances are:
+
+$$
+K = \max(0.75\ \mathrm{GiB},\ 0.04WQ)
+$$
+
+$$
+T_{temporary} = \max(0.75\ \mathrm{GiB},\ 0.08WQ)
+$$
+
+$$
+T_{load} = 0.30WQ
+$$
+
+Allocator allowance is 15 percent of the other point components. The upper
+envelope retains exact state terms, multiplies activations by 1.60, workspace
+and temporary allowance by 1.75, allocator allowance by 1.75, and load
+transient by 1.50. It then adds a named uncertainty term equal to 25 percent of
+the point estimate. This is a conservative uncalibrated prior, not a fit
+guarantee.
+
+## CUDA activation prior
+
+Before measurement, `aptus-memory-v2` uses this explicit activation prior:
 
 $$
 X_{\mathrm{point}} =
@@ -136,7 +174,7 @@ $$
 The plan records both coefficients and evidence IDs. An unsupported model or
 runtime causes abstention, not a guessed Llama default.
 
-## V0.2 overhead equations
+## CUDA overhead equations
 
 Let $WQ=W+Q$. The point rules are:
 
@@ -199,7 +237,7 @@ total must equal their sum. The user reserve is not a usage component.
 
 ## Device budget and fit
 
-For total VRAM $V_d$, user reserve $R_d$, and optional measured free VRAM
+For CUDA total VRAM $V_d$, user reserve $R_d$, and optional measured free VRAM
 $V_d^{free}$, define available VRAM as:
 
 $$
@@ -221,14 +259,26 @@ $$
 M_{\mathrm{upper},d} \le B_d \quad \text{for every selected device } d
 $$
 
-Predicted fit still requires an exact real-model pilot. Synthetic measured
-preflight checks the selected method and kernel, not planned-model fit.
+For Apple silicon, the compatibility device records a Metal recommended working
+set when available, otherwise total unified memory. It intentionally leaves
+`free_vram_bytes` empty. If live available host memory is measured, the MLX
+budget is the lesser of that live value and the compatibility capacity, minus
+the reserve. This keeps one shared pool instead of inventing separate host RAM
+and VRAM balances.
+
+Predicted CUDA fit still requires an exact real-model pilot. CUDA synthetic
+measured preflight checks the selected method and kernel, not planned-model fit.
+MLX measured preflight runs a bounded real-input compiler smoke, but it does not
+prove pilot or full-run fit. The MLX pilot runs uninterrupted from the pinned
+base and rechecks live unified-memory admission. Train admission later requires
+current available memory above the measured pilot peak plus reserve. Neither
+gate guarantees future headroom or crash resume.
 
 ## Host RAM and staging-disk checks
 
-V0.2 applies two additional planning rules. Let $L=1$ for a single-device
-candidate and $L=w$ for DDP or FSDP, because each launched rank can stage a
-model copy on the host. Then:
+For non-MLX candidates, v0.2 applies a separate host-loading rule. Let $L=1$ for
+a single-device candidate and $L=w$ for DDP or FSDP, because each launched rank
+can stage a model copy on the host. Then:
 
 $$
 H_{required}=2.2PL
@@ -258,11 +308,14 @@ four more for the two-phase pilot workspace. $E_{final}$ is the larger of 0.0625
 GiB or two bytes per trainable parameter for full training and four bytes per
 trainable parameter for adapter export.
 
-These remain uncalibrated heuristics. The host check uses free host RAM when
-present, otherwise total host RAM. The disk check runs only when free disk was
-supplied or measured. The disk value covers the named staging, dataset, bounded
-pilot, retained-checkpoint, and final-export allowances. It does not cover
-unbounded logs, package caches, provider cache transients, or unrelated files.
+These remain uncalibrated heuristics. The non-MLX host check uses free host RAM
+when present, otherwise total host RAM. MLX does not apply that second host-copy
+rule because live available unified memory already constrains its device budget.
+The disk check runs only when free disk was supplied or measured. The disk value
+covers the named staging, dataset, bounded pilot, retention, and final-export
+allowances. For MLX, the retained values are weight-snapshot estimates, not
+resumable checkpoints. The rule does not cover unbounded logs, package caches,
+provider cache transients, or unrelated files.
 
 ## Distribution
 
@@ -280,9 +333,10 @@ generated wrapping path must pass a real-model pilot.
 
 ## Known limits
 
-The analytical activation, workspace, transient, fragmentation, and FSDP terms
-are uncalibrated priors. Their upper values are planning allowances. See
-[preflight and calibration](preflight-calibration.md).
+The CUDA and MLX analytical activation, workspace, transient, fragmentation,
+and uncertainty terms are uncalibrated priors. FSDP applies only to the CUDA
+formula. Every upper value is a planning allowance. See [preflight and
+calibration](preflight-calibration.md).
 
 ## Related documentation
 

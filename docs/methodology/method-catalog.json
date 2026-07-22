@@ -193,7 +193,7 @@
       "parameter_scope": "frozen-base-plus-adapter",
       "parameterization": "lora",
       "recipe": "nf4-double-quantized-frozen-base-plus-lora",
-      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "base_storage": "runtime-native-four-bit",
       "distribution": "single",
       "status": "gated-executable",
       "conditions": [
@@ -212,7 +212,7 @@
       "parameter_scope": "frozen-base-plus-adapter",
       "parameterization": "lora",
       "recipe": "nf4-double-quantized-frozen-base-plus-lora",
-      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "base_storage": "runtime-native-four-bit",
       "distribution": "ddp",
       "status": "gated-executable",
       "conditions": [
@@ -233,7 +233,7 @@
       "parameter_scope": "frozen-base-plus-adapter",
       "parameterization": "lora",
       "recipe": "nf4-double-quantized-frozen-base-plus-lora",
-      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "base_storage": "runtime-native-four-bit",
       "distribution": "fsdp",
       "status": "unsupported",
       "reason": "Quantized FSDP is outside the verified v0.2 compiler matrix.",

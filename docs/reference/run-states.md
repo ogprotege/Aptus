@@ -44,8 +44,8 @@ promotion. Neither result proves task quality.
 | --- | --- | --- |
 | `dependency` | `static-pass` | Runs portable dependency validation |
 | `model-data` | `dependency-pass` | Reruns lower levels, then exact model and data validation |
-| `preflight` | `model-data-pass` | Reruns lower levels, then synthetic measured preflight |
-| `pilot` | `measured-preflight-pass` | Reruns lower levels, then the two-phase pilot |
+| `preflight` | `model-data-pass` | Reruns lower levels, then runtime-specific measured preflight |
+| `pilot` | `measured-preflight-pass` | Reruns lower levels, then the runtime-specific exact-model pilot |
 | `train` | `pilot-pass` | Performs deep admission, then launches full training |
 
 The prerequisite check accepts a later valid state, so operators can explicitly
@@ -118,8 +118,8 @@ verification timestamp while state remains active. Reads expose
 
 For train, the parent then:
 
-1. verifies run marker, metrics, rank evidence, finite guards, census, split,
-   and structural export;
+1. verifies the runtime-specific run marker, metrics, finite guards, trainable
+   scope, data evidence, and export;
 2. persists verified pending evidence in the job record;
 3. promotes the bundle report to `measured-run-pass`; and
 4. writes a completion attestation.
@@ -151,9 +151,9 @@ The service combines an in-process lock, a state-root records lock, and a
 per-user host-global lease. Managed jobs across different state roots and POSIX
 portable bundle entrypoints participate in the same lease.
 
-The lease coordinates Aptus only. It does not reserve CUDA against unrelated
-software. A foreign live Aptus service retains ownership of its record and
-cannot be cancelled by another service instance.
+The lease coordinates Aptus only. It does not reserve CUDA or Apple unified
+memory against unrelated software. A foreign live Aptus service retains
+ownership of its record and cannot be cancelled by another service instance.
 
 ## Reconciliation after interruption
 
@@ -182,8 +182,11 @@ hash. The deep file-tree check occurred before completion promotion.
 ## Resume boundary
 
 There is no supported full-run resume request or state. Every train submission
-gets a new run ID and output directory. Pilot phase two is a bounded checkpoint
-continuation test, not a general resume feature.
+gets a new run ID and output directory. CUDA pilot phase two is a bounded
+checkpoint-continuation test, not a general resume feature. MLX pilot and full
+training start from the pinned base and run uninterrupted. Fresh-process MLX
+adapter generation does not restore training state, and periodic MLX files are
+weight snapshots rather than checkpoints.
 
 ## Related documentation
 

@@ -162,6 +162,10 @@ final class DesktopBridge: NSObject, WKScriptMessageHandler {
         self.expectedOrigin = expectedOrigin
     }
 
+    func updateWindow(_ window: NSWindow?) {
+        self.window = window
+    }
+
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let securityOrigin = message.frameInfo.securityOrigin
         guard DesktopBridgeMessagePolicy.allows(

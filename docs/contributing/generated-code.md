@@ -8,8 +8,8 @@ plan. Change the generator source, never a compiled bundle in place.
 
 ## Generated sources
 
-[`src/aptus/generation.py`](../../src/aptus/generation.py) owns four embedded
-programs:
+[`src/aptus/generation.py`](../../src/aptus/generation.py) owns runtime-specific
+embedded programs:
 
 | Source constant | Bundle file | Responsibility |
 |---|---|---|
@@ -17,6 +17,11 @@ programs:
 | `RUN_SCRIPT` | `run.py` | Portable full-run parent, launch, recovery, aggregate exit, artifact verification, and promotion |
 | `PREFLIGHT_SCRIPT` | `preflight.py` | Selected-method synthetic CUDA work and measured census |
 | `VALIDATE_SCRIPT` | `validate.py` | Portable validation ladder and two-phase pilot orchestration |
+| `MLX_TRAIN_SCRIPT` | `train.py` | Exact-target MLX adapter updates for smoke, pilot, and full actions |
+| `MLX_RUN_SCRIPT` | `run.py` | Owned uninterrupted MLX action outputs, artifact sealing, and full-run export |
+| `MLX_RELOAD_SCRIPT` | `reload.py` | Fresh-process adapter reload and one-to-four-token generation |
+| `MLX_PREFLIGHT_SCRIPT` | `preflight.py` | MLX cumulative runtime action orchestration |
+| `MLX_VALIDATE_SCRIPT` | `validate.py` | MLX validation ladder, attestations, and fail-closed evidence checks |
 
 The compiler also copies current package sources into:
 
@@ -34,6 +39,8 @@ The same module emits:
 - `candidates.json`, `decision-report.md`, and `evidence.jsonl`;
 - exact direct pins in `requirements.txt`;
 - `config/trainer.json` and Accelerate configuration;
+- MLX-LM configuration, disjoint padded MLX data files, and split contract when
+  that runtime is selected;
 - copied source data, canonical training JSONL, and pilot pressure rows;
 - bundle README and runbook;
 - `bundle-manifest.json`;

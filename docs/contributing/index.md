@@ -97,9 +97,11 @@ sequence length, effective batch, precision, distribution, or hardware.
 
 Keep these boundaries unless the change defines and proves a replacement:
 
-- CUDA is the only execution backend;
+- execution uses the Transformers and PEFT CUDA compiler or the separate
+  single-device MLX-LM LoRA and QLoRA compiler; PyTorch MPS has no compiler;
 - SFT is the only objective;
-- full FP16, full FSDP, quantized FSDP, and packing are unsupported;
+- full FP16, full FSDP, quantized FSDP, MLX full-parameter training, MLX DoRA,
+  and packing are unsupported;
 - full-training resume is unsupported;
 - generated requirements are direct pins, not a transitive lock;
 - the API is a trusted-user local interface;

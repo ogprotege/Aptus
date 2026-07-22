@@ -2,9 +2,11 @@
 
 > **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
 
-The React workbench is a local operator interface over the same strict FastAPI
-contracts used by the CLI. It must expose uncertainty, blocked actions, current
-job state, and evidence boundaries without inventing a separate product model.
+The React workbench is the complete transitional workflow inside the native Mac
+product and a local browser interface over the same strict FastAPI contracts
+used by the CLI. It must expose runtime identity, uncertainty, blocked actions,
+current job state, and evidence boundaries without inventing another product
+model.
 
 ## Source map
 
@@ -19,7 +21,7 @@ job state, and evidence boundaries without inventing a separate product model.
 | [`web/src/demo.ts`](../../web/src/demo.ts) | Labeled non-executed example content |
 | [`web/src/desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete native-bridge feature detection and browser fallback |
 | [`web/src/styles.css`](../../web/src/styles.css) | Fonts, tokens, layout, status treatments, responsive rules, focus, and reduced motion |
-| [`desktop/macos/`](../../desktop/macos) | AppKit/WebKit host, native bridge implementation, packaging, and Mac tests |
+| [`desktop/macos/`](../../desktop/macos) | AppKit lifecycle, SwiftUI shell, contained WebKit host, native API client, packaging, and Mac tests |
 
 ## Five-stage contract
 
@@ -40,6 +42,15 @@ The browser should obtain capability and readiness data from
 `GET /api/v1/bootstrap`. `capabilities.methods` is the planner-selectable set.
 `capabilities.method_catalog` is the wider runtime registry. Never populate the
 preference control from the wider catalog.
+
+Apple-specific data stays in separate contracts:
+
+- `GET /api/v1/platform` reports the Apple host and runtime facts;
+- `GET /api/v1/runtimes` reports exact Python interpreter probes;
+- `POST /api/v1/runtimes/configure` validates and persists one interpreter;
+- `GET /api/v1/inference/services` reports LM Studio and oMLX availability;
+- inference model and generation requests never populate training-runtime
+  state.
 
 When adding an API field:
 
@@ -62,7 +73,12 @@ Keep these behaviors visible and tested:
 - inferred model family remains distinct from provider-declared fields;
 - hardware scanning names the service host;
 - Apple shared unified memory is not labeled dedicated VRAM;
-- MPS inventory does not expose CUDA or MLX capability checkboxes;
+- Apple local scans select MLX-LM, preserve unknown free VRAM, use current free
+  host RAM as live headroom when present, and apply the local 8 GiB minimum
+  reserve;
+- CUDA BF16 and bitsandbytes flags are not reused as MLX capabilities;
+- PyTorch MPS remains non-executable until a compiler exists;
+- LM Studio and oMLX remain inference-only;
 - experimental and research-only methods remain nonselectable;
 - conditional candidates retain their unresolved reasons;
 - compile requires a new path and explains no-clobber behavior;
@@ -72,7 +88,12 @@ Keep these behaviors visible and tested:
 - `verifying` is shown before completion;
 - full-run resume is not offered;
 - export checks are labeled structural, not quality evidence;
-- example mode is labeled as non-executed on every relevant stage.
+- example mode is labeled as non-executed on every relevant stage;
+- macOS desktop mode runs eligible MLX-LM actions locally, distinguishes its
+  uninterrupted pilot from CUDA checkpoint continuation, and enables confirmed
+  full-duration training only after current `pilot-pass` evidence;
+- MLX status text calls periodic files weight snapshots, rejects resume, and
+  describes fresh-process generation as adapter reload rather than continuation;
 - macOS desktop mode never exposes local CUDA run controls, including when
   manual facts describe a different CUDA host.
 
@@ -135,7 +156,8 @@ desktop/macos/build.sh
 ```
 
 This also verifies the injected bridge, authenticated sidecar startup, AppKit
-host, ad-hoc signature, and final app and DMG layout.
+and SwiftUI host, contained workbench, ad-hoc signature, and final app and DMG
+layout.
 
 ## Local development
 
@@ -145,13 +167,23 @@ Run the API on loopback:
 aptus serve --host 127.0.0.1 --port 8787
 ```
 
+The command prints a per-launch authenticated workbench URL and bearer token.
+Open the printed backend URL once. Its query handoff sets an HttpOnly, SameSite
+Strict cookie and returns `303` without the token query. The static application
+and health routes are public, but bootstrap and every other product API require
+the cookie or bearer header. Uvicorn access logs are disabled by this command.
+
 The Vite development configuration uses `127.0.0.1:4173` and proxies `/api` to
 `http://127.0.0.1:8787` by default. `APTUS_API_ORIGIN` can select another local
 API origin for the proxy. `VITE_API_BASE_URL` can set a browser API base at
-build or development time.
+build or development time. With the default same-host proxy, establish the
+cookie through the printed backend URL before opening Vite.
 
 Do not use development proxy settings as a remote deployment security model.
-The Aptus API has no built-in authentication or tenant isolation.
+The per-launch token authenticates one local session. It does not add tenant
+isolation, filesystem scoping, worker isolation, or TLS. Explicit non-loopback
+serve mode sends the credential over plain HTTP and requires an approved TLS
+and network boundary.
 
 ## Visual and interaction review
 
@@ -159,8 +191,12 @@ For any material UI change, inspect:
 
 - empty, loading, success, warning, failure, cancelling, and verifying states;
 - all five workflow stages;
+- all six native Mac destinations;
 - a conditional and unsupported candidate;
-- method readiness on CUDA and Apple inventory;
+- method readiness on CUDA and MLX-LM;
+- the macOS 26 appearance and macOS 15 fallback;
+- exact MLX Python selection and failure states;
+- LM Studio and oMLX inference-only labels;
 - long paths, error text, and logs;
 - keyboard-only operation;
 - reduced motion;

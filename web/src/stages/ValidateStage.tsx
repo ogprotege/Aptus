@@ -44,6 +44,12 @@ export function ValidateStage({
   const bindings = Object.entries(activeReport?.bindings ?? {});
   const preflightMetrics = activeReport?.preflight_metrics;
   const pilotMetrics = activeReport?.pilot_metrics;
+  const mlxRuntime = bundle.runtime_contract?.training_runtime === "mlx-lm"
+    || pilotMetrics?.training_runtime === "mlx-lm";
+  const mlxAdmission = pilotMetrics?.unified_memory_admission;
+  const mlxTargetBinding = pilotMetrics?.trainable_target_binding;
+  const mlxReload = pilotMetrics?.reload_evidence;
+  const pilotRunId = pilotMetrics?.pilot_run_id ?? pilotMetrics?.run_id;
   const phaseOne = pilotMetrics?.phase_one;
   const phaseTwo = pilotMetrics?.phase_two_resumed;
   const checkpointContracts = [
@@ -56,7 +62,9 @@ export function ValidateStage({
       <StageHeader
         eyebrow="Stage 4 · Validation"
         title="Prove the artifact before execution."
-        lede="Each gate establishes a specific claim. Static success does not imply model fit, and a synthetic method step does not imply calibrated VRAM."
+        lede={mlxRuntime
+          ? "Each gate establishes a specific claim. Static success does not imply model fit, and the bounded MLX preflight smoke does not authorize full-duration training."
+          : "Each gate establishes a specific claim. Static success does not imply model fit, and a synthetic method step does not imply calibrated VRAM."}
         meta={demoMode ? <ProvenanceBadge kind="example" label="Example gates" /> : undefined}
       />
 
@@ -86,15 +94,17 @@ export function ValidateStage({
                 <div><dt>Level</dt><dd>{activeReport.validation_level ?? "Not recorded"}</dd></div>
                 <div><dt>Validator</dt><dd>{activeReport.validator_version ?? "Not recorded"}</dd></div>
                 <div><dt>Validated at</dt><dd>{activeReport.validated_at ?? "Not recorded"}</dd></div>
-                {pilotMetrics ? <div><dt>Checkpoint continuation observed</dt><dd>{pilotMetrics.checkpoint_continuation_observed === true ? "Yes" : "No"}</dd></div> : null}
+                {pilotMetrics?.checkpoint_continuation_observed !== undefined ? <div><dt>Checkpoint continuation observed</dt><dd>{pilotMetrics.checkpoint_continuation_observed ? "Yes" : "No"}</dd></div> : null}
+                {pilotMetrics?.execution_semantics ? <div><dt>Execution</dt><dd>{pilotMetrics.execution_semantics === "uninterrupted" ? "Uninterrupted from scratch" : pilotMetrics.execution_semantics}</dd></div> : null}
+                {pilotMetrics?.resume_supported !== undefined ? <div><dt>Resume</dt><dd>{pilotMetrics.resume_supported ? "Supported" : "Unavailable for this runtime"}</dd></div> : null}
                 {pilotMetrics?.measured_checkpoint_bytes !== undefined ? <div><dt>Largest pilot checkpoint</dt><dd>{formatBytes(pilotMetrics.measured_checkpoint_bytes)}</dd></div> : null}
                 {pilotMetrics?.measured_final_export_bytes !== undefined ? <div><dt>Largest pilot export</dt><dd>{formatBytes(pilotMetrics.measured_final_export_bytes)}</dd></div> : null}
-                {pilotMetrics?.pilot_run_id ? <div><dt>Pilot run ID</dt><dd><code>{pilotMetrics.pilot_run_id}</code></dd></div> : null}
+                {pilotRunId ? <div><dt>Pilot run ID</dt><dd><code>{pilotRunId}</code></dd></div> : null}
               </dl>
               {preflightMetrics ? (
                 <div className="pilot-metric-grid preflight-metric-grid">
                   <article>
-                    <h3>Measured synthetic preflight</h3>
+                    <h3>{mlxRuntime ? "Bounded MLX preflight smoke" : "Measured synthetic preflight"}</h3>
                     <dl>
                       <div className="manifest-row"><dt>Candidate</dt><dd><code>{preflightMetrics.candidate_id ?? "Not recorded"}</code></dd></div>
                       <div><dt>Method</dt><dd>{preflightMetrics.method ?? "Not recorded"}</dd></div>
@@ -102,7 +112,7 @@ export function ValidateStage({
                       <div><dt>Quantization</dt><dd>{preflightMetrics.quantization ?? "None"}</dd></div>
                       <div><dt>Distribution</dt><dd>{preflightMetrics.distribution ?? "Not recorded"}</dd></div>
                       <div><dt>World size</dt><dd>{preflightMetrics.world_size ?? "Not recorded"}</dd></div>
-                      <div><dt>Peak CUDA memory</dt><dd>{formatBytes(preflightMetrics.measured_peak_cuda_bytes)}</dd></div>
+                      <div><dt>{mlxRuntime ? "Peak MLX memory" : "Peak CUDA memory"}</dt><dd>{formatBytes(mlxRuntime ? preflightMetrics.measured_peak_bytes : preflightMetrics.measured_peak_cuda_bytes)}</dd></div>
                       <div className="manifest-row"><dt>Scope</dt><dd>{preflightMetrics.scope ?? "Not recorded"}</dd></div>
                     </dl>
                   </article>
@@ -128,6 +138,37 @@ export function ValidateStage({
                       </dl>
                     </article>
                   ) : null)}
+                </div>
+              ) : null}
+              {mlxRuntime && pilotMetrics ? (
+                <div className="pilot-metric-grid">
+                  <article>
+                    <h3>Uninterrupted MLX pilot</h3>
+                    <dl>
+                      <div><dt>Optimizer updates</dt><dd>{pilotMetrics.completed_optimizer_updates ?? "Not recorded"}</dd></div>
+                      <div><dt>Finite train loss</dt><dd>{pilotMetrics.finite_train_loss === true ? "Verified" : "Not recorded"}</dd></div>
+                      <div><dt>Finite validation loss</dt><dd>{pilotMetrics.finite_validation_loss === true ? "Verified" : "Not recorded"}</dd></div>
+                      <div><dt>Peak unified memory</dt><dd>{formatBytes(pilotMetrics.measured_peak_bytes)}</dd></div>
+                    </dl>
+                  </article>
+                  <article>
+                    <h3>Bound adapter evidence</h3>
+                    <dl>
+                      <div><dt>Exact target census</dt><dd>{mlxTargetBinding?.adapter_target_instance_count !== undefined && mlxTargetBinding.expected_adapter_target_instance_count !== undefined ? `${mlxTargetBinding.adapter_target_instance_count} / ${mlxTargetBinding.expected_adapter_target_instance_count} adapter instances` : "Not recorded"}</dd></div>
+                      <div><dt>Trainable tensors</dt><dd>{mlxTargetBinding?.trainable_tensor_count ?? "Not recorded"}</dd></div>
+                      <div><dt>Immutable adapter artifacts</dt><dd>{pilotMetrics.adapter_manifest ? `${pilotMetrics.adapter_manifest.length} manifest-bound files` : "Not recorded"}</dd></div>
+                      <div><dt>Fresh-process reload</dt><dd>{mlxReload?.fresh_process_observed === true ? "Verified" : "Not recorded"}</dd></div>
+                      <div><dt>Generated verification tokens</dt><dd>{mlxReload?.generation_tokens ?? "Not recorded"}</dd></div>
+                    </dl>
+                  </article>
+                  <article>
+                    <h3>Live unified-memory admission</h3>
+                    <dl>
+                      <div><dt>Available at admission</dt><dd>{formatBytes(mlxAdmission?.available_unified_memory_bytes)}</dd></div>
+                      <div><dt>Required including reserve</dt><dd>{formatBytes(mlxAdmission?.required_available_bytes)}</dd></div>
+                      <div><dt>Aptus reserve</dt><dd>{formatBytes(mlxAdmission?.reserve_bytes)}</dd></div>
+                    </dl>
+                  </article>
                 </div>
               ) : null}
               {checkpointContracts.some(({ contract }) => contract) ? (

@@ -273,7 +273,7 @@ implementation must supply and test:
 4. exact trainable-object and optimizer-membership checks;
 5. dependency and kernel capability checks;
 6. checkpoint, restart, export, and reload contracts;
-7. synthetic measured-preflight evidence;
+7. runtime-specific bounded measured-preflight evidence;
 8. exact model-and-data pilot evidence;
 9. manifest and validation bindings; and
 10. documentation, fixtures, and regression tests for failure as well as

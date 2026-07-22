@@ -49,12 +49,12 @@ func render(source: NSImage, pixels: Int, output: URL) throws {
     }
     NSGraphicsContext.current = context
     context.imageInterpolation = .high
-    NSColor.clear.setFill()
+    NSColor(srgbRed: 0xEA / 255, green: 0xF3 / 255, blue: 0xF4 / 255, alpha: 1).setFill()
     NSRect(x: 0, y: 0, width: pixels, height: pixels).fill()
     source.draw(
         in: NSRect(x: 0, y: 0, width: pixels, height: pixels),
         from: .zero,
-        operation: .copy,
+        operation: .sourceOver,
         fraction: 1,
         respectFlipped: true,
         hints: [.interpolation: NSImageInterpolation.high]

@@ -153,16 +153,20 @@ optimizer, scheduler, scaler, RNG, dataloader position, method-specific scores
 or masks, distributed topology, environment, plan, and file manifest.
 
 The current full-run resume boundary remains closed. A new method still must
-prove two-phase pilot checkpoint continuation. Do not expose general resume as a
-side effect of adding method checkpoints.
+prove the pilot semantics declared by its runtime. CUDA methods require
+two-phase checkpoint continuation. An uninterrupted runtime must prove completed
+updates, exact state scope, immutable output, and fresh-process artifact reload
+without implying training resume. Do not expose general resume as a side effect
+of adding method state files.
 
 ## 8. Define export and reload
 
 Specify artifact files, provenance, tensor keys, index rules, base-model
 binding, and recursive manifest coverage. Add a fresh-process reload test and a
 bounded inference check before claiming semantic reload support. The current
-verifier checks structural safetensors only, so a new export form needs its own
-verifier and evidence label.
+CUDA verifier checks structural safetensors. MLX also performs a bounded
+fresh-process adapter generation check. A new export form needs its own verifier
+and evidence label.
 
 ## 9. Test every boundary
 
@@ -176,8 +180,9 @@ At minimum, cover:
 - generated source import and method preparation;
 - empty, extra, non-finite, malformed, and mismatched trainable sets;
 - optimizer membership;
-- dependency, model-data, measured-preflight, and both pilot phases;
-- checkpoint corruption and continuation failure;
+- dependency, model-data, measured-preflight, and runtime-specific pilot work;
+- checkpoint corruption and continuation failure where required, or
+  uninterrupted-run and artifact-reload failure for MLX-style runtimes;
 - export corruption, wrong provenance, and reload failure;
 - single and distributed completion behavior;
 - API bootstrap, planner preference, and workbench readiness state.
@@ -187,7 +192,7 @@ At minimum, cover:
 Run the exact compiled path in a clean environment on every claimed backend,
 placement, precision, and quantization combination. Bind model revision, dataset
 digest, package environment, hardware, plan, candidate, bundle, jobs, metrics,
-checkpoints, and exports.
+runtime state artifacts, and exports.
 
 Keep the descriptor nonselectable until code, tests, documentation, and the
 required target-host evidence agree. A passing repository test on the

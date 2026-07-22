@@ -12,6 +12,18 @@ const callbacks = {
 };
 
 const bundle: CompileResponse = { bundle_dir: "/tmp/bundle", files: [] };
+const mlxBundle: CompileResponse = {
+  ...bundle,
+  runtime_contract: {
+    schema_version: "aptus.runtime-contract.v1",
+    compute_backend: "mps",
+    training_runtime: "mlx-lm",
+    compiler_id: "mlx-lm.lora.v1",
+    estimator_id: "aptus-memory-mlx-v1",
+    evidence_requirement: "pilot-required",
+    export_kind: "mlx-lm-adapter",
+  },
+};
 const pilotReport: ValidationReport = {
   state: "pilot-pass",
   findings: [],
@@ -50,6 +62,95 @@ describe("RunStage", () => {
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start training" })).not.toBeInTheDocument();
     expect(screen.queryByText("No job has started.")).not.toBeInTheDocument();
+  });
+
+  it("keeps an MLX-LM bundle executable inside the Mac app", async () => {
+    window.aptusDesktop = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    render(
+      <RunStage
+        bundle={mlxBundle}
+        report={{ state: "static-pass", findings: [] }}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.queryByText("Continue on the CUDA machine.")).not.toBeInTheDocument();
+    expect(screen.getByText(/mlx-lm runtime on this Mac/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Dependency check/i)).toBeChecked();
+    expect(screen.getByRole("button", { name: "Check dependencies" })).toBeEnabled();
+    expect(screen.getByRole("note")).toHaveTextContent("DoRA, full-parameter training, and resume are not supported");
+  });
+
+  it("runs the MLX pilot as uninterrupted evidence instead of a continuation diagnostic", async () => {
+    const onCreateJob = vi.fn(async () => undefined);
+    window.aptusDesktop = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    render(
+      <RunStage
+        bundle={mlxBundle}
+        report={{ state: "measured-preflight-pass", findings: [] }}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onCreateJob={onCreateJob}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/Uninterrupted MLX pilot/i)).toBeChecked());
+    expect(screen.getByText(/at least two optimizer updates/i)).toBeInTheDocument();
+    expect(screen.getByText(/does not create a resume point/i)).toBeInTheDocument();
+    expect(screen.queryByText(/expected to stop/i)).not.toBeInTheDocument();
+    const pilotButton = screen.getByRole("button", { name: "Run uninterrupted pilot" });
+    expect(pilotButton).toBeEnabled();
+    fireEvent.click(pilotButton);
+    expect(onCreateJob).toHaveBeenCalledWith("pilot");
+  });
+
+  it("enables an explicitly confirmed full MLX run from scratch after pilot-pass", async () => {
+    const onCreateJob = vi.fn(async () => undefined);
+    window.aptusDesktop = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    render(
+      <RunStage
+        bundle={mlxBundle}
+        report={{ state: "pilot-pass", findings: [] }}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onCreateJob={onCreateJob}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/Training job/i)).toBeChecked());
+    expect(screen.getByText(/confirm a full-duration MLX LoRA or QLoRA run from scratch/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Resume is unavailable/i)).toHaveLength(2);
+    const trainButton = screen.getByRole("button", { name: "Start full MLX training" });
+    expect(trainButton).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(trainButton).toBeEnabled();
+    fireEvent.click(trainButton);
+    expect(onCreateJob).toHaveBeenCalledWith("train");
   });
 
   it("quotes the transferred bundle name in desktop shell commands", () => {

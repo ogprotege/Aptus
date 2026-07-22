@@ -97,12 +97,111 @@ class CliIntegrationTests(unittest.TestCase):
                 json.loads(plan_path.read_text())["schema_version"],
                 "aptus.training-plan.v2",
             )
+            self.assertIsNone(
+                json.loads(plan_path.read_text())["target"]["training_runtime"]
+            )
             self.assertFalse(
                 json.loads(plan_path.read_text())["hardware"]["devices"][0][
                     "supports_8bit"
                 ]
             )
             self.assertTrue((bundle / "bundle-manifest.json").is_file())
+
+    def test_explicit_mlx_runtime_is_persisted_for_mps_planning(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "plan.json"
+            arguments = fact_arguments(dataset)
+            arguments.extend(("--backend", "mps"))
+            arguments.extend(("--training-runtime", "mlx-lm"))
+
+            self.assertEqual(
+                main(["spec-plan", *arguments, "--output", str(plan_path)]),
+                0,
+            )
+
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(plan["target"]["training_runtime"], "mlx-lm")
+            self.assertEqual(
+                plan["recommended"]["runtime_contract"]["compute_backend"],
+                "mps",
+            )
+            self.assertEqual(
+                plan["recommended"]["runtime_contract"]["training_runtime"],
+                "mlx-lm",
+            )
+            self.assertEqual(
+                plan["hardware"]["reserve_per_device_bytes"],
+                8 * 1024**3,
+            )
+
+    def test_inferred_mps_runtime_enforces_the_apple_memory_reserve(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "plan.json"
+
+            self.assertEqual(
+                main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--backend",
+                        "mps",
+                        "--output",
+                        str(plan_path),
+                    ]
+                ),
+                0,
+            )
+
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertIsNone(plan["target"]["training_runtime"])
+            self.assertEqual(
+                plan["recommended"]["runtime_contract"]["training_runtime"],
+                "mlx-lm",
+            )
+            self.assertEqual(
+                plan["hardware"]["reserve_per_device_bytes"],
+                8 * 1024**3,
+            )
+
+    def test_explicit_training_runtime_must_match_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.txt"
+            dataset.write_text("example\n", encoding="utf-8")
+            for runtime, backend, required_backend in (
+                ("mlx-lm", "cuda", "mps"),
+                ("pytorch-mps", "cuda", "mps"),
+                ("transformers-peft-cuda", "mps", "cuda"),
+            ):
+                stderr = io.StringIO()
+                with (
+                    self.subTest(runtime=runtime, backend=backend),
+                    contextlib.redirect_stderr(stderr),
+                ):
+                    code = main(
+                        [
+                            "spec-plan",
+                            *fact_arguments(dataset),
+                            "--backend",
+                            backend,
+                            "--training-runtime",
+                            runtime,
+                            "--output",
+                            str(root / f"{runtime}.json"),
+                        ]
+                    )
+                    self.assertEqual(code, 2)
+                    self.assertIn(
+                        f"Training runtime {runtime} requires "
+                        f"--backend {required_backend}.",
+                        stderr.getvalue(),
+                    )
 
     def test_combined_plan_flow_remains_available(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -238,6 +337,43 @@ class CliIntegrationTests(unittest.TestCase):
             code = main(["serve", "--host", "0.0.0.0"])
         self.assertEqual(code, 2)
         self.assertIn("Non-loopback serving is blocked", stderr.getvalue())
+
+    def test_serve_generates_and_hands_off_an_authenticated_session(self) -> None:
+        token = "generated-session-token-that-is-long-enough-123"
+        application = object()
+        stderr = io.StringIO()
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary) / "state"
+            with (
+                patch("aptus.cli.secrets.token_urlsafe", return_value=token),
+                patch("aptus.api.create_app", return_value=application) as create,
+                patch("uvicorn.run") as run_server,
+                contextlib.redirect_stderr(stderr),
+            ):
+                code = main(
+                    [
+                        "serve",
+                        "--port",
+                        "9001",
+                        "--state-dir",
+                        str(state_dir),
+                    ]
+                )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(create.call_args.kwargs["session_token"], token)
+        self.assertEqual(create.call_args.kwargs["state_dir"], state_dir)
+        run_server.assert_called_once_with(
+            application,
+            host="127.0.0.1",
+            port=9001,
+            access_log=False,
+        )
+        self.assertIn(
+            f"http://127.0.0.1:9001/?aptus_session_token={token}",
+            stderr.getvalue(),
+        )
+        self.assertIn(f"Aptus API bearer token: {token}", stderr.getvalue())
 
 
 if __name__ == "__main__":

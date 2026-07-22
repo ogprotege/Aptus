@@ -6,6 +6,9 @@ This guide is a target-host template. It creates a plan, compiles it, and
 follows the supported CUDA runtime order. Every uppercase model value and every
 numeric hardware value must be replaced with facts for the intended run.
 
+For Apple Silicon planning and the uninterrupted MLX-LM adapter path, use
+[Choose your Aptus path](choose-your-path.md#path-b-run-an-mlx-lm-bundle-on-apple-silicon).
+
 For a copy-and-paste workflow that downloads no model and starts no training,
 use the [first planning-only run](first-plan.md).
 
@@ -43,10 +46,11 @@ Inspect hardware on the server host:
 aptus inspect hardware
 ```
 
-CUDA hosts report visible devices and current capacity. Darwin arm64 hosts
-without CUDA report an `mps` discovery record for shared unified memory. That
-record is inventory only. It does not make an MPS or MLX training candidate
-executable, because v0.2 execution remains CUDA-only.
+CUDA hosts report visible devices and current capacity. Apple Silicon hosts
+report an `mps` compatibility record for shared unified memory. That value is
+not dedicated VRAM, and host free RAM is not copied into free VRAM. MLX-LM uses
+this backend through a separate estimator and compiler. PyTorch MPS remains a
+known runtime without a compiler.
 
 Inspect bounded model metadata for a pinned repository revision:
 

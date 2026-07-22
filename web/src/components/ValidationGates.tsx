@@ -59,12 +59,12 @@ function derivedGates(report: ValidationReport): ValidationGate[] {
     {
       label: "Measured preflight",
       state: rank >= 4 ? "passed" : "pending",
-      detail: "Small synthetic method and CUDA-kernel check. This is not planned-model fit.",
+      detail: "Bounded synthetic method and selected-runtime check. This is not planned-model fit.",
     },
     {
       label: "Exact model and data pilot",
       state: rank >= 5 ? "passed" : "pending",
-      detail: "Pinned model and data steps with finite loss, checkpoint save, reload, and continuation.",
+      detail: "Pinned model and data steps with finite loss, bound artifacts, and the selected runtime's reload proof.",
     },
   ];
 }

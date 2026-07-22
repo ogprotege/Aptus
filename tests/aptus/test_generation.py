@@ -1,4 +1,5 @@
 import importlib.util
+import ast
 import json
 import math
 import os
@@ -11,8 +12,14 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from aptus.domain import ValidationState
-from aptus.generation import _accelerate_config, create_bundle_archive, generate_bundle
+from aptus.domain import Backend, ValidationState
+from aptus.generation import (
+    _accelerate_config,
+    create_bundle_archive,
+    generate_bundle,
+)
+from aptus.planning import plan_training
+from aptus.profiling import build_hardware_spec, profile_dataset
 from aptus.validation import validate_bundle
 
 from tests.aptus.helpers import make_plan
@@ -164,6 +171,39 @@ class BundleGenerationTests(unittest.TestCase):
             sys.path.remove(str(output))
             sys.dont_write_bytecode = previous
         return module
+
+    def _mlx_plan(self, root: Path, *, dataset_content: str | None = None):
+        base = make_plan(root)
+        dataset = base.dataset
+        if dataset_content is not None:
+            dataset_path = root / "mlx-source.jsonl"
+            dataset_path.write_text(dataset_content, encoding="utf-8")
+            dataset = profile_dataset(
+                dataset_path, sample_limit=64, sequence_length=128
+            )
+        hardware = build_hardware_spec(
+            backend=Backend.MPS,
+            gpu_count=1,
+            vram_gib=64,
+            supports_bf16=False,
+            supports_4bit=False,
+            host_ram_gib=64,
+            host_ram_free_gib=48,
+            reserve_gib=8,
+            disk_free_gib=500,
+        )
+        return plan_training(
+            model=base.model,
+            dataset=dataset,
+            hardware=hardware,
+            target=base.target,
+        )
+
+    def _mlx_bundle(self, root: Path) -> Path:
+        output = root / "mlx-bundle"
+        report = generate_bundle(self._mlx_plan(root), output)
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        return output
 
     def _run_model_data_fixture(
         self,
@@ -362,6 +402,609 @@ class BundleGenerationTests(unittest.TestCase):
         }
         self.assertTrue(required <= files)
         self.assertEqual(report.state, ValidationState.STATIC_PASS)
+
+    def test_compiles_honest_mlx_bundle_slice_without_cuda_assumptions(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = make_plan(root)
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=48,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            plan = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+            output = root / "mlx-bundle"
+            report = generate_bundle(plan, output)
+            requirements = (output / "requirements.txt").read_text(encoding="utf-8")
+            train_source = (output / "train.py").read_text(encoding="utf-8")
+            validate_source = (output / "validate.py").read_text(encoding="utf-8")
+            run_source = (output / "run.py").read_text(encoding="utf-8")
+            reload_source = (output / "reload.py").read_text(encoding="utf-8")
+            readme = (output / "README.md").read_text(encoding="utf-8")
+            runbook = (output / "runbook.md").read_text(encoding="utf-8")
+            config = (output / "config" / "mlx-lm.yaml").read_text(encoding="utf-8")
+            trainer_config = json.loads(
+                (output / "config" / "trainer.json").read_text(encoding="utf-8")
+            )
+            decision_report = (output / "decision-report.md").read_text(
+                encoding="utf-8"
+            )
+            files = {
+                item.relative_to(output).as_posix()
+                for item in output.rglob("*")
+                if item.is_file()
+            }
+            compiled_rows = []
+            for name in ("train.jsonl", "valid.jsonl"):
+                compiled_rows.extend(
+                    json.loads(line)
+                    for line in (output / "data" / "mlx" / name)
+                    .read_text(encoding="utf-8")
+                    .splitlines()
+                    if line.strip()
+                )
+            split_contract = json.loads(
+                (output / "data" / "mlx" / "split-contract.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertEqual(requirements, "mlx==0.31.2\nmlx-lm==0.31.3\n")
+        self.assertNotIn("bitsandbytes", requirements)
+        self.assertIn("measured_peak_bytes", train_source)
+        self.assertNotIn("measured_peak_cuda_bytes", train_source)
+        self.assertIn('"execution_semantics": "uninterrupted"', train_source)
+        self.assertIn('"resume_supported": False', train_source)
+        self.assertIn("load_pinned_local_model", train_source)
+        self.assertIn('{"trust_remote_code": False}', train_source)
+        self.assertIn("--confirm-full-train", run_source)
+        self.assertIn("--output-dir", run_source)
+        self.assertIn("fresh_process_observed", reload_source)
+        self.assertNotIn("current pilot fails", readme.lower())
+        self.assertNotIn("current pilot fails", runbook.lower())
+        self.assertIn("runs uninterrupted", runbook)
+        self.assertIn("measured-preflight", validate_source)
+        self.assertIn("num_layers: -1", config)
+        self.assertIn("mask_prompt: true", config)
+        self.assertIn("scale: 2.0", config)
+        self.assertIn(
+            'keys: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]',
+            config,
+        )
+        self.assertEqual(trainer_config["optimizer"], "adamw")
+        self.assertIsNone(trainer_config["lr_scheduler_type"])
+        self.assertNotIn("adamw_torch", decision_report)
+        self.assertTrue(
+            {
+                "data/mlx/train.jsonl",
+                "data/mlx/valid.jsonl",
+                "data/mlx/split-contract.json",
+                "config/mlx-lm.yaml",
+                "reload.py",
+            }
+            <= files
+        )
+        for source in (train_source, validate_source, run_source, reload_source):
+            ast.parse(source)
+
+        micro_batch = plan.recommended.micro_batch_size
+        self.assertEqual(
+            len(compiled_rows),
+            sum(
+                value["compiled_row_count"]
+                for value in split_contract["splits"].values()
+            ),
+        )
+        self.assertEqual(
+            sum(
+                value["source_row_count"] for value in split_contract["splits"].values()
+            ),
+            2,
+        )
+        self.assertTrue(
+            all(
+                value["compiled_row_count"] >= micro_batch
+                and value["compiled_row_count"] % micro_batch == 0
+                for value in split_contract["splits"].values()
+            )
+        )
+        self.assertTrue(all(set(row) == {"messages"} for row in compiled_rows))
+        self.assertTrue(
+            all(row["messages"][-1]["role"] == "assistant" for row in compiled_rows)
+        )
+
+    def test_generated_mlx_binding_proves_every_planned_lora_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_mlx_binding")
+            plan = module.load_contract()[0]
+            candidate = plan["recommended"]
+
+            class FakeLayer:
+                def named_modules(self):
+                    return [
+                        ("self_attn.q_proj", object()),
+                        ("self_attn.k_proj", object()),
+                        ("self_attn.v_proj", object()),
+                        ("self_attn.o_proj", object()),
+                        ("mlp.gate_proj", object()),
+                        ("mlp.up_proj", object()),
+                        ("mlp.down_proj", object()),
+                    ]
+
+            model = types.SimpleNamespace(
+                layers=[FakeLayer() for _index in range(plan["model"]["layers"])]
+            )
+            resolved, binding = module.resolve_lora_keys(model, candidate)
+            names = [
+                f"model.layers.{layer_index}.{key}.{suffix}"
+                for layer_index in range(plan["model"]["layers"])
+                for key in resolved
+                for suffix in ("lora_a", "lora_b")
+            ]
+            census = module.require_trainable_binding(names, binding)
+
+            self.assertEqual(
+                census["planned_target_modules"], candidate["target_modules"]
+            )
+            self.assertEqual(
+                census["adapter_target_instance_count"],
+                plan["model"]["layers"] * len(candidate["target_modules"]),
+            )
+            self.assertEqual(census["trainable_tensor_count"], len(names))
+            with self.assertRaisesRegex(RuntimeError, "non-LoRA"):
+                module.require_trainable_binding(
+                    [*names, "model.layers.0.norm.weight"], binding
+                )
+
+    def test_generated_mlx_iteration_schedule_is_bounded_and_epoch_derived(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(
+                output, "aptus_generated_mlx_iteration_schedule"
+            )
+            plan, candidate = module.load_contract()
+            micro_batch = candidate["micro_batch_size"]
+            accumulation = candidate["gradient_accumulation_steps"]
+            train_examples = micro_batch * 3 - 1
+            full_iterations = module.derive_iterations(
+                action="full",
+                requested_iterations=999,
+                candidate=candidate,
+                plan=plan,
+                train_examples=train_examples,
+            )
+            complete_batches = train_examples // micro_batch
+            epoch_iterations = complete_batches * plan["target"]["max_epochs"]
+            expected = math.ceil(epoch_iterations / accumulation) * accumulation
+
+            self.assertEqual(full_iterations, expected)
+            self.assertEqual(
+                module.derive_iterations(
+                    action="pilot",
+                    requested_iterations=999,
+                    candidate=candidate,
+                    plan=plan,
+                    train_examples=train_examples,
+                ),
+                2 * accumulation,
+            )
+            with self.assertRaisesRegex(RuntimeError, "no complete micro-batch"):
+                module.derive_iterations(
+                    action="full",
+                    requested_iterations=1,
+                    candidate=candidate,
+                    plan=plan,
+                    train_examples=micro_batch - 1,
+                )
+
+    def test_generated_mlx_model_loader_forces_safe_pinned_local_snapshot(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_mlx_safe_model_load")
+            plan = module.load_contract()[0]
+            model_path = Path(temporary) / "pinned-model"
+            model_path.mkdir()
+            calls = []
+
+            def loader(*args, **kwargs):
+                calls.append((args, kwargs))
+                return object(), object()
+
+            loaded, binding = module.load_pinned_local_model(
+                loader,
+                str(model_path),
+                model_path=model_path,
+                plan=plan,
+                tokenizer_config={"trust_remote_code": True},
+            )
+            self.assertEqual(len(loaded), 2)
+            self.assertEqual(
+                calls,
+                [
+                    (
+                        (str(model_path.resolve()),),
+                        {"tokenizer_config": {"trust_remote_code": False}},
+                    )
+                ],
+            )
+            self.assertIs(binding["resolved_local_snapshot"], True)
+            self.assertIs(binding["trust_remote_code"], False)
+
+            other_path = Path(temporary) / "other-model"
+            other_path.mkdir()
+            with self.assertRaisesRegex(RuntimeError, "unbound loader arguments"):
+                module.load_pinned_local_model(
+                    loader,
+                    str(other_path),
+                    model_path=model_path,
+                    plan=plan,
+                    tokenizer_config={"trust_remote_code": True},
+                )
+            with self.assertRaisesRegex(RuntimeError, "unbound loader arguments"):
+                module.load_pinned_local_model(
+                    loader,
+                    str(model_path),
+                    model_path=model_path,
+                    plan=plan,
+                    tokenizer_config={"trust_remote_code": True},
+                    lazy=True,
+                )
+            with self.assertRaisesRegex(RuntimeError, "unbound loader arguments"):
+                module.load_pinned_local_model(
+                    loader,
+                    str(model_path),
+                    model_path=model_path,
+                    plan=plan,
+                    tokenizer_config={"trust_remote_code": False},
+                )
+
+    def test_generated_mlx_rejects_method_model_quantization_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_mlx_method_model")
+            unquantized = Path(temporary) / "unquantized"
+            quantized = Path(temporary) / "quantized"
+            custom_model = Path(temporary) / "custom-model"
+            unquantized.mkdir()
+            quantized.mkdir()
+            custom_model.mkdir()
+            (unquantized / "config.json").write_text("{}", encoding="utf-8")
+            (quantized / "config.json").write_text(
+                json.dumps({"quantization_config": {"bits": 4}}),
+                encoding="utf-8",
+            )
+            (custom_model / "config.json").write_text(
+                json.dumps({"model_file": "model.py"}), encoding="utf-8"
+            )
+
+            module.require_method_model({"method": "lora"}, unquantized)
+            module.require_method_model({"method": "qlora"}, quantized)
+            with self.assertRaisesRegex(RuntimeError, "unquantized pinned base"):
+                module.require_method_model({"method": "lora"}, quantized)
+            with self.assertRaisesRegex(RuntimeError, "four-bit"):
+                module.require_method_model({"method": "qlora"}, unquantized)
+            with self.assertRaisesRegex(RuntimeError, "custom model_file"):
+                module.require_method_model({"method": "lora"}, custom_model)
+
+    def test_generated_mlx_resume_arguments_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            train_module = self._load_generated(
+                output, "aptus_generated_mlx_resume_train"
+            )
+            run_module = self._load_generated_path(
+                output, "run.py", "aptus_generated_mlx_resume_run"
+            )
+            for module, argv in (
+                (
+                    train_module,
+                    [
+                        "train.py",
+                        "--pilot",
+                        "--adapter-path",
+                        "pilot-output/rejected",
+                        "--resume-from",
+                        "checkpoint",
+                    ],
+                ),
+                (
+                    run_module,
+                    ["run.py", "--pilot", "--resume-from", "checkpoint"],
+                ),
+            ):
+                with (
+                    self.subTest(module=module.__name__),
+                    patch.object(sys, "argv", argv),
+                    self.assertRaises(SystemExit),
+                ):
+                    module.main()
+
+    def test_generated_mlx_full_refuses_missing_or_stale_pilot_before_output(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated_path(
+                output, "run.py", "aptus_generated_mlx_full_gate"
+            )
+            plan = module.load_plan()
+            with self.assertRaisesRegex(RuntimeError, "pilot-pass"):
+                module.require_full_admission(plan)
+
+            pilot_path = output / "pilot-output" / "metrics.json"
+            pilot_path.parent.mkdir(exist_ok=True)
+            pilot_path.write_text("{}", encoding="utf-8")
+            report_path = output / "validation-report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report.update(
+                state="pilot-pass",
+                pilot_metrics={},
+            )
+            report["bindings"]["candidate_id"] = "stale-candidate"
+            report["bindings"]["pilot_metrics"] = module.sha256(pilot_path)
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "exact current pilot bindings"):
+                module.require_full_admission(plan)
+
+    def test_generated_mlx_runtime_metrics_require_loss_update_binding_delta_and_headroom(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated_path(
+                output, "validate.py", "aptus_generated_mlx_metric_proof"
+            )
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            candidate = plan["recommended"]
+            layers = plan["model"]["layers"]
+            targets = candidate["target_modules"]
+            reserve = max(plan["hardware"]["reserve_per_device_bytes"], 8 * 1024**3)
+            required = (
+                max(
+                    candidate["memory"]["point_estimate_bytes"],
+                    candidate["memory"]["upper_estimate_bytes"],
+                )
+                + reserve
+            )
+            split_contract = json.loads(
+                (output / "data" / "mlx" / "split-contract.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            accumulation = candidate["gradient_accumulation_steps"]
+            binding = {
+                "schema_version": "aptus.mlx-trainable-target-binding.v1",
+                "planned_target_modules": targets,
+                "resolved_layer_keys": [f"resolved.{target}" for target in targets],
+                "transformer_layer_count": layers,
+                "expected_adapter_target_instance_count": layers * len(targets),
+                "adapter_target_instance_count": layers * len(targets),
+                "trainable_tensor_count": layers * len(targets) * 2,
+                "target_instance_counts": {target: layers for target in targets},
+            }
+            binding["descriptor_sha256"] = module.hashlib.sha256(
+                json.dumps(binding, sort_keys=True, separators=(",", ":")).encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+            metrics = {
+                "schema_version": "aptus.runtime-metrics.v1",
+                "plan_id": plan["plan_id"],
+                "candidate_id": candidate["candidate_id"],
+                "model_revision": plan["model"]["revision"],
+                "dataset_sha256": plan["dataset"]["source_sha256"],
+                "method": candidate["method"],
+                "training_runtime": "mlx-lm",
+                "compute_backend": "mps",
+                "compiler_id": candidate["runtime_contract"]["compiler_id"],
+                "scope": "bounded-compiler-smoke-not-pilot-evidence",
+                "action": "bounded-smoke",
+                "execution_semantics": "uninterrupted",
+                "resume_supported": False,
+                "micro_iterations": accumulation,
+                "global_step": accumulation,
+                "gradient_accumulation_steps": accumulation,
+                "measured_peak_bytes": 4096,
+                "active_memory_bytes": 2048,
+                "cache_memory_bytes": 1024,
+                "memory_metric_backend": "mlx",
+                "model_load_binding": {
+                    "schema_version": "aptus.mlx-model-load-binding.v1",
+                    "model_id": plan["model"]["model_id"],
+                    "model_revision": plan["model"]["revision"],
+                    "resolved_local_snapshot": True,
+                    "trust_remote_code": False,
+                },
+                "finite_train_loss": True,
+                "train_loss_observations": [1.25, 1.0],
+                "optimizer_update_opportunities": 1,
+                "completed_optimizer_updates": 1,
+                "optimizer_update_observed": True,
+                "train_examples": split_contract["splits"]["train"][
+                    "compiled_row_count"
+                ],
+                "validation_examples": split_contract["splits"]["valid"][
+                    "compiled_row_count"
+                ],
+                "source_train_examples": split_contract["splits"]["train"][
+                    "source_row_count"
+                ],
+                "source_validation_examples": split_contract["splits"]["valid"][
+                    "source_row_count"
+                ],
+                "max_epochs": plan["target"]["max_epochs"],
+                "distribution": "single",
+                "actual_world_size": 1,
+                "finite_validation_loss": True,
+                "validation_loss_observations": [1.1],
+                "trainable_target_binding": binding,
+                "adapter_delta_l1": 0.5,
+                "changed_adapter_tensor_count": 7,
+                "unified_memory_admission": {
+                    "schema_version": "aptus.mlx-unified-memory-admission.v1",
+                    "available_unified_memory_bytes": required + 1,
+                    "point_estimate_bytes": candidate["memory"]["point_estimate_bytes"],
+                    "upper_estimate_bytes": candidate["memory"]["upper_estimate_bytes"],
+                    "reserve_bytes": reserve,
+                    "required_available_bytes": required,
+                },
+            }
+            self.assertIs(module.require_runtime_metrics(plan, metrics), metrics)
+            for name, value, message in (
+                ("finite_train_loss", False, "proof scope"),
+                ("optimizer_update_observed", False, "proof scope"),
+                ("adapter_delta_l1", 0.0, "adapter delta"),
+                ("trainable_target_binding", {}, "binding"),
+                ("unified_memory_admission", {}, "unified-memory"),
+            ):
+                with self.subTest(name=name):
+                    changed = {**metrics, name: value}
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        module.require_runtime_metrics(plan, changed)
+
+    def test_generated_mlx_reprobes_live_unified_memory_without_fake_vram(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(
+                output, "aptus_generated_mlx_memory_admission"
+            )
+            plan = module.load_contract()[0]
+            vm_stat = (
+                "Mach Virtual Memory Statistics: (page size of 4096 bytes)\n"
+                "Pages free:                               5000000.\n"
+                "Pages inactive:                                 0.\n"
+                "Pages speculative:                              0.\n"
+            )
+            completed = subprocess.CompletedProcess(
+                ["/usr/bin/vm_stat"], 0, stdout=vm_stat, stderr=""
+            )
+            with patch.object(module.subprocess, "run", return_value=completed):
+                admission = module.require_unified_memory_admission(plan)
+            self.assertGreaterEqual(
+                admission["available_unified_memory_bytes"],
+                admission["required_available_bytes"],
+            )
+            self.assertEqual(admission["reserve_bytes"], 8 * 1024**3)
+            self.assertNotIn("free_vram_bytes", admission)
+
+            low_vm_stat = vm_stat.replace("5000000", "1")
+            failed = subprocess.CompletedProcess(
+                ["/usr/bin/vm_stat"], 0, stdout=low_vm_stat, stderr=""
+            )
+            with (
+                patch.object(module.subprocess, "run", return_value=failed),
+                self.assertRaisesRegex(RuntimeError, "8 GiB Aptus reserve"),
+            ):
+                module.require_unified_memory_admission(plan)
+
+    def test_generated_mlx_model_data_refuses_right_truncation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated_path(
+                output, "validate.py", "aptus_generated_mlx_dataset_contract"
+            )
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            observed = {}
+
+            class FakeDataset:
+                def __init__(self, token_count):
+                    self.token_count = token_count
+
+                def __bool__(self):
+                    return True
+
+                def __len__(self):
+                    return 1
+
+                def __getitem__(self, _index):
+                    return {
+                        "messages": [
+                            {"role": "user", "content": "prompt"},
+                            {"role": "assistant", "content": "completion"},
+                        ]
+                    }
+
+                def process(self, _row):
+                    return [1] * self.token_count, 5
+
+            token_count = plan["target"]["sequence_length"] + 1
+
+            def load_dataset(args, _tokenizer):
+                observed["mask_prompt"] = args.mask_prompt
+                dataset = FakeDataset(token_count)
+                return dataset, dataset, []
+
+            fake_root = types.ModuleType("mlx_lm")
+            fake_root.__path__ = []
+            fake_tuner = types.ModuleType("mlx_lm.tuner")
+            fake_tuner.__path__ = []
+            fake_datasets = types.ModuleType("mlx_lm.tuner.datasets")
+            fake_datasets.load_dataset = load_dataset
+            fake_utils = types.ModuleType("mlx_lm.utils")
+
+            def safe_load(*_args, **kwargs):
+                observed["tokenizer_config"] = kwargs.get("tokenizer_config")
+                return (
+                    object(),
+                    object(),
+                    {"quantization_config": {"bits": 4}},
+                )
+
+            fake_utils.load = safe_load
+            pinned_model = Path(temporary) / "pinned-model-data"
+            pinned_model.mkdir()
+            (pinned_model / "config.json").write_text(
+                json.dumps({"quantization_config": {"bits": 4}}),
+                encoding="utf-8",
+            )
+            fake_huggingface = types.ModuleType("huggingface_hub")
+            fake_huggingface.snapshot_download = lambda **_kwargs: str(pinned_model)
+            with (
+                patch.dict(
+                    sys.modules,
+                    {
+                        "huggingface_hub": fake_huggingface,
+                        "mlx_lm": fake_root,
+                        "mlx_lm.tuner": fake_tuner,
+                        "mlx_lm.tuner.datasets": fake_datasets,
+                        "mlx_lm.utils": fake_utils,
+                    },
+                ),
+                patch.object(module, "require_unified_memory_admission"),
+                self.assertRaisesRegex(RuntimeError, "right-truncates"),
+            ):
+                module.require_model_data(plan)
+            self.assertIs(observed["mask_prompt"], True)
+            self.assertEqual(observed["tokenizer_config"], {"trust_remote_code": False})
+
+    def test_mlx_compilation_refuses_unmasked_text_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            plan = self._mlx_plan(
+                root,
+                dataset_content=(
+                    '{"text":"first fully supervised row"}\n'
+                    '{"text":"second fully supervised row"}\n'
+                ),
+            )
+            with self.assertRaisesRegex(ValueError, "refuses text rows"):
+                generate_bundle(plan, root / "mlx-text-bundle")
 
     def test_bundle_documents_parent_runner_and_fail_closed_resume(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

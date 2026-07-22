@@ -147,7 +147,11 @@ function restoredDraft(plan: TrainingPlan, bundle: CompileResponse): FactDraft {
       effective_batch_size: numberValue(target.effective_batch_size),
       max_epochs: numberValue(target.max_epochs),
       method_preference: String(target.method_preference ?? ""),
-      runtime: "transformers-peft",
+      runtime: String(
+        target.training_runtime
+          ?? plan.recommended?.runtime_contract?.training_runtime
+          ?? "transformers-peft-cuda",
+      ),
       evaluation_fraction: numberValue(target.evaluation_fraction) ?? 0.1,
       packing: target.packing === true,
       checkpoint_steps: numberValue(target.checkpoint_steps) ?? 100,
@@ -300,10 +304,14 @@ export default function App() {
               },
               hardware: {
                 ...merged.hardware,
+                devices: defaults.backend
+                  ? [{ ...merged.hardware.devices[0], backend: defaults.backend }]
+                  : merged.hardware.devices,
                 reserve_per_device_gib: defaults.reserve_gib ?? merged.hardware.reserve_per_device_gib,
               },
               target: {
                 ...merged.target,
+                runtime: defaults.training_runtime ?? merged.target.runtime,
                 task: defaults.task ?? merged.target.task,
                 packing: defaults.packing ?? merged.target.packing,
               },
@@ -664,12 +672,21 @@ export default function App() {
       updateDraft((current) => ({
         ...current,
         hardware: summarizeHardwareProbe(probe, current.hardware),
+        target: {
+          ...current.target,
+          runtime:
+            backend === "mps"
+              ? "mlx-lm"
+              : current.target.runtime === "mlx-lm" || current.target.runtime === "pytorch-mps"
+                ? "transformers-peft-cuda"
+                : current.target.runtime,
+        },
       }));
       setHardwareScanned(true);
       setConnection("connected");
       setNotice(
         backend === "mps"
-          ? "Apple Silicon and its shared unified-memory pool were measured. The current CUDA compiler will mark execution methods unsupported until Aptus has a separately validated MLX backend."
+          ? "Apple Silicon was measured as one shared memory system. Aptus will compare MLX-LM LoRA and QLoRA candidates conservatively. Measured preflight remains a bounded smoke. A passing uninterrupted pilot authorizes an explicitly confirmed full-duration run from scratch; resume is not supported."
           : "Hardware measured on this Aptus host. Single-device rows bind the strongest method-compatible GPU. Distributed rows use limiting VRAM and capabilities shared by every scanned GPU.",
       );
     } catch (caught) {

@@ -27,7 +27,7 @@ verify the exact model, data, hardware, and pinned dependency stack.
 | Interface default | When an optional field is omitted | Resulting profile, plan, validation request, or job |
 | Planner prior | While all candidate configurations are enumerated | Candidate fields and assumptions in `plan.json` |
 | Compiler-fixed setting | When the recommended candidate is compiled | `config/trainer.json`, `config/accelerate.yaml`, or `requirements.txt` |
-| Pilot-only override | When `train.py --pilot` receives an allowed override | Pilot evidence; it does not change the full-run contract |
+| CUDA pilot-only override | When CUDA `train.py --pilot` receives an allowed override | Pilot evidence; it does not change the full-run contract |
 
 Recompiling a persisted plan does not rerun planning. It preserves the plan's
 recommended candidate and emits configuration from that candidate.
@@ -51,6 +51,7 @@ limit rows copied into a compiled bundle.
 | --- | --- | --- |
 | `--sample-limit` | `512` | Profiling-statistics sample bound |
 | `--backend` | `cuda` | Declared device backend |
+| `--training-runtime` | `null` | Infer the runtime from backend and method |
 | `--free-vram-gib` | `null` | Planner uses total device memory as the available-memory fact |
 | `--bf16` | False | BF16 capability is not assumed |
 | `--four-bit` | False | Four-bit kernel capability is not assumed |
@@ -63,7 +64,7 @@ limit rows copied into a compiled bundle.
 | `--epochs` | `3` | Maximum full-run epochs |
 | `--prefer-method` | `null` | No secondary tie-break preference |
 | `--evaluation-fraction` | `0.1` | Requested full-run evaluation fraction |
-| `--checkpoint-steps` | `100` | Optimizer steps between checkpoints |
+| `--checkpoint-steps` | `100` | CUDA optimizer steps between checkpoints; MLX retains the target fact but writes non-resumable weight snapshots |
 | `--packing` | False | Packing remains disabled and fails closed if requested |
 | `--plan-output` | `null` | Do not write a separate host plan beside a build |
 
@@ -88,7 +89,17 @@ confirmed explicitly.
 | `serve --state-dir` | `.aptus-state` | API plans, current bundle reference, and job state |
 | `serve --web-dist` | Auto-detected | Use the packaged workbench if present |
 | `serve --allow-non-loopback` | False | Reject non-loopback binding |
+| `serve` session token | Fresh random value per launch | Authenticate protected API requests |
+| `serve` workbench handoff | Printed query URL on standard error | Exchange the token for an HttpOnly, SameSite Strict cookie and redirect with `303` |
+| `serve` API credential | Printed bearer token on standard error | Use `Authorization: Bearer TOKEN` for programmatic calls |
+| `serve` access logging | False | Keep the handoff query out of Uvicorn access logs |
 | `inspect model --timeout` | `10.0` seconds | Provider inspection timeout |
+
+Only health and static workbench assets are public under `aptus serve`. Every
+other API route and the generated API documentation require the session cookie
+or bearer token. Non-loopback mode retains this authentication, but the built-in
+server remains plain HTTP. The operator must provide approved TLS and network
+controls.
 
 The shared model-inspection function requires a positive timeout no greater
 than 30 seconds for both CLI and API calls. The API request model enforces the
@@ -98,6 +109,15 @@ on the shared function for the upper bound.
 ## API request defaults
 
 API request models reject unknown fields.
+
+### Bootstrap defaults
+
+`GET /api/v1/bootstrap` chooses host-aware workbench defaults. On Darwin it
+returns `backend: mps`, `training_runtime: mlx-lm`, `reserve_gib: 8.0`, and
+`supported_execution_backend: mps`. On other platforms it returns
+`backend: cuda`, `training_runtime: transformers-peft-cuda`,
+`reserve_gib: 2.0`, and `supported_execution_backend: cuda`. These values seed
+the interface. They do not bypass runtime inventory, planning, or validation.
 
 ### Hardware request
 
@@ -117,7 +137,8 @@ API request models reject unknown fields.
 `discovery` is `local-scan`, because the current request schema validates them
 before the server replaces manual hardware facts with a local probe. During a
 local scan, only `reserve_gib` is carried into the probe. The other manual
-hardware values are ignored.
+hardware values are ignored. When the target explicitly selects `mlx-lm` or
+`pytorch-mps`, the local-scan reserve is raised to at least `8.0` GiB.
 
 ### Target, profile, and plan requests
 
@@ -126,6 +147,7 @@ hardware values are ignored.
 | `effective_batch_size` | `16` | Target |
 | `max_epochs` | `3` | Target |
 | `method_preference` | `null` | Target |
+| `training_runtime` | `null` | Target; infer from backend and method |
 | `task` | `sft` | Target |
 | `evaluation_fraction` | `0.1` | Target |
 | `packing` | False | Target |
@@ -165,15 +187,19 @@ priors. They are not tuned against the supplied corpus.
 
 ### Precision, quantization, and learning rate
 
-| Method | Precision rule | Quantization | Learning rate |
+| Runtime and method | Precision rule | Quantization | Learning rate |
 | --- | --- | --- | ---: |
-| `full` | BF16 only; the FP16 path is unsupported | `null` | `0.00002` |
-| `lora` | BF16 if every bound device declares support, otherwise FP16 | `null` | `0.0002` |
-| `int8-lora` | BF16 if every bound device declares support, otherwise FP16 | `int8-bitsandbytes` | `0.0002` |
-| `qlora` | BF16 if every bound device declares support, otherwise FP16 | `nf4-double-quant` | `0.0002` |
+| CUDA `full` | BF16 only; the FP16 path is unsupported | `null` | `0.00002` |
+| CUDA `lora` | BF16 if every bound device declares support, otherwise FP16 | `null` | `0.0002` |
+| CUDA `int8-lora` | BF16 if every bound device declares support, otherwise FP16 | `int8-bitsandbytes` | `0.0002` |
+| CUDA `qlora` | BF16 if every bound device declares support, otherwise FP16 | `nf4-double-quant` | `0.0002` |
+| MLX-LM `lora` | BF16 if declared, otherwise FP16; discovered MPS currently records FP16 | `null` | `0.0002` |
+| MLX-LM `qlora` | BF16 if declared, otherwise FP16; discovered MPS currently records FP16 | `mlx-4bit-groupwise` | `0.0002` |
 
-Eight-bit and four-bit candidates also require the corresponding capability on
-every participating device. Capability flags never manufacture support.
+CUDA eight-bit and four-bit candidates require the corresponding capability on
+every participating device. MLX QLoRA ignores the CUDA-style device flag and
+requires explicit four-bit MLX quantization metadata in the pinned model during
+model-data validation. Capability flags never manufacture support.
 
 ### Batch derivation
 
@@ -224,13 +250,13 @@ The compiler writes `config/trainer.json` with schema
 | `effective_global_batch_size` | Recommended candidate value |
 | `world_size` and `device_indices` | Recommended candidate placement |
 | `learning_rate` | Recommended candidate prior |
-| `optimizer` | `adamw_torch` |
-| `lr_scheduler_type` | `linear` |
+| `optimizer` | `adamw_torch` for CUDA; `adamw` for MLX-LM |
+| `lr_scheduler_type` | `linear` for CUDA; `null` for MLX-LM |
 | `weight_decay` | `0.0` |
 | `warmup_steps` | `0` |
-| `max_grad_norm` | `1.0` |
+| `max_grad_norm` | `1.0` for CUDA; `null` for MLX-LM |
 | `gradient_checkpointing` | True |
-| `gradient_checkpointing_use_reentrant` | True only for single-device QLoRA; False otherwise |
+| `gradient_checkpointing_use_reentrant` | True only for single-device CUDA QLoRA; False otherwise |
 | `checkpoint_steps` | Target value |
 | `logging_steps` | `min(10, checkpoint_steps)` |
 | `save_total_limit` | `3` |
@@ -242,12 +268,20 @@ The compiler writes `config/trainer.json` with schema
 | `training_dataset_path` | `data/training.jsonl` |
 | `truncation_policy` | `completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision` |
 
-The full run uses the compiled target and seed. `--max-steps` and `--seed` are
-pilot-only overrides. Full-training resume remains fail-closed.
+The CUDA full run uses the compiled target and seed. `--max-steps` and `--seed`
+are CUDA pilot-only overrides. Full-training resume remains fail-closed. An
+MLX-LM bundle also writes `config/mlx-lm.yaml` with `fine_tune_type: lora`,
+AdamW, seed `17`, gradient checkpointing, the candidate batch and accumulation
+values, two default smoke iterations, an eight-iteration measured-preflight
+ceiling, and periodic adapter weight saves. The MLX pilot overrides duration to
+exactly two optimizer updates. Full training derives an uninterrupted duration
+from compiled train rows, batch, accumulation, and epochs. These periodic files
+are weight snapshots, not resumable checkpoints.
 
 ## Accelerate configuration
 
-`config/accelerate.yaml` always sets:
+`config/accelerate.yaml` is emitted for bundle compatibility. The CUDA compiler
+uses it with these settings:
 
 | Setting | Value |
 | --- | --- |
@@ -271,12 +305,29 @@ direct pins to `requirements.txt`. This file is not a transitive lock.
 
 | Package | Version | Included for |
 | --- | --- | --- |
-| `torch` | `2.13.0` | Every method |
-| `transformers` | `5.14.1` | Every method |
-| `accelerate` | `1.14.0` | Every method |
-| `safetensors` | `0.8.0` | Every method |
-| `peft` | `0.19.1` | Adapter methods |
-| `bitsandbytes` | `0.49.2` | `int8-lora` and `qlora` |
+| `torch` | `2.13.0` | Every CUDA method |
+| `transformers` | `5.14.1` | Every CUDA method |
+| `accelerate` | `1.14.0` | Every CUDA method |
+| `safetensors` | `0.8.0` | Every CUDA method |
+| `peft` | `0.19.1` | CUDA adapter methods |
+| `bitsandbytes` | `0.49.2` | CUDA `int8-lora` and `qlora` |
+| `mlx` | `0.31.2` | MLX-LM LoRA and QLoRA bundles |
+| `mlx-lm` | `0.31.3` | MLX-LM LoRA and QLoRA bundles |
+
+The Transformers, PEFT, Accelerate, Torch, safetensors, and bitsandbytes rows
+apply to CUDA bundles as selected by method. MLX bundles contain only the two
+MLX pins above. Those pins do not establish training resume. Aptus proves its
+MLX pilot through uninterrupted optimizer work and proves adapter reload through
+a separate bounded-generation process. Every resume argument remains rejected.
+
+## Local runtime and inference defaults
+
+The desktop runtime configuration has no guessed training interpreter. A user
+selects an exact compatible Python, and Aptus persists its canonical path in the
+private state directory. LM Studio defaults to `http://127.0.0.1:1234` and oMLX
+defaults to `http://127.0.0.1:8000` when their integrations are requested.
+Origins must remain explicit loopback hosts with ports. Both services are
+inference-only and never satisfy a training-runtime dependency.
 
 ## Development web defaults
 

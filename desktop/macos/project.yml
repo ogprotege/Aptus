@@ -3,13 +3,13 @@ name: Aptus
 options:
   bundleIdPrefix: com.aptus
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "15.0"
   createIntermediateGroups: true
 
 settings:
   base:
     CLANG_ENABLE_MODULES: YES
-    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     SWIFT_VERSION: "5.0"
   configs:
     Debug:

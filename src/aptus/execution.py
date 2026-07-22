@@ -36,6 +36,8 @@ from .plan_contract import (
     validate_bundle_manifest,
     validate_plan_payload,
 )
+from .profiling import probe_apple_platform
+from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 
 
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
@@ -382,7 +384,7 @@ def _verify_safetensors_structure(final_dir: Path, weight_files: list[Path]) -> 
         )
 
 
-def _verify_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
+def _verify_cuda_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
     bundle = Path(record["bundle_dir"]).resolve(strict=True)
     run_value = record.get("run_output_dir")
     if not isinstance(run_value, str):
@@ -550,6 +552,862 @@ def _verify_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _plan_training_runtime(plan: Mapping[str, Any]) -> str:
+    candidate = plan.get("recommended")
+    runtime = candidate.get("runtime_contract") if isinstance(candidate, dict) else None
+    runtime_id = runtime.get("training_runtime") if isinstance(runtime, dict) else None
+    if not isinstance(runtime_id, str) or not runtime_id:
+        return "transformers-peft-cuda"
+    return runtime_id
+
+
+def _sha256_string(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _verify_mlx_admission(
+    plan: dict[str, Any], admission: object, *, label: str
+) -> dict[str, Any]:
+    candidate = plan["recommended"]
+    point = int(candidate["memory"]["point_estimate_bytes"])
+    upper = int(candidate["memory"]["upper_estimate_bytes"])
+    reserve = max(
+        int(plan["hardware"].get("reserve_per_device_bytes", 0)),
+        8 * 1024**3,
+    )
+    required = max(point, upper) + reserve
+    if not isinstance(admission, dict):
+        raise ValueError(f"{label} must be an object.")
+    expected = {
+        "schema_version": "aptus.mlx-unified-memory-admission.v1",
+        "point_estimate_bytes": point,
+        "upper_estimate_bytes": upper,
+        "reserve_bytes": reserve,
+        "required_available_bytes": required,
+    }
+    if any(admission.get(name) != value for name, value in expected.items()):
+        raise ValueError(f"{label} does not bind the plan memory contract.")
+    available = admission.get("available_unified_memory_bytes")
+    if (
+        set(admission) != set(expected) | {"available_unified_memory_bytes"}
+        or not isinstance(available, int)
+        or isinstance(available, bool)
+        or available < required
+        or "free_vram_bytes" in admission
+    ):
+        raise ValueError(
+            f"{label} does not contain a passing unified-memory measurement."
+        )
+    return admission
+
+
+def _verify_mlx_runtime_metrics(
+    bundle: Path,
+    plan: dict[str, Any],
+    metrics: object,
+    *,
+    action: Literal["pilot", "full"],
+) -> dict[str, Any]:
+    if not isinstance(metrics, dict):
+        raise ValueError("MLX runtime metrics must be a JSON object.")
+    training_fields = {
+        "schema_version",
+        "plan_id",
+        "candidate_id",
+        "model_revision",
+        "dataset_sha256",
+        "method",
+        "training_runtime",
+        "compute_backend",
+        "compiler_id",
+        "scope",
+        "action",
+        "execution_semantics",
+        "resume_supported",
+        "micro_iterations",
+        "global_step",
+        "gradient_accumulation_steps",
+        "optimizer_update_opportunities",
+        "completed_optimizer_updates",
+        "train_examples",
+        "validation_examples",
+        "source_train_examples",
+        "source_validation_examples",
+        "max_epochs",
+        "distribution",
+        "actual_world_size",
+        "measured_peak_bytes",
+        "active_memory_bytes",
+        "cache_memory_bytes",
+        "memory_metric_backend",
+        "model_load_binding",
+        "unified_memory_admission",
+        "finite_train_loss",
+        "train_loss_observations",
+        "finite_validation_loss",
+        "validation_loss_observations",
+        "optimizer_update_observed",
+        "trainable_target_binding",
+        "adapter_delta_l1",
+        "changed_adapter_tensor_count",
+        "adapter_path",
+        "adapter_manifest",
+        "completed_at",
+    }
+    completion_fields = {
+        "run_id",
+        "output_dir",
+        "run_marker_sha256",
+        "artifact_manifest",
+        "artifact_manifest_sha256",
+        "reload_evidence",
+        "reload_evidence_sha256",
+        "final_export",
+        "run_completed",
+    }
+    allowed_fields = (
+        training_fields | completion_fields
+        if metrics.get("run_completed") is True
+        else training_fields
+    )
+    if set(metrics) != allowed_fields:
+        raise ValueError("MLX runtime metrics contain an unexpected runtime field.")
+    candidate = plan["recommended"]
+    runtime = candidate.get("runtime_contract")
+    scope = {
+        "pilot": "uninterrupted-pilot",
+        "full": "uninterrupted-full-train",
+    }[action]
+    expected = {
+        "schema_version": "aptus.runtime-metrics.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+        "method": candidate["method"],
+        "training_runtime": "mlx-lm",
+        "compute_backend": "mps",
+        "compiler_id": runtime.get("compiler_id")
+        if isinstance(runtime, dict)
+        else None,
+        "scope": scope,
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "distribution": "single",
+        "actual_world_size": 1,
+        "memory_metric_backend": "mlx",
+        "finite_train_loss": True,
+        "optimizer_update_observed": True,
+    }
+    if any(metrics.get(name) != value for name, value in expected.items()):
+        raise ValueError("MLX runtime metrics do not bind the selected runtime action.")
+    if metrics.get("model_load_binding") != {
+        "schema_version": "aptus.mlx-model-load-binding.v1",
+        "model_id": plan["model"]["model_id"],
+        "model_revision": plan["model"]["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+    }:
+        raise ValueError("MLX runtime metrics do not prove a pinned safe model load.")
+    if candidate.get("method") not in {"lora", "qlora"}:
+        raise ValueError("MLX runtime metrics require a LoRA or QLoRA candidate.")
+    if (
+        not isinstance(runtime, dict)
+        or runtime.get("training_runtime") != "mlx-lm"
+        or runtime.get("compute_backend") != "mps"
+        or candidate.get("distribution") != "single"
+        or candidate.get("world_size") != 1
+    ):
+        raise ValueError("MLX runtime metrics do not match the plan runtime contract.")
+
+    updates = metrics.get("completed_optimizer_updates")
+    opportunities = metrics.get("optimizer_update_opportunities")
+    minimum_updates = 2 if action == "pilot" else 1
+    if (
+        not isinstance(updates, int)
+        or isinstance(updates, bool)
+        or not isinstance(opportunities, int)
+        or isinstance(opportunities, bool)
+        or updates != opportunities
+        or updates < minimum_updates
+    ):
+        raise ValueError(
+            "MLX runtime metrics do not prove completed optimizer updates."
+        )
+    for name in ("global_step", "micro_iterations", "gradient_accumulation_steps"):
+        value = metrics.get(name)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(f"MLX runtime metrics require positive {name}.")
+    accumulation = int(candidate["gradient_accumulation_steps"])
+    micro_iterations = int(metrics["micro_iterations"])
+    if (
+        metrics["global_step"] != micro_iterations
+        or metrics["gradient_accumulation_steps"] != accumulation
+        or metrics.get("max_epochs") != plan["target"]["max_epochs"]
+        or opportunities != micro_iterations // accumulation
+        or micro_iterations % accumulation
+    ):
+        raise ValueError("MLX runtime metrics do not bind the planned training extent.")
+
+    split_contract = _read_json_object(
+        bundle / "data" / "mlx" / "split-contract.json",
+        "MLX split contract",
+    )
+    splits = split_contract.get("splits")
+    train_split = splits.get("train") if isinstance(splits, dict) else None
+    valid_split = splits.get("valid") if isinstance(splits, dict) else None
+    micro_batch = candidate.get("micro_batch_size")
+    if (
+        split_contract.get("schema_version") != "aptus.mlx-split.v1"
+        or not isinstance(micro_batch, int)
+        or isinstance(micro_batch, bool)
+        or micro_batch < 1
+        or split_contract.get("micro_batch_size") != micro_batch
+        or not isinstance(train_split, dict)
+        or not isinstance(valid_split, dict)
+    ):
+        raise ValueError("MLX split contract does not bind the planned micro-batch.")
+    train_examples = metrics.get("train_examples")
+    validation_examples = metrics.get("validation_examples")
+    source_train = metrics.get("source_train_examples")
+    source_validation = metrics.get("source_validation_examples")
+    if (
+        set(split_contract)
+        != {"schema_version", "micro_batch_size", "padding_policy", "splits"}
+        or split_contract.get("padding_policy")
+        != "repeat-within-disjoint-split-to-complete-final-batch"
+        or not isinstance(splits, dict)
+        or set(splits) != {"train", "valid"}
+        or set(train_split) != {"source_row_count", "compiled_row_count"}
+        or set(valid_split) != {"source_row_count", "compiled_row_count"}
+        or not isinstance(train_examples, int)
+        or isinstance(train_examples, bool)
+        or train_examples < micro_batch
+        or not isinstance(validation_examples, int)
+        or isinstance(validation_examples, bool)
+        or validation_examples < micro_batch
+        or not isinstance(source_train, int)
+        or isinstance(source_train, bool)
+        or source_train < 1
+        or not isinstance(source_validation, int)
+        or isinstance(source_validation, bool)
+        or source_validation < 1
+        or train_split.get("source_row_count") != source_train
+        or valid_split.get("source_row_count") != source_validation
+        or train_split.get("compiled_row_count") != train_examples
+        or valid_split.get("compiled_row_count") != validation_examples
+        or train_examples % micro_batch
+        or validation_examples % micro_batch
+    ):
+        raise ValueError("MLX runtime metrics do not match the compiled data split.")
+    if action == "pilot" and micro_iterations != 2 * accumulation:
+        raise ValueError(
+            "MLX pilot metrics do not prove exactly two optimizer updates."
+        )
+    if action == "full":
+        batches_per_epoch = train_examples // micro_batch
+        epoch_iterations = batches_per_epoch * int(plan["target"]["max_epochs"])
+        expected_iterations = math.ceil(epoch_iterations / accumulation) * accumulation
+        if micro_iterations != expected_iterations:
+            raise ValueError(
+                "MLX full metrics do not match the dataset-derived epoch schedule."
+            )
+
+    train_losses = metrics.get("train_loss_observations")
+    if (
+        not isinstance(train_losses, list)
+        or not train_losses
+        or any(
+            not isinstance(loss, (int, float))
+            or isinstance(loss, bool)
+            or not math.isfinite(loss)
+            for loss in train_losses
+        )
+    ):
+        raise ValueError("MLX runtime metrics require finite train-loss observations.")
+    validation_examples = metrics.get("validation_examples")
+    validation_losses = metrics.get("validation_loss_observations")
+    if (
+        not isinstance(validation_examples, int)
+        or isinstance(validation_examples, bool)
+        or validation_examples < 0
+        or (
+            validation_examples > 0
+            and (
+                metrics.get("finite_validation_loss") is not True
+                or not isinstance(validation_losses, list)
+                or not validation_losses
+                or any(
+                    not isinstance(loss, (int, float))
+                    or isinstance(loss, bool)
+                    or not math.isfinite(loss)
+                    for loss in validation_losses
+                )
+            )
+        )
+    ):
+        raise ValueError(
+            "MLX runtime metrics require finite validation-loss observations."
+        )
+
+    measured_peak = metrics.get("measured_peak_bytes")
+    if (
+        not isinstance(measured_peak, int)
+        or isinstance(measured_peak, bool)
+        or measured_peak <= 0
+        or "free_vram_bytes" in metrics
+    ):
+        raise ValueError("MLX runtime metrics require a positive MLX memory peak.")
+    for name in ("active_memory_bytes", "cache_memory_bytes"):
+        value = metrics.get(name)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"MLX runtime metrics require non-negative {name}.")
+    adapter_delta = metrics.get("adapter_delta_l1")
+    changed_tensors = metrics.get("changed_adapter_tensor_count")
+    if (
+        not isinstance(adapter_delta, (int, float))
+        or isinstance(adapter_delta, bool)
+        or not math.isfinite(adapter_delta)
+        or adapter_delta <= 0
+        or not isinstance(changed_tensors, int)
+        or isinstance(changed_tensors, bool)
+        or changed_tensors <= 0
+    ):
+        raise ValueError("MLX runtime metrics require a positive adapter delta.")
+
+    binding = metrics.get("trainable_target_binding")
+    planned_targets = candidate.get("target_modules")
+    if not isinstance(binding, dict) or not isinstance(planned_targets, list):
+        raise ValueError("MLX runtime metrics require an exact target binding.")
+    layer_count = int(plan["model"]["layers"])
+    expected_instances = len(planned_targets) * layer_count
+    binding_payload = {
+        name: value for name, value in binding.items() if name != "descriptor_sha256"
+    }
+    resolved_keys = binding.get("resolved_layer_keys")
+    binding_fields = {
+        "schema_version",
+        "planned_target_modules",
+        "resolved_layer_keys",
+        "transformer_layer_count",
+        "expected_adapter_target_instance_count",
+        "adapter_target_instance_count",
+        "trainable_tensor_count",
+        "target_instance_counts",
+        "descriptor_sha256",
+    }
+    if (
+        set(binding) != binding_fields
+        or binding.get("schema_version") != "aptus.mlx-trainable-target-binding.v1"
+        or binding.get("planned_target_modules") != planned_targets
+        or binding.get("transformer_layer_count") != layer_count
+        or binding.get("expected_adapter_target_instance_count") != expected_instances
+        or binding.get("adapter_target_instance_count") != expected_instances
+        or binding.get("trainable_tensor_count") != expected_instances * 2
+        or binding.get("target_instance_counts")
+        != {target: layer_count for target in planned_targets}
+        or not isinstance(resolved_keys, list)
+        or len(resolved_keys) != len(planned_targets)
+        or any(not isinstance(key, str) or not key for key in resolved_keys)
+        or len(set(resolved_keys)) != len(resolved_keys)
+        or binding.get("descriptor_sha256") != _json_hash(binding_payload)
+    ):
+        raise ValueError("MLX runtime metrics target binding is stale or inexact.")
+
+    _verify_mlx_admission(
+        plan,
+        metrics.get("unified_memory_admission"),
+        label=f"MLX {action} admission",
+    )
+    adapter_manifest = metrics.get("adapter_manifest")
+    if (
+        not isinstance(adapter_manifest, list)
+        or not adapter_manifest
+        or not isinstance(metrics.get("adapter_path"), str)
+        or not metrics["adapter_path"]
+        or not isinstance(metrics.get("completed_at"), str)
+        or not metrics["completed_at"]
+    ):
+        raise ValueError("MLX runtime metrics require an adapter manifest.")
+    return metrics
+
+
+def _verify_mlx_reload_evidence(
+    plan: dict[str, Any], metrics: dict[str, Any], evidence: object
+) -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        raise ValueError("MLX reload evidence must be a JSON object.")
+    candidate = plan["recommended"]
+    expected = {
+        "schema_version": "aptus.mlx-reload-evidence.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+        "method": candidate["method"],
+        "training_runtime": "mlx-lm",
+        "compute_backend": "mps",
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "fresh_process_observed": True,
+        "generation_max_tokens": 4,
+    }
+    evidence_fields = set(expected) | {
+        "parent_pid",
+        "verifier_pid",
+        "adapter_manifest_sha256",
+        "generation_tokens",
+        "generation_text_sha256",
+        "measured_peak_bytes",
+        "unified_memory_admission",
+        "verified_at",
+    }
+    if (
+        set(evidence) != evidence_fields
+        or any(evidence.get(name) != value for name, value in expected.items())
+        or not isinstance(evidence.get("verified_at"), str)
+        or not evidence["verified_at"]
+    ):
+        raise ValueError("MLX reload evidence does not bind the selected run.")
+    generated = evidence.get("generation_tokens")
+    parent_pid = evidence.get("parent_pid")
+    verifier_pid = evidence.get("verifier_pid")
+    if (
+        not isinstance(generated, int)
+        or isinstance(generated, bool)
+        or not 1 <= generated <= 4
+        or not isinstance(parent_pid, int)
+        or isinstance(parent_pid, bool)
+        or parent_pid <= 0
+        or not isinstance(verifier_pid, int)
+        or isinstance(verifier_pid, bool)
+        or verifier_pid <= 0
+        or verifier_pid == parent_pid
+        or not _sha256_string(evidence.get("generation_text_sha256"))
+        or evidence.get("adapter_manifest_sha256")
+        != _json_hash(metrics["adapter_manifest"])
+    ):
+        raise ValueError(
+            "MLX reload evidence does not prove bounded fresh-process use."
+        )
+    reload_peak = evidence.get("measured_peak_bytes")
+    if (
+        not isinstance(reload_peak, int)
+        or isinstance(reload_peak, bool)
+        or reload_peak <= 0
+    ):
+        raise ValueError("MLX reload evidence requires a positive MLX memory peak.")
+    _verify_mlx_admission(
+        plan,
+        evidence.get("unified_memory_admission"),
+        label="MLX reload admission",
+    )
+    return evidence
+
+
+def _mlx_file_entry(path: Path, root: Path) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"MLX artifact is missing or unsafe: {path}.")
+    resolved = path.resolve(strict=True)
+    if root.resolve() not in resolved.parents:
+        raise ValueError(f"MLX artifact escapes its owned run: {path}.")
+    return {
+        "path": resolved.relative_to(root.resolve()).as_posix(),
+        "size_bytes": resolved.stat().st_size,
+        "sha256": sha256_file(resolved),
+    }
+
+
+def _verify_mlx_completed_run(
+    bundle: Path,
+    plan: dict[str, Any],
+    root: Path,
+    *,
+    action: Literal["pilot", "full"],
+) -> dict[str, Any]:
+    if root.is_symlink():
+        raise ValueError("MLX run output cannot be a symlink.")
+    resolved = root.resolve(strict=True)
+    expected_parent = (
+        (bundle / "pilot-output").resolve()
+        if action == "pilot"
+        else (bundle / "runs").resolve()
+    )
+    prefix = "pilot_" if action == "pilot" else "run_"
+    if resolved.parent != expected_parent or not resolved.name.startswith(prefix):
+        raise ValueError("MLX run output is outside its owned action directory.")
+
+    metrics_path = resolved / "metrics.json"
+    metrics = _read_json_object(metrics_path, "MLX completed-run metrics")
+    _verify_mlx_runtime_metrics(bundle, plan, metrics, action=action)
+    if (
+        metrics.get("run_completed") is not True
+        or metrics.get("run_id") != resolved.name
+        or metrics.get("output_dir") != str(resolved)
+        or metrics.get("final_export") is not None
+        and action == "pilot"
+    ):
+        raise ValueError("MLX completed metrics do not bind the owned run.")
+
+    marker_path = resolved / ".aptus-run.json"
+    marker = _read_json_object(marker_path, "MLX run-output contract")
+    marker_expected = {
+        "schema_version": "aptus.mlx-run-output.v1",
+        "run_id": resolved.name,
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+    }
+    if (
+        any(marker.get(name) != value for name, value in marker_expected.items())
+        or not isinstance(marker.get("created_at"), str)
+        or not marker["created_at"]
+        or set(marker) != set(marker_expected) | {"created_at"}
+        or metrics.get("run_marker_sha256") != sha256_file(marker_path)
+    ):
+        raise ValueError("MLX run-output contract is stale or unbound.")
+
+    training_metrics_path = resolved / "training-metrics.json"
+    training_metrics = _read_json_object(training_metrics_path, "MLX training metrics")
+    _verify_mlx_runtime_metrics(bundle, plan, training_metrics, action=action)
+    completion_fields = {
+        "run_id",
+        "output_dir",
+        "run_marker_sha256",
+        "artifact_manifest",
+        "artifact_manifest_sha256",
+        "reload_evidence",
+        "reload_evidence_sha256",
+        "final_export",
+        "run_completed",
+    }
+    if (
+        any(metrics.get(name) != value for name, value in training_metrics.items())
+        or set(metrics) != set(training_metrics) | completion_fields
+    ):
+        raise ValueError("MLX completed metrics changed their bound training metrics.")
+
+    adapter_name = "adapters" if action == "pilot" else "final"
+    adapter_dir = (resolved / adapter_name).resolve(strict=True)
+    if adapter_dir.parent != resolved:
+        raise ValueError("MLX adapter directory escapes its owned run.")
+    adapter_paths = (
+        adapter_dir / "adapter_config.json",
+        adapter_dir / "adapters.safetensors",
+    )
+    actual_adapter_manifest = [
+        {
+            "path": path.name,
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        }
+        for path in adapter_paths
+        if path.is_file() and not path.is_symlink()
+    ]
+    if (
+        len(actual_adapter_manifest) != 2
+        or metrics.get("adapter_manifest") != actual_adapter_manifest
+        or metrics.get("adapter_path")
+        != adapter_dir.relative_to(bundle.resolve()).as_posix()
+        or {path.name for path in adapter_dir.iterdir() if path.is_file()}
+        != {"adapter_config.json", "adapters.safetensors"}
+    ):
+        raise ValueError("MLX adapter file tree does not match its immutable manifest.")
+    adapter_config = _read_json_object(
+        adapter_dir / "adapter_config.json", "MLX adapter configuration"
+    )
+    lora_parameters = adapter_config.get("lora_parameters")
+    binding = metrics["trainable_target_binding"]
+    candidate = plan["recommended"]
+    scale = lora_parameters.get("scale") if isinstance(lora_parameters, dict) else None
+    if (
+        not isinstance(lora_parameters, dict)
+        or lora_parameters.get("keys") != binding.get("resolved_layer_keys")
+        or lora_parameters.get("rank") != candidate["rank"]
+        or not isinstance(scale, (int, float))
+        or isinstance(scale, bool)
+        or not math.isfinite(scale)
+        or scale != candidate["alpha"] / candidate["rank"]
+    ):
+        raise ValueError("MLX adapter configuration is not plan-bound.")
+
+    reload_path = resolved / "reload-evidence.json"
+    reload_evidence = _read_json_object(reload_path, "MLX reload evidence")
+    _verify_mlx_reload_evidence(plan, metrics, reload_evidence)
+    if metrics.get("reload_evidence") != reload_evidence or metrics.get(
+        "reload_evidence_sha256"
+    ) != sha256_file(reload_path):
+        raise ValueError("MLX completed metrics do not bind reload evidence.")
+
+    manifest_path = resolved / "artifact-manifest.json"
+    manifest = _read_json_object(manifest_path, "MLX artifact manifest")
+    manifest_expected = {
+        "schema_version": "aptus.mlx-artifact-manifest.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+    }
+    expected_manifest_paths = {
+        ".aptus-run.json",
+        "training-metrics.json",
+        f"{adapter_name}/adapter_config.json",
+        f"{adapter_name}/adapters.safetensors",
+        "reload-evidence.json",
+    }
+    entries = manifest.get("files")
+    if (
+        set(manifest) != set(manifest_expected) | {"files", "total_bytes"}
+        or any(manifest.get(name) != value for name, value in manifest_expected.items())
+        or metrics.get("artifact_manifest") != manifest
+        or metrics.get("artifact_manifest_sha256") != sha256_file(manifest_path)
+        or not isinstance(entries, list)
+        or {entry.get("path") for entry in entries if isinstance(entry, dict)}
+        != expected_manifest_paths
+    ):
+        raise ValueError("MLX artifact manifest is missing, stale, or unbound.")
+    observed_entries = sorted(
+        (
+            _mlx_file_entry(resolved.joinpath(*PurePosixPath(relative).parts), resolved)
+            for relative in expected_manifest_paths
+        ),
+        key=lambda entry: entry["path"],
+    )
+    if entries != observed_entries or manifest.get("total_bytes") != sum(
+        entry["size_bytes"] for entry in observed_entries
+    ):
+        raise ValueError("MLX artifact manifest no longer matches the run files.")
+
+    final_export = None
+    expected_files = expected_manifest_paths | {
+        "artifact-manifest.json",
+        "metrics.json",
+    }
+    if action == "full":
+        final_export_path = resolved / "final-export.json"
+        final_export = _read_json_object(final_export_path, "MLX final export")
+        final_entries = [
+            {
+                "path": path.name,
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+            for path in adapter_paths
+        ]
+        final_expected = {
+            "schema_version": "aptus.mlx-final-export.v1",
+            "verification_level": "immutable-adapter-file-tree",
+            "plan_id": plan["plan_id"],
+            "candidate_id": candidate["candidate_id"],
+            "model_revision": plan["model"]["revision"],
+            "dataset_sha256": plan["dataset"]["source_sha256"],
+            "method": candidate["method"],
+            "training_runtime": "mlx-lm",
+            "compute_backend": "mps",
+            "distribution": "single",
+            "world_size": 1,
+            "execution_semantics": "uninterrupted",
+            "resume_supported": False,
+            "files": final_entries,
+            "total_bytes": sum(entry["size_bytes"] for entry in final_entries),
+            "artifact_manifest_sha256": sha256_file(manifest_path),
+            "reload_evidence_sha256": sha256_file(reload_path),
+        }
+        if (
+            final_export != final_expected
+            or metrics.get("final_export") != final_export
+        ):
+            raise ValueError(
+                "MLX final export is stale or does not bind its adapter tree."
+            )
+        expected_files.add("final-export.json")
+    actual_files = {
+        path.relative_to(resolved).as_posix()
+        for path in resolved.rglob("*")
+        if path.is_file()
+    }
+    actual_directories = {
+        path.relative_to(resolved).as_posix()
+        for path in resolved.rglob("*")
+        if path.is_dir()
+    }
+    if actual_files != expected_files or actual_directories != {adapter_name}:
+        raise ValueError(
+            "MLX completed run contains an unexpected or partial file tree."
+        )
+
+    return {
+        "root": str(resolved),
+        "metrics": metrics,
+        "metrics_sha256": sha256_file(metrics_path),
+        "measured_peak_bytes": metrics["measured_peak_bytes"],
+        "artifact_manifest": manifest,
+        "artifact_manifest_sha256": sha256_file(manifest_path),
+        "artifact_total_bytes": manifest["total_bytes"],
+        "adapter_total_bytes": sum(
+            entry["size_bytes"] for entry in actual_adapter_manifest
+        ),
+        "reload_evidence": reload_evidence,
+        "reload_evidence_sha256": sha256_file(reload_path),
+        "final_export": final_export,
+        "final_export_sha256": (
+            sha256_file(resolved / "final-export.json") if final_export else None
+        ),
+    }
+
+
+def _verify_mlx_pilot_attestation(
+    bundle: Path,
+    plan: dict[str, Any],
+    report: dict[str, Any],
+    pilot_metrics_path: Path,
+) -> dict[str, Any]:
+    bindings = report.get("bindings")
+    expected_bindings = {
+        "bundle": sha256_file(bundle / "bundle-manifest.json"),
+        "dataset": plan["dataset"]["source_sha256"],
+        "model_revision": plan["model"]["revision"],
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "pilot_metrics": sha256_file(pilot_metrics_path),
+    }
+    if not isinstance(bindings, dict) or any(
+        bindings.get(name) != value for name, value in expected_bindings.items()
+    ):
+        raise ValueError("MLX pilot attestation is stale for the current bundle.")
+    metrics = _read_json_object(pilot_metrics_path, "MLX pilot metrics")
+    if report.get("pilot_metrics") != metrics:
+        raise ValueError("MLX validation report does not bind its pilot metrics.")
+    output_dir = metrics.get("output_dir")
+    if not isinstance(output_dir, str):
+        raise ValueError("MLX pilot metrics do not bind an owned output directory.")
+    evidence = _verify_mlx_completed_run(
+        bundle,
+        plan,
+        Path(output_dir),
+        action="pilot",
+    )
+    if sha256_file(Path(output_dir) / "metrics.json") != sha256_file(
+        pilot_metrics_path
+    ):
+        raise ValueError("MLX pilot copy changed from its owned run metrics.")
+    return evidence
+
+
+def _current_available_unified_memory_bytes() -> int:
+    try:
+        profile = probe_apple_platform()
+    except (OSError, RuntimeError, ValueError) as error:
+        raise ValueError(
+            "Current Apple unified-memory admission probe failed."
+        ) from error
+    available = profile.available_memory_bytes
+    if not isinstance(available, int) or isinstance(available, bool) or available <= 0:
+        raise ValueError("Current available Apple unified memory is unknown.")
+    return available
+
+
+def _verify_mlx_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
+    bundle = Path(record["bundle_dir"]).resolve(strict=True)
+    manifest_errors = validate_bundle_manifest(bundle)
+    if manifest_errors:
+        raise ValueError(
+            "Bundle changed before MLX completion verification: "
+            + " | ".join(manifest_errors)
+        )
+    run_value = record.get("run_output_dir")
+    if not isinstance(run_value, str):
+        raise ValueError("MLX training job has no bound output directory.")
+    plan = _read_json_object(bundle / "plan.json", "Bundle plan")
+    plan_errors = validate_plan_payload(plan, root=bundle, verify_dataset=True)
+    if plan_errors:
+        raise ValueError("Bundle plan is invalid: " + " | ".join(plan_errors))
+    if _plan_training_runtime(plan) != "mlx-lm":
+        raise ValueError("MLX completion verifier received a non-MLX plan.")
+    completed = _verify_mlx_completed_run(
+        bundle,
+        plan,
+        Path(run_value),
+        action="full",
+    )
+    report = _read_json_object(bundle / "validation-report.json", "Validation report")
+    if report.get("state") not in {
+        "pilot-pass",
+        "execution-approved",
+        "measured-run-pass",
+    }:
+        raise ValueError("MLX training exited without a current pilot attestation.")
+    _verify_mlx_pilot_attestation(
+        bundle,
+        plan,
+        report,
+        bundle / "pilot-output" / "metrics.json",
+    )
+    final_export = completed["final_export"]
+    metrics = completed["metrics"]
+    final_report = {
+        "path": str(Path(run_value).resolve() / "final"),
+        "manifest_sha256": completed["final_export_sha256"],
+        "total_bytes": completed["adapter_total_bytes"],
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "distribution": "single",
+        "world_size": 1,
+        "training_runtime": "mlx-lm",
+        "artifact_manifest_sha256": completed["artifact_manifest_sha256"],
+        "reload_evidence_sha256": completed["reload_evidence_sha256"],
+        "export_contract": final_export,
+    }
+    measured_report = {
+        "output_dir": str(Path(run_value).resolve()),
+        "metrics_sha256": completed["metrics_sha256"],
+        "global_step": metrics["global_step"],
+        "completed_optimizer_updates": metrics["completed_optimizer_updates"],
+        "measured_peak_bytes": metrics["measured_peak_bytes"],
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "distribution": "single",
+        "world_size": 1,
+        "training_runtime": "mlx-lm",
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+    }
+    if report.get("state") == "measured-run-pass" and (
+        report.get("final_export") != final_report
+        or report.get("measured_run") != measured_report
+    ):
+        raise ValueError(
+            "Existing MLX measured-run attestation does not match the "
+            "independently verified completed run."
+        )
+    return {
+        "training_runtime": "mlx-lm",
+        "final_export": final_report,
+        "measured_run": measured_report,
+        "source_report_state": report["state"],
+        "source_bindings": report.get("bindings"),
+        "source_report_sha256": sha256_file(bundle / "validation-report.json"),
+    }
+
+
+def _verify_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
+    bundle = Path(record["bundle_dir"]).resolve(strict=True)
+    plan = _read_json_object(bundle / "plan.json", "Bundle plan")
+    if _plan_training_runtime(plan) == "mlx-lm":
+        return _verify_mlx_train_artifacts(record)
+    return _verify_cuda_train_artifacts(record)
+
+
 @contextmanager
 def _bundle_report_lock(bundle: Path) -> Any:
     with (bundle / ".validation-report.lock").open("a+b") as lock_file:
@@ -572,7 +1430,7 @@ def _bundle_report_lock(bundle: Path) -> Any:
                 msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
 
 
-def _promote_train_attestation(
+def _promote_cuda_train_attestation(
     record: dict[str, Any], evidence: dict[str, Any]
 ) -> dict[str, Any]:
     bundle = Path(record["bundle_dir"]).resolve(strict=True)
@@ -583,6 +1441,7 @@ def _promote_train_attestation(
             report.get("state") == "measured-run-pass"
             and report.get("final_export") == evidence["final_export"]
             and report.get("measured_run") == evidence["measured_run"]
+            and sha256_file(report_path) == evidence.get("source_report_sha256")
         ):
             return {
                 "state": report["state"],
@@ -618,6 +1477,69 @@ def _promote_train_attestation(
         "final_export": report["final_export"],
         "measured_run": report["measured_run"],
     }
+
+
+def _promote_mlx_train_attestation(
+    record: dict[str, Any], evidence: dict[str, Any]
+) -> dict[str, Any]:
+    bundle = Path(record["bundle_dir"]).resolve(strict=True)
+    report_path = bundle / "validation-report.json"
+    with _bundle_report_lock(bundle):
+        report = _read_json_object(report_path, "Validation report")
+        if (
+            report.get("state") == "measured-run-pass"
+            and report.get("final_export") == evidence["final_export"]
+            and report.get("measured_run") == evidence["measured_run"]
+        ):
+            return {
+                "state": report["state"],
+                "measured_run_completed_at": report.get("measured_run_completed_at"),
+                "final_export": report["final_export"],
+                "measured_run": report["measured_run"],
+            }
+        if (
+            report.get("state") != evidence.get("source_report_state")
+            or report.get("bindings") != evidence.get("source_bindings")
+            or sha256_file(report_path) != evidence.get("source_report_sha256")
+            or report.get("state") not in {"pilot-pass", "execution-approved"}
+        ):
+            raise ValueError(
+                "MLX pilot evidence changed before parent measured-run promotion."
+            )
+        report["state"] = "measured-run-pass"
+        report["validation_level"] = "measured-run"
+        report["measured_run_completed_at"] = _now()
+        report["final_export"] = evidence["final_export"]
+        report["measured_run"] = evidence["measured_run"]
+        runtime_evidence = report.get("runtime_evidence")
+        if not isinstance(runtime_evidence, list):
+            runtime_evidence = []
+        report["runtime_evidence"] = [
+            *runtime_evidence,
+            "Parent verification accepted an uninterrupted MLX-LM measured run.",
+        ]
+        for name in (
+            "active_run",
+            "measured_run_pending_at",
+            "pending_final_export",
+            "pending_measured_run",
+        ):
+            report.pop(name, None)
+        _atomic_write_json(report_path, report)
+    return {
+        "state": report["state"],
+        "measured_run_completed_at": report["measured_run_completed_at"],
+        "final_export": report["final_export"],
+        "measured_run": report["measured_run"],
+    }
+
+
+def _promote_train_attestation(
+    record: dict[str, Any], evidence: dict[str, Any]
+) -> dict[str, Any]:
+    if evidence.get("training_runtime") == "mlx-lm":
+        return _promote_mlx_train_attestation(record, evidence)
+    return _promote_cuda_train_attestation(record, evidence)
 
 
 def _verify_checkpoint_manifest(checkpoint: Path, contract: dict[str, Any]) -> None:
@@ -855,7 +1777,12 @@ class JobService:
     and falls back to terminating the recorded process when tree termination is unavailable.
     """
 
-    def __init__(self, root: Path) -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        runtime_environment: Mapping[str, str] | None = None,
+    ) -> None:
         self.root = root.resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
@@ -863,6 +1790,9 @@ class JobService:
         self._global_lease_lock_state = threading.local()
         self._processes: dict[str, subprocess.Popen[str]] = {}
         self._threads: dict[str, threading.Thread] = {}
+        self.runtime_environment: dict[str, str] = dict(
+            os.environ if runtime_environment is None else runtime_environment
+        )
         identity = (
             str(os.getuid())
             if hasattr(os, "getuid")
@@ -1301,6 +2231,27 @@ class JobService:
         run_id: str | None = None,
     ) -> list[str]:
         plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
+        recommended = plan.get("recommended")
+        runtime_contract = (
+            recommended.get("runtime_contract")
+            if isinstance(recommended, dict)
+            else None
+        )
+        runtime_id = (
+            runtime_contract.get("training_runtime")
+            if isinstance(runtime_contract, dict)
+            and isinstance(runtime_contract.get("training_runtime"), str)
+            else "transformers-peft-cuda"
+        )
+        interpreter = sys.executable
+        runtime_key = runtime_environment_key(runtime_id)
+        if (
+            runtime_id in {"mlx-lm", "pytorch-mps"}
+            or self.runtime_environment.get(runtime_key, "").strip()
+        ):
+            interpreter = resolve_runtime_interpreter(
+                runtime_id, environment=self.runtime_environment
+            ).path
         if action in {"dependency", "model-data", "preflight"}:
             level = {
                 "dependency": "dependency",
@@ -1308,25 +2259,29 @@ class JobService:
                 "preflight": "measured-preflight",
             }[action]
             return [
-                sys.executable,
+                interpreter,
                 str(bundle / "validate.py"),
                 "--level",
                 level,
             ]
         if action == "pilot":
-            return [sys.executable, str(bundle / "validate.py"), "--level", "pilot"]
+            return [interpreter, str(bundle / "validate.py"), "--level", "pilot"]
         if action != "train":
             raise ValueError(f"Unsupported job action: {action}")
         if resume_from is not None:
             raise ValueError("Full-training resume is unsupported in Aptus v0.2.")
-        train_arguments = [str(bundle / "train.py"), "--confirm-full-train"]
+        training_entrypoint = "run.py" if runtime_id == "mlx-lm" else "train.py"
+        train_arguments = [
+            str(bundle / training_entrypoint),
+            "--confirm-full-train",
+        ]
         if run_id is None:
             raise ValueError("Full training requires an immutable Aptus run ID.")
         train_arguments.extend(("--output-dir", str(bundle / "runs" / run_id)))
         if plan["recommended"]["distribution"] == "single":
-            return [sys.executable, *train_arguments]
+            return [interpreter, *train_arguments]
         return [
-            sys.executable,
+            interpreter,
             "-m",
             "accelerate.commands.accelerate_cli",
             "launch",
@@ -1414,6 +2369,65 @@ class JobService:
         pilot_metrics = bundle / "pilot-output" / "metrics.json"
         if not pilot_metrics.is_file():
             raise ValueError("Pilot attestation is missing its bound metrics artifact.")
+        if _plan_training_runtime(plan) == "mlx-lm":
+            pilot_evidence = _verify_mlx_pilot_attestation(
+                bundle,
+                plan,
+                report,
+                pilot_metrics,
+            )
+            measured_peak = int(pilot_evidence["measured_peak_bytes"])
+            reserve = max(
+                int(plan["hardware"].get("reserve_per_device_bytes", 0)),
+                8 * 1024**3,
+            )
+            required_available = measured_peak + reserve
+            available = _current_available_unified_memory_bytes()
+            if available < required_available:
+                raise ValueError(
+                    "Current available Apple unified memory is below the measured "
+                    "MLX pilot peak plus the required Aptus reserve."
+                )
+            candidate = plan["recommended"]
+            planned_export = int(candidate.get("final_export_bytes", 0))
+            measured_export = int(pilot_evidence["adapter_total_bytes"])
+            if planned_export <= 0 or measured_export <= 0:
+                raise ValueError("MLX pilot does not bind a positive export size.")
+            required_export = max(planned_export, measured_export)
+            pilot_artifacts = int(pilot_evidence["artifact_total_bytes"])
+            planned_disk = int(candidate.get("required_disk_bytes", 0))
+            if planned_disk <= 0 or pilot_artifacts <= 0:
+                raise ValueError("MLX plan does not bind a positive output disk need.")
+            required_output_disk = max(
+                planned_disk,
+                pilot_artifacts + required_export,
+            )
+            disk_free = shutil.disk_usage(bundle).free
+            if disk_free < required_output_disk:
+                raise ValueError(
+                    "Current free disk is below the plan-bound MLX staging and "
+                    "measured adapter-export requirement."
+                )
+            return {
+                "checked_at": _now(),
+                "training_runtime": "mlx-lm",
+                "memory_metric_backend": "mlx",
+                "execution_semantics": "uninterrupted",
+                "resume_supported": False,
+                "measured_pilot_peak_bytes": measured_peak,
+                "reserve_bytes": reserve,
+                "required_available_unified_memory_bytes": required_available,
+                "available_unified_memory_bytes": available,
+                "measured_pilot_artifact_bytes": pilot_artifacts,
+                "measured_pilot_adapter_bytes": measured_export,
+                "plan_final_export_bytes": planned_export,
+                "required_final_export_disk_bytes": required_export,
+                "plan_required_disk_bytes": planned_disk,
+                "required_training_output_disk_bytes": required_output_disk,
+                "free_disk_bytes": disk_free,
+                "memory_basis": "measured pilot MLX peak plus max(plan reserve, 8 GiB)",
+                "disk_basis": "max(plan required disk, pilot artifacts plus bound final export)",
+            }
         world_size = int(plan["recommended"].get("world_size", 1))
         device_indices = plan["recommended"].get(
             "device_indices", list(range(world_size))
@@ -1625,7 +2639,8 @@ class JobService:
                             )
                         except RuntimeError as error:
                             raise ValueError(
-                                f"Could not inspect the current CUDA runtime: {error}"
+                                "Could not inspect the current training-runtime "
+                                f"resources: {error}"
                             ) from error
                     self._write(record)
                     try:

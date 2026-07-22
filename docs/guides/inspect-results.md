@@ -35,7 +35,8 @@ plan ID and candidate ID. Review the selected:
 - batch arithmetic;
 - rank, alpha, learning-rate prior, and target modules;
 - point and upper memory estimates;
-- host RAM, disk, checkpoint, and export estimates;
+- host RAM, disk, CUDA checkpoint or MLX weight-snapshot estimates, and export
+  estimates;
 - assumptions, warnings, evidence IDs, and conditional reasons.
 
 The recommendation is highest-ranked only within the enumerated viable catalog.
@@ -56,8 +57,8 @@ The important states are ordered:
 
 Read every finding even when the state passed. Warnings preserve uncertainty and
 assumptions that a simple state label cannot express. A historical `pilot-pass`
-does not guarantee current capacity. Train admission rechecks the environment,
-hardware, host RAM, disk, bundle, plan, and pilot artifacts under the lease.
+does not guarantee current capacity. Train admission rechecks runtime-specific
+capacity, bundle, plan, and pilot artifacts under the lease.
 
 ## 3. Inspect the managed job
 
@@ -83,8 +84,8 @@ to fail.
 
 ## 4. Inspect measured resource and scope evidence
 
-Measured preflight, both pilot phases, and a completed full run carry a
-trainable-parameter census. Verify that it has:
+CUDA measured preflight, both CUDA pilot phases, and a completed CUDA full run
+carry a trainable-parameter census. Verify that it has:
 
 - positive integer tensor and parameter counts;
 - finite initial values;
@@ -101,9 +102,17 @@ Compare the measured CUDA peak with the analytic point and upper estimates.
 Treat the difference as calibration evidence for that exact configuration, not
 as a universal correction factor.
 
+For MLX measured preflight, pilot, and full runs, inspect the
+`aptus.mlx-trainable-target-binding.v1` record. It must bind one LoRA A/B pair
+for every planned target in every layer, reject other trainables, and carry a
+stable descriptor digest. Also inspect completed optimizer updates, finite train
+and validation losses, positive adapter delta, positive MLX peak, and live
+unified-memory admission. Pilot requires at least two updates. Full requires at
+least one.
+
 ## 5. Inspect dataset-split evidence
 
-Full-run metrics must bind:
+CUDA full-run metrics must bind:
 
 - split strategy identifier;
 - canonical training JSONL digest;
@@ -118,16 +127,22 @@ request. That is not a split failure when the evidence is internally consistent
 and no group crosses sides. A digest mismatch, count mismatch, cross-rank
 disagreement, or data mutation is a failure.
 
+MLX uses the compiler-bound `aptus.mlx-split.v1` train and validation files. Its
+metrics bind source and padded compiled row counts and require finite validation
+loss. The current MLX split does not claim group-aware subset selection or an
+exact evaluation fraction.
+
 ## 6. Inspect the final export
 
-The unique run directory must contain the run-bound metrics and
-`final-export.json`. Parent verification checks the expected safetensors form,
-non-empty tensor keys, index mappings when present, model or adapter provenance,
-and recursive path, size, and digest coverage.
+The unique run directory must contain run-bound metrics and
+`final-export.json`. Parent verification checks the runtime-specific expected
+safetensors form, provenance, paths, sizes, and digests.
 
 For full training, expect complete model configuration, tokenizer material, and
-model safetensors. For LoRA-based training, expect adapter configuration,
-tokenizer material, adapter safetensors, and base-model provenance.
+model safetensors on CUDA. For CUDA LoRA-based training, expect adapter
+configuration, tokenizer material, adapter safetensors, and base-model
+provenance. For MLX, expect `adapter_config.json`, `adapters.safetensors`,
+`aptus.mlx-final-export.v1`, and bound fresh-process adapter reload evidence.
 
 `measured-run-pass` means the structural run and export contracts passed. It
 does not mean:
@@ -147,8 +162,9 @@ manifest, installed-environment record, and relevant hardware evidence. Do not
 reuse or overwrite the failed run directory. Correct the cause, refresh every
 invalidated validation level, and submit a new run with a new ID.
 
-Full-training resume is unsupported. A pilot's bounded checkpoint continuation
-does not authorize resuming an interrupted full run.
+Full-training resume is unsupported. CUDA pilot checkpoint continuation does not
+authorize resuming an interrupted full run. MLX pilot and full training are
+uninterrupted, and its fresh adapter reload does not restore training state.
 
 ## Related documentation
 

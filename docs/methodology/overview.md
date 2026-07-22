@@ -45,11 +45,12 @@ boundaries.
 | Precision | `aptus-precision-v2` | Compute and quantization selection policy |
 | Memory | `aptus-memory-v2` | Per-device point and upper VRAM envelopes |
 | Ranking | `aptus-ranking-v2` | Pareto annotation and lexicographic objective policy |
-| Preflight | `aptus-preflight-v2` | Method and kernel synthetic validation before the real pilot |
+| Preflight | `aptus-preflight-v2` | Runtime-specific bounded update evidence before the real pilot; CUDA uses a synthetic model, while MLX uses the pinned model and compiled data |
 | Bundle | `aptus.bundle.v2` | Atomic file manifest and execution contract |
 | Plan | `aptus.training-plan.v2` | Selected candidate and full decision trace |
 | Trainable census | `aptus.trainable-parameter-census.v1` | Method-scope tensor and parameter counts, finite state, and descriptor digest |
 | Dataset split | `aptus.dataset-split.v1` | Full-run assignment strategy, counts, canonical digest, assignment digest, and realized error |
+| MLX dataset split | `aptus.mlx-split.v1` | Disjoint compiled train and validation counts with repeat-within-split microbatch padding |
 
 The plan records its schema and memory-formula versions. Related documentation
 names the other rule sets. A changed execution-affecting equation or rule

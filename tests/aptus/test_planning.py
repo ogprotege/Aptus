@@ -4,9 +4,18 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from aptus.domain import CandidateStatus, Distribution, Method, Objective, gibibytes
+from aptus.domain import (
+    Backend,
+    CandidateStatus,
+    Distribution,
+    Method,
+    Objective,
+    TrainingRuntime,
+    gibibytes,
+)
 from aptus.methods import METHOD_REGISTRY
-from aptus.planning import NoFeasiblePlanError, plan_training
+from aptus.planning import NoFeasiblePlanError, estimate_candidate, plan_training
+from aptus.profiling import build_hardware_spec
 
 from tests.aptus.helpers import make_plan
 
@@ -316,6 +325,80 @@ class PlannerTests(unittest.TestCase):
             if item.method == Method.LORA and item.distribution == Distribution.SINGLE
         )
         self.assertEqual(single_lora.device_indices, (0,))
+
+    def test_apple_unified_memory_yields_only_pilot_required_mlx_candidates(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=48,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            plan = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+        viable = [item for item in plan.candidates if item.feasible]
+        self.assertEqual({item.method for item in viable}, {Method.LORA, Method.QLORA})
+        self.assertTrue(
+            all(item.status == CandidateStatus.CONDITIONAL for item in viable)
+        )
+        self.assertTrue(
+            all(
+                item.runtime_contract
+                and item.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+                and item.runtime_contract.estimator_id == "aptus-memory-mlx-v1"
+                and item.memory.formula_version == "aptus-memory-mlx-v1"
+                for item in viable
+            )
+        )
+        qlora = next(item for item in viable if item.method == Method.QLORA)
+        self.assertEqual(qlora.quantization, "mlx-4bit-groupwise")
+        self.assertFalse(hardware.devices[0].supports_4bit)
+        self.assertTrue(any("not bitsandbytes" in item for item in qlora.assumptions))
+
+    def test_apple_fit_uses_current_unified_memory_headroom_without_fake_vram(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=8.25,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(hardware.devices[0].free_vram_bytes)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "usable per-device memory" in reason
+                for reason in candidate.rejection_reasons
+            )
+        )
 
 
 if __name__ == "__main__":

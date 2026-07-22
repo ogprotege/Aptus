@@ -5,6 +5,10 @@ import type {
   CompileResponse,
   FactDraft,
   HardwareProbeResponse,
+  ApplePlatformResponse,
+  RuntimeInventory,
+  InferenceGenerateRequest,
+  InferenceServiceRequest,
   Job,
   JobRequest,
   MethodDescriptor,
@@ -142,6 +146,7 @@ function planRequest(facts: FactDraft): PlanRequest {
       ...(facts.target.method_preference
         ? { method_preference: facts.target.method_preference }
         : {}),
+      training_runtime: facts.target.runtime,
       task: facts.target.task,
       evaluation_fraction: facts.target.evaluation_fraction,
       packing: facts.target.packing,
@@ -500,5 +505,31 @@ export const api = {
       throw new Error(envelope.error ?? "Hardware inspection is unavailable on this Aptus host.");
     }
     return envelope.hardware;
+  },
+
+  platform() {
+    return request<ApplePlatformResponse>("/api/v1/platform");
+  },
+
+  runtimes() {
+    return request<RuntimeInventory>("/api/v1/runtimes");
+  },
+
+  inferenceServices() {
+    return request<Record<string, unknown>>("/api/v1/inference/services");
+  },
+
+  inferenceModels(body: InferenceServiceRequest) {
+    return request<Record<string, unknown>>("/api/v1/inference/models", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  inferenceGenerate(body: InferenceGenerateRequest) {
+    return request<Record<string, unknown>>("/api/v1/inference/generate", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   },
 };

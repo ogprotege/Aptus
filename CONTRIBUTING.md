@@ -29,9 +29,13 @@ git diff --check
 cd web && npm test && npm run typecheck && npm run build
 ```
 
-Run the wheel build and installed-wheel smoke test for packaging changes. Run
-real CUDA pilots for changes that alter generation, dependencies, precision,
-quantization, distribution, memory estimates, checkpointing, or export.
+Run the wheel build and installed-wheel smoke test for packaging changes. Run a
+real pilot on every affected target runtime for changes that alter generation,
+dependencies, precision, quantization, distribution, memory estimates,
+checkpointing or MLX weight snapshots, reload, or export. CUDA changes require
+the two-phase checkpoint-continuation pilot. MLX changes require the exact
+model-data pilot with at least two optimizer updates and a fresh-process adapter
+reload that generates one to four tokens.
 
 For macOS host, bridge, packaged workbench, or desktop-runtime changes, also run:
 
@@ -56,6 +60,8 @@ evidence.
 - Keep runtime actions ordered and cancellable through managed jobs.
 - Treat `requirements.txt` as exact direct constraints, not a transitive lock.
 - Keep full-training resume disabled until its complete state contract exists.
+  Reject every MLX resume argument and call periodic MLX artifacts weight
+  snapshots, not resumable checkpoints.
 - Do not weaken parent-owned completion verification.
 
 ## Claim rules
@@ -77,8 +83,8 @@ new documents rather than rewriting historical audit records.
 
 Describe the changed contract, the tests run, the target hardware used, and any
 evidence still missing. Include generated-bundle diffs when compiler output
-changes. Never include private datasets, tokens, caches, checkpoints, or model
-weights.
+changes. Never include private datasets, tokens, caches, checkpoints, adapter
+weight snapshots, or model weights.
 
 ## Related documentation
 

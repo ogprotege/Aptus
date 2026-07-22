@@ -25,8 +25,9 @@ V0.2 derives one strategy for each method and placement pair:
 
 - BF16 when every selected device declares BF16 support, otherwise FP16;
 - no base quantization for full and LoRA;
-- the bitsandbytes 8-bit path for 8-bit LoRA;
-- NF4 with double quantization for QLoRA;
+- the CUDA bitsandbytes 8-bit path for 8-bit LoRA;
+- CUDA NF4 with double quantization for QLoRA;
+- MLX groupwise four-bit storage for MLX-LM QLoRA;
 - rank 8 for the memory objective;
 - otherwise rank 32 for profiles with at least one million estimated tokens;
 - otherwise rank 16;
@@ -39,6 +40,12 @@ Adapter target modules come from the versioned model-family catalog. They are
 priors, not inspected module facts. Model-data validation must verify that the
 catalog targets resolve on the pinned revision, and the real-model pilot must
 exercise the selected adapter path.
+
+Every candidate carries an `aptus.runtime-contract.v1` binding. CUDA candidates
+use `transformers-peft-cuda`. MPS LoRA and QLoRA candidates use `mlx-lm` unless
+the target requests another runtime. Other MPS rows bind the known but
+unimplemented `pytorch-mps` runtime and remain unsupported. An explicit runtime
+must match its compute backend.
 
 ## Batch search
 
@@ -62,7 +69,10 @@ batch. V0.2 does not calculate the final partial accumulation window.
 
 The current checks cover:
 
-- CUDA-only execution;
+- runtime and compute-backend compatibility;
+- CUDA compiler coverage for all four methods;
+- conditional single-device MLX-LM coverage for LoRA and QLoRA;
+- no PyTorch MPS compiler;
 - model context versus requested sequence length;
 - supported row schemas and SFT task selection;
 - disabled sequence packing;
@@ -70,9 +80,10 @@ The current checks cover:
 - no 8-bit LoRA or QLoRA with FSDP;
 - unsupported full-parameter FSDP and conditional LoRA FSDP under the
   simplified v0.2 sharding prior;
-- declared 8-bit or 4-bit device support for quantized methods;
+- declared CUDA 8-bit or 4-bit device support for CUDA quantized methods;
+- pinned-model four-bit metadata at MLX model-data time for MLX QLoRA;
 - exact global-batch arithmetic;
-- point and upper per-device VRAM fit;
+- point and upper per-device VRAM or unified-memory fit;
 - a distribution-aware host-RAM loading heuristic and a disk heuristic covering
   model staging, source and canonical data, the bounded pilot set, pilot
   workspace, three retained checkpoints, and final export.
@@ -85,9 +96,9 @@ does not yet emit a separate pass, fail, or unknown record for every rule.
 The candidate ID hashes normalized model, dataset, hardware, and target facts
 plus the executable strategy fields. Those fields include method, distribution,
 precision, quantization, batch arithmetic, devices, adapter configuration,
-learning rate, resource requirements, status, target modules, and the complete
-normalized memory record. The public ID uses the first 20 hexadecimal characters
-of that digest.
+learning rate, resource requirements, status, target modules, runtime contract,
+and the complete normalized memory record. The public ID uses the first 20
+hexadecimal characters of that digest.
 
 The plan ID separately binds the schema and memory-formula versions, normalized
 facts, the ordered candidate IDs, and the recommended candidate ID.
@@ -96,7 +107,9 @@ facts, the ordered candidate IDs, and the recommended candidate ID.
 
 User-bounded rank grids, optimizer choices, attention backends, selected-layer
 search, inspected module shapes, search-truncation records, and partial-window
-reporting are future work. They are not implicit v0.2 dimensions.
+reporting are future work. PyTorch MPS also has no compiler. MLX-LM supports
+uninterrupted LoRA and QLoRA pilot and full-duration runs, but not crash resume,
+full-parameter training, or DoRA. These are not implicit v0.2 dimensions.
 
 ## Related documentation
 

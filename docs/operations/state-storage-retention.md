@@ -2,10 +2,11 @@
 
 > **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a persistent path changes
 
-Aptus writes plans, bundles, data copies, runtime evidence, logs, checkpoints,
-and exports. It does not currently provide an automated retention or cleanup
-command. Operators must preserve active state and remove old material only
-after resolving exact paths and retention requirements.
+Aptus writes plans, bundles, data copies, runtime evidence, logs, CUDA
+checkpoints, MLX adapter weight snapshots, and exports. It does not currently
+provide an automated retention or cleanup command. Operators must preserve
+active state and remove old material only after resolving exact paths and
+retention requirements.
 
 ## Persistent locations
 
@@ -14,8 +15,8 @@ after resolving exact paths and retention requirements.
 | Selected state root, default `.aptus-state/` | Persisted plans, current-bundle pointer, jobs, logs, and locks | Mutable control-plane state | Paths, errors, commands, and runtime evidence |
 | Compiled bundle | Cleartext source copy, canonical data, pilot data, plan, generated code, pins, manifest, and reports | Compiler inputs immutable; named runtime paths mutable | Training data and operational metadata |
 | Bundle ZIP | Second copy of all compiler-managed bundle material | Immutable archive | Same sensitivity as bundle inputs |
-| `pilot-output/` | Pilot metrics, checkpoints, export evidence, and run contracts | Runtime output | Model, data, and hardware evidence |
-| `runs/run_*/` | Unique full-run metrics, checkpoints, final export, and manifests | Runtime output; never reused | Model or adapter weights and training evidence |
+| `pilot-output/` | Pilot metrics, CUDA continuation checkpoints, MLX adapter artifacts and reload evidence, export evidence, and run contracts | Runtime output | Model, data, and hardware evidence |
+| `runs/run_*/` | Unique full-run metrics, CUDA checkpoints or MLX adapter weight snapshots, final export, and manifests | Runtime output; never reused | Model or adapter weights and training evidence |
 | Model and package caches | Provider artifacts and resolved dependencies | Managed by external stacks | Model weights, tokens in external config, and supply-chain state |
 | Host-global lease root | Per-user lease and lock under the operating-system temporary directory | Ephemeral coordination state | Process and state-root identities |
 
@@ -68,6 +69,8 @@ entries in place. Recompile to a new bundle path.
 Deleting a runtime output can make a cheap historical presence check fail even
 though a completion-time attestation remains in the job record. Aptus 0.2 has
 no deep historical re-verification or automatic garbage-collection command.
+MLX weight snapshots are not resumable checkpoints. Preserve them as evidence
+or adapter artifacts, not as restart state.
 
 ## Recommended retention classes
 

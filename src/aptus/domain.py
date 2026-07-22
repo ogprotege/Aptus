@@ -10,6 +10,7 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = "aptus.training-plan.v2"
 FACTS_SCHEMA_VERSION = "aptus.facts.v2"
+RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 PROVIDER_MODEL_ID = re.compile(
     r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*/)?[A-Za-z0-9][A-Za-z0-9._-]*$"
 )
@@ -26,6 +27,17 @@ class Backend(StrEnum):
     ROCM = "rocm"
     MPS = "mps"
     CPU = "cpu"
+
+
+class TrainingRuntime(StrEnum):
+    TRANSFORMERS_PEFT_CUDA = "transformers-peft-cuda"
+    MLX_LM = "mlx-lm"
+    PYTORCH_MPS = "pytorch-mps"
+
+
+class EvidenceRequirement(StrEnum):
+    PILOT_REQUIRED = "pilot-required"
+    IMPLEMENTATION_REQUIRED = "implementation-required"
 
 
 class Objective(StrEnum):
@@ -109,6 +121,42 @@ class EvidenceRecord:
     scope: str
     confidence: str
     revision: str | None = None
+
+
+@dataclass(frozen=True)
+class RuntimeContract:
+    """Explicit, versioned binding between a candidate and its runtime path."""
+
+    compute_backend: Backend
+    training_runtime: TrainingRuntime
+    compiler_id: str | None
+    estimator_id: str
+    evidence_requirement: EvidenceRequirement
+    export_kind: str | None
+    schema_version: str = RUNTIME_CONTRACT_VERSION
+
+    def __post_init__(self) -> None:
+        if self.schema_version != RUNTIME_CONTRACT_VERSION:
+            raise ValueError(
+                f"Runtime contract schema must be {RUNTIME_CONTRACT_VERSION}."
+            )
+        if not self.estimator_id.strip():
+            raise ValueError("Runtime contract estimator_id is required.")
+        expected_backend = {
+            TrainingRuntime.TRANSFORMERS_PEFT_CUDA: Backend.CUDA,
+            TrainingRuntime.MLX_LM: Backend.MPS,
+            TrainingRuntime.PYTORCH_MPS: Backend.MPS,
+        }[self.training_runtime]
+        if self.compute_backend != expected_backend:
+            raise ValueError(
+                f"{self.training_runtime.value} requires {expected_backend.value} compute."
+            )
+        if self.evidence_requirement == EvidenceRequirement.PILOT_REQUIRED and (
+            not self.compiler_id or not self.export_kind
+        ):
+            raise ValueError(
+                "Pilot-gated runtime contracts require compiler and export identities."
+            )
 
 
 @dataclass(frozen=True)
@@ -296,6 +344,7 @@ class TrainingTarget:
     packing: bool = False
     checkpoint_steps: int = 100
     max_wall_time_minutes: int | None = None
+    training_runtime: TrainingRuntime | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -402,6 +451,7 @@ class CandidatePlan:
     required_disk_bytes: int = 0
     checkpoint_retention_bytes: int = 0
     final_export_bytes: int = 0
+    runtime_contract: RuntimeContract | None = None
 
 
 @dataclass(frozen=True)
@@ -580,6 +630,11 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         packing=target_value.get("packing", False),
         checkpoint_steps=target_value.get("checkpoint_steps", 100),
         max_wall_time_minutes=target_value.get("max_wall_time_minutes"),
+        training_runtime=(
+            TrainingRuntime(target_value["training_runtime"])
+            if target_value.get("training_runtime")
+            else None
+        ),
     )
 
     memory_fields = {item.name for item in fields(MemoryBreakdown)}
@@ -594,6 +649,42 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             memory_arguments.get("component_upper_bounds", {})
         )
         memory = MemoryBreakdown(**memory_arguments)
+        runtime_value = item.get("runtime_contract")
+        runtime_contract: RuntimeContract | None = None
+        if isinstance(runtime_value, Mapping):
+            runtime_contract = RuntimeContract(
+                compute_backend=Backend(runtime_value["compute_backend"]),
+                training_runtime=TrainingRuntime(runtime_value["training_runtime"]),
+                compiler_id=runtime_value.get("compiler_id"),
+                estimator_id=str(runtime_value["estimator_id"]),
+                evidence_requirement=EvidenceRequirement(
+                    runtime_value["evidence_requirement"]
+                ),
+                export_kind=runtime_value.get("export_kind"),
+                schema_version=runtime_value.get(
+                    "schema_version", RUNTIME_CONTRACT_VERSION
+                ),
+            )
+        else:
+            legacy_method = Method(item["method"])
+            legacy_compilers = {
+                Method.FULL: "transformers.full.v2",
+                Method.LORA: "transformers.peft-lora.v2",
+                Method.INT8_LORA: "transformers.peft-int8-lora.v2",
+                Method.QLORA: "transformers.peft-qlora.v2",
+            }
+            runtime_contract = RuntimeContract(
+                compute_backend=Backend.CUDA,
+                training_runtime=TrainingRuntime.TRANSFORMERS_PEFT_CUDA,
+                compiler_id=legacy_compilers[legacy_method],
+                estimator_id="aptus-memory-v2",
+                evidence_requirement=EvidenceRequirement.PILOT_REQUIRED,
+                export_kind=(
+                    "full-model-safetensors"
+                    if legacy_method == Method.FULL
+                    else "peft-adapter-safetensors"
+                ),
+            )
         return CandidatePlan(
             method=Method(item["method"]),
             feasible=item["feasible"],
@@ -624,6 +715,7 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             required_disk_bytes=item.get("required_disk_bytes", 0),
             checkpoint_retention_bytes=item.get("checkpoint_retention_bytes", 0),
             final_export_bytes=item.get("final_export_bytes", 0),
+            runtime_contract=runtime_contract,
         )
 
     candidates = tuple(candidate_from(item) for item in value["candidates"])

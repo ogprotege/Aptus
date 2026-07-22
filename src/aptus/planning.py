@@ -11,23 +11,27 @@ from .domain import (
     DatasetProfile,
     DeviceSpec,
     Distribution,
+    EvidenceRequirement,
     HardwareSpec,
     MemoryBreakdown,
     Method,
     ModelSpec,
     Objective,
+    RuntimeContract,
     SCHEMA_VERSION,
     TrainingPlan,
+    TrainingRuntime,
     TrainingTarget,
     gibibytes,
     to_primitive,
 )
 from .evidence import evidence_for
-from .methods import method_descriptor, selectable_method_descriptors
+from .methods import method_descriptor, runtime_binding, selectable_method_descriptors
 from .plan_contract import candidate_id_for_payload, plan_id_for_payload
 
 
 FORMULA_VERSION = "aptus-memory-v2"
+MLX_FORMULA_VERSION = "aptus-memory-mlx-v1"
 
 
 class NoFeasiblePlanError(ValueError):
@@ -172,18 +176,152 @@ def _memory_breakdown(
     )
 
 
+def _mlx_memory_breakdown(
+    *,
+    method: Method,
+    model: ModelSpec,
+    target: TrainingTarget,
+    target_modules: tuple[str, ...],
+    rank: int,
+    micro_batch_size: int,
+) -> MemoryBreakdown:
+    """Conservative unified-memory envelope for the MLX-LM pilot path."""
+
+    if method not in {Method.LORA, Method.QLORA}:
+        raise ValueError("The MLX estimator currently supports LoRA and QLoRA only.")
+    bytes_per_weight = 2.0 if method == Method.LORA else 0.5
+    base_weights = round(model.parameters * bytes_per_weight)
+    quantization_metadata = (
+        0 if method == Method.LORA else round(model.parameters * 0.0625)
+    )
+    trainable = _adapter_parameter_count(model, rank, target_modules)
+    adapter_weights = round(trainable * 4)
+    gradients = round(trainable * 4)
+    optimizer = round(trainable * 8)
+    activations = round(
+        micro_batch_size
+        * target.sequence_length
+        * model.hidden_size
+        * model.layers
+        * 2
+        * 3.0
+    )
+    workspace = max(
+        gibibytes(0.75), round((base_weights + quantization_metadata) * 0.04)
+    )
+    temporary = max(
+        gibibytes(0.75), round((base_weights + quantization_metadata) * 0.08)
+    )
+    load_transient = round((base_weights + quantization_metadata) * 0.30)
+    point_components = {
+        "base_weights_bytes": base_weights,
+        "quantization_metadata_bytes": quantization_metadata,
+        "adapter_weights_bytes": adapter_weights,
+        "adapter_gradients_bytes": gradients,
+        "optimizer_states_bytes": optimizer,
+        "activations_bytes": activations,
+        "communication_bytes": 0,
+        "workspace_bytes": workspace,
+        "temporary_overhead_bytes": temporary,
+        "load_transient_bytes": load_transient,
+    }
+    allocator = round(sum(point_components.values()) * 0.15)
+    point_components["allocator_bytes"] = allocator
+    point = sum(point_components.values())
+    safety = round(point * 0.25)
+    component_upper_bounds = {
+        **point_components,
+        "activations_bytes": round(activations * 1.60),
+        "workspace_bytes": round(workspace * 1.75),
+        "temporary_overhead_bytes": round(temporary * 1.75),
+        "allocator_bytes": round(allocator * 1.75),
+        "load_transient_bytes": round(load_transient * 1.50),
+        "uncertainty_bytes": safety,
+    }
+    return MemoryBreakdown(
+        base_weights_bytes=base_weights,
+        quantization_metadata_bytes=quantization_metadata,
+        adapter_weights_bytes=adapter_weights,
+        adapter_gradients_bytes=gradients,
+        optimizer_states_bytes=optimizer,
+        activations_bytes=activations,
+        temporary_overhead_bytes=temporary,
+        safety_margin_bytes=safety,
+        communication_bytes=0,
+        workspace_bytes=workspace,
+        allocator_bytes=allocator,
+        load_transient_bytes=load_transient,
+        component_upper_bounds=component_upper_bounds,
+        upper_estimate_bytes=sum(component_upper_bounds.values()),
+        formula_version=MLX_FORMULA_VERSION,
+        assumptions=(
+            "MLX-LM uses Apple unified memory; this estimate does not add a second CUDA-style host staging pool.",
+            "MLX four-bit storage is modeled as groupwise quantized weights plus explicit metadata, not bitsandbytes NF4.",
+            "The formula is a conservative uncalibrated prior and cannot establish feasibility.",
+            "Gradient checkpointing is enabled for the generated MLX-LM pilot.",
+            "Point estimate is the sum of named components and excludes uncertainty.",
+            "Upper envelope uses wider MLX allocator, activation, workspace, and load-transient factors plus a 25 percent uncertainty term.",
+        ),
+    )
+
+
+def _memory_for_runtime(
+    *,
+    training_runtime: TrainingRuntime,
+    method: Method,
+    distribution: Distribution,
+    world_size: int,
+    model: ModelSpec,
+    target: TrainingTarget,
+    target_modules: tuple[str, ...],
+    rank: int,
+    micro_batch_size: int,
+) -> MemoryBreakdown:
+    if training_runtime == TrainingRuntime.MLX_LM and method in {
+        Method.LORA,
+        Method.QLORA,
+    }:
+        return _mlx_memory_breakdown(
+            method=method,
+            model=model,
+            target=target,
+            target_modules=target_modules,
+            rank=rank,
+            micro_batch_size=micro_batch_size,
+        )
+    return _memory_breakdown(
+        method=method,
+        distribution=distribution,
+        world_size=world_size,
+        model=model,
+        target=target,
+        target_modules=target_modules,
+        rank=rank,
+        micro_batch_size=micro_batch_size,
+    )
+
+
 def _distributions() -> tuple[Distribution, ...]:
     return Distribution.SINGLE, Distribution.DDP, Distribution.FSDP
 
 
 def _usable_vram_bytes(hardware: HardwareSpec, device_index: int) -> int:
     device = hardware.devices[device_index]
-    return (
-        device.free_vram_bytes or device.total_vram_bytes
-    ) - hardware.reserve_per_device_bytes
+    capacity = device.free_vram_bytes or device.total_vram_bytes
+    if device.backend == Backend.MPS and hardware.host_ram_free_bytes is not None:
+        # Apple unified memory is one live pool. Keep the host measurement
+        # explicit instead of copying it into a fictional free-VRAM field.
+        capacity = min(capacity, hardware.host_ram_free_bytes)
+    return capacity - hardware.reserve_per_device_bytes
 
 
 def _single_device_is_compatible(*, method: Method, device: DeviceSpec) -> bool:
+    if device.backend == Backend.MPS:
+        # MLX QLoRA eligibility belongs to the pinned model revision, not to a
+        # CUDA-style device capability bit. The generated model-data gate
+        # requires explicit four-bit MLX quantization metadata before work can
+        # advance.
+        return method in {Method.LORA, Method.QLORA}
     if device.backend != Backend.CUDA:
         return False
     if method == Method.FULL:
@@ -218,6 +356,52 @@ def _participating_device_indices(
         key=lambda index: (_usable_vram_bytes(hardware, index), -index),
     )
     return (selected_index,)
+
+
+def _runtime_contract_for(
+    *,
+    method: Method,
+    target: TrainingTarget,
+    devices: tuple[DeviceSpec, ...],
+) -> RuntimeContract:
+    compute_backend = devices[0].backend if devices else Backend.CUDA
+    if target.training_runtime is not None:
+        training_runtime = target.training_runtime
+    elif compute_backend == Backend.MPS:
+        training_runtime = (
+            TrainingRuntime.MLX_LM
+            if method in {Method.LORA, Method.QLORA}
+            else TrainingRuntime.PYTORCH_MPS
+        )
+    else:
+        training_runtime = TrainingRuntime.TRANSFORMERS_PEFT_CUDA
+    binding = runtime_binding(
+        method,
+        training_runtime=training_runtime,
+        compute_backend=compute_backend,
+    )
+    if binding is None:
+        return RuntimeContract(
+            compute_backend=(
+                Backend.MPS
+                if training_runtime
+                in {TrainingRuntime.MLX_LM, TrainingRuntime.PYTORCH_MPS}
+                else Backend.CUDA
+            ),
+            training_runtime=training_runtime,
+            compiler_id=None,
+            estimator_id="unavailable",
+            evidence_requirement=EvidenceRequirement.IMPLEMENTATION_REQUIRED,
+            export_kind=None,
+        )
+    return RuntimeContract(
+        compute_backend=Backend(binding.compute_backend),
+        training_runtime=TrainingRuntime(binding.training_runtime),
+        compiler_id=binding.compiler_id,
+        estimator_id=binding.estimator_id,
+        evidence_requirement=EvidenceRequirement(binding.evidence_requirement),
+        export_kind=binding.export_kind,
+    )
 
 
 def estimate_candidate(
@@ -255,16 +439,37 @@ def estimate_candidate(
     participating_devices = tuple(
         devices[index] for index in device_indices if index < len(devices)
     )
+    runtime_contract = _runtime_contract_for(
+        method=method,
+        target=target,
+        devices=participating_devices,
+    )
+    binding = runtime_binding(
+        method,
+        training_runtime=runtime_contract.training_runtime,
+        compute_backend=runtime_contract.compute_backend,
+    )
+    if binding is None:
+        unsupported.append(
+            f"{runtime_contract.training_runtime.value} has no registered {method.value} "
+            f"compiler on {runtime_contract.compute_backend.value}."
+        )
+    elif distribution.value not in binding.supported_distributions:
+        unsupported.append(
+            f"The {runtime_contract.training_runtime.value} {descriptor.method_id} "
+            f"compiler does not support {distribution.value} distribution."
+        )
     if not devices:
-        unsupported.append("At least one CUDA GPU is required.")
+        unsupported.append("At least one supported compute device is required.")
+    elif len({device.backend for device in participating_devices}) != 1:
+        unsupported.append("A candidate cannot mix compute backends.")
     elif any(
-        device.backend.value not in descriptor.supported_backends
+        device.backend != runtime_contract.compute_backend
         for device in participating_devices
     ):
-        supported = ", ".join(descriptor.supported_backends) or "none"
         unsupported.append(
-            f"The {descriptor.method_id} registry contract supports these backends: "
-            f"{supported}."
+            f"{runtime_contract.training_runtime.value} requires "
+            f"{runtime_contract.compute_backend.value} compute."
         )
     if target.sequence_length > model.context_length:
         infeasible.append("Requested sequence length exceeds the model context length.")
@@ -299,12 +504,16 @@ def estimate_candidate(
         unsupported.append(
             "Full-parameter FSDP is fail-closed in Aptus v0.2 because the pinned runtime upcasts trainable shards and full-state export to FP32, while that transient path is not yet calibrated."
         )
-    if method == Method.QLORA and (
-        not participating_devices
-        or any(not item.supports_4bit for item in participating_devices)
+    if (
+        method == Method.QLORA
+        and runtime_contract.training_runtime != TrainingRuntime.MLX_LM
+        and (
+            not participating_devices
+            or any(not item.supports_4bit for item in participating_devices)
+        )
     ):
         unsupported.append(
-            "QLoRA requires explicit four-bit support on every participating GPU."
+            "QLoRA requires explicit runtime-native four-bit support on every participating device."
         )
     if method == Method.INT8_LORA and (
         not participating_devices
@@ -339,38 +548,64 @@ def estimate_candidate(
         unsupported.append(
             "Full-parameter FP16 training is fail-closed in Aptus v0.2 because the generated mixed-precision path does not retain verified FP32 trainable master weights."
         )
-    quantization = {
-        Method.FULL: None,
-        Method.LORA: None,
-        Method.INT8_LORA: "int8-bitsandbytes",
-        Method.QLORA: "nf4-double-quant",
-    }[method]
+    quantization = (
+        "mlx-4bit-groupwise"
+        if runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+        and method == Method.QLORA
+        else {
+            Method.FULL: None,
+            Method.LORA: None,
+            Method.INT8_LORA: "int8-bitsandbytes",
+            Method.QLORA: "nf4-double-quant",
+        }[method]
+    )
     rank = 0 if method == Method.FULL else _rank_prior(dataset, target.objective)
     alpha = 0 if method == Method.FULL else rank * 2
     learning_rate = 2e-5 if method == Method.FULL else 2e-4
     policy_assumptions = [
         f"Learning rate {learning_rate:g} is an Aptus v0.2 method-class prior, not a tuned optimum.",
         f"Precision {precision} follows the shared capability rule across the candidate's bound device indices.",
-        "The compiler uses AdamW (torch), a linear scheduler, zero weight decay, zero warmup steps, and max_grad_norm=1.0 as explicit Aptus v0.2 defaults.",
         "The compiler preserves supervised completion tokens first, left-truncates the prompt suffix to fit sequence_length, and refuses empty supervision.",
         "Base-model host staging and disk use 2.2 bytes per declared parameter as an explicit uncalibrated heuristic; provider artifact bytes and cache transients are verified only at runtime.",
     ]
+    if runtime_contract.training_runtime == TrainingRuntime.MLX_LM:
+        policy_assumptions.extend(
+            (
+                "The generated compiler uses MLX-LM with AdamW, gradient checkpointing, and an MLX-native adapter export.",
+                "MLX-LM QLoRA requires an already four-bit MLX model revision; it does not invoke bitsandbytes or assume NF4 kernels.",
+                "MLX-LM QLoRA eligibility is verified from the pinned model's four-bit quantization metadata during model-data validation, not inferred from a CUDA-style device flag.",
+                "The Apple unified-memory envelope must pass model-data validation and a bounded measured preflight; neither guarantees full-run fit.",
+            )
+        )
+    else:
+        policy_assumptions.append(
+            "The compiler uses AdamW (torch), a linear scheduler, zero weight decay, zero warmup steps, and max_grad_norm=1.0 as explicit Aptus v0.2 defaults."
+        )
     if distribution == Distribution.SINGLE and participating_devices:
         selected_index = device_indices[0]
         selected_device = participating_devices[0]
         if _single_device_is_compatible(method=method, device=selected_device):
+            capacity_label = (
+                "usable VRAM"
+                if selected_device.backend == Backend.CUDA
+                else "usable unified memory"
+            )
             policy_assumptions.append(
-                f"Single-device placement binds CUDA device index {selected_index} ({selected_device.name}), the method-compatible device with the greatest usable VRAM ({_usable_vram_bytes(hardware, selected_index)} bytes after reserve)."
+                f"Single-device placement binds {selected_device.backend.value} device index {selected_index} ({selected_device.name}), the method-compatible device with the greatest {capacity_label} ({_usable_vram_bytes(hardware, selected_index)} bytes after reserve)."
             )
     elif distribution != Distribution.SINGLE and participating_devices:
         policy_assumptions.append(
-            "Distributed placement binds every scanned CUDA device; precision and quantization require shared capability support, and memory fit uses the minimum usable per-device VRAM."
+            "Distributed placement binds every scanned device; precision and quantization require shared capability support, and memory fit uses the minimum usable per-device memory."
         )
-    if method == Method.QLORA and distribution == Distribution.SINGLE:
+    if (
+        runtime_contract.training_runtime == TrainingRuntime.TRANSFORMERS_PEFT_CUDA
+        and method == Method.QLORA
+        and distribution == Distribution.SINGLE
+    ):
         policy_assumptions.append(
             "Single-device QLoRA uses reentrant gradient checkpointing, following the pinned PEFT runtime guidance."
         )
-    else:
+    elif runtime_contract.training_runtime == TrainingRuntime.TRANSFORMERS_PEFT_CUDA:
         policy_assumptions.append(
             "This strategy uses non-reentrant gradient checkpointing; distributed QLoRA requires that mode in the pinned PEFT runtime."
         )
@@ -402,7 +637,8 @@ def estimate_candidate(
             )
 
     selected_micro = micro_batches[-1]
-    selected_memory = _memory_breakdown(
+    selected_memory = _memory_for_runtime(
+        training_runtime=runtime_contract.training_runtime,
         method=method,
         distribution=distribution,
         world_size=world_size,
@@ -414,9 +650,9 @@ def estimate_candidate(
     )
     usable_vram = (
         min(
-            (device.free_vram_bytes or device.total_vram_bytes)
-            - hardware.reserve_per_device_bytes
-            for device in participating_devices
+            _usable_vram_bytes(hardware, device_index)
+            for device_index in device_indices
+            if device_index < len(hardware.devices)
         )
         if participating_devices
         else 0
@@ -424,7 +660,8 @@ def estimate_candidate(
     point_fit = upper_fit = False
     if not unsupported:
         for micro in micro_batches:
-            memory = _memory_breakdown(
+            memory = _memory_for_runtime(
+                training_runtime=runtime_contract.training_runtime,
                 method=method,
                 distribution=distribution,
                 world_size=world_size,
@@ -446,13 +683,19 @@ def estimate_candidate(
                 selected_micro, selected_memory, point_fit = micro, memory, True
         if point_fit and not upper_fit:
             conditional.append(
-                "Point estimate fits, but the uncalibrated heuristic upper envelope exceeds usable VRAM."
+                "Point estimate fits, but the uncalibrated heuristic upper envelope exceeds usable per-device memory."
             )
         elif not point_fit:
-            infeasible.append("Even the point estimate exceeds usable per-device VRAM.")
+            infeasible.append(
+                "Even the point estimate exceeds usable per-device memory."
+            )
     if distribution == Distribution.FSDP and not unsupported:
         conditional.append(
             "FSDP uses a simplified uncalibrated per-device sharding prior; the exact wrapping and transient path requires a real-model pilot."
+        )
+    if runtime_contract.training_runtime == TrainingRuntime.MLX_LM and not unsupported:
+        conditional.append(
+            "MLX-LM support is pilot-required: the unified-memory estimate is provisional and cannot guarantee that the exact model and data fit."
         )
 
     accumulation = math.ceil(
@@ -465,7 +708,11 @@ def estimate_candidate(
         )
 
     host_loader_copies = 1 if distribution == Distribution.SINGLE else world_size
-    required_host = round(model.parameters * 2.2 * host_loader_copies)
+    required_host = (
+        selected_memory.point_estimate_bytes
+        if runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+        else round(model.parameters * 2.2 * host_loader_copies)
+    )
     trainable_parameters = (
         model.parameters
         if method == Method.FULL
@@ -492,7 +739,10 @@ def estimate_candidate(
         + pilot_checkpoint_workspace
     )
     available_host = hardware.host_ram_free_bytes or hardware.host_ram_bytes
-    if available_host < required_host:
+    if (
+        runtime_contract.training_runtime != TrainingRuntime.MLX_LM
+        and available_host < required_host
+    ):
         infeasible.append("Host RAM is below the minimum model-loading heuristic.")
     if (
         hardware.disk_free_bytes is not None
@@ -540,6 +790,7 @@ def estimate_candidate(
         required_disk_bytes=required_disk,
         checkpoint_retention_bytes=checkpoint_retention,
         final_export_bytes=final_export,
+        runtime_contract=runtime_contract,
     )
     return replace(
         candidate,

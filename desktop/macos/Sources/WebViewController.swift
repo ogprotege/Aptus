@@ -89,13 +89,16 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsMagnification = true
-        webView.underPageBackgroundColor = AptusPalette.cloud
+        webView.underPageBackgroundColor = .windowBackgroundColor
         view = webView
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
-        guard bridge == nil else { return }
+        if let bridge {
+            bridge.updateWindow(view.window)
+            return
+        }
         let bridge = DesktopBridge(window: view.window, expectedOrigin: session.origin)
         bridge.onWorkbenchReady = { [weak self] in
             guard let self, self.readinessGate.noteReactReady() else { return }
@@ -103,6 +106,13 @@ final class WebViewController: NSViewController, WKNavigationDelegate, WKUIDeleg
         }
         self.bridge = bridge
         webView.configuration.userContentController.add(bridge, name: "aptusDesktop")
+        installSessionCookieAndLoad()
+    }
+
+    func retryLoad() {
+        guard isViewLoaded else { return }
+        readinessGate = WorkbenchReadinessGate()
+        webView.stopLoading()
         installSessionCookieAndLoad()
     }
 

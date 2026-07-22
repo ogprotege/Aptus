@@ -60,7 +60,7 @@ passes.
 | Separate supported methods from interesting papers | `src/aptus/methods/` and the workbench readiness board expose four selectable `gated-executable`, four nonselectable `experimental`, and three nonselectable `research-only` descriptors |
 | Preserve DoRA, BitFit, AdaLoRA, LoReFT, AFLoRA, BiLoRA, and ShareLoRA ideas honestly | Every method has a primary evidence identity, mechanism, blocker, and required proof without becoming selectable |
 | Capture expert corrections for later training | The [reviewed corpus contract](../reference/reviewed-corpus-contract.md) defines immutable IDs, consent, provenance, redaction, human approval, grouping, and approved-only export |
-| Use the actual M5 Pro for local experiments | The local probe records Apple Silicon and shared unified memory; the [Apple pilot matrix](../operations/apple-silicon-pilot.md) names exact proposed models and methods while the CUDA compiler remains fail-closed |
+| Use the actual M5 Pro for local experiments | The local probe records Apple Silicon and shared unified memory; the [Apple pilot matrix](../operations/apple-silicon-pilot.md) stages exact models through the uninterrupted MLX adapter path while CUDA remains an external-host runtime |
 | Preserve run telemetry and no-clobber output | Existing Aptus run IDs, leases, logs, measured memory, checkpoint continuation, parent verification, and structural export checks already supersede the historical scripts |
 
 ## Method conclusions
@@ -68,7 +68,7 @@ passes.
 | Method | Evidence conclusion | Aptus lifecycle |
 |---|---|---|
 | LoRA | Strong primary evidence and the historical r64, alpha128, all-projection choice is useful as experiment history, not a universal default | Gated executable |
-| QLoRA | Appropriate local memory-saving recipe when the selected runtime and quantized model pass exact probes | Gated executable on CUDA; proposed MLX pilot only |
+| QLoRA | Appropriate local memory-saving recipe when the selected runtime and quantized model pass exact probes | Gated executable on CUDA; conditional uninterrupted MLX pilot and full-duration adapter path |
 | DoRA | Strong primary evidence. Implement through maintained PEFT or MLX-LM, never the custom files in this intake | Experimental until compiler, estimate, save, reload, and pilot pass |
 | BitFit | Valid bias-only method with strongest supplied evidence on encoder classification. Architecture-dependent and likely empty on stock Llama | Experimental, exact bias census required |
 | AdaLoRA | Strong adaptive-budget evidence. Requires schedule and importance state in checkpoints | Experimental |

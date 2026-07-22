@@ -1,9 +1,11 @@
-# Apple Silicon fine-tuning pilot matrix
+# Apple Silicon runtime and pilot matrix
 
 > **Status:** Experimental | **Authority:** Proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or before any model download
 
-Status: machine-specific recommendation for the measured 64 GB M5 Pro host.
-These are proposed experiments, not completed Aptus validation runs.
+Status: machine-specific runtime boundary and proposed next experiments for the
+measured 64 GB M5 Pro host. The MLX compiler exists. No model download, host
+measured-preflight run, `pilot-pass`, or full-duration training result is
+claimed here.
 
 ## Measured host
 
@@ -13,6 +15,10 @@ bandwidth for this M5 Pro configuration. The CPU and GPU share the same memory
 pool. A 64 GB specification is not equivalent to a CUDA GPU with 64 GB of
 dedicated VRAM and a separate host-memory pool.
 
+The native Aptus design is macOS 26 first and retains a macOS 15 semantic
+material fallback. Both paths use the same private loopback service and runtime
+contracts.
+
 Sources:
 
 - [Apple M5 Pro MacBook Pro specifications](https://support.apple.com/en-us/126318)
@@ -20,48 +26,61 @@ Sources:
 - [MLX-LM](https://github.com/ml-explore/mlx-lm)
 - [MLX-LM fine-tuning guide](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md)
 
-The local Aptus probe now records Apple Silicon as `mps` and labels its memory
-as shared unified memory. The current v0.2 compiler still fails closed because
-it emits a CUDA Transformers, PEFT, Accelerate, and bitsandbytes bundle. It does
-not silently route that bundle through MPS. A separate MLX compiler needs its
-own estimator, dependency lock, trainer, checkpoint verifier, and export
-contract.
+The local Aptus probe records Apple Silicon as `mps` and labels its memory as
+shared unified memory. It records live available host memory separately from the
+compatibility device. MLX planning uses the lesser of live availability and the
+Metal compatibility capacity, then subtracts the reserve.
 
-## Methods I would test
+The current compiler binds single-device LoRA and QLoRA to `mlx-lm` through
+`aptus.runtime-contract.v1`. It uses the `aptus-memory-mlx-v1` estimator, exact
+pins `mlx==0.31.2` and `mlx-lm==0.31.3`, MLX train and validation JSONL, an
+MLX-native adapter export, and runtime-neutral metrics. These candidates are
+always conditional. PyTorch MPS has no compiler. CUDA remains an external-host
+handoff from this Mac.
 
-MLX-LM currently documents `lora`, `dora`, and `full` fine-tuning. It treats
-LoRA over a quantized model as QLoRA. It also supports local JSONL train,
-validation, and test files, prompt masking, adapter resume, evaluation, and
-adapter fusion. Those library capabilities still require an Aptus pilot before
-they become planner support.
+## Current method boundary
+
+The Aptus MLX compiler accepts only LoRA and QLoRA. MLX QLoRA requires an
+already four-bit pinned model with explicit MLX quantization metadata. Aptus
+does not consult the CUDA four-bit device flag, invoke bitsandbytes, or quantize
+an unbound model during execution.
+
+The pinned MLX-LM library exposes other features, but library presence is not an
+Aptus compiler contract. DoRA, full-parameter MLX fine-tuning, BitFit through
+PyTorch MPS, adapter fusion, and crash resume remain outside the current
+executable path. Aptus does support uninterrupted full-duration LoRA and QLoRA
+adapter runs after `pilot-pass`.
 
 I would test methods in this order:
 
 1. QLoRA on a small quantized model to prove the complete local workflow.
-2. Unquantized LoRA and DoRA on the same 7B model for a controlled method
-   comparison.
+2. Unquantized LoRA on a 7B model after the small QLoRA path is measured.
 3. QLoRA on a 14B model after the 7B run establishes memory and throughput.
 4. A tightly bounded 70B QLoRA stress test only after the smaller runs pass.
-5. A separate BitFit architecture diagnostic on a bias-bearing small model.
 
 I would not begin with AFLoRA, BiLoRA, or LoReFT. Each needs a custom training,
-checkpoint, and inference contract. Their supplied CUDA papers do not establish
-MLX behavior.
+state, and inference contract. Their supplied CUDA papers do not establish MLX
+behavior.
 
 ## Proposed runs
 
-| Gate | Model | Method | Starting envelope | Purpose |
-|---|---|---|---|---|
-| 0 | [`mlx-community/Llama-3.2-3B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit) | QLoRA | Rank 8, last 4 layers, q/v targets, batch 1, 512 tokens, 50 iterations | Prove data loading, masked loss, nonzero trainable census, memory reporting, save, reload, and deterministic generation |
-| 1A | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Rank 8, last 8 layers, q/k/v/o targets, batch 1, 1,024 tokens, 200 iterations | Establish the real corpus baseline on an Apache-2.0 model |
-| 1B | Same immutable Qwen revision | DoRA | Same data, split, layers, rank, seed, sequence length, and iteration budget as 1A | Measure DoRA's actual memory, speed, and held-out quality against LoRA |
-| 2 | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Rank 8, last 8 layers, batch 1, 1,024 tokens, gradient checkpointing, 50-iteration pilot before any longer run | Test whether a materially larger model improves the target task within a safe memory reserve |
-| 3 | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Rank 8, last 4 layers, q/v targets, batch 1, 512 tokens, gradient checkpointing, 10 iterations | Measure fit only. Do not claim useful tuning or quality from this run |
-| B | [`openai-community/gpt2`](https://huggingface.co/openai-community/gpt2) | BitFit diagnostic through PyTorch MPS | Existing bias tensors only, exact name-shape-dtype digest, short causal-LM pilot | Prove the bias-only compiler on an architecture that actually has biases |
+These are staged experiment envelopes. Every row first needs the standard
+dependency, model-data, measured-preflight, and two-update uninterrupted pilot.
+Only a passing pilot can authorize the full-duration envelope. Rank and target
+modules remain compiler-selected plan facts. The current product does not expose
+selected-layer or q/v-only MLX controls.
 
-The 3B run is plumbing evidence, not a target-quality model. The 7B LoRA and
-DoRA pair is the first meaningful experiment. The 14B run is the likely local
-quality and efficiency candidate. The 70B run is intentionally last.
+| Gate | Model | Method | Starting full-run envelope | Purpose |
+|---|---|---|---|---|
+| 0 | [`mlx-community/Llama-3.2-3B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit) | QLoRA | Batch 1, 512 tokens, one epoch | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
+| 1A | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish the real corpus baseline on an Apache-2.0 model |
+| 2 | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
+| 3 | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Batch 1, 512 tokens, pilot only before any full run | Measure bounded pilot fit only. Do not claim useful tuning or quality from this run |
+
+Each model must be replaced by one reviewed immutable revision before Aptus can
+compile the run. The 3B run is plumbing evidence, not a target-quality model.
+The 7B LoRA run is the first meaningful unquantized experiment. The 14B run is a
+later quality and efficiency candidate. The 70B run is intentionally last.
 
 Four-bit weights for a 70B model start near 35 GB before quantization metadata,
 activations, adapter state, optimizer state, caches, temporary buffers, the
@@ -69,7 +88,7 @@ runtime, and macOS use the shared pool. That arithmetic makes a 70B pilot
 plausible enough to measure, but not safe enough to promise. Start with at
 least 16 GB reserved for the operating system and runtime. Abort on sustained
 memory pressure, rapid swap growth, a non-finite metric, or an incomplete
-checkpoint.
+action-owned artifact set.
 
 ## Why BitFit was a good idea but the wrong Llama path
 
@@ -91,38 +110,54 @@ and reload contract passes. Adding new biases would be a different method.
 Do not train directly from raw captured conversations. Export reviewed records
 under the [reviewed corpus contract](../reference/reviewed-corpus-contract.md).
 Every chunk or paraphrase from the same work, document, conversation, or seed
-must share one `split_group`. Aptus keeps declared groups on one side of the
-train and evaluation boundary. The requested evaluation fraction can move when
-a group is indivisible, so review the recorded target, realized fraction, and
-row error.
+must share one `split_group` in the reviewed source record.
 
-For the manual MLX experiments, materialize three immutable files before the
-run:
+The current generated MLX bundle requires at least two usable rows and writes
+disjoint `data/mlx/train.jsonl` and `data/mlx/valid.jsonl` files. It pads each
+split within itself to a complete micro-batch and records source and compiled
+counts in `aptus.mlx-split.v1`. Pilot and full-duration training use those bound
+files. Unlike the CUDA full-run splitter, the current MLX compiler does not
+claim group-aware subset selection or an exact requested evaluation fraction.
+Review the emitted split before training.
+
+For quality experiments, retain three immutable logical sets before compilation:
 
 - `train.jsonl` for approved training rows;
 - `valid.jsonl` for model selection and stopping; and
 - `test.jsonl` for a final comparison that never affects training choices.
 
-Bind the source dataset digest, all three output digests, the grouping rule,
-and the row IDs assigned to each split. Use the same split for LoRA and DoRA.
-Prompt masking must be enabled for chat or completion rows so the loss applies
-to the reviewed assistant target rather than the prompt.
+Bind the source dataset digest, all three set digests, the grouping rule, and
+the row IDs assigned to each set outside Aptus. Keep the test set outside the
+training source. Prompt masking must be enabled for chat or completion rows so
+the loss applies to the reviewed assistant target rather than the prompt.
 
 ## Required pass criteria
 
-Each run must produce all of these before the next larger run starts:
+The current MLX pilot must produce all of these before the next larger run
+starts:
 
 1. immutable model repository and revision;
 2. complete environment and package-version record;
-3. source and split dataset digests with zero declared-group overlap;
-4. positive trainable tensor and parameter counts with a stable descriptor
-   digest;
-5. finite initial, training, and validation losses;
-6. measured peak unified memory, tokens per second, and iteration time;
-7. a checkpoint that resumes for at least one additional optimizer step;
-8. a final adapter whose configuration and weights pass structural checks;
-9. a fresh-process adapter reload and bounded generation test; and
-10. comparison against the untouched base model on the same held-out rows.
+3. source dataset digest and bound `aptus.mlx-split.v1` counts;
+4. at least two completed optimizer updates and finite train and validation
+   losses;
+5. exact target coverage with one LoRA A/B pair per planned target and layer,
+   and no other trainable tensor;
+6. positive adapter delta and positive measured MLX peak;
+7. passing live unified-memory admission with the required reserve;
+8. immutable action-owned marker, metrics, adapter, and artifact manifests;
+9. fresh-process reload of the pinned base plus adapter with one to four
+   generated tokens; and
+10. explicit `execution_semantics: uninterrupted` and
+    `resume_supported: false` evidence.
+
+After `pilot-pass`, an explicitly confirmed full-duration run must start again
+from the pinned base. It must complete the plan-derived epoch schedule without
+interruption with at least one optimizer update, retain finite loss and exact
+target evidence, pass another fresh-process adapter reload, emit
+`aptus.mlx-final-export.v1`, and survive parent verification before
+`measured-run-pass`. Periodic MLX files are weight snapshots. They are not
+resumable checkpoints, and every resume argument fails.
 
 One finite loss is operational evidence only. A quality claim requires a named
 task metric, baseline, direction, threshold, test set, and repeated seeds. For
@@ -132,10 +167,12 @@ answer usefulness. Human review remains necessary.
 
 ## Authorization boundary
 
-No model or package download and no fine-tuning run is part of this repository
-change. Model downloads range from several gigabytes to tens of gigabytes, and
-training creates new artifacts. Start only after the model, corpus revision,
-method, disk budget, and output directory are explicitly chosen.
+No model or package download and no fine-tuning run is claimed by this document.
+Model downloads range from several gigabytes to tens of gigabytes, and training
+creates new artifacts. Start only after the immutable model revision, corpus
+revision, method, disk budget, output directory, and compatible external MLX
+Python are explicitly chosen. LM Studio and oMLX are loopback inference
+integrations only and cannot supply that training environment.
 
 ## Related documentation
 

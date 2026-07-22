@@ -43,9 +43,10 @@ Lifecycle conflicts use structured fields:
 | ---: | --- | --- |
 | `400` | `invalid_request` | A value or operation violated an Aptus contract |
 | `400` | `filesystem_error` | An uncategorized operating-system filesystem error occurred |
+| `400` | `runtime_configuration_invalid` | The selected Python executable did not pass the requested training-runtime probe |
 | `403` | `path_forbidden` | The service process lacks permission for a path |
 | `403` | `desktop_session_required` | The private macOS service did not receive its per-launch session cookie |
-| `403` | `desktop_execution_disabled` | The macOS sidecar received a runtime validation or job submission; transfer the bundle to a CUDA host |
+| `403` | `desktop_execution_disabled` | This service instance was explicitly started with local execution disabled; enable a compatible runtime or transfer the bundle to its target host |
 | `404` | `path_not_found` | A required filesystem path does not exist |
 | `404` | `plan_not_found` | The requested content-addressed plan is not persisted |
 | `404` | `job_not_found` | The requested job record is not persisted |
@@ -54,9 +55,17 @@ Lifecycle conflicts use structured fields:
 | `409` | `active_job_conflict` | A guarded operation conflicts with active Aptus work |
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
+| `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
 | `422` | `request_validation` | The strict Pydantic request model rejected shape, type, range, or extra fields |
 | `422` | `no_feasible_plan` | All 12 candidate rows were rejected |
 | varies | `http_error` | FastAPI emitted a non-object HTTP error detail |
+
+Local inference failures use a nested error object. Configuration and request
+codes return `400`, service failures return `502`, and timeouts return `504`.
+These codes include `invalid_endpoint`, `non_loopback_endpoint`,
+`unsupported_service`, `invalid_request`, `request_too_large`, `unavailable`,
+`invalid_response`, `response_too_large`, `redirect_blocked`, `http_error`, and
+`timeout`.
 
 `no_feasible_plan` includes the complete candidate matrix. Request-validation
 errors include Pydantic `details`. Prerequisite errors include the action,
@@ -144,7 +153,7 @@ Host validation sets report state to `invalid` when any finding has severity
 | `RUNTIME_NOT_EXECUTED` | warning | A runtime level was requested with `run=false`; state remains `static-pass` |
 | `RUNTIME_VALIDATION_FAILED` | error | Portable `validate.py` exited nonzero |
 | `RUNTIME_ATTESTATION_INVALID` | error | Runtime validation did not publish a readable bound report |
-| `PREFLIGHT_METRICS_INVALID` | error | Synthetic metrics are missing, malformed, non-positive, or misbound |
+| `PREFLIGHT_METRICS_INVALID` | error | Runtime-specific measured-preflight metrics are missing, malformed, non-positive, or misbound |
 | `PREFLIGHT_METRICS_UNBOUND` | error | The report digest or embedded metrics do not match the measured file |
 
 The self-contained runtime validator can stop before the host wrapper converts a

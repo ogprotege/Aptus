@@ -16,7 +16,7 @@ that protect it.
 | `src/aptus/methods/` | Typed method lifecycle and compiler-readiness registry |
 | `web/src/` | React workbench source |
 | `src/aptus/_web/` | Built workbench assets packaged in the Python wheel |
-| `desktop/macos/` | AppKit/WebKit host, native bridge, packaging, and Mac tests |
+| `desktop/macos/` | AppKit lifecycle, SwiftUI product shell, contained WebKit workbench, packaging, and Mac tests |
 | `pyproject.toml`, `uv.lock` | Python package contract and locked product-test environment |
 | `tests/aptus/` | Product, contract, generator, API, and execution tests |
 | `tests/tools/` | Legacy-audit tool tests |
@@ -28,16 +28,18 @@ that protect it.
 
 | Module | Owns | Must not silently decide |
 |---|---|---|
-| [`domain.py`](../../src/aptus/domain.py) | Typed facts, candidates, plans, validation states, run states, and serialization | Model permission, quality, or unsupported defaults |
+| [`domain.py`](../../src/aptus/domain.py) | Typed facts, runtime contracts, candidates, plans, validation states, run states, and serialization | Model permission, quality, or unsupported defaults |
 | [`methods/contracts.py`](../../src/aptus/methods/contracts.py) | Method descriptor and lifecycle shape | Executability by registry presence alone |
-| [`methods/registry.py`](../../src/aptus/methods/registry.py) | Eleven runtime descriptors and the exact selectable set | Planner feasibility or target-host success |
+| [`methods/registry.py`](../../src/aptus/methods/registry.py) | Eleven method descriptors, runtime bindings, and the exact selectable set | Planner feasibility or target-host success |
 | [`evidence.py`](../../src/aptus/evidence.py) | Versioned evidence records referenced by candidates and methods | Runtime proof from a paper or documentation page |
-| [`catalog.py`](../../src/aptus/catalog.py) | Direct package pins, supported model-family target modules, and stack versions | Provider compatibility without inspection |
-| [`profiling.py`](../../src/aptus/profiling.py) | Dataset parsing/profiling, canonical rows, pilot pressure rows, model-fact construction, and hardware discovery | Tokenizer measurement when only the character estimate ran |
+| [`catalog.py`](../../src/aptus/catalog.py) | Runtime-specific direct package pins, supported model-family target modules, and stack versions | Provider compatibility without inspection |
+| [`profiling.py`](../../src/aptus/profiling.py) | Dataset parsing/profiling, canonical rows, pilot pressure rows, model-fact construction, CUDA hardware discovery, and Apple platform probing | Tokenizer measurement when only the character estimate ran |
+| [`runtime_env.py`](../../src/aptus/runtime_env.py) | Exact Python interpreter discovery, runtime capability probes, and runtime resolution | Compiler support from an installed package alone |
+| [`integrations.py`](../../src/aptus/integrations.py) | Bounded loopback LM Studio and oMLX inference clients | Training, remote endpoints, or automatic service discovery beyond declared origins |
 | [`inspection.py`](../../src/aptus/inspection.py) | Bounded provider metadata inspection and family aliasing | License or training permission |
 | [`planning.py`](../../src/aptus/planning.py) | Candidate enumeration, feasibility, memory use, Pareto marking, and deterministic ranking | Universal optimality or measured fit |
 | [`plan_contract.py`](../../src/aptus/plan_contract.py) | Canonical candidate/plan identities and bundle-manifest verification | Runtime artifact success |
-| [`generation.py`](../../src/aptus/generation.py) | Artifact compiler plus generated trainer, runner, preflight, and validator sources | In-place bundle mutation or child-owned success promotion |
+| [`generation.py`](../../src/aptus/generation.py) | Runtime-dispatched artifact compilers plus generated trainer, runner, preflight, and validator sources | In-place bundle mutation or child-owned success promotion |
 | [`attestation.py`](../../src/aptus/attestation.py) | Strict trainable-parameter census validation shared by host code | Method preparation itself |
 | [`validation.py`](../../src/aptus/validation.py) | Host-side validation ladder and report persistence | Cancellable runtime execution through the direct API path |
 | [`runtime_lease.py`](../../src/aptus/runtime_lease.py) | Portable per-user execution lease and process-group control | Reservation against unrelated accelerator programs |
@@ -53,7 +55,7 @@ that protect it.
 
 ```mermaid
 flowchart LR
-  D["domain contracts"] --> MR["method registry"]
+  D["domain and runtime contracts"] --> MR["method registry"]
   D --> P["profiling and inspection"]
   D --> PL["planner"]
   MR --> PL
@@ -61,13 +63,17 @@ flowchart LR
   PL --> PC["plan contract"]
   PL --> G["artifact compiler"]
   PC --> G
-  G --> V["validation"]
+  G --> V["runtime-aware validation"]
+  RE["runtime environment"] --> V
+  RE --> E
   V --> E["job service and completion verifier"]
   E --> A["FastAPI"]
   PL --> A
   G --> A
   A --> W["React workbench"]
-  W --> M["AppKit and WebKit host"]
+  W --> M["AppKit and SwiftUI host"]
+  M --> CW["contained WebKit workbench"]
+  I["local inference adapters"] --> A
   PL --> C["CLI"]
   G --> C
   V --> C
@@ -80,7 +86,7 @@ binding helpers so host and managed checks agree.
 
 ## The generated-runtime boundary
 
-The compiler emits four executable programs from constants in
+The compiler emits four executable programs from runtime-specific constants in
 [`generation.py`](../../src/aptus/generation.py):
 
 - `TRAIN_SCRIPT` becomes `train.py`;
@@ -88,10 +94,13 @@ The compiler emits four executable programs from constants in
 - `PREFLIGHT_SCRIPT` becomes `preflight.py`;
 - `VALIDATE_SCRIPT` becomes `validate.py`.
 
-It also copies the current `plan_contract.py` and `runtime_lease.py` into the
-bundle. The bundle must work without importing the Aptus application package at
-runtime. This boundary is why a change to a shared contract often needs both
-host-side tests and generated-module tests.
+Every compiler copies the current `plan_contract.py` and `runtime_lease.py` into
+the bundle. The MLX-LM compiler emits its own bounded validator, runner,
+preflight, trainer, and fresh-reload sources plus its MLX configuration and
+disjoint data split. Each bundle must work without importing the Aptus
+application package at runtime.
+This boundary is why a change to a shared contract often needs both host-side
+tests and generated-module tests.
 
 `generation.py` also owns trainer and Accelerate configuration, bundle reports,
 manifest production, atomic publication, and deterministic ZIP creation. Do
@@ -112,6 +121,17 @@ generator, compile a fresh fixture, and review the output diff.
 | [`styles.css`](../../web/src/styles.css) | Visual tokens, layout, responsive behavior, focus, and motion policy |
 | [`desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete feature detection for native pickers and Finder actions |
 
+## Native Mac map
+
+| Path | Responsibility |
+|---|---|
+| [`AptusApplication.swift`](../../desktop/macos/Sources/AptusApplication.swift) | AppKit lifecycle and backend shutdown |
+| [`MainWindowController.swift`](../../desktop/macos/Sources/MainWindowController.swift) | Startup state, private backend session, and SwiftUI shell installation |
+| [`DesktopShell.swift`](../../desktop/macos/Sources/DesktopShell.swift) | Home, Machine, Models, Data, Plans, and Runs navigation and presentation |
+| [`DesktopPlatform.swift`](../../desktop/macos/Sources/DesktopPlatform.swift) | macOS 15 and 26 policies plus local machine facts |
+| [`DesktopBackendClient.swift`](../../desktop/macos/Sources/DesktopBackendClient.swift) | Exact-origin authenticated runtime configuration request |
+| [`WebViewController.swift`](../../desktop/macos/Sources/WebViewController.swift) | Contained nonpersistent WebKit workbench and navigation policy |
+
 The Vite build writes to `src/aptus/_web` and clears its prior contents. Those
 assets are package data in the wheel. A source-only web change is incomplete
 until the packaged build is regenerated and the installed-wheel asset smoke
@@ -123,8 +143,9 @@ The Python tests broadly mirror production modules:
 
 - `test_domain.py`, `test_plan_contract.py`, and `test_methods.py` protect typed
   and identity contracts;
-- `test_profiling.py`, `test_inspection.py`, and `test_planning.py` protect fact
-  intake and candidate decisions;
+- `test_profiling.py`, `test_inspection.py`, `test_runtime_env.py`,
+  `test_integrations.py`, and `test_planning.py` protect fact intake, runtime
+  separation, local inference bounds, and candidate decisions;
 - `test_generation.py`, `test_validation.py`, and `test_attestation.py` protect
   generated artifacts and evidence;
 - `test_execution.py` and `test_runtime_lease.py` protect job, lease,

@@ -12,7 +12,7 @@ operational evidence, future work, research inputs, and historical records.
 | --- | --- | --- |
 | Understand what Aptus does | [Product vision](product/vision.md) | [Current capabilities](product/current-capabilities.md) |
 | Run something safely on this Mac | [Install Aptus for Mac](getting-started/install.md#build-aptus-for-mac) | [Choose your path](getting-started/choose-your-path.md) |
-| Plan for a CUDA host | [Model, dataset, and hardware facts](guides/model-dataset-hardware.md) | [Compare plans](guides/compare-plans.md) |
+| Plan for this Mac or a CUDA host | [Model, dataset, and hardware facts](guides/model-dataset-hardware.md) | [Compare plans](guides/compare-plans.md) |
 | Choose a fine-tuning method | [Method selection guide](guides/choose-a-method.md) | [Method taxonomy](methodology/method-taxonomy.md) |
 | Prepare a dataset | [Prepare a dataset](guides/prepare-a-dataset.md) | [Dataset schemas](reference/dataset-schemas.md) |
 | Compile and run a bundle | [Quickstart](getting-started/quickstart.md) | [Operator checklist](operations/operator-checklist.md) |
@@ -111,7 +111,7 @@ Authority labels have a separate meaning:
 - [State, storage, and retention](operations/state-storage-retention.md)
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
-- [Apple Silicon experiment matrix](operations/apple-silicon-pilot.md)
+- [Apple Silicon runtime and pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 
 ## Contribute
@@ -161,6 +161,10 @@ Authority labels have a separate meaning:
 
 ## Evidence notice
 
-Repository tests are necessary but do not replace a target-host pilot. No real
-CUDA pilot has been completed on this development Mac. Current execution claims
-remain conditional until the release record passes every applicable gate.
+Repository tests are necessary but do not replace target-runtime evidence.
+Apple Silicon MLX-LM LoRA and QLoRA implement dependency, model-data, and
+measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
+full-duration adapter training from the pinned base model. Fresh-process adapter
+reload and bounded generation prove that the emitted adapter can be loaded. They
+do not prove training resume. CUDA training remains an external-host path on
+this Mac. No MLX or CUDA full run is claimed for the release record.

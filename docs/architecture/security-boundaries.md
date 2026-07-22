@@ -2,36 +2,63 @@
 
 > **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a trust-boundary change
 
-## Local trusted-user boundary
+## Authenticated local service boundary
 
 The FastAPI service can read data, write files, fetch model metadata, and launch
-training processes. It has no authentication, tenant isolation, or remote-user
-policy. Serve it on loopback. Treat anyone who can call the API as able to act
-with the Aptus process user's filesystem and compute permissions.
+training processes. `aptus serve` creates a new random token for every launch
+and passes it to the application. Only health responses and static workbench
+assets are public. Every other API route, OpenAPI schema, and interactive API
+page requires either the session cookie or an `Authorization: Bearer TOKEN`
+header.
+
+The CLI prints two secrets to standard error: a workbench URL carrying the
+one-time query handoff and the same value as an API bearer token. A valid GET to
+a public workbench path exchanges `aptus_session_token` for an HttpOnly,
+SameSite Strict cookie. The service immediately returns `303` to the same path
+without the token query. Invalid handoff values return `403`. Treat the printed
+URL and token as credentials.
+
+The CLI disables Uvicorn access logs so the handoff query is not copied into
+normal request logs. The redirect removes it from later requests. These controls
+do not make the token safe to disclose through terminal capture, browser
+history, process supervision, or another observer.
 
 The default service accepts only loopback Host headers, including `localhost`,
-`127.0.0.1`, and `[::1]`. This blocks the common DNS-rebinding path into an
-unauthenticated local API. Explicit non-loopback mode relaxes that check and
-requires an external authenticated boundary.
+`127.0.0.1`, and `[::1]`. Non-loopback binding is rejected unless
+`--allow-non-loopback` is explicit. That mode still requires the token, but the
+server uses plain HTTP. Anyone who can observe the network can steal the token.
+Use an approved TLS and network boundary. The flag does not add tenant
+isolation, filesystem scoping, worker isolation, or a remote-user policy.
+
+Direct callers of `create_app()` can omit `session_token`. That programmatic
+mode has no application authentication and must remain behind a suitable local
+or external boundary.
 
 ## Native desktop boundary
 
 Aptus for Mac starts a separate desktop entrypoint on an ephemeral loopback
 port. The native host creates a random per-launch token and installs it as an
 HttpOnly, SameSite Strict cookie before WebKit loads the workbench. Every
-desktop route requires that cookie. The token is absent from the URL, readiness
-file, JavaScript bridge, state files, and logs. Desktop responses add a
+protected API route requires that cookie. Static assets and health remain
+public. The token is absent from the URL, readiness file, JavaScript bridge,
+state files, and logs. Desktop responses add a
 same-origin content security policy, deny framing, suppress referrers, and
 disable MIME sniffing.
 
 The desktop boundary does not turn the API into a secure remote or multi-user
 service. WebKit accepts only the exact loopback session origin. External links
-open outside the app. The ordinary `aptus serve` command retains the trusted
-local-user model described above.
+open outside the app. Unlike `aptus serve`, the desktop host installs the cookie
+before its first request and never places the token in a URL.
 
-The desktop sidecar also enforces the platform execution boundary. Runtime
-validation and job submission return `desktop_execution_disabled`; hiding the
-Run controls in React is not the authorization mechanism.
+The desktop sidecar keeps every runtime job bound to the compiled runtime
+contract. MLX-LM jobs use a probed external interpreter. CUDA bundles remain a
+target-host handoff in the Mac UI, and a manual CUDA profile never becomes
+evidence that the Mac has CUDA.
+
+The native runtime-configuration client accepts only the exact authenticated
+loopback origin. It sends the same session cookie through an ephemeral URL
+session, refuses redirects, and bounds the response. The selected interpreter
+must be an executable regular path whose runtime probe passes.
 
 ## Filesystem boundary
 
@@ -44,6 +71,10 @@ The compiler makes cleartext dataset copies and a ZIP. Runtime adds logs,
 metrics, checkpoints, model or adapter files, tokenizer data, and caches. OS
 backup and sync software can duplicate all of them.
 
+The selected runtime path is stored in `runtime-config.json` with mode 0600.
+The state loader rejects a symlink or non-regular configuration file. Protect
+the referenced environment from replacement by other users or processes.
+
 ## Model-provider boundary
 
 Model inspection is a bounded metadata fetch from a declared repository and
@@ -55,6 +86,13 @@ Runtime model loading is bound to the pinned revision. Operators must handle
 credentials through the training stack's normal secure mechanisms. Do not place
 tokens in plan JSON, source data, generated code, or job requests.
 
+## Local inference boundary
+
+LM Studio and oMLX integrations accept one explicit HTTP loopback origin with
+an explicit port. They disable proxies and redirects, bound request and response
+sizes, and use finite timeouts. They do not scan arbitrary ports, accept LAN
+hosts, or become training runtimes. Responses are untrusted inference output.
+
 ## Code-execution boundary
 
 Generated `train.py`, `preflight.py`, `validate.py`, and `run.py` execute Python
@@ -63,19 +101,29 @@ third-party code. Review direct pins, resolved dependencies, model settings, and
 the bundle before execution.
 
 `requirements.txt` is an exact direct constraint set, not a transitive lock.
+MLX-LM and PyTorch MPS runtime selection can launch an external Python
+interpreter. Selecting it grants that environment the same dataset, bundle, and
+artifact access as the Aptus job. Review and control the environment first.
 
 ## Concurrency boundary
 
 Managed jobs and POSIX portable entrypoints use one host-global Aptus lease for
-the same local user. It does not reserve CUDA against unrelated software.
+the same local user. It does not reserve CUDA or unified memory against unrelated software.
 Operators remain responsible for host scheduling outside Aptus. Direct portable
 child execution is fail-closed on Windows in v0.2.
 
 ## Admission boundary
 
 A pilot report is historical evidence. Train admission deeply verifies current
-bindings and capacity under the execution lease. Current free resources can
-invalidate an earlier pass. Authorization is not delegated to UI state.
+runtime-specific bindings and capacity under the execution lease. Current free
+resources can invalidate an earlier pass. Authorization is not delegated to UI
+state.
+
+CUDA admission verifies environment, hardware, checkpoint, export, VRAM, host
+RAM, and disk evidence. MLX admission verifies its immutable uninterrupted
+pilot, then requires current available unified memory above measured pilot peak
+plus reserve and enough disk. MLX fresh-process adapter reload does not create a
+training-resume capability.
 
 ## Completion boundary
 
@@ -90,8 +138,9 @@ benchmark quality, safety, or deployment fitness.
 ## Unsupported boundaries
 
 V0.2 has no secure multi-user service, cloud credential broker, provider
-provisioner, MCP authorization policy, full-run resume contract, or evaluation
-policy engine. Those are future designs, not hidden current features.
+provisioner, MCP authorization policy, full-run resume contract, PyTorch MPS
+compiler, MLX-LM full-train authorization, or evaluation policy engine. Those
+are future designs, not hidden current features.
 
 ## Related documentation
 

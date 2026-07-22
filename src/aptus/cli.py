@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -11,6 +12,7 @@ from .domain import (
     Backend,
     Method,
     Objective,
+    TrainingRuntime,
     TrainingTarget,
     ValidationState,
     to_primitive,
@@ -97,7 +99,12 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         "--backend",
         default="cuda",
         choices=[item.value for item in Backend],
-        help="Planned backend; Aptus 0.2 execution supports CUDA only (default: cuda).",
+        help="Planned compute backend (default: cuda).",
+    )
+    parser.add_argument(
+        "--training-runtime",
+        choices=[item.value for item in TrainingRuntime],
+        help="Explicit training runtime; must match the planned backend (default: inferred).",
     )
     parser.add_argument(
         "--gpu-count",
@@ -141,7 +148,7 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         "--reserve-gib",
         type=float,
         default=2.0,
-        help="Per-device memory excluded from the fit budget (default: 2).",
+        help="Memory excluded from the fit budget (default: 2; Apple unified memory minimum: 8).",
     )
     parser.add_argument(
         "--disk-free-gib",
@@ -368,6 +375,23 @@ def _parser() -> argparse.ArgumentParser:
 def _make_plan(arguments: argparse.Namespace) -> Any:
     if not arguments.confirm_training_allowed:
         raise ValueError("Model training permission must be explicitly confirmed.")
+    backend = Backend(arguments.backend)
+    training_runtime = (
+        TrainingRuntime(arguments.training_runtime)
+        if arguments.training_runtime is not None
+        else None
+    )
+    if training_runtime is not None:
+        expected_backend = {
+            TrainingRuntime.TRANSFORMERS_PEFT_CUDA: Backend.CUDA,
+            TrainingRuntime.MLX_LM: Backend.MPS,
+            TrainingRuntime.PYTORCH_MPS: Backend.MPS,
+        }[training_runtime]
+        if backend != expected_backend:
+            raise ValueError(
+                f"Training runtime {training_runtime.value} requires "
+                f"--backend {expected_backend.value}."
+            )
     dataset = profile_dataset(
         arguments.dataset,
         sample_limit=arguments.sample_limit,
@@ -385,8 +409,11 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         license_name=arguments.license,
         training_allowed=True,
     )
+    reserve_gib = arguments.reserve_gib
+    if backend == Backend.MPS:
+        reserve_gib = max(reserve_gib, 8.0)
     hardware = build_hardware_spec(
-        backend=Backend(arguments.backend),
+        backend=backend,
         gpu_count=arguments.gpu_count,
         vram_gib=arguments.vram_gib,
         supports_bf16=arguments.bf16,
@@ -395,7 +422,7 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         free_vram_gib=arguments.free_vram_gib,
         host_ram_gib=arguments.host_ram_gib,
         host_ram_free_gib=arguments.host_ram_free_gib,
-        reserve_gib=arguments.reserve_gib,
+        reserve_gib=reserve_gib,
         disk_free_gib=arguments.disk_free_gib,
     )
     target = TrainingTarget(
@@ -410,6 +437,7 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         evaluation_fraction=arguments.evaluation_fraction,
         packing=arguments.packing,
         checkpoint_steps=arguments.checkpoint_steps,
+        training_runtime=training_runtime,
     )
     return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
 
@@ -521,8 +549,8 @@ def _run(arguments: argparse.Namespace) -> int:
                     "approved bundle roots, and worker isolation."
                 )
             print(
-                "Aptus warning: non-loopback serving exposes a trusted-user execution API. "
-                "Provide an external security boundary before accepting traffic.",
+                "Aptus warning: non-loopback serving sends the session token over plain HTTP. "
+                "Provide an approved TLS and network boundary before accepting traffic.",
                 file=sys.stderr,
             )
         try:
@@ -534,14 +562,27 @@ def _run(arguments: argparse.Namespace) -> int:
         from .api import create_app
 
         allowed_hosts = ("*",) if arguments.allow_non_loopback else (arguments.host,)
+        session_token = secrets.token_urlsafe(32)
+        application = create_app(
+            state_dir=arguments.state_dir,
+            static_dir=arguments.web_dist,
+            allowed_hosts=allowed_hosts,
+            session_token=session_token,
+        )
+        display_host = (
+            f"[{arguments.host}]" if ":" in arguments.host else arguments.host
+        )
+        workbench_url = (
+            f"http://{display_host}:{arguments.port}/"
+            f"?aptus_session_token={session_token}"
+        )
+        print(f"Aptus workbench: {workbench_url}", file=sys.stderr)
+        print(f"Aptus API bearer token: {session_token}", file=sys.stderr)
         uvicorn.run(
-            create_app(
-                state_dir=arguments.state_dir,
-                static_dir=arguments.web_dist,
-                allowed_hosts=allowed_hosts,
-            ),
+            application,
             host=arguments.host,
             port=arguments.port,
+            access_log=False,
         )
         return 0
     if arguments.command == "hardware" or (

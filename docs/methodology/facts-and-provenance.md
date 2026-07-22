@@ -42,12 +42,14 @@ config fields, and verifies that every catalog-derived target module exists.
 The same gate prepares the selected method and rejects zero trainable
 parameters, non-finite trainable values, or a trainable set outside the method
 scope. Full tuning permits no frozen model tensor. Current LoRA-based paths
-permit only compiled LoRA tensors. The gate computes positive tensor and
+permit only compiled LoRA tensors. The CUDA gate computes positive tensor and
 parameter counts plus a SHA-256 descriptor digest over sorted trainable names,
-shapes, and dtypes. The digest discloses no parameter names or values. Measured
-preflight, pilot, and full-run metrics persist this census. Both pilot phases
-must agree. The pilot applies and exercises the selected method with the
-compiled real data and checkpoint-continuation contract.
+shapes, and dtypes. The digest discloses no parameter names or values. CUDA
+measured preflight, pilot, and full-run metrics persist this census, and both
+pilot phases must agree. MLX metrics instead bind every planned target instance
+to one LoRA A/B pair, reject other trainables, and record a descriptor digest.
+Its pilot applies the selected method to compiled real data in one uninterrupted
+run, then verifies adapter reload in a fresh process without resuming training.
 
 ## Dataset profile
 
@@ -95,10 +97,17 @@ and LLM.int8 hardware eligibility from the documented compute-capability
 thresholds. On Darwin arm64 without CUDA, it instead records a single `mps`
 device representing measured shared unified memory. Current availability stays
 unknown when the host interface does not provide it. This fallback does not
-assert MPS, MLX, BF16, or bitsandbytes execution support. The later CUDA
-dependency gate verifies the installed bitsandbytes package. The hardware
-profile does not yet record device UUID, driver version, CUDA version,
-interconnect, or package versions.
+assert MPS, MLX, BF16, or bitsandbytes execution support. When current host RAM
+availability is measurable, the MLX estimator treats it as live unified-memory
+headroom after the user reserve. It still leaves `free_vram_bytes` empty because
+Apple Silicon has no separate free-VRAM pool. The Apple platform probe also
+records the macOS build, chip, CPU count, optional built-in Metal GPU core
+count, pressure, swap, working-set advisory, and interpreter-local runtime
+facts. The exact external-runtime inventory separately proves whether MLX-LM or
+PyTorch MPS is usable. MLX-LM QLoRA verifies four-bit metadata on the pinned
+model revision. CUDA dependency validation verifies bitsandbytes where that
+runtime requires it. The hardware profile does not yet record device UUID,
+driver version, CUDA version, interconnect, or package versions.
 
 When an API plan request uses `discovery: local-scan`, the planning endpoint
 probes the Aptus host again. It preserves the requested reserve but replaces

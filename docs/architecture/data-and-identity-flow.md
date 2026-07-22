@@ -113,10 +113,10 @@ Dependency validation records Python, platform, exact direct constraint
 versions, and the installed runtime distribution closure. `requirements.txt`
 is an exact direct constraint set, not a complete transitive lock.
 
-Measured validation records the participating CUDA device identities and
-runtime properties needed by the selected candidate. Train admission compares
-current devices and free capacity with the pilot-bound evidence. A historical
-pass cannot reserve current resources.
+Measured validation records runtime-specific device and memory evidence. CUDA
+binds participating device identities. MLX binds live unified-memory admission.
+Train admission compares current capacity with pilot-bound evidence. A
+historical pass cannot reserve current resources.
 
 ## Trainable-parameter identity
 
@@ -127,11 +127,13 @@ does not expose parameter values.
 Full training requires every model tensor to be trainable. LoRA-based methods
 require one complete A/B pair for every inspected target-module instance and no
 other trainable tensor. Optimizer parameter identities must exactly equal the
-validated trainable identities. Both pilot phases must report the same census.
+validated trainable identities. Both CUDA pilot phases must report the same
+census. MLX binds one A/B pair to every planned target in every layer and proves
+a positive adapter delta in its uninterrupted run.
 
 ## Split identity and mutation detection
 
-The full trainer computes one deterministic split over the complete canonical
+The CUDA full trainer computes one deterministic split over the complete canonical
 JSONL. It records:
 
 - the canonical JSONL digest;
@@ -149,26 +151,33 @@ The trainer hashes the canonical file during split passes, checks file identity
 before and after each lazy read, and requires distributed ranks to agree on the
 canonical and assignment digests and counts. A mutation aborts the run.
 
+MLX compilation instead creates disjoint train and validation files, pads only
+within each split, and binds source and compiled counts in
+`aptus.mlx-split.v1`. The current MLX contract does not claim group-aware subset
+selection or an exact requested evaluation fraction.
+
 ## Job, run, and export identities
 
 Managed actions receive persisted `job_` identities. Full training also
 receives a unique `run_` identity and a new `bundle/runs/run_*/` directory. A
 child cannot reuse an existing run path.
 
-The child writes pending metrics and final-export evidence. The parent verifies
-aggregate process success, plan/candidate/run/distribution bindings, ranks,
-finite metrics, positive steps, census, split evidence, and the structural
-safetensors tree. It records recursive path, size, and digest coverage before
-promoting the report to `measured-run-pass`.
+The child writes metrics and final-export evidence. The parent verifies
+runtime-specific process success, plan/candidate/run bindings, finite metrics,
+positive updates, trainable scope, data evidence, and immutable safetensors.
+CUDA also binds distribution ranks and its split contract. MLX also binds fresh
+adapter generation and `resume_supported: false`. Only then does the parent
+promote the report to `measured-run-pass`.
 
 This attests the exact run and structural file tree. It does not establish
 quality, safety, inference parity, or deployment fitness.
 
 ## Data-copy and trust boundary
 
-The source copy, canonical JSONL, pilot sample, ZIP, model cache, validation
-reports, job logs, checkpoints, metrics, tokenizer files, and exports can all
-contain sensitive material. Backup and synchronization software can create more
+The source copy, canonical JSONL, pilot sample, MLX split files, ZIP, model
+cache, validation reports, job logs, CUDA checkpoints, MLX weight snapshots,
+metrics, tokenizer files, and exports can all contain sensitive material.
+Backup and synchronization software can create more
 copies. Bundle integrity detects changes. It does not encrypt or govern access
 to those files.
 

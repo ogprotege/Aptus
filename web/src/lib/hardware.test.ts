@@ -29,7 +29,7 @@ describe("summarizeHardwareProbe", () => {
     expect(summary.devices[0].total_vram_gib).toBe(64);
     expect(summary.devices[0].free_vram_gib).toBeNull();
     expect(summary.host_ram_free_gib).toBeNull();
-    expect(summary.reserve_per_device_gib).toBe(2);
+    expect(summary.reserve_per_device_gib).toBe(8);
   });
 
   it("uses the limiting measured CUDA profile without hiding missing free memory", () => {

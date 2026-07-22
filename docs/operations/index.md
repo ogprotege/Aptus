@@ -20,8 +20,9 @@
 
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
 
-That matrix is proposed experimental work. Aptus 0.2 execution remains
-CUDA-only.
+That matrix is proposed target-host work. Aptus 0.2 implements conditional
+single-device MLX-LM LoRA and QLoRA execution, but the matrix records no passed
+host run by itself.
 
 ## Related documentation
 

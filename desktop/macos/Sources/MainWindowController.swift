@@ -1,9 +1,11 @@
 import AppKit
+import SwiftUI
 
 final class MainWindowController: NSWindowController, NSWindowDelegate {
     private let backend: BackendController
     private let startupController = StartupViewController()
     private var currentSession: BackendSession?
+    private var shellModel: DesktopShellModel?
     var onBackendReady: ((BackendSession) -> Void)?
     var onWorkbenchReady: ((BackendSession) -> Void)?
 
@@ -18,8 +20,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         window.title = "Aptus"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.minSize = NSSize(width: 980, height: 680)
-        window.backgroundColor = AptusPalette.cloud
+        window.toolbarStyle = .unified
+        window.titlebarSeparatorStyle = .none
+        window.minSize = NSSize(width: 1_020, height: 700)
+        window.backgroundColor = .windowBackgroundColor
         window.center()
         super.init(window: window)
         window.delegate = self
@@ -47,10 +51,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         backend.stop(completion: completion)
     }
 
+    func openWorkbench() {
+        shellModel?.openWorkbench()
+    }
+
     private func apply(_ state: BackendState) {
         switch state {
         case .starting:
             currentSession = nil
+            shellModel = nil
             contentViewController = startupController
             startupController.showStarting()
         case let .ready(session):
@@ -60,9 +69,25 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
             controller.onWorkbenchReady = { [weak self] in
                 self?.onWorkbenchReady?(session)
             }
-            contentViewController = controller
+            let backendClient = DesktopBackendClient(session: session)
+            let model = DesktopShellModel(
+                presentsWorkbenchImmediately: DesktopLaunchPolicy.presentsWorkbenchImmediately(
+                    environment: ProcessInfo.processInfo.environment
+                ),
+                retryWorkbench: { [weak controller] in controller?.retryLoad() },
+                runtimeConfigurator: backendClient,
+                runtimeInventoryLoader: backendClient,
+                platformSnapshotLoader: backendClient
+            )
+            shellModel = model
+            contentViewController = NSHostingController(rootView: AptusDesktopShellView(
+                model: model,
+                workbenchController: controller
+            ))
             onBackendReady?(session)
         case let .failed(message):
+            currentSession = nil
+            shellModel = nil
             contentViewController = startupController
             startupController.showFailure(message)
         case .stopped, .stopping:
@@ -76,8 +101,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func showWebFailure(_ message: String) {
-        contentViewController = startupController
-        startupController.showFailure(message)
+        guard let shellModel else {
+            contentViewController = startupController
+            startupController.showFailure(message)
+            return
+        }
+        shellModel.reportWorkbenchFailure(message)
     }
 
     private func showBackendLog() {

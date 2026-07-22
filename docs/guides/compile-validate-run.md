@@ -1,6 +1,6 @@
 # Compile, Validate, and Run
 
-> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when runtime actions change
+> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA and Apple Silicon operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when runtime actions change
 
 ## Compile once
 
@@ -61,21 +61,26 @@ aptus run "$BUNDLE_DIR" --action pilot
 Wait for each action. The local orchestrator allows one managed Aptus job at a
 time across state roots for the same user. It rejects skipped actions. A higher
 validation action also reruns the lower validation levels inside its own job,
-so an earlier pass is both an admission prerequisite and a recorded checkpoint
-in the operator workflow.
+so an earlier pass is both an admission prerequisite and a recorded state in the
+operator workflow.
 
-Model-data validation prepares the selected method before any optimizer exists.
-It rejects zero or non-finite trainable parameters. The `full` path requires
-every model tensor to remain trainable. LoRA, int8-LoRA, and QLoRA permit only
-the compiled LoRA tensors to be trainable and require exactly one A/B pair for
-every inspected target instance. Optimizer construction then proves its parameter
-identities equal the validated trainable set. Measured preflight records the same
-census contract for the synthetic method path. Both real-model pilot phases must
-record identical census objects.
+CUDA model-data validation prepares the selected method before any optimizer
+exists. It rejects zero or non-finite trainable parameters. The `full` path
+requires every model tensor to remain trainable. LoRA, int8-LoRA, and QLoRA
+permit only compiled LoRA tensors and require exactly one A/B pair per inspected
+target instance. CUDA measured preflight records the same census for a synthetic
+method path, and both real-model pilot phases must agree.
+
+MLX model-data validation loads the pinned revision and tokenizes every bound
+train and validation row. Measured preflight completes bounded real-input
+optimizer work. Pilot runs the exact model and data from the pinned base without
+interruption for at least two optimizer updates. It proves exact target binding,
+finite losses, positive memory and adapter delta, live headroom, immutable
+artifacts, and fresh-process adapter reload with one to four generated tokens.
 
 ## Authorize full training
 
-A pilot pass is necessary but not sufficient. At train submission, Aptus deeply
+A pilot pass is necessary but not sufficient. For CUDA, train submission deeply
 rechecks:
 
 - compiler manifest and plan identity;
@@ -86,6 +91,11 @@ rechecks:
 - current CUDA identities and free VRAM;
 - current free host RAM;
 - current free disk using measured checkpoint and export sizes.
+
+For MLX, submission re-verifies the owned uninterrupted pilot, including its
+adapter and reload manifests. It then requires current available unified memory
+above the measured pilot peak plus reserve and enough free disk for the plan and
+measured adapter artifacts.
 
 This check runs inside the global lease and job-record transaction. Cached status
 text is informational.
@@ -116,7 +126,7 @@ is the parent that chooses the
 interpreter-bound single or Accelerate command, waits for aggregate completion,
 verifies pending artifacts, and promotes the report.
 
-The full trainer computes one deterministic split over the complete canonical
+The CUDA full trainer computes one deterministic split over the complete canonical
 JSONL. Ungrouped data uses `deterministic-exact-row-count-sha256`. Data with at
 least one declared `split_group` uses
 `deterministic-size-aware-group-sha256`. Every declared group stays on one side.
@@ -129,11 +139,16 @@ The trainer hashes the canonical file during each split pass, binds every rank
 to the same canonical and assignment digests, and rechecks the file before and
 during lazy consumption. A change aborts the run.
 
+The MLX compiler instead writes disjoint `data/mlx/train.jsonl` and
+`data/mlx/valid.jsonl` files before runtime. It pads only within each split and
+binds source and compiled counts in `aptus.mlx-split.v1`. The current MLX split
+does not claim CUDA's group-aware assignment behavior.
+
 ## Completion contract
 
 Each full run receives a unique `run_*` directory. Aptus does not overwrite it.
-The child writes pending metrics and export evidence while the validation report
-stays `execution-approved`. The parent then verifies:
+The child writes metrics and export evidence while the validation report remains
+below final completion. For CUDA, the parent verifies:
 
 - successful aggregate process exit;
 - finite training and evaluation loss where required;
@@ -147,6 +162,14 @@ stays `execution-approved`. The parent then verifies:
 - expected safetensors files and nonempty tensor keys;
 - adapter or full-model provenance;
 - recursive path, size, and hash manifest coverage.
+
+For MLX, the full run starts again from the pinned base and derives its
+uninterrupted duration from the compiled train rows, batch, accumulation, and
+epochs. The parent verifies at least one optimizer update, finite train and
+validation losses, exact target binding, positive MLX peak and adapter delta,
+live headroom evidence, immutable run artifacts, fresh-process one-to-four-token
+generation, and `aptus.mlx-final-export.v1`. Weight snapshots cannot resume the
+run.
 
 Only a successful parent verification promotes the report to
 `measured-run-pass`. This proves the stated run and file-tree contract. It does

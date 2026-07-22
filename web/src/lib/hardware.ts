@@ -84,11 +84,20 @@ export function summarizeHardwareProbe(
       probe.host_ram_free_bytes,
     ),
     reserve_per_device_gib:
-      gibibytes(
-        probe.reserve_gib,
-        probe.reserve_per_device_bytes,
-        { allowZero: true },
-      ) ?? current.reserve_per_device_gib,
+      backend === "mps"
+        ? Math.max(
+            gibibytes(
+              probe.reserve_gib,
+              probe.reserve_per_device_bytes,
+              { allowZero: true },
+            ) ?? current.reserve_per_device_gib ?? 0,
+            8,
+          )
+        : gibibytes(
+            probe.reserve_gib,
+            probe.reserve_per_device_bytes,
+            { allowZero: true },
+          ) ?? current.reserve_per_device_gib,
     disk_free_gib: gibibytes(probe.disk_free_gib, probe.disk_free_bytes),
     devices: [
       {

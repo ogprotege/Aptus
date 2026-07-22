@@ -44,6 +44,13 @@ row shape. Compilation then:
 The sample limit bounds profiling statistics. It does not truncate the canonical
 training data placed in the bundle.
 
+An MLX-LM bundle requires at least two usable rows. Compilation writes disjoint
+`data/mlx/train.jsonl` and `data/mlx/valid.jsonl` files for the bounded compiler
+and full-duration adapter path. It pads each side within that side to a complete
+micro-batch and binds source and compiled counts in `aptus.mlx-split.v1`. The
+current MLX split is not the CUDA group-aware full-run split. Review it before
+training and keep a final test set outside the source.
+
 Rows may declare a non-empty `split_group` either at the top level or under
 `metadata.split_group`. When both locations are present, they must agree. Full
 training assigns every row with the same declared value to one deterministic
@@ -83,13 +90,22 @@ ranks. The plan records the exact device indices. The manual API describes one
 device profile repeated by GPU count, so use local scan for heterogeneous CUDA
 hosts.
 
-On Darwin arm64 without CUDA, local discovery records one `mps` device backed
-by the measured shared unified-memory pool. It does not call that pool dedicated
-VRAM, infer unsupported precision or quantization flags, or substitute total
-memory when current availability is unknown. All v0.2 execution candidates then
-remain explicitly unsupported. See the separate
-[Apple Silicon pilot matrix](../operations/apple-silicon-pilot.md) for the
-proposed MLX validation sequence.
+On Darwin arm64 without CUDA, local discovery records one `mps` compatibility
+device backed by shared unified memory. It does not call that pool dedicated
+VRAM or copy host availability into `free_vram_bytes`. The hardware profile
+records current available host memory separately. MLX planning uses the lesser
+of that live value and the Metal compatibility capacity, then subtracts the
+reserve. A local API scan raises an explicitly selected Apple runtime reserve to
+at least 8 GiB.
+
+The `mlx-lm` runtime compiles conditional single-device LoRA and QLoRA bundles.
+The generated bundle can pass dependency, model-data, measured-preflight,
+uninterrupted pilot, and explicitly confirmed full-duration adapter actions with
+a compatible configured Python. Pilot reloads the emitted adapter in a fresh
+process and generates one to four tokens, but training resume remains
+unsupported. `pytorch-mps` is a known runtime identity without a compiler. See
+the
+[Apple Silicon runtime and pilot matrix](../operations/apple-silicon-pilot.md).
 
 Manual facts are useful for planning a different host, but Aptus does not
 accept a manually entered compute-capability value as runtime evidence.
@@ -97,11 +113,19 @@ Target-host validation measures the visible devices and requires compute
 capability 6.0 or newer for NF4/FP4 and 7.5 or newer for LLM.int8. A target-host
 pilot remains required.
 
-The current executable catalog requires CUDA. Full fine-tuning also requires
-BF16. Adapter methods can select FP16, but the exact path must pass the pilot.
-Declaring total VRAM is not enough. CUDA train admission checks current free
-VRAM against the measured pilot peak plus reserve. It also checks current free
-host RAM and disk.
+CUDA supports the guarded full, LoRA, eight-bit LoRA, and QLoRA compiler paths.
+Full CUDA fine-tuning requires BF16. MLX-LM supports conditional LoRA and QLoRA
+on one Apple unified-memory device. MLX QLoRA eligibility comes from explicit
+four-bit quantization metadata in the pinned model revision, not the CUDA-style
+device capability flag. Declaring total memory is not enough. CUDA train
+admission checks current free VRAM against measured pilot pressure plus reserve.
+MLX planning, measured preflight, pilot, adapter reload, and full training use
+live unified-memory admission where the runtime contract requires it. Train
+admission also rechecks measured pilot pressure plus reserve and free disk.
+
+LM Studio and oMLX can list models and generate through their exact loopback
+origins. They are inference-only integrations and never satisfy a training
+runtime requirement.
 
 ## Distributed facts
 

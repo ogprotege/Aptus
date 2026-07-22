@@ -3,9 +3,10 @@
 > **Status:** Active | **Audience:** Fine-tuning practitioners and researchers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Evaluation research | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
 
 Aptus 0.2 does not implement a first-class quality-evaluation contract. It can
-verify training work, finite losses, checkpoint continuation, bindings, and the
-structural export file tree. None of those proves that the adapted model is
-better for the target task.
+verify training work, finite losses, runtime-specific pilot behavior, bindings,
+and structural exports. MLX also verifies bounded fresh-process adapter
+generation. None of those proves that the adapted model is better for the
+target task.
 
 Use this guide to define an external evaluation before training. Keep its data
 and decisions separate from the training bundle until Aptus has a versioned

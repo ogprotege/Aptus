@@ -1,5 +1,14 @@
 import AppKit
 
+private final class AppearanceTrackingView: NSView {
+    var onAppearanceChange: (() -> Void)?
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        onAppearanceChange?()
+    }
+}
+
 final class StartupViewController: NSViewController {
     var onRetry: (() -> Void)?
     var onShowLog: (() -> Void)?
@@ -10,14 +19,23 @@ final class StartupViewController: NSViewController {
     private let statusRule = NSView()
     private let retryButton = NSButton(title: "Retry", target: nil, action: nil)
     private let logButton = NSButton(title: "Show Backend Log", target: nil, action: nil)
+    private weak var rootSurface: NSView?
+    private weak var cardSurface: NSView?
+    private var statusColor = AptusPalette.circuitTeal
 
     override func loadView() {
-        let root = NSView()
+        let root = AppearanceTrackingView()
         root.wantsLayer = true
-        root.layer?.backgroundColor = AptusPalette.cloud.cgColor
+        root.onAppearanceChange = { [weak self] in self?.updateLayerColors() }
+        rootSurface = root
 
         let mark = NSImageView()
-        mark.image = Bundle.main.image(forResource: "AptusMark")
+        if let source = Bundle.main.image(forResource: "AptusMark"),
+           let image = source.copy() as? NSImage {
+            image.isTemplate = true
+            mark.image = image
+        }
+        mark.contentTintColor = AptusPalette.graphite
         mark.imageScaling = .scaleProportionallyUpOrDown
         mark.translatesAutoresizingMaskIntoConstraints = false
 
@@ -37,7 +55,6 @@ final class StartupViewController: NSViewController {
         progress.startAnimation(nil)
 
         statusRule.wantsLayer = true
-        statusRule.layer?.backgroundColor = AptusPalette.circuitTeal.cgColor
         statusRule.translatesAutoresizingMaskIntoConstraints = false
 
         retryButton.bezelStyle = .rounded
@@ -68,10 +85,9 @@ final class StartupViewController: NSViewController {
 
         let card = NSView()
         card.wantsLayer = true
-        card.layer?.backgroundColor = AptusPalette.porcelain.cgColor
         card.layer?.cornerRadius = 18
-        card.layer?.borderColor = AptusPalette.hairline.cgColor
         card.layer?.borderWidth = 1
+        cardSurface = card
         card.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(mark)
         card.addSubview(statusRule)
@@ -99,13 +115,15 @@ final class StartupViewController: NSViewController {
             copy.centerYAnchor.constraint(equalTo: card.centerYAnchor),
         ])
         view = root
+        updateLayerColors()
     }
 
     func showStarting() {
         _ = view
         statusLabel.stringValue = "Starting Aptus"
         detailLabel.stringValue = "Preparing the private local planning service."
-        statusRule.layer?.backgroundColor = AptusPalette.circuitTeal.cgColor
+        statusColor = AptusPalette.circuitTeal
+        updateLayerColors()
         progress.isHidden = false
         progress.startAnimation(nil)
         retryButton.isHidden = true
@@ -116,7 +134,8 @@ final class StartupViewController: NSViewController {
         _ = view
         statusLabel.stringValue = "Aptus could not start"
         detailLabel.stringValue = message
-        statusRule.layer?.backgroundColor = AptusPalette.faultRed.cgColor
+        statusColor = AptusPalette.faultRed
+        updateLayerColors()
         progress.stopAnimation(nil)
         progress.isHidden = true
         retryButton.isHidden = false
@@ -129,5 +148,15 @@ final class StartupViewController: NSViewController {
 
     @objc private func showLog() {
         onShowLog?()
+    }
+
+    private func updateLayerColors() {
+        guard isViewLoaded else { return }
+        view.effectiveAppearance.performAsCurrentDrawingAppearance {
+            rootSurface?.layer?.backgroundColor = AptusPalette.cloud.cgColor
+            cardSurface?.layer?.backgroundColor = AptusPalette.porcelain.cgColor
+            cardSurface?.layer?.borderColor = AptusPalette.hairline.cgColor
+            statusRule.layer?.backgroundColor = statusColor.cgColor
+        }
     }
 }

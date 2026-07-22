@@ -10,13 +10,15 @@
 
 This matrix distinguishes a planner path from target-host proof. A planner row
 marked supported can become viable when all facts and analytic gates pass. It
-still requires static, dependency, model-data, measured-preflight, and pilot
-evidence for the exact bundle and host.
+still requires runtime evidence for the exact bundle and host. CUDA training
+requires static, dependency, model-data, measured-preflight, and pilot evidence.
+MLX-LM uses the same state ladder with a runtime-specific uninterrupted pilot.
+A current `pilot-pass` can authorize explicit full-duration adapter training.
 
-No real CUDA pilot has been completed on the current development Mac. Aptus
-v0.2 is not release-ready.
+No real CUDA or MLX-LM pilot has been recorded for this release. Aptus v0.2 is
+not release-ready.
 
-## Executable method and placement matrix
+## CUDA method and placement matrix
 
 | Method | Single | DDP | FSDP | Export contract |
 | --- | --- | --- | --- | --- |
@@ -25,10 +27,28 @@ v0.2 is not release-ready.
 | int8-LoRA | Planner-supported with eight-bit capability | Planner-supported with shared eight-bit capability and at least 2 GPUs | Unsupported | PEFT adapter safetensors |
 | QLoRA | Planner-supported with four-bit capability | Planner-supported with shared four-bit capability and at least 2 GPUs | Unsupported | PEFT adapter safetensors |
 
-All 12 method and placement pairs remain in the candidate matrix. Unsupported
-and infeasible rows are evidence, not hidden branches.
+For each selected training runtime, all 12 method and placement pairs remain in
+the candidate matrix. Unsupported and infeasible rows are evidence, not hidden
+branches.
 
-### Method-specific hard boundaries
+## MLX-LM method and placement matrix
+
+| Method | Single | DDP | FSDP | Export contract |
+| --- | --- | --- | --- | --- |
+| Full | No compiler | Unsupported | Unsupported | None |
+| LoRA | Conditional through uninterrupted pilot and full-duration adapter training | Unsupported | Unsupported | MLX-LM adapter |
+| int8-LoRA | No compiler | Unsupported | Unsupported | None |
+| QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with explicit four-bit capability facts and MLX model metadata | Unsupported | Unsupported | MLX-LM adapter |
+
+MLX-LM uses the `mps` compute backend and `aptus-memory-mlx-v1` estimator. Its
+LoRA and QLoRA candidates always remain conditional and pilot-required. Its
+pilot is one uninterrupted run from the pinned base with at least two optimizer
+updates, finite losses, exact target binding, positive memory and adapter-delta
+evidence, live headroom, immutable artifacts, and fresh-process adapter reload
+with one to four generated tokens. The reload is inference proof, not training
+resume. A pass can admit an uninterrupted full-duration adapter run.
+
+### CUDA method-specific hard boundaries
 
 - Full training in FP16 is unsupported because the generated path does not
   retain a verified FP32 trainable master-weight contract.
@@ -37,8 +57,8 @@ and infeasible rows are evidence, not hidden branches.
 - int8-LoRA FSDP and QLoRA FSDP are outside the verified compiler matrix.
 - LoRA FSDP uses `use_orig_params=true` and remains conditional even when the
   analytic envelope fits.
-- Adapter methods require every target module in the family catalog to exist on
-  the loaded revision.
+- CUDA adapter methods require every target module in the family catalog to
+  exist on the loaded revision.
 
 ## Precision and quantization
 
@@ -50,13 +70,19 @@ and infeasible rows are evidence, not hidden branches.
 | Unquantized base | Full and LoRA | Model load and measured peak |
 | INT8 bitsandbytes base | int8-LoRA only | Exact bitsandbytes load and kernel path |
 | NF4 double-quantized base | QLoRA only | Exact bitsandbytes load and kernel path |
+| MLX unquantized base | MLX-LM LoRA | Exact MLX model load, measured preflight, uninterrupted pilot, and adapter reload |
+| MLX four-bit groupwise base | MLX-LM QLoRA only | Explicit quantization metadata in the pinned MLX model, measured preflight, uninterrupted pilot, and adapter reload |
 | FP32 compute | Not enumerated | Future contract |
 | FP8 | Not enumerated | Future contract |
 
-Local probe fallback derives four-bit eligibility at CUDA compute capability
+CUDA probe fallback derives four-bit eligibility at CUDA compute capability
 6.0 or newer and eight-bit eligibility at 7.5 or newer. Manual planning still
 requires explicit capability flags. Runtime model-data, synthetic, and pilot
 checks remain authoritative for the pinned software stack.
+
+MLX-LM QLoRA does not use bitsandbytes or NF4 assumptions. Aptus does not
+quantize an unbound model during training. The pinned model revision must
+already declare its MLX four-bit quantization metadata.
 
 ## Backend matrix
 
@@ -64,16 +90,33 @@ checks remain authoritative for the pinned software stack.
 | --- | ---: | ---: | ---: | ---: |
 | CUDA | Yes | Yes | Yes | Yes, subject to gates |
 | ROCm | Yes | No supported probe result | Explicitly unsupported | No |
-| MPS | Yes | Apple shared-memory inventory only | Explicitly unsupported | No |
+| MPS | Yes | Apple shared-memory and Metal inventory | MLX-LM LoRA and QLoRA single-device rows | MLX-LM uninterrupted adapter training; PyTorch MPS has no compiler |
 | CPU | Yes | No supported accelerator result | Explicitly unsupported | No |
-| MLX | Not a backend enum | No | No | No |
+| MLX | Not a backend enum | Separate runtime probe | Runtime selected as `mlx-lm` over `mps` | Separate MLX-LM compiler |
 
-On Darwin arm64 without CUDA, discovery reports one `mps` device backed by the
-measured shared unified-memory pool. It does not infer BF16, four-bit, eight-bit,
-or current free memory when unavailable. The CUDA compiler never silently routes
-through MPS or MLX.
+On Apple Silicon, discovery reports one `mps` compatibility device backed by the
+Metal working-set advisory when available, otherwise the measured unified-memory
+capacity. It does not infer BF16, four-bit, eight-bit, or free VRAM. Apple
+platform probing reports current host memory headroom and an optional Metal GPU
+core count separately. MLX planning caps usable unified memory by the measured
+free host RAM when available. The CUDA compiler never silently routes through
+MPS or MLX.
+
+### Training-runtime matrix
+
+| Runtime | Discovery and configuration | Current compiler | Highest reachable evidence |
+| --- | --- | --- | --- |
+| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass`, subject to every gate |
+| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA | `measured-run-pass`, subject to uninterrupted pilot and full-run gates |
+| `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
+
+LM Studio and oMLX are not training runtimes. They are loopback inference-only
+services for model listing and text generation.
 
 ## Distribution behavior
+
+MLX-LM supports only `single`. The table below defines the CUDA placement
+behavior.
 
 | Distribution | World size | Device binding | Memory rule |
 | --- | ---: | --- | --- |
@@ -105,8 +148,10 @@ only exact alias normalization:
 - `gemma3` only for explicitly accepted text architectures.
 
 MoE, multimodal, prefix-matched, or unknown architectures are not silently
-mapped. Model-data validation checks the loaded parameter count, hidden size,
-optional intermediate size, layers, context length, and adapter targets.
+mapped. CUDA model-data validation checks the loaded parameter count, hidden
+size, optional intermediate size, layers, context length, and adapter targets.
+MLX-LM model-data validation loads the exact revision, validates its QLoRA
+quantization metadata when applicable, and tokenizes every bound row.
 
 ## Dataset support
 
@@ -163,10 +208,16 @@ Supported now:
 
 - atomic no-clobber directory publication;
 - deterministic no-clobber ZIP publication;
-- exact direct package pins by selected method;
+- exact direct package pins by selected method and runtime;
+- a versioned candidate runtime contract with compute, runtime, compiler,
+  estimator, evidence, and export identities;
 - single, DDP, and conditional LoRA FSDP Accelerate configuration;
-- portable contract, validation, preflight, training-child, and run-parent code;
-- structural full-model or adapter safetensors export; and
+- portable CUDA contract, validation, preflight, training-child, and run-parent
+  code;
+- separate MLX-LM validation, bounded preflight, adapter, data, and run-wrapper
+  artifacts;
+- structural CUDA full-model or adapter safetensors export;
+- MLX-LM adapter output at measured preflight; and
 - cleartext source, canonical, and pilot data copies.
 
 Not implemented:
@@ -175,7 +226,8 @@ Not implemented:
 - encrypted bundle data;
 - provider provisioning or cloud infrastructure;
 - merged or deployment-specific exporter plugins;
-- semantic export inference validation; and
+- general or CUDA semantic export inference validation beyond the bounded MLX
+  adapter reload check; and
 - arbitrary user overrides of generated training source.
 
 ## Execution support
@@ -183,13 +235,24 @@ Not implemented:
 Supported now:
 
 - five ordered managed actions;
+- exact external Python runtime probing, selection, and private persisted
+  configuration;
 - persisted local jobs and logs;
 - POSIX process-group cancellation;
 - one per-user host-global Aptus lease across state roots;
-- current train capacity admission;
+- runtime-specific current train capacity admission;
 - unique full-run output paths;
 - parent-owned completion verification and recovery; and
 - structural output integrity attestation.
+
+Runtime-specific limit:
+
+- CUDA can proceed through all five actions when every prerequisite passes.
+- MLX-LM can proceed through all five actions for conditional single-device LoRA
+  and QLoRA. Pilot and full training run uninterrupted from the pinned base, and
+  crash resume remains unsupported.
+- PyTorch MPS has no executable compiler path.
+- LM Studio and oMLX remain inference-only and never enter managed training.
 
 Explicitly unsupported:
 
@@ -202,9 +265,10 @@ Explicitly unsupported:
 
 ## Future seams
 
-ROCm, MPS or MLX execution, cloud runners, provider provisioning, automated
-cost selection, evaluation policies, exporter plugins, experiment-tracker
-integration, and MCP adapters are outside the current support contract.
+MLX-LM crash resume, full-parameter MLX, DoRA, a PyTorch MPS compiler, ROCm, CPU
+training, cloud runners, provider provisioning, automated cost selection,
+evaluation policies, exporter plugins, experiment-tracker integration, and MCP
+adapters are outside the current support contract.
 
 ## Related documentation
 

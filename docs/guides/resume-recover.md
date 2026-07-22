@@ -5,23 +5,29 @@
 ## Full-training resume is unsupported
 
 Aptus v0.2 rejects `resume_from` for full training. The CLI and API do not expose
-a supported full-resume operation. Do not edit generated code to bypass this
-boundary.
+a supported full-resume operation. Generated MLX entrypoints also reject every
+resume argument. Do not edit generated code to bypass this boundary.
 
 A safe general resume contract must bind the exact model or adapter, optimizer,
 scheduler, scaler, RNG state per rank, dataloader progress, environment,
 distributed topology, plan, candidate, and checkpoint file tree. V0.2 does not
 yet attest all of that for arbitrary full-run checkpoints.
 
-## What the pilot proves
+## What each pilot proves
 
-Pilot validation runs two bounded phases in fresh processes. Phase one writes a
-checkpoint contract. Phase two continues from it. Aptus records
+CUDA pilot validation runs two bounded phases in fresh processes. Phase one
+writes a checkpoint contract. Phase two continues from it. Aptus records
 `checkpoint_continuation_observed` when the expected step transition and bound
 artifacts pass.
 
 That evidence tests the selected stack's bounded checkpoint continuation. It is
 not permission to resume an interrupted full run.
+
+MLX pilot validation starts from the pinned base and trains without interruption
+for at least two optimizer updates. A separate fresh process loads the pinned
+base plus saved adapter and generates one to four tokens. This tests adapter
+reload and inference. It does not restore optimizer, scheduler, random state, or
+data position. MLX periodic files are weight snapshots, not checkpoints.
 
 ## Recover a managed job
 
@@ -49,7 +55,7 @@ Never mark a job complete by editing its JSON record.
 4. Submit a new train job.
 
 A new train job receives a new run ID. Failed and cancelled run directories are
-not reused.
+not reused. An interrupted MLX run also starts over from the pinned base.
 
 ## Artifact changes
 

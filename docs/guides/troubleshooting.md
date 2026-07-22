@@ -12,12 +12,17 @@ silently change sequence length, effective batch size, method, or hardware.
 ## Hardware scan unavailable
 
 On Darwin arm64 without CUDA, a successful scan returns an `mps` discovery
-record for measured shared unified memory. It can inform hardware inventory, but
-it cannot authorize MPS or MLX execution. Current memory availability may remain
-unknown. If no supported probe can measure the host, the API returns a
-manual-facts option. Manual facts can support planning, but preflight and pilot
-must run on the actual CUDA host before training. The current development Mac
-cannot provide CUDA execution evidence.
+record for shared unified memory. It is not dedicated VRAM. Aptus records live
+available host memory separately and constrains MLX planning by the lesser of
+that measurement and the Metal compatibility capacity, minus the reserve. If
+availability is unknown, the plan cannot claim current headroom.
+
+Use `GET /api/v1/platform` to inspect MLX, MLX-LM, PyTorch MPS, swap, memory
+pressure, and Metal facts. Use `GET /api/v1/runtimes` to inspect the exact
+training interpreters Aptus can use. MLX-LM LoRA and QLoRA require an external
+compatible Python selected through the private runtime configuration endpoint.
+LM Studio and oMLX are inference services only. Aptus never treats either
+service as a training interpreter.
 
 ## Static validation fails
 
@@ -27,8 +32,10 @@ files. Correct source facts or generator code, then compile to a new empty path.
 ## Dependency validation fails
 
 Use an isolated environment and install `requirements.txt`. The file contains
-exact direct pins, not a transitive lock. Check Python version, CUDA driver,
-package index access, and the resolved installed-environment report.
+exact direct pins, not a transitive lock. Check Python version, package index
+access, and the resolved installed-environment report. CUDA bundles also require
+the matching CUDA driver. MLX bundles require Apple silicon macOS, `mlx==0.31.2`,
+and `mlx-lm==0.31.3` in the configured interpreter.
 
 ## Model-data validation fails
 
@@ -41,9 +48,28 @@ the compiled LoRA parameter scope.
 
 ## Preflight or pilot runs out of memory
 
-Free VRAM can change after planning. Stop unrelated GPU work or choose different
-explicit facts and replan. Do not treat the analytic estimate as a measured
-ceiling. A pilot failure blocks full training.
+Free VRAM or Apple unified-memory headroom can change after planning. Stop
+unrelated accelerator work or choose different explicit facts and replan. On
+Apple silicon, also inspect memory pressure and swap growth. Do not treat the
+analytic estimate as a measured ceiling. A pilot failure blocks full training.
+
+## MLX pilot fails
+
+The MLX-LM pilot should proceed after `measured-preflight-pass`. It runs the
+exact model and compiled data from the pinned base without interruption. Inspect
+the job log and owned `pilot-output/pilot_*` directory for the failing contract:
+
+- fewer than two completed optimizer updates;
+- non-finite train or validation loss;
+- incomplete target coverage or an unexpected trainable tensor;
+- zero adapter delta or MLX peak;
+- insufficient live unified-memory headroom;
+- changed, missing, or escaped action-owned artifacts; or
+- fresh-process adapter reload that did not generate one to four tokens.
+
+Do not use a resume argument. The reload proves adapter inference, not optimizer
+or training-state continuation. Preserve failed output and start a new pilot
+after correcting the cause.
 
 ## Dataset split is rejected
 
@@ -67,9 +93,10 @@ historical while current authorization fails.
 
 ## Active job conflict
 
-Aptus runs one managed or portable GPU action at a time for the same user across state roots. Wait,
-cancel through the API or workbench, or inspect the recorded owner. The global
-lease coordinates Aptus only and can also reveal another Aptus service instance.
+Aptus runs one managed or portable accelerator action at a time for the same
+user across state roots. Wait, cancel through the API or workbench, or inspect
+the recorded owner. The global lease coordinates Aptus only and can also reveal
+another Aptus service instance.
 
 ## Job remains cancelling or verifying
 
@@ -84,8 +111,9 @@ misbound metrics and export files cause parent verification to fail.
 
 ## I need to resume full training
 
-Full-run resume is fail-closed. Preserve the checkpoint for investigation and
-start a new immutable run after correcting the cause. See
+Full-run resume is fail-closed. Preserve a CUDA checkpoint or MLX weight
+snapshot for investigation, then start a new immutable run after correcting the
+cause. Every MLX resume argument is rejected. See
 [recovery and the resume boundary](resume-recover.md).
 
 ## Related documentation

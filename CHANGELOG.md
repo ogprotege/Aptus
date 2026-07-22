@@ -57,6 +57,9 @@ All notable changes are recorded here.
 - Documentation checks for links and anchors, navigation reachability, review
   metadata, CLI and API surface coverage, method-catalog overlap, stale
   contracts, and sealed-bundle environment safety.
+- Native arm64 macOS 26 CI packaging that uploads the verified Aptus DMG,
+  permissions-preserving application ZIP, and SHA-256 checksums for every pull
+  request and push to `main`.
 
 ### Changed
 

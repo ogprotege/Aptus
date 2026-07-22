@@ -1,0 +1,98 @@
+name: Aptus desktop artifacts
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-artifacts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build Apple Silicon app and DMG
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            desktop/macos/requirements-build.lock
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Record build tools
+        run: |
+          uname -m
+          sw_vers
+          xcodebuild -version
+          xcodegen --version
+          uv --version
+          node --version
+
+      - name: Build and verify the desktop distribution
+        run: desktop/macos/build.sh
+
+      - name: Package the application and checksums
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            desktop/macos/dist/Aptus.app \
+            desktop/macos/dist/Aptus-macOS-arm64.zip
+          cd desktop/macos/dist
+          printf '%s\n' "$GITHUB_SHA" > COMMIT
+          shasum -a 256 \
+            Aptus-macOS-arm64.dmg \
+            Aptus-macOS-arm64.zip \
+            COMMIT > SHA256SUMS
+
+      - name: Verify uploaded files
+        run: |
+          codesign --verify --deep --strict --verbose=2 \
+            desktop/macos/dist/Aptus.app
+          hdiutil verify desktop/macos/dist/Aptus-macOS-arm64.dmg
+          unzip -tq desktop/macos/dist/Aptus-macOS-arm64.zip
+          mkdir -p desktop/macos/build/zip-verify
+          ditto -x -k \
+            desktop/macos/dist/Aptus-macOS-arm64.zip \
+            desktop/macos/build/zip-verify
+          codesign --verify --deep --strict --verbose=2 \
+            desktop/macos/build/zip-verify/Aptus.app
+          cmp \
+            desktop/macos/dist/Aptus.app/Contents/MacOS/Aptus \
+            desktop/macos/build/zip-verify/Aptus.app/Contents/MacOS/Aptus
+          cd desktop/macos/dist
+          shasum -a 256 -c SHA256SUMS
+
+      - name: Upload the verified desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aptus-macos-arm64-${{ github.sha }}
+          path: |
+            desktop/macos/dist/Aptus-macOS-arm64.dmg
+            desktop/macos/dist/Aptus-macOS-arm64.zip
+            desktop/macos/dist/COMMIT
+            desktop/macos/dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

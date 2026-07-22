@@ -64,6 +64,18 @@ desktop/macos/dist/Aptus.app
 desktop/macos/dist/Aptus-macOS-arm64.dmg
 ```
 
+The `Aptus desktop artifacts` GitHub Actions workflow performs this complete
+build on the native arm64 `macos-26` runner for every pull request and push to
+`main`. It uploads the DMG, a permissions-preserving ZIP of `Aptus.app`, and
+`SHA256SUMS` plus a `COMMIT` source marker in an
+`aptus-macos-arm64-<commit>` workflow artifact retained for 30 days. This keeps
+generated binaries out of Git history without leaving the desktop deliverable
+on one developer's machine.
+
+Workflow artifacts use the default ad-hoc signature and are intended for
+review and testing. Developer ID signing and notarization remain required for
+a public release.
+
 The default build creates an isolated Python 3.12 environment under the build
 directory, installs `requirements-build.lock`, then installs the local Aptus
 project with `--no-deps --no-build-isolation`. Debug builds may set

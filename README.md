@@ -75,10 +75,10 @@ can still reject the plan.
 
 ## Start on macOS
 
-The current distribution is a source build for Apple Silicon. macOS 26 is the
-primary development and release environment. macOS 15 is the fallback floor.
-You also need Xcode 26, XcodeGen, Node.js, `uv`, and Python 3.12 available to
-`uv`.
+The current distribution supports local source builds and downloadable CI
+artifacts for Apple Silicon. macOS 26 is the primary development and release
+environment. macOS 15 is the fallback floor. A local build also needs Xcode 26,
+XcodeGen, Node.js, `uv`, and Python 3.12 available to `uv`.
 
 ```bash
 git clone https://github.com/ogprotege/Aptus.git
@@ -93,6 +93,13 @@ The build runs the Python, React, and native test gates before creating:
 desktop/macos/dist/Aptus.app
 desktop/macos/dist/Aptus-macOS-arm64.dmg
 ```
+
+Every pull request and push to `main` also runs the native build on GitHub's
+arm64 macOS 26 runner. The workflow uploads a permissions-preserving application
+ZIP, the DMG, their `SHA256SUMS`, and a `COMMIT` source marker under an
+`aptus-macos-arm64-<commit>` artifact. These CI artifacts use an ad-hoc
+signature for review and testing. A public distribution still requires a
+Developer ID signature and notarization.
 
 See [installation details](docs/getting-started/install.md#build-aptus-for-mac)
 for prerequisites, signing options, persistent paths, and the browser-based

@@ -53,8 +53,7 @@ class ClassificationTests(unittest.TestCase):
         ]
 
         results = {
-            result["path"]: result
-            for result in classify_artifacts(records, [], {})
+            result["path"]: result for result in classify_artifacts(records, [], {})
         }
 
         self.assertEqual(results[".DS_Store"]["disposition"], "DISCARD")
@@ -135,9 +134,13 @@ class ClassificationTests(unittest.TestCase):
 
         results = classify_artifacts(records, [], {})
 
-        self.assertEqual([result["path"] for result in results], ["README.md", "server.js"])
+        self.assertEqual(
+            [result["path"] for result in results], ["README.md", "server.js"]
+        )
         for result in results:
-            self.assertIn(result["disposition"], {"KEEP", "ADAPT", "ARCHIVE", "DISCARD"})
+            self.assertIn(
+                result["disposition"], {"KEEP", "ADAPT", "ARCHIVE", "DISCARD"}
+            )
             self.assertIn(result["operational_viability"], range(6))
             self.assertIn(result["knowledge_value"], range(6))
             self.assertTrue(result["rationale"])

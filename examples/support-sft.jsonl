@@ -1,0 +1,4 @@
+{"prompt":"Customer: I cannot sign in after changing my password.\nAgent:","completion":"Clear the saved session, reopen the sign-in page, and enter the new password. If the error continues, use the password reset link once more."}
+{"prompt":"Customer: My invoice lists the same service twice.\nAgent:","completion":"Check whether the line items cover different billing periods. If both dates and amounts match, attach the invoice number to a billing support request."}
+{"prompt":"Customer: How do I export my project?\nAgent:","completion":"Open the project settings, choose Export, select the archive format, and confirm the destination before starting the export."}
+{"prompt":"Customer: The desktop app says it is offline, but my browser works.\nAgent:","completion":"Restart the desktop app, verify its proxy settings, and allow it through the local firewall. Preserve the diagnostic log if the connection still fails."}

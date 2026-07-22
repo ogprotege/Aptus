@@ -93,9 +93,7 @@ def _duplicate_index(
 
 def _static_index(static_report: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
-        item["path"]: item
-        for item in static_report.get("files", [])
-        if "path" in item
+        item["path"]: item for item in static_report.get("files", []) if "path" in item
     }
 
 
@@ -298,9 +296,7 @@ def classify_artifacts(
                 "duplicate_cluster_id": (
                     duplicate["cluster_id"] if duplicate else None
                 ),
-                "canonical_path": (
-                    duplicate["canonical_path"] if duplicate else path
-                ),
+                "canonical_path": (duplicate["canonical_path"] if duplicate else path),
                 "proposed_destination": proposed_destination,
             }
         )

@@ -9,9 +9,7 @@ from typing import Any
 SCRIPT_EXTENSIONS = {".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 JAVASCRIPT_EXTENSIONS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}
 IMPORT_PATTERNS = (
-    re.compile(
-        r"(?:import|export)\s+(?:[^'\"\n]*?\s+from\s+)?['\"]([^'\"]+)['\"]"
-    ),
+    re.compile(r"(?:import|export)\s+(?:[^'\"\n]*?\s+from\s+)?['\"]([^'\"]+)['\"]"),
     re.compile(r"\brequire\(\s*['\"]([^'\"]+)['\"]\s*\)"),
     re.compile(r"\bimport\(\s*['\"]([^'\"]+)['\"]\s*\)"),
 )
@@ -155,9 +153,7 @@ def _javascript_record(path: Path, root: Path) -> dict[str, Any]:
         "language": "javascript-typescript",
         "parse_status": "not_checked",
         "parse_error": None,
-        "imports": sorted(
-            imports, key=lambda item: (item["line"], item["specifier"])
-        ),
+        "imports": sorted(imports, key=lambda item: (item["line"], item["specifier"])),
     }
 
 

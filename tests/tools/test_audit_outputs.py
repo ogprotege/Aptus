@@ -29,9 +29,7 @@ class AuditOutputIntegrityTests(unittest.TestCase):
             ]
             self.assertEqual(current_identity, stored_identity)
         else:
-            baseline = json.loads(
-                (AUDIT_ROOT / "baseline-manifest.json").read_text()
-            )
+            baseline = json.loads((AUDIT_ROOT / "baseline-manifest.json").read_text())
             digest = hashlib.sha256()
             for item in stored:
                 digest.update(item["path"].encode("utf-8"))
@@ -58,8 +56,7 @@ class AuditOutputIntegrityTests(unittest.TestCase):
         self.assertEqual(set(decision_paths), inventory_paths)
         self.assertTrue(
             all(
-                item["disposition"]
-                in {"KEEP", "ADAPT", "ARCHIVE", "DISCARD"}
+                item["disposition"] in {"KEEP", "ADAPT", "ARCHIVE", "DISCARD"}
                 for item in decisions
             )
         )
@@ -69,13 +66,9 @@ class AuditOutputIntegrityTests(unittest.TestCase):
             json.loads(line)
             for line in (AUDIT_ROOT / "classification.jsonl").read_text().splitlines()
         ]
-        summary = json.loads(
-            (AUDIT_ROOT / "classification-summary.json").read_text()
-        )
+        summary = json.loads((AUDIT_ROOT / "classification-summary.json").read_text())
         disposition_counts = {
-            disposition: sum(
-                item["disposition"] == disposition for item in decisions
-            )
+            disposition: sum(item["disposition"] == disposition for item in decisions)
             for disposition in {"KEEP", "ADAPT", "ARCHIVE", "DISCARD"}
             if any(item["disposition"] == disposition for item in decisions)
         }
@@ -84,11 +77,7 @@ class AuditOutputIntegrityTests(unittest.TestCase):
         self.assertEqual(summary["dispositions"], disposition_counts)
         self.assertEqual(
             summary["adapt_candidates"],
-            [
-                item["path"]
-                for item in decisions
-                if item["disposition"] == "ADAPT"
-            ],
+            [item["path"] for item in decisions if item["disposition"] == "ADAPT"],
         )
         baseline = json.loads((AUDIT_ROOT / "baseline-manifest.json").read_text())
         self.assertEqual(
@@ -109,17 +98,11 @@ class AuditOutputIntegrityTests(unittest.TestCase):
                 self.assertEqual(actual_hash, expected_hash)
 
     def test_extraction_ledger_accounts_for_every_adapt_candidate(self) -> None:
-        summary = json.loads(
-            (AUDIT_ROOT / "classification-summary.json").read_text()
-        )
-        ledger = (AUDIT_ROOT / "extraction-ledger.md").read_text(
-            encoding="utf-8"
-        )
+        summary = json.loads((AUDIT_ROOT / "classification-summary.json").read_text())
+        ledger = (AUDIT_ROOT / "extraction-ledger.md").read_text(encoding="utf-8")
 
         missing = [
-            path
-            for path in summary["adapt_candidates"]
-            if f"`{path}`" not in ledger
+            path for path in summary["adapt_candidates"] if f"`{path}`" not in ledger
         ]
         self.assertEqual(missing, [])
 

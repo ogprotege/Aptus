@@ -1,0 +1,354 @@
+{
+  "schema_version": "aptus.method-research-catalog.v1",
+  "updated_at": "2026-07-21",
+  "authority": {
+    "kind": "documentation-only",
+    "runtime_sources": [
+      "src/aptus/domain.py",
+      "src/aptus/planning.py",
+      "src/aptus/generation.py"
+    ],
+    "warning": "Presence in research_index does not mean implemented, selectable, compatible, or supported."
+  },
+  "axes": [
+    "objective",
+    "parameter_scope",
+    "parameterization",
+    "recipes_and_modifiers",
+    "optimizer_and_schedule",
+    "precision_and_quantization",
+    "distribution",
+    "evaluation",
+    "export"
+  ],
+  "current_objective": {
+    "id": "sft",
+    "data_contract": "supervised causal-LM rows with non-empty target tokens",
+    "packing": false,
+    "status": "gated-executable"
+  },
+  "current_defaults": {
+    "optimizer": "torch-adamw",
+    "scheduler": "linear",
+    "weight_decay": 0.0,
+    "warmup_steps": 0,
+    "max_grad_norm": 1.0,
+    "quality_claim": "none",
+    "evaluation_level": "operational-pilot-not-target-quality",
+    "export_verification_level": "structural-file-tree"
+  },
+  "current_matrix": [
+    {
+      "id": "sft.full.single",
+      "method_label": "full",
+      "parameter_scope": "all-parameters",
+      "parameterization": "dense-full",
+      "base_storage": "unquantized",
+      "distribution": "single",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "bf16-capable-participating-device",
+        "memory-host-ram-and-disk-gates",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "full-model-safetensors"
+    },
+    {
+      "id": "sft.full.ddp",
+      "method_label": "full",
+      "parameter_scope": "all-parameters",
+      "parameterization": "dense-full",
+      "base_storage": "unquantized",
+      "distribution": "ddp",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "two-or-more-bf16-capable-devices",
+        "per-replica-fit",
+        "exact-global-batch-divisibility",
+        "host-staging-per-rank",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "full-model-safetensors"
+    },
+    {
+      "id": "sft.full.fsdp",
+      "method_label": "full",
+      "parameter_scope": "all-parameters",
+      "parameterization": "dense-full",
+      "base_storage": "unquantized",
+      "distribution": "fsdp",
+      "status": "unsupported-fail-closed",
+      "reason": "Pinned-runtime FP32 shard and full-state export transients are not calibrated.",
+      "export": "none"
+    },
+    {
+      "id": "sft.lora.single",
+      "method_label": "lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "unquantized",
+      "distribution": "single",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "target-module-inspection",
+        "memory-host-ram-and-disk-gates",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.lora.ddp",
+      "method_label": "lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "unquantized",
+      "distribution": "ddp",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "two-or-more-devices",
+        "target-module-inspection",
+        "per-replica-fit",
+        "exact-global-batch-divisibility",
+        "host-staging-per-rank",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.lora.fsdp",
+      "method_label": "lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "unquantized",
+      "distribution": "fsdp",
+      "status": "conditional-pilot-required",
+      "conditions": [
+        "cuda",
+        "two-or-more-devices",
+        "target-module-inspection",
+        "fsdp-use-orig-params-true",
+        "uncalibrated-sharding-prior",
+        "exact-global-batch-divisibility",
+        "real-model-pilot"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.int8-lora.single",
+      "method_label": "int8-lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "bitsandbytes-int8",
+      "distribution": "single",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "explicit-eight-bit-capability",
+        "compute-capability-7.5-or-newer",
+        "target-module-inspection",
+        "memory-host-ram-and-disk-gates",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.int8-lora.ddp",
+      "method_label": "int8-lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "bitsandbytes-int8",
+      "distribution": "ddp",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "two-or-more-devices",
+        "explicit-eight-bit-capability-on-every-rank",
+        "compute-capability-7.5-or-newer-on-every-rank",
+        "target-module-inspection",
+        "per-replica-fit",
+        "exact-global-batch-divisibility",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.int8-lora.fsdp",
+      "method_label": "int8-lora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "base_storage": "bitsandbytes-int8",
+      "distribution": "fsdp",
+      "status": "unsupported",
+      "reason": "Quantized FSDP is outside the verified v0.2 compiler matrix.",
+      "export": "none"
+    },
+    {
+      "id": "sft.qlora.single",
+      "method_label": "qlora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "recipe": "nf4-double-quantized-frozen-base-plus-lora",
+      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "distribution": "single",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "explicit-four-bit-capability",
+        "compute-capability-6.0-or-newer",
+        "target-module-inspection",
+        "memory-host-ram-and-disk-gates",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.qlora.ddp",
+      "method_label": "qlora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "recipe": "nf4-double-quantized-frozen-base-plus-lora",
+      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "distribution": "ddp",
+      "status": "gated-executable",
+      "conditions": [
+        "cuda",
+        "two-or-more-devices",
+        "explicit-four-bit-capability-on-every-rank",
+        "compute-capability-6.0-or-newer-on-every-rank",
+        "target-module-inspection",
+        "per-replica-fit",
+        "exact-global-batch-divisibility",
+        "full-validation-and-pilot-ladder"
+      ],
+      "export": "peft-adapter-safetensors"
+    },
+    {
+      "id": "sft.qlora.fsdp",
+      "method_label": "qlora",
+      "parameter_scope": "frozen-base-plus-adapter",
+      "parameterization": "lora",
+      "recipe": "nf4-double-quantized-frozen-base-plus-lora",
+      "base_storage": "bitsandbytes-nf4-double-quantized",
+      "distribution": "fsdp",
+      "status": "unsupported",
+      "reason": "Quantized FSDP is outside the verified v0.2 compiler matrix.",
+      "export": "none"
+    }
+  ],
+  "research_index": {
+    "objectives": [
+      "continued-pretraining",
+      "dapt",
+      "tapt",
+      "dpo",
+      "ipo",
+      "orpo",
+      "simpo",
+      "kto",
+      "bco",
+      "ppo",
+      "grpo",
+      "dapo",
+      "gspo",
+      "dr-grpo",
+      "rloo",
+      "reinforce-plus-plus",
+      "cispo",
+      "knowledge-distillation",
+      "gkd",
+      "minillm",
+      "causal-lm-pretraining-from-scratch"
+    ],
+    "parameterizations": [
+      "dora",
+      "adalora",
+      "prompt-tuning",
+      "prefix-tuning",
+      "p-tuning-v2",
+      "pissa",
+      "houlsby-adapters",
+      "ia3",
+      "lora-plus",
+      "rslora",
+      "bitfit",
+      "vera",
+      "loreft",
+      "boft",
+      "oft",
+      "miss",
+      "loha",
+      "lokr",
+      "x-lora",
+      "poly",
+      "hra",
+      "randlora",
+      "shira",
+      "road",
+      "c3a",
+      "fourierft",
+      "mora",
+      "trainable-tokens"
+    ],
+    "recipes_and_pipelines": [
+      "loftq",
+      "qpissa",
+      "rlhf",
+      "rlaif",
+      "raft",
+      "star",
+      "self-instruct",
+      "spin"
+    ],
+    "modifiers_and_update_strategies": [
+      "neftune",
+      "ewc",
+      "experience-replay",
+      "learning-without-forgetting",
+      "galore",
+      "lisa",
+      "lomo",
+      "mezo",
+      "sam",
+      "sophia",
+      "adam-mini"
+    ],
+    "future_infrastructure": [
+      "deepspeed-zero",
+      "tensor-parallelism",
+      "pipeline-parallelism",
+      "cpu-offload",
+      "nvme-offload",
+      "flashattention-selection",
+      "sequence-packing",
+      "rocm",
+      "mps",
+      "cpu-training",
+      "managed-cloud-runner"
+    ],
+    "future_evaluation_and_export": [
+      "objective-specific-quality-thresholds",
+      "named-benchmark-suites",
+      "safety-regression-suite",
+      "inference-parity",
+      "gguf",
+      "onnx",
+      "adapter-merge",
+      "model-publication",
+      "provider-deployment"
+    ]
+  },
+  "excluded_unverified_names": [
+    "DoReFT",
+    "FishDip",
+    "FAR",
+    "CIAT",
+    "KODA",
+    "MerA",
+    "PHA",
+    "PaFi"
+  ]
+}

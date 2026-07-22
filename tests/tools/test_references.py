@@ -37,7 +37,9 @@ class ReferenceAnalysisTests(unittest.TestCase):
                 "const missing = require('./missing');\n",
                 encoding="utf-8",
             )
-            (root / "present.ts").write_text("export const value = 1;\n", encoding="utf-8")
+            (root / "present.ts").write_text(
+                "export const value = 1;\n", encoding="utf-8"
+            )
 
             report = analyze_references(root)
             main = next(item for item in report["files"] if item["path"] == "main.ts")

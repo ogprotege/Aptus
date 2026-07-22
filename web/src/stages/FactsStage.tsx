@@ -1,0 +1,464 @@
+import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { FactDraft, InputProfile, ModelInspectionResponse } from "../types";
+import { ProvenanceBadge } from "../components/ProvenanceBadge";
+import { StageHeader } from "../components/StageHeader";
+
+interface FactsStageProps {
+  draft: FactDraft;
+  setDraft: Dispatch<SetStateAction<FactDraft>>;
+  profile: InputProfile | null;
+  busy: string | null;
+  demoMode: boolean;
+  onLoadExample: () => void;
+  onClearExample: () => void;
+  onProfile: () => Promise<void>;
+  onModelInspect: () => Promise<void>;
+  onInvalidateModelInspection: () => void;
+  onPlan: () => Promise<void>;
+  onHardwareScan: () => Promise<void>;
+  hardwareScanned: boolean;
+  modelInspection: ModelInspectionResponse | null;
+}
+
+function numberValue(value: string): number | null {
+  return value === "" ? null : Number(value);
+}
+
+export function FactsStage({
+  draft,
+  setDraft,
+  profile,
+  busy,
+  demoMode,
+  onLoadExample,
+  onClearExample,
+  onProfile,
+  onModelInspect,
+  onInvalidateModelInspection,
+  onPlan,
+  onHardwareScan,
+  hardwareScanned,
+  modelInspection,
+}: FactsStageProps) {
+  const updateModel = <K extends keyof FactDraft["model"]>(
+    key: K,
+    value: FactDraft["model"][K],
+  ) => {
+    if (key !== "parameters_b" && key !== "training_allowed") {
+      onInvalidateModelInspection();
+    }
+    setDraft((current) => ({
+      ...current,
+      model: { ...current.model, [key]: value },
+    }));
+  };
+
+  const updateDataset = <K extends keyof FactDraft["dataset"]>(
+    key: K,
+    value: FactDraft["dataset"][K],
+  ) => setDraft((current) => ({
+    ...current,
+    dataset: { ...current.dataset, [key]: value },
+  }));
+
+  const updateHardware = <K extends keyof FactDraft["hardware"]>(
+    key: K,
+    value: FactDraft["hardware"][K],
+  ) => setDraft((current) => ({
+    ...current,
+    hardware: { ...current.hardware, [key]: value },
+  }));
+
+  const updateDevice = <K extends keyof FactDraft["hardware"]["devices"][number]>(
+    key: K,
+    value: FactDraft["hardware"]["devices"][number][K],
+  ) => setDraft((current) => ({
+    ...current,
+    hardware: {
+      ...current.hardware,
+      devices: [{ ...current.hardware.devices[0], [key]: value }],
+    },
+  }));
+
+  const updateTarget = <K extends keyof FactDraft["target"]>(
+    key: K,
+    value: FactDraft["target"][K],
+  ) => setDraft((current) => ({
+    ...current,
+    target: { ...current.target, [key]: value },
+  }));
+
+  const submitProfile = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onProfile();
+  };
+
+  const profileFacts = profile?.facts ?? [];
+  const inspectedModelFacts = modelInspection?.status === "ok" && modelInspection.facts
+    ? [
+        { key: "family", label: "Aptus catalog family", value: modelInspection.facts.family },
+        { key: "model_type", label: "Provider model type", value: modelInspection.facts.model_type },
+        {
+          key: "architectures",
+          label: "Provider architectures",
+          value: Array.isArray(modelInspection.facts.architectures)
+            ? modelInspection.facts.architectures.join(", ")
+            : modelInspection.facts.architecture,
+        },
+        { key: "hidden_size", label: "Hidden size", value: modelInspection.facts.hidden_size },
+        { key: "intermediate_size", label: "Intermediate size", value: modelInspection.facts.intermediate_size },
+        { key: "layers", label: "Layers", value: modelInspection.facts.layers },
+        { key: "context_length", label: "Context", value: modelInspection.facts.context_length },
+        { key: "license_name", label: "License label", value: modelInspection.facts.license_name },
+      ].filter((fact) => fact.value !== null && fact.value !== undefined)
+    : [];
+
+  return (
+    <>
+      <StageHeader
+        eyebrow="Stage 1 · Evidence intake"
+        title="Explicit facts in. Plan-bound bundle out."
+        lede="Name the model, data, hardware, and training target. Aptus profiles what it can measure and keeps every assumption visible."
+        meta={
+          <div className="header-actions">
+            {demoMode ? (
+              <button type="button" className="button button-quiet" onClick={onClearExample}>
+                Clear example
+              </button>
+            ) : (
+              <button type="button" className="button button-quiet" onClick={onLoadExample}>
+                Load labeled example
+              </button>
+            )}
+          </div>
+        }
+      />
+
+      <form className="facts-form" onSubmit={submitProfile}>
+        <div className="project-name-field">
+          <label htmlFor="project-name">Plan name</label>
+          <input
+            id="project-name"
+            type="text"
+            required
+            value={draft.project_name}
+            onChange={(event) => setDraft((current) => ({ ...current, project_name: event.target.value }))}
+            placeholder="Customer-support adapter"
+          />
+          <small>Aptus uses this name only to suggest the bundle directory.</small>
+        </div>
+
+        <div className="fact-grid">
+          <fieldset className="fact-panel">
+            <legend>
+              <span><span className="fact-index">M</span> Model</span>
+              <ProvenanceBadge kind={demoMode ? "example" : "user-supplied"} />
+            </legend>
+            <p className="fact-intro">Pin the exact artifact and state whether training is permitted.</p>
+            <div className="field full-field">
+              <label htmlFor="model-id">Model ID</label>
+              <input id="model-id" required value={draft.model.model_id} onChange={(event) => updateModel("model_id", event.target.value)} placeholder="organization/model-name" />
+            </div>
+            <div className="field full-field">
+              <label htmlFor="revision">Immutable revision</label>
+              <input id="revision" required pattern="[a-fA-F0-9]{40,64}" value={draft.model.revision} onChange={(event) => updateModel("revision", event.target.value)} placeholder="Commit hash, tag, or branch to inspect" aria-describedby="revision-help" />
+              <small id="revision-help">Inspect can resolve a branch or tag. Planning requires the returned 40–64 character commit hash.</small>
+            </div>
+            <button
+              type="button"
+              className="button button-secondary model-inspect-button"
+              disabled={busy !== null || demoMode || !draft.model.model_id.trim() || !draft.model.revision.trim()}
+              onClick={() => void onModelInspect()}
+            >
+              {busy === "inspect-model" ? "Inspecting pinned model…" : "Inspect and pin model"}
+            </button>
+            {modelInspection ? (
+              <section className={`model-inspection-result inspection-${modelInspection.status}`} aria-labelledby="model-inspection-title">
+                <div className="inspection-heading">
+                  <div>
+                    <p className="eyebrow">Provider inspection</p>
+                    <h3 id="model-inspection-title">
+                      {modelInspection.status === "ok" ? "Revision-bound facts applied" : "Provider facts were not applied"}
+                    </h3>
+                  </div>
+                  <ProvenanceBadge kind={modelInspection.status === "ok" ? "provider-declared" : "unknown"} />
+                </div>
+                {modelInspection.resolved_revision ? (
+                  <p className="inspection-revision">Resolved commit <code>{modelInspection.resolved_revision}</code></p>
+                ) : null}
+                {inspectedModelFacts.length ? (
+                  <dl className="inspection-facts">
+                    {inspectedModelFacts.map((fact) => {
+                      const provenance = modelInspection.provenance?.[fact.key];
+                      return (
+                        <div key={fact.key}>
+                          <dt>{fact.label}</dt>
+                          <dd>{String(fact.value)}</dd>
+                          <small>{provenance?.source ?? "Provider response"}</small>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                ) : null}
+                {modelInspection.error ? <p className="job-error">{modelInspection.error}</p> : null}
+                {modelInspection.warnings?.length ? (
+                  <ul className="plain-list inspection-warnings" aria-label="Model inspection warnings">
+                    {modelInspection.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                  </ul>
+                ) : null}
+                <p className="inspection-boundary">Parameter count and training permission never come from this inspection. Enter and confirm both yourself.</p>
+              </section>
+            ) : null}
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="family">Architecture family</label>
+                <input id="family" required value={draft.model.family} onChange={(event) => updateModel("family", event.target.value)} placeholder="llama" />
+                <small>Catalog families: llama, mistral, gemma, and qwen.</small>
+              </div>
+              <div className="field">
+                <label htmlFor="parameters">Parameters</label>
+                <div className="unit-input"><input id="parameters" type="number" required min="0.01" step="0.01" value={draft.model.parameters_b ?? ""} onChange={(event) => updateModel("parameters_b", numberValue(event.target.value))} /><span>B</span></div>
+              </div>
+            </div>
+            <div className="field-row three-fields">
+              <div className="field">
+                <label htmlFor="hidden-size">Hidden size</label>
+                <input id="hidden-size" type="number" required min="1" value={draft.model.hidden_size ?? ""} onChange={(event) => updateModel("hidden_size", numberValue(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="layers">Layers</label>
+                <input id="layers" type="number" required min="1" value={draft.model.layers ?? ""} onChange={(event) => updateModel("layers", numberValue(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="context-length">Context</label>
+                <input id="context-length" type="number" required min="1" value={draft.model.context_length ?? ""} onChange={(event) => updateModel("context_length", numberValue(event.target.value))} />
+              </div>
+            </div>
+            <div className="field full-field">
+              <label htmlFor="intermediate-size">Intermediate size</label>
+              <input id="intermediate-size" type="number" min="1" value={draft.model.intermediate_size ?? ""} onChange={(event) => updateModel("intermediate_size", numberValue(event.target.value))} placeholder="Optional. Planner fallback: 4 × hidden size" />
+            </div>
+            <div className="field full-field">
+              <label htmlFor="license-name">License</label>
+              <input id="license-name" required value={draft.model.license_name} onChange={(event) => updateModel("license_name", event.target.value)} placeholder="License name and version" />
+            </div>
+            <label className="check-row">
+              <input type="checkbox" checked={draft.model.training_allowed} onChange={(event) => updateModel("training_allowed", event.target.checked)} />
+              <span>
+                <strong>I confirmed this model permits the intended training.</strong>
+                <small>Aptus blocks planning without explicit confirmation.</small>
+              </span>
+            </label>
+          </fieldset>
+
+          <fieldset className="fact-panel">
+            <legend>
+              <span><span className="fact-index">D</span> Dataset</span>
+              <ProvenanceBadge kind={demoMode ? "example" : profile ? "measured" : "unknown"} />
+            </legend>
+            <p className="fact-intro">Point Aptus to real local data so it can inspect shape and length.</p>
+            <div className="field full-field">
+              <label htmlFor="dataset-path">Dataset path</label>
+              <input id="dataset-path" required value={draft.dataset.source_path} onChange={(event) => updateDataset("source_path", event.target.value)} placeholder="/absolute/path/training.jsonl" />
+              <small>The local API reads this path. A browser upload is not implied.</small>
+            </div>
+            <p className="fact-boundary">
+              Aptus detects JSONL, JSON, CSV, or text and validates each row's
+              schema. The model-data gate resolves the pinned model tokenizer.
+            </p>
+            <div className="field full-field">
+              <label htmlFor="sample-limit">Length-stat sample size</label>
+              <input id="sample-limit" type="number" min="1" value={draft.dataset.sample_limit ?? ""} onChange={(event) => updateDataset("sample_limit", numberValue(event.target.value))} placeholder="Blank uses the 512-row default" />
+              <small>Every row is schema checked. This deterministic sample bounds only the profiling length statistics.</small>
+            </div>
+          </fieldset>
+
+          <fieldset className="fact-panel">
+            <legend>
+              <span><span className="fact-index">H</span> Hardware</span>
+              <ProvenanceBadge kind={demoMode ? "example" : hardwareScanned ? "measured" : "user-supplied"} />
+            </legend>
+            <p className="fact-intro">Bind single-device rows to the strongest compatible GPU; evaluate distributed rows against every participating GPU.</p>
+            <div className="field full-field">
+              <label htmlFor="hardware-discovery">Source</label>
+              <select id="hardware-discovery" value={draft.hardware.discovery} onChange={(event) => updateHardware("discovery", event.target.value as FactDraft["hardware"]["discovery"])}>
+                <option value="manual">Enter a hardware profile</option>
+                <option value="local-scan">Ask the local Aptus runner to scan</option>
+              </select>
+              {draft.hardware.discovery === "local-scan" ? <small>The API host will be re-scanned during planning. Use local scan only when it is the intended training host.</small> : null}
+            </div>
+        <button type="button" className="button button-secondary hardware-scan-button" disabled={busy !== null || demoMode} onClick={() => void onHardwareScan()}>
+              {busy === "hardware" ? "Scanning this Aptus host…" : "Scan this Aptus host"}
+            </button>
+            {hardwareScanned ? <p className="example-inline measured-inline">Measured on this Aptus host. Confirm this is the intended execution machine.</p> : null}
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="backend">Backend</label>
+                <select id="backend" value={draft.hardware.devices[0]?.backend ?? "cuda"} onChange={(event) => updateDevice("backend", event.target.value)}>
+                  <option value="cuda">CUDA</option>
+                  <option value="rocm" disabled>ROCm · not supported in v0.2</option>
+                  <option value="mps" disabled>MPS · not supported in v0.2</option>
+                  <option value="cpu" disabled>CPU · not supported in v0.2</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="device-vram">VRAM per device</label>
+                <div className="unit-input"><input id="device-vram" type="number" required min="0.1" step="0.1" value={draft.hardware.devices[0]?.total_vram_gib ?? ""} onChange={(event) => updateDevice("total_vram_gib", numberValue(event.target.value))} /><span>GiB</span></div>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="gpu-count">GPU count</label>
+                <input id="gpu-count" type="number" required min="1" value={draft.hardware.gpu_count} onChange={(event) => updateHardware("gpu_count", Number(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="disk-free">Free disk</label>
+                <div className="unit-input"><input id="disk-free" type="number" min="0.1" step="0.1" value={draft.hardware.disk_free_gib ?? ""} onChange={(event) => updateHardware("disk_free_gib", numberValue(event.target.value))} /><span>GiB</span></div>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="device-free-vram">Free VRAM now</label>
+                <div className="unit-input"><input id="device-free-vram" type="number" min="0.1" step="0.1" value={draft.hardware.devices[0]?.free_vram_gib ?? ""} onChange={(event) => updateDevice("free_vram_gib", numberValue(event.target.value))} placeholder="Optional" /><span>GiB</span></div>
+              </div>
+              <div className="field">
+                <label htmlFor="host-ram-free">Free host RAM now</label>
+                <div className="unit-input"><input id="host-ram-free" type="number" min="0.1" step="0.1" value={draft.hardware.host_ram_free_gib ?? ""} onChange={(event) => updateHardware("host_ram_free_gib", numberValue(event.target.value))} placeholder="Optional" /><span>GiB</span></div>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="host-ram">Host RAM</label>
+                <div className="unit-input"><input id="host-ram" type="number" required min="1" step="1" value={draft.hardware.host_ram_gib ?? ""} onChange={(event) => updateHardware("host_ram_gib", numberValue(event.target.value))} /><span>GiB</span></div>
+              </div>
+              <div className="field">
+                <label htmlFor="device-reserve">Reserve per device</label>
+                <div className="unit-input"><input id="device-reserve" type="number" required min="0" step="0.5" value={draft.hardware.reserve_per_device_gib ?? ""} onChange={(event) => updateHardware("reserve_per_device_gib", numberValue(event.target.value))} /><span>GiB</span></div>
+              </div>
+            </div>
+            <div className="capability-checks" role="group" aria-label="Device capabilities">
+              <label className="check-row compact-check">
+                <input type="checkbox" checked={draft.hardware.devices[0]?.supports_bf16 ?? false} onChange={(event) => updateDevice("supports_bf16", event.target.checked)} />
+                <span><strong>BF16 supported</strong></span>
+              </label>
+              <label className="check-row compact-check">
+                <input type="checkbox" checked={draft.hardware.devices[0]?.supports_8bit ?? false} onChange={(event) => updateDevice("supports_8bit", event.target.checked)} />
+                <span><strong>8-bit backend supported</strong></span>
+              </label>
+              <label className="check-row compact-check">
+                <input type="checkbox" checked={draft.hardware.devices[0]?.supports_4bit ?? false} onChange={(event) => updateDevice("supports_4bit", event.target.checked)} />
+                <span><strong>4-bit backend supported</strong></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset className="fact-panel">
+            <legend>
+              <span><span className="fact-index">T</span> Target</span>
+              <ProvenanceBadge kind={demoMode ? "example" : "declared"} />
+            </legend>
+            <p className="fact-intro">State the outcome. Method choice remains subordinate to feasibility.</p>
+            <div className="field full-field">
+              <label htmlFor="task">Training task</label>
+              <select id="task" value={draft.target.task} onChange={(event) => updateTarget("task", event.target.value)}>
+                <option value="sft">Supervised fine-tuning</option>
+              </select>
+            </div>
+            <fieldset className="choice-fieldset">
+              <legend>Primary objective</legend>
+              <div className="segmented-control">
+                {(["quality", "memory", "speed"] as const).map((objective) => (
+                  <label key={objective}>
+                    <input type="radio" name="objective" value={objective} checked={draft.target.objective === objective} onChange={() => updateTarget("objective", objective)} />
+                    <span>{objective}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div className="field-row three-fields">
+              <div className="field">
+                <label htmlFor="sequence-length">Sequence</label>
+                <input id="sequence-length" type="number" required min="1" value={draft.target.sequence_length ?? ""} onChange={(event) => updateTarget("sequence_length", numberValue(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="effective-batch">Effective batch</label>
+                <input id="effective-batch" type="number" required min="1" value={draft.target.effective_batch_size ?? ""} onChange={(event) => updateTarget("effective_batch_size", numberValue(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="epochs">Max epochs</label>
+                <input id="epochs" type="number" required min="1" value={draft.target.max_epochs ?? ""} onChange={(event) => updateTarget("max_epochs", numberValue(event.target.value))} />
+              </div>
+            </div>
+            <div className="field full-field">
+              <label htmlFor="method-preference">Tie-break method preference</label>
+              <select id="method-preference" value={draft.target.method_preference} onChange={(event) => updateTarget("method_preference", event.target.value)}>
+                <option value="">No preference. Compare feasible methods.</option>
+                <option value="full">Prefer full fine-tuning on an objective tie</option>
+                <option value="lora">Prefer LoRA if feasible</option>
+                <option value="int8-lora">Prefer 8-bit LoRA if feasible</option>
+                <option value="qlora">Prefer QLoRA if feasible</option>
+              </select>
+              <small>The primary objective ranks first. A preference never reverses it or overrides a failed gate.</small>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="evaluation-fraction">Evaluation fraction</label>
+                <input id="evaluation-fraction" type="number" required min="0" max="0.99" step="0.01" value={draft.target.evaluation_fraction} onChange={(event) => updateTarget("evaluation_fraction", Number(event.target.value))} />
+              </div>
+              <div className="field">
+                <label htmlFor="checkpoint-steps">Checkpoint interval</label>
+                <input id="checkpoint-steps" type="number" required min="1" value={draft.target.checkpoint_steps} onChange={(event) => updateTarget("checkpoint_steps", Number(event.target.value))} />
+              </div>
+            </div>
+            <label className="check-row">
+              <input type="checkbox" checked={false} disabled />
+              <span><strong>Sequence packing · not supported in v0.2</strong><small>The masking compiler rejects packing until its loss-boundary rules are implemented.</small></span>
+            </label>
+            <div className="field full-field">
+              <span className="field-label">Bundle runtime</span>
+              <strong>Transformers + PEFT + Accelerate</strong>
+              <small>V0.2 emits this single pinned runtime.</small>
+            </div>
+          </fieldset>
+        </div>
+
+        {profile ? (
+          <section className="profile-strip" aria-labelledby="profile-strip-title">
+            <div>
+              <p className="eyebrow">Profile available</p>
+              <h2 id="profile-strip-title">Review the measured facts</h2>
+            </div>
+            {profileFacts.length ? (
+              <dl>
+                {profileFacts.slice(0, 4).map((fact, index) => (
+                  <div key={`${fact.key ?? fact.label ?? "fact"}-${index}`}>
+                    <dt>{fact.label ?? fact.key ?? "Profile fact"}</dt>
+                    <dd>{String(fact.value ?? "Unknown")}{fact.unit ? ` ${fact.unit}` : ""}</dd>
+                    <ProvenanceBadge kind={fact.provenance} />
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p>The API returned a profile. Open Compare to inspect the resulting plan.</p>
+            )}
+          </section>
+        ) : null}
+
+        <div className="sticky-actions">
+          <div>
+            <strong>{profile ? "Dataset profiled" : "Profile the dataset before planning"}</strong>
+            <span>{profile ? "Aptus can now compare supported strategies." : "Model and hardware facts remain explicit attestations."}</span>
+          </div>
+          <div className="action-buttons">
+          <button type="submit" className="button button-secondary" disabled={busy !== null || demoMode}>
+              {busy === "profile" ? "Profiling…" : "Profile dataset"}
+            </button>
+          <button type="button" className="button button-primary" disabled={!profile || busy !== null || demoMode} onClick={() => void onPlan()}>
+              {busy === "plan" ? "Comparing…" : "Compare strategies"}
+            </button>
+          </div>
+        </div>
+      </form>
+    </>
+  );
+}

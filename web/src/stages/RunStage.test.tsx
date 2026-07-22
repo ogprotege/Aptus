@@ -1,0 +1,166 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { RunStage } from "./RunStage";
+import type { CompileResponse, Job, ValidationReport } from "../types";
+
+const callbacks = {
+  onCreateJob: vi.fn(async () => undefined),
+  onRefreshJob: vi.fn(async () => undefined),
+  onCancelJob: vi.fn(async () => undefined),
+  onReturnToValidate: vi.fn(),
+};
+
+const bundle: CompileResponse = { bundle_dir: "/tmp/bundle", files: [] };
+const pilotReport: ValidationReport = {
+  state: "pilot-pass",
+  findings: [],
+  authorization_current: false,
+  authorization_error: "Cached authorization is stale.",
+};
+
+describe("RunStage", () => {
+  it("keeps a foreign active job visible when artifact evidence is unavailable", () => {
+    const job: Job = {
+      id: "job_foreign",
+      state: "running",
+      mode: "pilot",
+      log: "still running",
+      return_code: null,
+      cancellable: false,
+      cancellation_note: "Another live Aptus process owns this job.",
+    };
+    render(
+      <RunStage
+        bundle={null}
+        report={null}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getByText("The active job remains observable.")).toBeInTheDocument();
+    expect(screen.getByText("still running")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel job" })).toBeDisabled();
+    expect(screen.getByText(job.cancellation_note!)).toBeInTheDocument();
+  });
+
+  it("allows confirmed training to reach atomic server admission without a cached authorization flag", async () => {
+    const onCreateJob = vi.fn(async () => undefined);
+    const { rerender } = render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onCreateJob={onCreateJob}
+      />,
+    );
+    await waitFor(() => expect(screen.getByLabelText(/Training job/i)).toBeChecked());
+    fireEvent.click(screen.getByLabelText(/Training job/i));
+    expect(screen.getByText(/server performs the authoritative admission atomically/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start training" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(screen.getByRole("button", { name: "Start training" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Start training" }));
+    expect(onCreateJob).toHaveBeenCalledWith("train");
+
+    const nextJob: Job = {
+      id: "job_new",
+      state: "running",
+      phase: "verifying",
+      mode: "train",
+      bundle_dir: "/tmp/bundle",
+      log: "termination requested",
+      return_code: 0,
+      cancellable: false,
+    };
+    rerender(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={nextJob}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onCreateJob={onCreateJob}
+      />,
+    );
+
+    expect(screen.getByText("termination requested")).toBeInTheDocument();
+    expect(screen.getAllByText("verifying").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Cancel job" })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("checkbox")).not.toBeChecked());
+  });
+
+  it("renders the run-bound completion, capacity, and historical integrity record", () => {
+    const job: Job = {
+      id: "job_complete",
+      state: "completed",
+      phase: "completed",
+      mode: "train",
+      bundle_dir: "/tmp/bundle",
+      run_id: "run_complete",
+      run_output_dir: "/tmp/bundle/runs/run_complete",
+      log_path: "/tmp/aptus/jobs/job_complete.log",
+      created_at: "2026-07-21T11:59:58Z",
+      started_at: "2026-07-21T12:00:00Z",
+      finished_at: "2026-07-21T13:00:01Z",
+      log: "training complete",
+      return_code: 0,
+      prelaunch_capacity_check: {
+        checked_at: "2026-07-21T12:00:00Z",
+        required_free_cuda_bytes: 8 * 1024 ** 3,
+        free_cuda_bytes: [12 * 1024 ** 3],
+        required_host_ram_bytes: 16 * 1024 ** 3,
+        host_ram_free_bytes: 24 * 1024 ** 3,
+        required_training_output_disk_bytes: 20 * 1024 ** 3,
+        free_disk_bytes: 100 * 1024 ** 3,
+      },
+      completion_attestation: {
+        state: "measured-run-pass",
+        measured_run_completed_at: "2026-07-21T13:00:00Z",
+        measured_run: { global_step: 100, distribution: "single", world_size: 1 },
+        final_export: {
+          path: "/tmp/bundle/runs/run_complete/final",
+          total_bytes: 2 * 1024 ** 3,
+          manifest_sha256: "final-export-digest",
+          verification_level: "structural-file-tree",
+        },
+      },
+      artifact_integrity: {
+        status: "verified-at-completion-not-rehashed",
+        verified_at: "2026-07-21T13:00:00Z",
+        missing_paths: [],
+        note: "Polling checks presence only.",
+      },
+    };
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getByText("/tmp/bundle/runs/run_complete")).toBeInTheDocument();
+    expect(screen.getByText("/tmp/aptus/jobs/job_complete.log")).toBeInTheDocument();
+    expect(screen.getByText("2026-07-21T11:59:58Z")).toBeInTheDocument();
+    expect(screen.getAllByText("2026-07-21T12:00:00Z").length).toBeGreaterThan(0);
+    expect(screen.getByText("2026-07-21T13:00:01Z")).toBeInTheDocument();
+    expect(screen.getByText("training complete")).toBeInTheDocument();
+    expect(screen.getByText("/tmp/bundle/runs/run_complete/final-export.json")).toBeInTheDocument();
+    expect(screen.getByText(/directory is not immutable/i)).toBeInTheDocument();
+    expect(screen.getAllByText("verified at completion not rehashed").length).toBeGreaterThan(0);
+    expect(screen.getByText("final-export-digest")).toBeInTheDocument();
+    expect(screen.getByText("Submit-time capacity admission")).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent("exact direct package pins");
+    expect(screen.getByRole("note")).toHaveTextContent("not a complete transitive lock");
+  });
+});

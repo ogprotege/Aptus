@@ -40,21 +40,16 @@ class LegacyCheckPlanTests(unittest.TestCase):
                 self.assertTrue(spec["command"])
                 self.assertNotIn("shell", spec)
             python_specs = [
-                spec
-                for spec in specs
-                if spec["check_id"].startswith("python-")
+                spec for spec in specs if spec["check_id"].startswith("python-")
             ]
             self.assertTrue(python_specs)
             self.assertTrue(
                 all(
-                    spec["command"][0] == "/sandbox/bin/python"
-                    for spec in python_specs
+                    spec["command"][0] == "/sandbox/bin/python" for spec in python_specs
                 )
             )
             collection = next(
-                spec
-                for spec in specs
-                if spec["check_id"] == "python-test-collection"
+                spec for spec in specs if spec["check_id"] == "python-test-collection"
             )
             self.assertEqual(
                 collection["requires"],
@@ -65,9 +60,7 @@ class LegacyCheckPlanTests(unittest.TestCase):
                 "blocked_without_installed_environment",
             )
             registry_checks = {
-                spec["check_id"]
-                for spec in specs
-                if spec["registry_network"]
+                spec["check_id"] for spec in specs if spec["registry_network"]
             }
             self.assertEqual(
                 registry_checks,
@@ -78,7 +71,9 @@ class LegacyCheckPlanTests(unittest.TestCase):
                 },
             )
 
-    def test_execute_checks_requires_explicit_host_process_acknowledgement(self) -> None:
+    def test_execute_checks_requires_explicit_host_process_acknowledgement(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
 

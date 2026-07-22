@@ -1,240 +1,293 @@
+import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
-from aptus.domain import (
-    Backend,
-    DatasetProfile,
-    DeviceSpec,
-    HardwareSpec,
-    MeasurementKind,
-    Method,
-    ModelSpec,
-    Objective,
-    TrainingTarget,
-    gibibytes,
-)
-from aptus.planning import (
-    NoFeasiblePlanError,
-    estimate_candidate,
-    plan_training,
-)
+from aptus.domain import CandidateStatus, Distribution, Method, Objective, gibibytes
+from aptus.planning import NoFeasiblePlanError, plan_training
 
-
-def model() -> ModelSpec:
-    return ModelSpec(
-        model_id="meta-llama/example-7b",
-        revision="a" * 40,
-        family="llama",
-        parameters=7_000_000_000,
-        hidden_size=4096,
-        layers=32,
-        context_length=4096,
-        license_name="example",
-        training_allowed=True,
-    )
-
-
-def dataset() -> DatasetProfile:
-    return DatasetProfile(
-        source_path=Path("/tmp/data.jsonl"),
-        source_sha256="a" * 64,
-        source_format="jsonl",
-        schema_name="text",
-        example_count=1_000,
-        total_estimated_tokens=512_000,
-        sequence_p50=400,
-        sequence_p95=512,
-        sequence_max=700,
-        measurement=MeasurementKind.ESTIMATED,
-    )
-
-
-def hardware(vram_gb: int, *, four_bit: bool = True) -> HardwareSpec:
-    return HardwareSpec(
-        devices=(
-            DeviceSpec(
-                name="CUDA GPU 0",
-                backend=Backend.CUDA,
-                total_vram_bytes=gibibytes(vram_gb),
-                supports_bf16=True,
-                supports_4bit=four_bit,
-            ),
-        ),
-        host_ram_bytes=gibibytes(64),
-        reserve_per_device_bytes=gibibytes(2),
-    )
-
-
-def target(objective: Objective) -> TrainingTarget:
-    return TrainingTarget(
-        objective=objective,
-        sequence_length=512,
-        effective_batch_size=16,
-        max_epochs=3,
-    )
+from tests.aptus.helpers import make_plan
 
 
 class PlannerTests(unittest.TestCase):
-    def test_quality_prefers_lora_when_both_methods_fit(self) -> None:
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=target(Objective.QUALITY),
+    def test_enumerates_full_matrix_with_immutable_unique_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2)
+        self.assertEqual(len(plan.candidates), 12)
+        self.assertEqual({item.method for item in plan.candidates}, set(Method))
+        self.assertEqual(
+            {item.distribution for item in plan.candidates}, set(Distribution)
         )
-
-        self.assertEqual(plan.recommended.method, Method.LORA)
-        self.assertTrue(all(candidate.feasible for candidate in plan.candidates))
+        self.assertEqual(len({item.candidate_id for item in plan.candidates}), 12)
         self.assertTrue(
-            any("heuristic" in warning.lower() for warning in plan.warnings)
+            all(item.candidate_id.startswith("cand_") for item in plan.candidates)
         )
 
-    def test_constrained_memory_selects_qlora_when_lora_does_not_fit(self) -> None:
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(12),
-            target=target(Objective.QUALITY),
-        )
-        by_method = {candidate.method: candidate for candidate in plan.candidates}
-
-        self.assertFalse(by_method[Method.LORA].feasible)
-        self.assertTrue(by_method[Method.QLORA].feasible)
-        self.assertEqual(plan.recommended.method, Method.QLORA)
-
-    def test_memory_objective_prefers_lower_peak_estimate(self) -> None:
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=target(Objective.MEMORY),
-        )
-
-        self.assertEqual(plan.recommended.method, Method.QLORA)
-        self.assertLess(
-            plan.recommended.memory.estimated_peak_bytes,
-            next(
-                candidate.memory.estimated_peak_bytes
-                for candidate in plan.candidates
-                if candidate.method == Method.LORA
-            ),
-        )
-
-    def test_method_preference_cannot_reverse_memory_objective(self) -> None:
-        memory_target = TrainingTarget(
-            objective=Objective.MEMORY,
-            sequence_length=512,
-            effective_batch_size=16,
-            max_epochs=3,
-            method_preference=Method.LORA,
-        )
-
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=memory_target,
-        )
-
-        self.assertEqual(plan.recommended.method, Method.QLORA)
-
-    def test_effective_batch_size_is_preserved_exactly(self) -> None:
-        batch_target = TrainingTarget(
-            objective=Objective.QUALITY,
-            sequence_length=512,
-            effective_batch_size=10,
-            max_epochs=3,
-        )
-
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=batch_target,
-        )
-
+    def test_global_batch_includes_world_size_exactly(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2, effective_batch=12)
         for candidate in plan.candidates:
-            self.assertEqual(candidate.effective_batch_size, 10)
             self.assertEqual(
                 candidate.micro_batch_size
-                * candidate.gradient_accumulation_steps,
-                10,
+                * candidate.gradient_accumulation_steps
+                * candidate.world_size,
+                12,
             )
 
-    def test_plan_explains_why_recommendation_won(self) -> None:
-        plan = plan_training(
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=target(Objective.QUALITY),
+    def test_single_gpu_keeps_multi_gpu_strategies_visible_but_unsupported(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=1)
+        multi = [
+            item for item in plan.candidates if item.distribution != Distribution.SINGLE
+        ]
+        self.assertTrue(multi)
+        self.assertTrue(
+            all(item.status == CandidateStatus.UNSUPPORTED for item in multi)
         )
 
-        self.assertTrue(plan.recommendation_rationale)
+    def test_quantized_fsdp_is_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2)
+        quantized_fsdp = [
+            item
+            for item in plan.candidates
+            if item.distribution == Distribution.FSDP
+            and item.method in {Method.INT8_LORA, Method.QLORA}
+        ]
+        self.assertTrue(
+            all(item.status == CandidateStatus.UNSUPPORTED for item in quantized_fsdp)
+        )
+
+    def test_full_fsdp_is_closed_and_lora_fsdp_requires_pilot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2)
+        full_fsdp = [
+            item
+            for item in plan.candidates
+            if item.distribution == Distribution.FSDP and item.method == Method.FULL
+        ]
+        self.assertTrue(full_fsdp)
+        self.assertTrue(
+            all(item.status == CandidateStatus.UNSUPPORTED for item in full_fsdp)
+        )
+        fsdp = [
+            item
+            for item in plan.candidates
+            if item.distribution == Distribution.FSDP and item.method == Method.LORA
+        ]
+        self.assertTrue(fsdp)
+        self.assertTrue(
+            all(item.status == CandidateStatus.CONDITIONAL for item in fsdp)
+        )
+        self.assertTrue(
+            all(
+                any("simplified" in reason for reason in item.rejection_reasons)
+                for item in fsdp
+            )
+        )
+        self.assertTrue(
+            all(
+                any("use_orig_params=true" in item for item in candidate.assumptions)
+                for candidate in fsdp
+            )
+        )
+
+    def test_memory_reserve_is_separate_from_usage_and_bounds_are_named(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary))
+        candidate = plan.recommended
+        self.assertEqual(candidate.user_reserve_bytes, 2 * 1024**3)
+        self.assertNotIn("user_reserve_bytes", candidate.memory.component_upper_bounds)
+        self.assertEqual(
+            candidate.memory.upper_bytes,
+            sum(candidate.memory.component_upper_bounds.values()),
+        )
+        self.assertGreater(
+            candidate.memory.upper_bytes, candidate.memory.point_estimate_bytes
+        )
+
+    def test_distributed_host_staging_scales_with_rank_count(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2)
+        single = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.SINGLE
+        )
+        ddp = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.DDP
+        )
+        self.assertEqual(
+            ddp.required_host_ram_bytes, 2 * single.required_host_ram_bytes
+        )
+        fsdp = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.FSDP
+        )
+        self.assertEqual(
+            fsdp.required_host_ram_bytes, 2 * single.required_host_ram_bytes
+        )
+
+    def test_ranking_is_policy_not_fabricated_quality_or_speed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), objective=Objective.QUALITY)
         self.assertTrue(
             any(
-                plan.recommended.method.value in reason.lower()
-                for reason in plan.recommendation_rationale
+                "not a prediction" in item.lower()
+                for item in plan.recommendation_rationale
             )
         )
-
-    def test_estimate_grows_with_sequence_length(self) -> None:
-        short = estimate_candidate(
-            method=Method.QLORA,
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=TrainingTarget(
-                objective=Objective.MEMORY,
-                sequence_length=256,
-                effective_batch_size=16,
-                max_epochs=3,
-            ),
-        )
-        long = estimate_candidate(
-            method=Method.QLORA,
-            model=model(),
-            dataset=dataset(),
-            hardware=hardware(24),
-            target=TrainingTarget(
-                objective=Objective.MEMORY,
-                sequence_length=2048,
-                effective_batch_size=16,
-                max_epochs=3,
-            ),
-        )
-
-        self.assertGreater(
-            long.memory.activations_bytes,
-            short.memory.activations_bytes,
-        )
-
-    def test_unsupported_backend_fails_with_explicit_reasons(self) -> None:
-        mps = HardwareSpec(
-            devices=(
-                DeviceSpec(
-                    name="Apple GPU",
-                    backend=Backend.MPS,
-                    total_vram_bytes=gibibytes(24),
-                    supports_bf16=False,
-                    supports_4bit=False,
-                ),
-            ),
-            host_ram_bytes=gibibytes(32),
-            reserve_per_device_bytes=gibibytes(2),
-        )
-
-        with self.assertRaises(NoFeasiblePlanError) as error:
-            plan_training(
-                model=model(),
-                dataset=dataset(),
-                hardware=mps,
-                target=target(Objective.QUALITY),
-            )
-
-        self.assertTrue(error.exception.candidates)
         self.assertTrue(
-            all(candidate.rejection_reasons for candidate in error.exception.candidates)
+            all(
+                any("no model-quality" in basis.lower() for basis in item.ranking_basis)
+                for item in plan.candidates
+            )
         )
+
+    def test_non_sft_and_packing_fail_closed(self) -> None:
+        for task, packing in (("dpo", False), ("sft", True)):
+            with (
+                self.subTest(task=task, packing=packing),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                with self.assertRaises(NoFeasiblePlanError):
+                    make_plan(Path(temporary), task=task, packing=packing)
+
+    def test_host_ram_and_disk_are_hard_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(NoFeasiblePlanError):
+                make_plan(Path(temporary), host_ram_gib=1, disk_free_gib=0.1)
+
+    def test_non_divisible_multi_gpu_batch_is_infeasible_but_single_can_survive(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary), gpu_count=2, effective_batch=7)
+        self.assertTrue(
+            any(
+                item.feasible
+                for item in plan.candidates
+                if item.distribution == Distribution.SINGLE
+            )
+        )
+        self.assertTrue(
+            all(
+                not item.feasible
+                for item in plan.candidates
+                if item.distribution != Distribution.SINGLE
+            )
+        )
+
+    def test_single_candidate_binds_highest_capacity_compatible_device(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = make_plan(root, gpu_count=2)
+            hardware = replace(
+                base.hardware,
+                devices=(
+                    replace(base.hardware.devices[0], supports_8bit=True),
+                    replace(
+                        base.hardware.devices[1],
+                        name="Large adapter-only GPU",
+                        total_vram_bytes=gibibytes(48),
+                        free_vram_bytes=gibibytes(32),
+                        supports_bf16=False,
+                        supports_4bit=False,
+                        supports_8bit=False,
+                    ),
+                ),
+            )
+            plan = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+        single_lora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.SINGLE
+        )
+        distributed_lora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.DDP
+        )
+        single_qlora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.QLORA and item.distribution == Distribution.SINGLE
+        )
+        single_full = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.FULL and item.distribution == Distribution.SINGLE
+        )
+        single_int8 = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.INT8_LORA
+            and item.distribution == Distribution.SINGLE
+        )
+        distributed_qlora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.QLORA and item.distribution == Distribution.DDP
+        )
+        self.assertEqual(single_lora.device_indices, (1,))
+        self.assertEqual(single_lora.precision, "fp16")
+        self.assertTrue(
+            any(
+                "greatest usable VRAM" in assumption
+                for assumption in single_lora.assumptions
+            )
+        )
+        self.assertEqual(single_qlora.device_indices, (0,))
+        self.assertEqual(single_qlora.status, CandidateStatus.FEASIBLE)
+        self.assertEqual(single_int8.device_indices, (0,))
+        self.assertEqual(single_int8.status, CandidateStatus.FEASIBLE)
+        self.assertEqual(single_full.device_indices, (0,))
+        self.assertEqual(distributed_lora.device_indices, (0, 1))
+        self.assertEqual(distributed_lora.precision, "fp16")
+        self.assertEqual(distributed_qlora.device_indices, (0, 1))
+        self.assertEqual(distributed_qlora.status, CandidateStatus.UNSUPPORTED)
+
+    def test_single_device_tie_breaks_by_stable_hardware_index(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = make_plan(root, gpu_count=2)
+            hardware = replace(
+                base.hardware,
+                devices=(
+                    replace(
+                        base.hardware.devices[0],
+                        name="CUDA zero",
+                        free_vram_bytes=gibibytes(12),
+                    ),
+                    replace(
+                        base.hardware.devices[1],
+                        name="CUDA one",
+                        free_vram_bytes=gibibytes(12),
+                    ),
+                ),
+            )
+            plan = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+        single_lora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.LORA and item.distribution == Distribution.SINGLE
+        )
+        self.assertEqual(single_lora.device_indices, (0,))
 
 
 if __name__ == "__main__":

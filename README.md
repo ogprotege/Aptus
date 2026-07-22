@@ -1,73 +1,166 @@
 # Aptus
-An evidence-backed fine-tuning planner and artifact compiler. Give Aptus explicit
-model, dataset, hardware, and target facts; it compares feasible strategies,
-explains its assumptions and tradeoffs, and emits a validated training bundle.
 
-## Project status
+Aptus is an evidence-backed fine-tuning planner and artifact compiler. Give it
+explicit model, dataset, hardware, and training-target facts. It compares the
+strategies that its current catalog can represent, explains assumptions and
+tradeoffs, and emits a portable training bundle.
 
-Aptus is a greenfield rebuild. The historical `HyperTune/` working folder was
-audited, its useful concepts were accounted for, and the folder was removed.
-The user retains a separate local backup; no legacy runtime code is part of
-Aptus.
+Aptus v0.2 is an engineering preview. It does not promise a universally optimal
+strategy, model quality, wall-clock time, cost, or VRAM fit. Analytic estimates
+remain estimates until the selected bundle passes runtime checks on the target
+host.
 
-The forensic recovery audit is available at
-[`docs/audits/aptus-legacy/`](docs/audits/aptus-legacy/). Start with the
-[`executive summary`](docs/audits/aptus-legacy/executive-summary.md), then review
-the [`hidden gems`](docs/audits/aptus-legacy/hidden-gems.md) and
-[`architecture options`](docs/audits/aptus-legacy/architecture-options.md).
+## What v0.2 does
 
-## Current vertical slice
+- Validates every source training row from local JSON, JSONL, CSV, or text data
+  and records a source digest.
+- Accepts an immutable model revision plus explicit architecture and permission
+  facts.
+- Enumerates full fine-tuning, LoRA, int8-LoRA, and QLoRA across supported
+  single-device and distributed placements.
+- Produces point and upper memory estimates with cited assumptions.
+- Compiles a no-clobber bundle containing data, plan, evidence, direct package
+  pins, launch configuration, validators, and training code.
+- Enforces five managed runtime actions in order: dependency, model-data,
+  preflight, pilot, then train. Higher validation actions also recheck lower
+  levels inside their job.
+- Persists local managed jobs, streams logs, supports cancellation, and uses one
+  host-global Aptus execution lease per user.
+- Writes every full run under a unique run ID and promotes a completed run only
+  after the parent process verifies metrics, bindings, and the structural export
+  file tree.
 
-The first working slice supports:
+## Current boundaries
 
-- deterministic local JSON, JSONL, CSV, and text profiling;
-- explicit open-model and per-device CUDA hardware facts;
-- LoRA and QLoRA feasibility comparison;
-- component-level `heuristic-v1` memory estimates with a safety margin;
-- quality, memory, and speed objectives;
-- a version-pinned Transformers/PEFT bundle;
-- dependency-free validation and a fully offline one-step adapter smoke test.
+- CUDA is the only execution backend in the v0.2 support contract. Other
+  backends can appear as known values but are not execution-ready.
+- Full fine-tuning requires BF16. Adapter methods can select FP16 when BF16 is
+  not declared, subject to the exact pilot gate.
+- Full-parameter FSDP is unsupported. LoRA FSDP is conditional. Quantized FSDP
+  combinations are unsupported.
+- Full-training resume is fail-closed. Pilot continuation is a bounded validation
+  exercise, not a general resume feature.
+- Model inspection reads bounded provider-declared metadata. The user must still
+  supply and confirm license and training-permission facts.
+- Evaluation targets, exporter plugins, cloud providers, and MCP adapters are
+  future extension seams. They are not current execution features.
 
-The memory model is transparent but not yet calibrated. Aptus does not describe
-its output as universally optimal or guaranteed to fit.
+No real CUDA pilot has been completed on the current development Mac. The
+repository is therefore not release-ready. See
+[`docs/operations/release-gates.md`](docs/operations/release-gates.md).
 
-## Example
+## Install
+
+Python 3.11 or newer is required.
 
 ```bash
-PYTHONPATH=src python3 -m aptus plan \
-  --model-id meta-llama/example-7b \
-  --revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[server,test]'
+```
+
+The React source is in `web/`. A packaged build is already served from
+`src/aptus/_web`.
+
+## Start the workbench
+
+```bash
+aptus serve --host 127.0.0.1 --port 8787
+```
+
+Open `http://127.0.0.1:8787`. Keep the service on loopback. The jobs API is a
+trusted-user local interface and has no authentication boundary.
+
+The workbench follows five stages:
+
+1. Enter and inspect facts.
+2. Compare viable candidates, including explicitly conditional rows.
+3. Compile a selected plan.
+4. Validate the bundle.
+5. Run the five ordered execution actions.
+
+## CLI example
+
+The repository includes `examples/support-sft.jsonl`. Replace the model facts and
+hardware facts with measured values for the intended run.
+
+```bash
+aptus spec-plan \
+  --model-id provider/model \
+  --revision IMMUTABLE_COMMIT \
   --family llama \
   --parameters-b 7 \
   --hidden-size 4096 \
+  --intermediate-size 11008 \
   --layers 32 \
   --context-length 4096 \
-  --license example \
+  --license LICENSE_NAME \
   --confirm-training-allowed \
-  --dataset tests/fixtures/text.jsonl \
-  --backend cuda \
+  --dataset examples/support-sft.jsonl \
   --gpu-count 1 \
   --vram-gib 24 \
-  --bf16 \
-  --four-bit \
+  --free-vram-gib 22 \
+  --bf16 --four-bit --eight-bit \
   --host-ram-gib 64 \
-  --reserve-gib 2 \
-  --objective quality \
-  --sequence-length 128 \
-  --effective-batch-size 8 \
-  --epochs 1 \
-  --output ./aptus-bundle
+  --host-ram-free-gib 48 \
+  --disk-free-gib 200 \
+  --objective memory \
+  --sequence-length 1024 \
+  --output ./work/plan.json
+
+aptus compile --plan ./work/plan.json --output ./work/bundle
+aptus validate ./work/bundle --level static
 ```
 
-Then inspect `plan.json` and `validation-report.json` before running:
+Use managed jobs for the runtime sequence:
 
 ```bash
-python aptus-bundle/validate.py
-python aptus-bundle/train.py --smoke
-python aptus-bundle/train.py
+aptus run ./work/bundle --action dependency
+aptus run ./work/bundle --action model-data
+aptus run ./work/bundle --action preflight
+aptus run ./work/bundle --action pilot
+aptus run ./work/bundle --action train --confirm-full-train
 ```
 
-Design boundaries and acceptance criteria are documented in
-[`docs/design/aptus-core-vertical-slice.md`](docs/design/aptus-core-vertical-slice.md).
-The successful pinned offline smoke is documented in
-[`docs/validation/aptus-core-smoke.md`](docs/validation/aptus-core-smoke.md).
+Wait for each action to finish successfully before starting the next. Inspect
+state with `aptus jobs` or `aptus jobs --id JOB_ID`.
+
+## Portable bundle execution
+
+Inside a compiled bundle:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python validate.py --level dependency
+python validate.py --level model-data
+python validate.py --level measured-preflight
+python validate.py --level pilot
+python run.py --confirm-full-train
+```
+
+`requirements.txt` is the direct, method-specific pinned input set. It is not a
+complete transitive lock file. Capture and retain the installed-environment
+binding produced by validation.
+
+`run.py` is the portable full-run parent. It launches the selected single or
+distributed command, waits for aggregate completion, verifies the pending
+artifacts, and promotes the validation report to `measured-run-pass` only when
+those checks succeed. These direct portable commands are supported on POSIX.
+On Windows, use the managed `aptus run` path because direct portable child
+execution is fail-closed in v0.2.
+
+## Documentation
+
+- [Documentation index](docs/index.md)
+- [Current capabilities](docs/product/current-capabilities.md)
+- [Quickstart](docs/getting-started/quickstart.md)
+- [System architecture](docs/architecture/system.md)
+- [Validation states](docs/reference/validation-states.md)
+- [Release gates](docs/operations/release-gates.md)
+- [Security policy](SECURITY.md)
+
+## License
+
+MIT. See `LICENSE`.

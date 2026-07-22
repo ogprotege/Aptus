@@ -14,6 +14,25 @@ The default service accepts only loopback Host headers, including `localhost`,
 unauthenticated local API. Explicit non-loopback mode relaxes that check and
 requires an external authenticated boundary.
 
+## Native desktop boundary
+
+Aptus for Mac starts a separate desktop entrypoint on an ephemeral loopback
+port. The native host creates a random per-launch token and installs it as an
+HttpOnly, SameSite Strict cookie before WebKit loads the workbench. Every
+desktop route requires that cookie. The token is absent from the URL, readiness
+file, JavaScript bridge, state files, and logs. Desktop responses add a
+same-origin content security policy, deny framing, suppress referrers, and
+disable MIME sniffing.
+
+The desktop boundary does not turn the API into a secure remote or multi-user
+service. WebKit accepts only the exact loopback session origin. External links
+open outside the app. The ordinary `aptus serve` command retains the trusted
+local-user model described above.
+
+The desktop sidecar also enforces the platform execution boundary. Runtime
+validation and job submission return `desktop_execution_disabled`; hiding the
+Run controls in React is not the authorization mechanism.
+
 ## Filesystem boundary
 
 Paths are resolved before access. Compiler output is no-clobber and atomic.
@@ -80,3 +99,4 @@ policy engine. Those are future designs, not hidden current features.
 - [Data and identity flow](data-and-identity-flow.md)
 - [Bundle manifest](../reference/bundle-manifest.md)
 - [Operator checklist](../operations/operator-checklist.md)
+- [macOS desktop host](macos-desktop.md)

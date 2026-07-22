@@ -1,4 +1,4 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import type {
   FactDraft,
   InputProfile,
@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { StageHeader } from "../components/StageHeader";
+import { getDesktopBridge } from "../desktopBridge";
 
 interface FactsStageProps {
   draft: FactDraft;
@@ -47,6 +48,9 @@ export function FactsStage({
   modelInspection,
   methodCatalog,
 }: FactsStageProps) {
+  const desktopBridge = getDesktopBridge();
+  const [datasetPickerError, setDatasetPickerError] = useState<string | null>(null);
+
   const updateModel = <K extends keyof FactDraft["model"]>(
     key: K,
     value: FactDraft["model"][K],
@@ -98,6 +102,18 @@ export function FactsStage({
   const submitProfile = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void onProfile();
+  };
+
+  const chooseDataset = async () => {
+    if (!desktopBridge) return;
+
+    setDatasetPickerError(null);
+    try {
+      const path = await desktopBridge.pickDataset();
+      if (path) updateDataset("source_path", path);
+    } catch {
+      setDatasetPickerError("Aptus could not open the data picker. Enter an absolute path instead.");
+    }
   };
 
   const profileFacts = profile?.facts ?? [];
@@ -283,8 +299,20 @@ export function FactsStage({
             <p className="fact-intro">Point Aptus to real local data so it can inspect shape and length.</p>
             <div className="field full-field">
               <label htmlFor="dataset-path">Dataset path</label>
-              <input id="dataset-path" required value={draft.dataset.source_path} onChange={(event) => updateDataset("source_path", event.target.value)} placeholder="/absolute/path/training.jsonl" />
-              <small>The local API reads this path. A browser upload is not implied.</small>
+              <div className="native-path-control">
+                <input id="dataset-path" required value={draft.dataset.source_path} onChange={(event) => updateDataset("source_path", event.target.value)} placeholder="/absolute/path/training.jsonl" aria-describedby="dataset-path-help" />
+                {desktopBridge ? (
+                  <button type="button" className="button button-secondary native-path-button" disabled={demoMode} onClick={() => void chooseDataset()}>
+                    Choose file
+                  </button>
+                ) : null}
+              </div>
+              <small id="dataset-path-help">
+                {desktopBridge
+                  ? "Choose a local JSONL, JSON, CSV, or text file, or enter its absolute path."
+                  : "The local API reads this path. A browser upload is not implied."}
+              </small>
+              {datasetPickerError ? <small className="native-action-error" role="alert">{datasetPickerError}</small> : null}
             </div>
             <p className="fact-boundary">
               Aptus detects JSONL, JSON, CSV, or text and validates each row's

@@ -17,7 +17,9 @@ job state, and evidence boundaries without inventing a separate product model.
 | [`web/src/components/`](../../web/src/components) | Workflow rail, candidate comparison, fit ledger, validation gates, artifact tree, and run console |
 | [`web/src/lib/`](../../web/src/lib) | Hardware, model-inspection, and plan presentation helpers |
 | [`web/src/demo.ts`](../../web/src/demo.ts) | Labeled non-executed example content |
+| [`web/src/desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete native-bridge feature detection and browser fallback |
 | [`web/src/styles.css`](../../web/src/styles.css) | Fonts, tokens, layout, status treatments, responsive rules, focus, and reduced motion |
+| [`desktop/macos/`](../../desktop/macos) | AppKit/WebKit host, native bridge implementation, packaging, and Mac tests |
 
 ## Five-stage contract
 
@@ -71,6 +73,8 @@ Keep these behaviors visible and tested:
 - full-run resume is not offered;
 - export checks are labeled structural, not quality evidence;
 - example mode is labeled as non-executed on every relevant stage.
+- macOS desktop mode never exposes local CUDA run controls, including when
+  manual facts describe a different CUDA host.
 
 ## Active-job behavior
 
@@ -124,6 +128,15 @@ After the build:
 Do not commit a source change without the corresponding packaged assets when
 the user-facing build changed.
 
+For a full native package, return to the repository root and run:
+
+```bash
+desktop/macos/build.sh
+```
+
+This also verifies the injected bridge, authenticated sidecar startup, AppKit
+host, ad-hoc signature, and final app and DMG layout.
+
 ## Local development
 
 Run the API on loopback:
@@ -162,3 +175,4 @@ For any material UI change, inspect:
 - [Current capabilities](../product/current-capabilities.md)
 - [Security boundaries](../architecture/security-boundaries.md)
 - [Code map](../architecture/code-map.md)
+- [macOS desktop host](../architecture/macos-desktop.md)

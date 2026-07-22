@@ -16,15 +16,19 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+/.aptus-state/
 
 # Node
 node_modules/
 dist/
 build/
 coverage/
+*.profraw
 
 # Disposable audit environments
 /.audit-sandboxes/
 
-# Local intake material may contain credentials, corpora, or unpublished work.
-/EXAMPLE/
+# Generated macOS desktop build products
+/desktop/macos/.build/
+/desktop/macos/DerivedData/
+/desktop/macos/Aptus.xcodeproj/

@@ -2,8 +2,9 @@
 
 > **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22
 
-Aptus has three execution surfaces: the Python application, the React
-workbench, and the self-contained Python programs emitted into each bundle.
+Aptus has four execution surfaces: the native macOS host, the Python
+application, the React workbench, and the self-contained Python programs
+emitted into each bundle.
 This map identifies the source of truth for each responsibility and the tests
 that protect it.
 
@@ -15,6 +16,8 @@ that protect it.
 | `src/aptus/methods/` | Typed method lifecycle and compiler-readiness registry |
 | `web/src/` | React workbench source |
 | `src/aptus/_web/` | Built workbench assets packaged in the Python wheel |
+| `desktop/macos/` | AppKit/WebKit host, native bridge, packaging, and Mac tests |
+| `pyproject.toml`, `uv.lock` | Python package contract and locked product-test environment |
 | `tests/aptus/` | Product, contract, generator, API, and execution tests |
 | `tests/tools/` | Legacy-audit tool tests |
 | `tools/aptus_audit/` | Reproducible forensic-audit tooling for the preserved legacy evidence |
@@ -41,6 +44,7 @@ that protect it.
 | [`execution.py`](../../src/aptus/execution.py) | Persisted jobs, admission, cancellation, recovery, and parent completion verification | Model quality |
 | [`api.py`](../../src/aptus/api.py) | Strict FastAPI request models, endpoints, persistence context, and packaged SPA serving | A secure multi-user boundary |
 | [`cli.py`](../../src/aptus/cli.py) | Command parsing and orchestration over the same core contracts | Alternate planning or validation semantics |
+| [`desktop.py`](../../src/aptus/desktop.py) | Ephemeral loopback binding and private desktop-service readiness | Native UI state or a public network service |
 
 `src/aptus/__main__.py` delegates `python -m aptus` to the CLI. The installed
 `aptus` command is declared in `pyproject.toml` and uses the same entrypoint.
@@ -63,6 +67,7 @@ flowchart LR
   PL --> A
   G --> A
   A --> W["React workbench"]
+  W --> M["AppKit and WebKit host"]
   PL --> C["CLI"]
   G --> C
   V --> C
@@ -105,6 +110,7 @@ generator, compile a fresh fixture, and review the output diff.
 | [`lib/`](../../web/src/lib) | Hardware, model-inspection, and plan view helpers |
 | [`demo.ts`](../../web/src/demo.ts) | Clearly labeled non-executed example state |
 | [`styles.css`](../../web/src/styles.css) | Visual tokens, layout, responsive behavior, focus, and motion policy |
+| [`desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete feature detection for native pickers and Finder actions |
 
 The Vite build writes to `src/aptus/_web` and clears its prior contents. Those
 assets are package data in the wheel. A source-only web change is incomplete
@@ -143,6 +149,7 @@ Vitest and Testing Library.
 | Change job behavior | `execution.py` and `runtime_lease.py` | API/CLI/UI, recovery, cancellation, multi-process tests |
 | Change an endpoint | `api.py` | `web/src/api.ts`, `types.ts`, API tests, API reference |
 | Change the workbench | `web/src/` | accessibility, responsive behavior, packaged build, UI contract |
+| Change the Mac host | `desktop/macos/` and `desktop.py` | bridge contract, cookie boundary, packaged sidecar, native tests |
 
 ## Related documentation
 

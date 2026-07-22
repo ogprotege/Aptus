@@ -11,7 +11,7 @@ have.
 
 | I want to | Start here | Host requirement | Stop when |
 |---|---|---|---|
-| Understand Aptus without training | Start the workbench and inspect example mode | Python 3.11 or newer | You can explain the five stages and the evidence boundary |
+| Understand Aptus without training | Open Aptus for Mac or start the browser workbench | macOS app or Python 3.11 or newer | You can explain the five stages and the evidence boundary |
 | Profile a dataset | Run `aptus profile` | Any supported Python host | You have reviewed counts, schemas, duplicates, truncation warnings, and the source digest |
 | Compare plans for a future CUDA host | Enter explicit, user-attested CUDA facts | Any supported Python host | You have reviewed every candidate status, assumption, and memory envelope |
 | Produce a reviewable bundle | Compile a persisted plan and run static validation | Any supported Python host | The no-clobber bundle and archive pass `static-pass` |
@@ -23,9 +23,10 @@ have.
 Use this path on macOS, a CPU-only machine, or any host that is not the final
 CUDA training host.
 
-1. [Install Aptus](install.md).
-2. Start the local workbench with `aptus serve --host 127.0.0.1 --port 8787`,
-   or use the CLI.
+1. [Build Aptus for Mac](install.md#build-aptus-for-mac), install Aptus for
+   Python, or both.
+2. Open the Mac app. On another platform, start the browser workbench with
+   `aptus serve --host 127.0.0.1 --port 8787`, or use the CLI.
 3. Profile a local dataset.
 4. Inspect the local hardware inventory if useful.
 5. Enter measured or user-attested facts for the intended CUDA host.
@@ -68,9 +69,14 @@ No real CUDA pilot has been completed on the current development Mac. The
 repository remains an engineering preview until the applicable
 [release gates](../operations/release-gates.md) pass on target hardware.
 
-## Path C: Use the workbench or the CLI
+## Path C: Use the Mac app, browser workbench, or CLI
 
-Both interfaces use the same API contracts.
+All three interfaces use the same Python contracts.
+
+Choose the Mac app for a native launch surface, file and folder pickers,
+authenticated private backend lifecycle, Finder actions, and explicit CUDA-host
+handoff. It never submits CUDA work on macOS, even when the plan describes a
+different CUDA machine.
 
 Choose the workbench when you want guided fact entry, candidate cards, evidence
 disclosures, and job monitoring. Keep it on loopback because the service can

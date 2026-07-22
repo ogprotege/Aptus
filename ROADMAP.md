@@ -24,6 +24,9 @@ conditional until its runtime gate is complete.
 
 - Evolve the versioned method descriptor registry into method-dispatched
   estimators, compilers, checkpoint contracts, and export verifiers.
+- Add bounded, Optuna-style search only after feasibility filtering. Persist
+  every trial's facts and provenance, prune without hiding failed trials, and
+  optimize against validation-only objectives rather than test results.
 - Separate training objective, parameterization, recipe modifiers, optimizer,
   precision, quantization, and distribution as explicit planning axes.
 - Add calibrated device and model-family priors without replacing measured

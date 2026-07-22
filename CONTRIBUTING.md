@@ -33,6 +33,16 @@ Run the wheel build and installed-wheel smoke test for packaging changes. Run
 real CUDA pilots for changes that alter generation, dependencies, precision,
 quantization, distribution, memory estimates, checkpointing, or export.
 
+For macOS host, bridge, packaged workbench, or desktop-runtime changes, also run:
+
+```bash
+desktop/macos/build.sh
+```
+
+Keep the resulting `desktop/macos/dist/` artifacts out of commits. Record native
+test, signature, authenticated launch, and clean-machine results in release
+evidence.
+
 ## Design rules
 
 - Keep user-attested, provider-declared, inferred, measured, and unknown facts

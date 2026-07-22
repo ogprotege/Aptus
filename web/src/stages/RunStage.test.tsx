@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RunStage } from "./RunStage";
+import type { AptusDesktopBridge } from "../desktopBridge";
 import type { CompileResponse, Job, ValidationReport } from "../types";
 
 const callbacks = {
@@ -18,7 +19,63 @@ const pilotReport: ValidationReport = {
   authorization_error: "Cached authorization is stale.",
 };
 
+afterEach(() => {
+  delete window.aptusDesktop;
+});
+
 describe("RunStage", () => {
+  it("hands every desktop execution plan off to the CUDA host", () => {
+    const bridge: AptusDesktopBridge = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    window.aptusDesktop = bridge;
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getByText("Continue on the CUDA machine.")).toBeInTheDocument();
+    expect(screen.getByText(/never submits CUDA work locally/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("CUDA host commands")).toHaveTextContent("--action pilot");
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start training" })).not.toBeInTheDocument();
+    expect(screen.queryByText("No job has started.")).not.toBeInTheDocument();
+  });
+
+  it("quotes the transferred bundle name in desktop shell commands", () => {
+    window.aptusDesktop = {
+      platform: "macos",
+      reportWorkbenchReady: vi.fn(async () => undefined),
+      pickDataset: vi.fn(async () => null),
+      pickOutputDirectory: vi.fn(async () => null),
+      revealInFinder: vi.fn(async () => undefined),
+    };
+    render(
+      <RunStage
+        bundle={{ ...bundle, bundle_dir: "/tmp/Wilson's training bundle" }}
+        report={pilotReport}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getByLabelText("CUDA host commands")).toHaveTextContent(
+      `aptus run './Wilson'"'"'s training bundle' --action dependency`,
+    );
+  });
+
   it("keeps a foreign active job visible when artifact evidence is unavailable", () => {
     const job: Job = {
       id: "job_foreign",

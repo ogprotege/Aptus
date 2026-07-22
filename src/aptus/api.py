@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import sys
 import threading
 from pathlib import Path
@@ -197,6 +198,8 @@ def create_app(
     state_dir: Path | None = None,
     static_dir: Path | None = None,
     allowed_hosts: tuple[str, ...] | None = None,
+    session_token: str | None = None,
+    execution_enabled: bool = True,
 ) -> Any:
     try:
         from fastapi import FastAPI, HTTPException
@@ -214,6 +217,21 @@ def create_app(
     from .execution import ActiveJobError, JobPrerequisiteError
     from .validation import validate_bundle
 
+    desktop_security_headers = {
+        "Content-Security-Policy": (
+            "default-src 'self'; base-uri 'none'; connect-src 'self'; "
+            "font-src 'self'; form-action 'self'; frame-ancestors 'none'; "
+            "frame-src 'none'; img-src 'self' data:; object-src 'none'; "
+            "script-src 'self'; style-src 'self' 'unsafe-inline'"
+        ),
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+    }
+
+    if session_token is not None and len(session_token) < 32:
+        raise ValueError("Desktop session tokens must contain at least 32 characters.")
+
     context = ApiContext((state_dir or Path(".aptus-state")).resolve())
     app = FastAPI(title="Aptus API", version="0.2.0")
     trusted_hosts = set(allowed_hosts or ())
@@ -222,6 +240,22 @@ def create_app(
         TrustedHostMiddleware,
         allowed_hosts=sorted(trusted_hosts),
     )
+
+    if session_token is not None:
+
+        @app.middleware("http")
+        async def require_desktop_session(request: Any, call_next: Any) -> Any:
+            supplied = request.cookies.get("aptus_desktop_session", "")
+            if not secrets.compare_digest(supplied, session_token):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "desktop_session_required"},
+                    headers=desktop_security_headers,
+                )
+            response = await call_next(request)
+            for name, value in desktop_security_headers.items():
+                response.headers[name] = value
+            return response
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(
@@ -574,6 +608,17 @@ def create_app(
             "measured-preflight",
             "pilot",
         }:
+            if not execution_enabled:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "desktop_execution_disabled",
+                        "message": (
+                            "Aptus for Mac does not execute runtime validation or "
+                            "training jobs. Transfer the compiled bundle to a CUDA host."
+                        ),
+                    },
+                )
             action = {
                 "dependency": "dependency",
                 "model-data": "model-data",
@@ -618,6 +663,17 @@ def create_app(
 
     @app.post("/api/v1/jobs")
     def create_job(request: JobRequest) -> dict[str, Any]:
+        if not execution_enabled:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "desktop_execution_disabled",
+                    "message": (
+                        "Aptus for Mac does not execute runtime validation or training "
+                        "jobs. Transfer the compiled bundle to a CUDA host."
+                    ),
+                },
+            )
         try:
             return context.jobs.submit(
                 Path(request.bundle_dir),

@@ -8,6 +8,9 @@ All notable changes are recorded here.
 
 ### Added
 
+- Aptus for Mac, a native AppKit and WebKit application with automatic bundled
+  backend lifecycle, private session authentication, native path pickers,
+  Finder actions, startup recovery, app packaging, and CUDA-host handoff.
 - V2 fact, candidate, plan, bundle, validation, and job contracts.
 - Full, LoRA, int8-LoRA, and QLoRA candidate enumeration with explicit
   distribution feasibility.
@@ -38,7 +41,7 @@ All notable changes are recorded here.
 - Structural safetensors export file-tree verification and environment bindings.
 - A governed reviewed-corpus contract, Apple Silicon pilot matrix, and complete
   reconciliation ledgers for the retained Reference packet, removed TO-REVIEW
-  staging files, and ignored local EXAMPLE intake.
+  staging files, and reviewed then removed EXAMPLE intake.
 - A task-oriented documentation system with section indexes, first-run and
   method-selection guides, code-derived reference contracts, operator and
   contributor procedures, lifecycle metadata, maintenance policy, debt and
@@ -69,6 +72,8 @@ All notable changes are recorded here.
 
 ### Removed
 
+- The 75-file local `EXAMPLE` intake after accepted findings were integrated
+  and unsafe, duplicate, stale, or copyrighted source copies were discarded.
 - Pass-through full-training resume.
 - Claims of automatic FP16 fallback.
 - Claims that analysis alone proves fit, speed, cost, or quality.

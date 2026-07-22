@@ -29,11 +29,13 @@ the versions Aptus actually pins before implementation.
 ### Reconciliation ledgers
 
 - [Reference and former TO-REVIEW reconciliation](reference-and-to-review-reconciliation.md)
-- [EXAMPLE forensic review and salvage ledger](example-intake-reconciliation.md)
+- [EXAMPLE review, integration, and removal ledger](example-intake-reconciliation.md)
 
 These ledgers preserve source disposition and explain which concepts entered
-current contracts, which moved to the roadmap, and which remain archived or
-rejected.
+current contracts, which moved to the roadmap, and which were rejected. The
+EXAMPLE ledger retains citations, hashes, and bounded findings only. Its raw
+source folder, legacy scripts, credentials, and PDF binaries were removed after
+the accepted salvage was integrated.
 
 ### Current normalized method documentation
 

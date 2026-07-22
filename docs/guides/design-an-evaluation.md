@@ -87,6 +87,10 @@ format compliance, and harmful-error rate. Give every score point a behavioral
 anchor. Record reviewer identity or role, blind the artifact label when
 possible, and adjudicate material disagreement.
 
+For stochastic model judges, define the repetition count before the run. Keep
+every judgment, report disagreement, and aggregate only through a named rule.
+A single favorable judge response is not stable evaluation evidence.
+
 Do not compress distinct harms into one average. A model can improve general
 helpfulness while worsening citation fabrication or unsafe compliance.
 
@@ -127,6 +131,11 @@ Preserve:
 Do not write this packet into a compiler-managed bundle path. Store it as a
 separate immutable evaluation artifact until Aptus defines an evaluation
 manifest and verifier.
+
+Maintain a small deterministic CI subset for contract and regression checks.
+Promote production failures into a versioned regression intake with provenance,
+human review, and split-group identity. The CI subset does not replace the
+complete release evaluation.
 
 ## Related documentation
 

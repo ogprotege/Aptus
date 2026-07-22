@@ -888,6 +888,53 @@ code {
   line-height: 1.35;
 }
 
+.native-path-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.native-path-button {
+  white-space: nowrap;
+}
+
+.native-action-error {
+  color: var(--fault-red) !important;
+}
+
+.desktop-handoff-intro code {
+  overflow-wrap: anywhere;
+}
+
+.target-host-handoff {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--calibration-amber) 48%, var(--porcelain));
+  border-radius: 8px;
+  background: var(--amber-soft);
+}
+
+.target-host-handoff h3 {
+  margin-bottom: 7px;
+}
+
+.target-host-handoff p:not(.eyebrow) {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.handoff-commands {
+  padding: 14px;
+  margin: 16px 0 0;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--calibration-amber) 30%, var(--porcelain));
+  border-radius: 6px;
+  background: var(--porcelain);
+  color: var(--graphite);
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1919,6 +1966,13 @@ code {
   font-size: 0.75rem;
 }
 
+.native-reveal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .bundle-summary dl {
   display: grid;
   gap: 8px;
@@ -2727,6 +2781,14 @@ code {
   .inspection-facts,
   .run-evidence-grid {
     grid-template-columns: 1fr;
+  }
+
+  .native-path-control {
+    grid-template-columns: 1fr;
+  }
+
+  .native-path-button {
+    width: 100%;
   }
 
   .run-evidence-grid .wide-evidence {

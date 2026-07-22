@@ -5,6 +5,10 @@
 The workbench is a local operator interface for the same API contracts exposed by
 the CLI. It must make evidence state and blocked actions visible.
 
+Inside Aptus for Mac, the same workbench receives a complete native bridge for
+dataset selection, output selection, and Finder reveal actions. Partial native
+bridges are ignored. The macOS host owns backend startup and session security.
+
 ## Five stages
 
 1. **Facts:** enter model, dataset, hardware, and target facts.
@@ -81,6 +85,9 @@ write checkpoints and model artifacts. Full resume is not offered.
 Pilot success can be shown before train admission, but the UI must explain that
 deep authorization occurs when train is submitted. Cached authorization text is
 not treated as a durable entitlement.
+
+The macOS app always presents target-host handoff instead of local run controls.
+This remains true when the operator enters manual CUDA facts for another host.
 
 On completion, display the unique run output directory, report state, completion
 attestation, final export manifest location, and artifact-integrity status. Label

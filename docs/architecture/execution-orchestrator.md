@@ -17,13 +17,14 @@ The accepted actions are ordered:
 5. `train`
 
 Dependency, model-data, and preflight invoke the corresponding portable
-validation level. Pilot invokes the two-phase bounded pilot. The service rejects
-an action until the preceding validation state is recorded. Higher validation
+validation level. Pilot invokes the runtime-specific bounded pilot. CUDA uses
+two fresh training processes and checkpoint continuation. MLX uses one
+uninterrupted training process and a separate fresh adapter-reload process. The
+service rejects an action until the preceding validation state is recorded. Higher validation
 levels also rerun lower levels inside the submitted job as defense-in-depth.
 Earlier passed actions remain available for an explicit recheck; only forward
-skips are rejected.
-Train launches the selected single-device or interpreter-bound Accelerate
-command.
+skips are rejected. Train launches the runtime-selected `run.py` or CUDA
+interpreter-bound Accelerate command.
 
 Full training requires `confirm_full_train=true`. `resume_from` is rejected.
 
@@ -45,19 +46,20 @@ The service holds:
 - a state-root record lock;
 - a per-user host-global Aptus lease.
 
-Together they permit one Aptus GPU action across state roots. Validation that
+Together they permit one Aptus accelerator action across state roots. Validation that
 can mutate runtime reports is serialized against job submission. The global
 lease coordinates managed jobs and direct portable entrypoints. Unrelated CUDA
-programs do not participate.
+or Metal programs do not participate.
 
 ## Admission
 
 Job submission first validates the bundle and required preceding report state.
 Train submission also performs deep pilot authorization while holding the lease
-and record locks. It checks current
-free CUDA memory, free host RAM, disk, environment, bundle, plan, pilot metrics,
-checkpoint contracts, and pilot export contracts before persisting a queued
-train job.
+and record locks. CUDA checks current free CUDA memory, host RAM, disk,
+environment, bundle, plan, pilot metrics, checkpoint contracts, and pilot export
+contracts. MLX verifies the owned uninterrupted pilot, then checks current
+unified-memory headroom against measured peak plus reserve and current disk
+against plan and measured adapter artifacts.
 
 Public polling can use cached completion evidence and cheap presence checks.
 The deep admission transaction decides whether a train job may start.
@@ -79,6 +81,12 @@ Train jobs receive a unique `run_*` output path. The child cannot overwrite a
 prior run. On aggregate exit code zero, the parent changes phase to `verifying`
 and deeply checks the job-specific marker, metrics, report bindings, and final
 export manifest.
+
+An MLX train job starts again from the pinned base and runs without interruption
+for its plan-derived duration. Its parent also verifies exact target binding,
+finite train and validation losses, positive memory and adapter delta, immutable
+artifacts, and fresh-process one-to-four-token adapter generation. MLX weight
+snapshots are not resumable checkpoints.
 
 Verified pending evidence is stored in the job record before report promotion.
 Promotion to `measured-run-pass` is idempotent. Startup reconciliation can finish

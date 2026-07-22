@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ..domain import Backend, Distribution, Method
-from .contracts import MethodDescriptor, MethodLifecycle
+from ..domain import Backend, Distribution, Method, TrainingRuntime
+from .contracts import MethodDescriptor, MethodLifecycle, RuntimeBinding
 
 
 def _descriptor(**values: object) -> MethodDescriptor:
     return MethodDescriptor(**values)  # type: ignore[arg-type]
+
+
+def _runtime(**values: object) -> RuntimeBinding:
+    return RuntimeBinding(**values)  # type: ignore[arg-type]
 
 
 METHOD_REGISTRY: dict[str, MethodDescriptor] = {
@@ -29,6 +33,16 @@ METHOD_REGISTRY: dict[str, MethodDescriptor] = {
             evidence_ids=("method.full.transformers", "estimate.memory.v2"),
             pilot_requirement="Exact model-data validation, measured preflight, and a bounded real-model pilot are mandatory.",
             aliases=("full-parameter",),
+            runtime_bindings=(
+                _runtime(
+                    training_runtime="transformers-peft-cuda",
+                    compute_backend="cuda",
+                    compiler_id="transformers.full.v2",
+                    estimator_id="aptus-memory-v2",
+                    export_kind="full-model-safetensors",
+                    supported_distributions=("single", "ddp"),
+                ),
+            ),
         ),
         _descriptor(
             method_id="lora",
@@ -41,10 +55,28 @@ METHOD_REGISTRY: dict[str, MethodDescriptor] = {
             base_storage="unquantized",
             compiler_id="transformers.peft-lora.v2",
             export_kind="peft-adapter-safetensors",
-            supported_backends=("cuda",),
+            supported_backends=("cuda", "mps"),
             supported_distributions=("single", "ddp", "fsdp"),
             evidence_ids=("method.lora.paper", "estimate.memory.v2"),
             pilot_requirement="Target-module inspection, measured preflight, and a bounded real-model pilot are mandatory.",
+            runtime_bindings=(
+                _runtime(
+                    training_runtime="transformers-peft-cuda",
+                    compute_backend="cuda",
+                    compiler_id="transformers.peft-lora.v2",
+                    estimator_id="aptus-memory-v2",
+                    export_kind="peft-adapter-safetensors",
+                    supported_distributions=("single", "ddp", "fsdp"),
+                ),
+                _runtime(
+                    training_runtime="mlx-lm",
+                    compute_backend="mps",
+                    compiler_id="mlx-lm.lora.v1",
+                    estimator_id="aptus-memory-mlx-v1",
+                    export_kind="mlx-lm-adapter",
+                    supported_distributions=("single",),
+                ),
+            ),
         ),
         _descriptor(
             method_id="int8-lora",
@@ -66,23 +98,51 @@ METHOD_REGISTRY: dict[str, MethodDescriptor] = {
             ),
             pilot_requirement="Exact INT8 kernel capability, target inspection, measured preflight, and a bounded pilot are mandatory.",
             aliases=("8bit-lora",),
+            runtime_bindings=(
+                _runtime(
+                    training_runtime="transformers-peft-cuda",
+                    compute_backend="cuda",
+                    compiler_id="transformers.peft-int8-lora.v2",
+                    estimator_id="aptus-memory-v2",
+                    export_kind="peft-adapter-safetensors",
+                    supported_distributions=("single", "ddp"),
+                ),
+            ),
         ),
         _descriptor(
             method_id="qlora",
             display_name="QLoRA",
-            summary="Trains LoRA adapters through a frozen NF4 double-quantized base.",
+            summary="Trains LoRA adapters through a frozen runtime-native four-bit base.",
             lifecycle=MethodLifecycle.GATED_EXECUTABLE,
             selectable=True,
             parameter_scope="frozen-base-plus-adapter",
             parameterization="lora",
-            base_storage="bitsandbytes-nf4-double-quantized",
+            base_storage="runtime-native-four-bit",
             compiler_id="transformers.peft-qlora.v2",
             export_kind="peft-adapter-safetensors",
-            supported_backends=("cuda",),
+            supported_backends=("cuda", "mps"),
             supported_distributions=("single", "ddp"),
             evidence_ids=("method.qlora.paper", "estimate.memory.v2"),
             pilot_requirement="Exact four-bit kernel capability, target inspection, measured preflight, and a bounded pilot are mandatory.",
             aliases=("4bit-lora",),
+            runtime_bindings=(
+                _runtime(
+                    training_runtime="transformers-peft-cuda",
+                    compute_backend="cuda",
+                    compiler_id="transformers.peft-qlora.v2",
+                    estimator_id="aptus-memory-v2",
+                    export_kind="peft-adapter-safetensors",
+                    supported_distributions=("single", "ddp"),
+                ),
+                _runtime(
+                    training_runtime="mlx-lm",
+                    compute_backend="mps",
+                    compiler_id="mlx-lm.qlora.v1",
+                    estimator_id="aptus-memory-mlx-v1",
+                    export_kind="mlx-lm-adapter",
+                    supported_distributions=("single",),
+                ),
+            ),
         ),
         _descriptor(
             method_id="dora",
@@ -236,6 +296,30 @@ def _validate_registry(values: Iterable[MethodDescriptor]) -> None:
                 raise RuntimeError(
                     "Method registry contains an unknown distribution ID."
                 )
+            binding_keys: set[tuple[str, str]] = set()
+            for binding in descriptor.runtime_bindings:
+                key = (binding.training_runtime, binding.compute_backend)
+                if key in binding_keys:
+                    raise RuntimeError(
+                        f"Duplicate method runtime binding: {descriptor.method_id} {key}."
+                    )
+                binding_keys.add(key)
+                if binding.training_runtime not in {
+                    item.value for item in TrainingRuntime
+                }:
+                    raise RuntimeError(
+                        "Method registry contains an unknown runtime ID."
+                    )
+                if binding.compute_backend not in {item.value for item in Backend}:
+                    raise RuntimeError(
+                        "Runtime binding contains an unknown backend ID."
+                    )
+                if not set(binding.supported_distributions).issubset(
+                    {item.value for item in Distribution}
+                ):
+                    raise RuntimeError(
+                        "Runtime binding contains an unknown distribution ID."
+                    )
         for alias in descriptor.aliases:
             normalized = alias.strip().lower()
             if not normalized or normalized in aliases:
@@ -260,11 +344,42 @@ def method_descriptor(method: str | Method) -> MethodDescriptor:
 
 def descriptor_for_compiler(compiler_id: str) -> MethodDescriptor:
     matches = tuple(
-        item for item in METHOD_REGISTRY.values() if item.compiler_id == compiler_id
+        item
+        for item in METHOD_REGISTRY.values()
+        if item.compiler_id == compiler_id
+        or any(binding.compiler_id == compiler_id for binding in item.runtime_bindings)
     )
     if len(matches) != 1:
         raise ValueError(f"Unknown or ambiguous method compiler ID: {compiler_id!r}")
     return matches[0]
+
+
+def runtime_binding(
+    method: str | Method,
+    *,
+    training_runtime: str | TrainingRuntime,
+    compute_backend: str | Backend,
+) -> RuntimeBinding | None:
+    descriptor = method_descriptor(method)
+    runtime_id = (
+        training_runtime.value
+        if isinstance(training_runtime, TrainingRuntime)
+        else training_runtime
+    )
+    backend_id = (
+        compute_backend.value
+        if isinstance(compute_backend, Backend)
+        else compute_backend
+    )
+    return next(
+        (
+            item
+            for item in descriptor.runtime_bindings
+            if item.training_runtime == runtime_id
+            and item.compute_backend == backend_id
+        ),
+        None,
+    )
 
 
 def selectable_method_descriptors() -> tuple[MethodDescriptor, ...]:

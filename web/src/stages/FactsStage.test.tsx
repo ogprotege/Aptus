@@ -19,7 +19,8 @@ const methods: MethodDescriptor[] = [
     base_storage: "unquantized",
     compiler_id: "transformers.peft-lora.v2",
     export_kind: "peft-adapter-safetensors",
-    supported_backends: ["cuda"],
+    supported_backends: ["cuda", "mps"],
+    supported_runtimes: ["transformers-peft-cuda", "mlx-lm"],
     supported_distributions: ["single"],
     evidence_ids: ["method.lora.paper"],
     pilot_requirement: "A bounded pilot is required.",
@@ -84,6 +85,7 @@ describe("FactsStage", () => {
       supports_8bit: false,
       supports_4bit: false,
     };
+    draft.target.runtime = "mlx-lm";
     render(
       <FactsStage
         draft={draft}
@@ -113,14 +115,21 @@ describe("FactsStage", () => {
     expect(readinessDetails).not.toHaveAttribute("open");
     fireEvent.click(readinessSummary);
     expect(readinessDetails).toHaveAttribute("open");
-    expect(screen.getByText(/1 compiler paths · 0 available on MPS/i)).toBeInTheDocument();
-    expect(screen.getByText("Unavailable on MPS")).toBeInTheDocument();
+    expect(screen.getByText(/1 compiler paths · 1 available on MPS/i)).toBeInTheDocument();
+    expect(screen.getByText("Executable behind gates")).toBeInTheDocument();
     expect(screen.getByText("BitFit")).toBeInTheDocument();
     expect(screen.getByText("Experimental")).toBeInTheDocument();
-    expect(screen.getByText(/shares one unified-memory pool/i)).toBeInTheDocument();
+    expect(screen.getByText(/shares one memory pool/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Unified memory pool")).toHaveValue(64);
-    expect(screen.getByLabelText("Available unified memory")).toHaveValue(48);
-    expect(screen.getByText("MLX capabilities are not measured yet.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Measured memory headroom")).toHaveValue(48);
+    expect(screen.getByText("Apple capability rules are runtime-specific.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Bundle runtime")).toHaveValue("mlx-lm");
+    expect(
+      screen.getByRole("option", {
+        name: /PyTorch MPS · known compatibility runtime, compiler unavailable/i,
+      }),
+    ).toBeDisabled();
+    expect(screen.getByText(/cannot be selected until Aptus ships a compiler binding/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("BF16 supported")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("8-bit backend supported")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("4-bit backend supported")).not.toBeInTheDocument();

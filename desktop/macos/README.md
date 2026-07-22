@@ -1,22 +1,42 @@
 # Aptus for Mac
 
-Aptus for Mac is the native host for the existing Aptus workbench. AppKit owns
-the application lifecycle, WebKit presentation, private backend session, native
-file dialogs, and Finder integration. Python remains the source of truth for
-planning, compilation, validation, and job rules. React remains the workbench.
+Aptus for Mac is a native Apple Silicon application shell. AppKit owns the
+application lifecycle, private backend session, shutdown, native file dialogs,
+and Finder integration. SwiftUI owns the Home, Machine, Models, Data, Plans,
+and Runs experience. The authenticated React workbench remains available as a
+contained transitional surface instead of replacing the application window.
+Python remains the source of truth for planning, compilation, validation, and
+job rules.
 
 ## Current Mac scope
 
-The Mac application profiles local datasets, inspects pinned model metadata,
-compares declared fine-tuning candidates, compiles portable bundles, runs static
-validation, and exports the result for a CUDA target host. Apple Silicon
-inventory remains fail-closed for local CUDA execution. The desktop shell does
-not claim MPS or MLX training support.
+The Mac application detects the actual chip, processor capacity, physical
+memory, default Metal device, and Metal working-set advisory. The Machine view
+also requests a nonblocking authenticated platform snapshot for current
+available headroom and the system-wide free-memory percentage. It keeps the
+8 GiB minimum MLX planning reserve separate from measured use and reports a
+pilot peak as `Not measured` until a pilot produces evidence. It reports MLX
+and Metal Performance Shaders as native Apple Silicon paths that still require
+runtime, checkpoint, and workload validation. CUDA remains an external NVIDIA
+target. A measured Metal GPU core count appears in technical details when the
+platform probe supplies one. Aptus does not infer a Neural Engine core count or
+turn installed memory or a detected runtime into a model-fit guarantee.
+
+The Models view loads the authenticated runtime inventory without delaying the
+native window. Its `selected` mapping restores a persisted MLX-LM interpreter
+after relaunch. The native state distinguishes no selection, a measured
+available selection, a persisted but unavailable interpreter, an invalid
+persisted path, and an inventory request that could not be verified.
+
+macOS 26 receives the current system glass treatment through guarded
+availability checks. macOS 15 uses a semantic material fallback. Both paths use
+system typography, adaptive colors, Reduce Transparency behavior, native
+sidebar navigation, and one primary action per detail view.
 
 ## Requirements
 
-- macOS 13 or newer on Apple Silicon
-- Xcode and the macOS SDK
+- macOS 15 or newer on Apple Silicon
+- Current Xcode and its installed macOS SDK
 - XcodeGen
 - Node.js and npm for the tested workbench build
 - `uv` and Python 3.12 for the isolated sidecar build
@@ -108,9 +128,40 @@ log can grow during the current session and is bounded on the next launch.
 Readiness files live under `~/Library/Caches/Aptus/sessions/` and are removed
 when the native host stops.
 
+The authenticated loopback API exposes three separate Apple integration
+contracts for native follow-on work:
+
+```text
+GET /api/v1/platform
+GET /api/v1/runtimes
+GET /api/v1/inference/services
+```
+
+`platform` contains Apple host facts. `runtimes` contains external MLX-LM,
+PyTorch MPS, and CUDA interpreter probes plus the persisted `selected` mapping.
+The native shell compares the selected MLX-LM path with the measured available
+set before describing it as configured. `inference/services` contains
+inference-only LM Studio and oMLX probes. Native callers must keep these
+contracts separate and use the same exact-origin session boundary as WebKit.
+
+The Models view also uses:
+
+```text
+POST /api/v1/runtimes/configure
+```
+
+Its native MLX Python panel exposes hidden virtual-environment folders, sends
+the exact executable path through the authenticated loopback session, and lets
+the backend validate and persist that choice. The action reads `Choose`,
+`Change`, or `Replace` according to the hydrated state. A failed replacement
+does not erase the previously persisted state. This is needed because
+applications launched from Finder do not inherit shell environment variables
+such as `APTUS_MLX_PYTHON`.
+
 ## Native bridge
 
-The host injects this complete object before the workbench document loads:
+The contained workbench host injects this complete object before its document
+loads:
 
 ```ts
 window.aptusDesktop = {

@@ -141,19 +141,19 @@ when its evidence, owner, or resolution changes.
   states that Aptus has no automated cleanup command.
 - **Owner:** Execution and operations maintainers
 
-### DOC-011: Publish versioned CUDA release evidence
+### DOC-011: Publish versioned target-host release evidence
 
 - **Priority:** P1
 - **Status:** Blocked
 - **Evidence:** [Release gates](../operations/release-gates.md) correctly state
-  that no real CUDA pilot or full-run evidence has completed on the development
-  Mac.
+  that no qualifying CUDA or MLX pilot and full-run release evidence has been
+  recorded on the applicable target hardware.
 - **Required result:** Add a dated, immutable release-evidence record that binds
   code revision, package versions, model and dataset identities, hardware,
   plans, validation reports, pilots, full runs, job-control checks, and known
   failures.
-- **Blocker:** Access to approved CUDA target hosts and authorized model and
-  dataset inputs
+- **Blocker:** Access to approved CUDA or Apple Silicon target hosts and
+  authorized model and dataset inputs
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract

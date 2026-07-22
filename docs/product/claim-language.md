@@ -29,7 +29,9 @@ Use:
 - “dependency validation passed for the recorded environment”;
 - “every canonical row transformed successfully”;
 - “measured preflight passed on the recorded hardware”;
-- “checkpoint continuation was observed in the bounded pilot”;
+- “CUDA checkpoint continuation was observed in the bounded pilot”;
+- “the MLX adapter completed an uninterrupted pilot and reloaded for bounded
+  generation in a fresh process”;
 - “current train admission passed”;
 - “the parent verified the structural export file tree.”
 
@@ -57,8 +59,8 @@ the artifact was benchmarked, judged safe, or proven deployable.
 
 ## Release claims
 
-Do not call v0.2 release-ready while the release gates lack real CUDA pilot and
-full-run evidence. Repository tests on the current Mac are not a substitute.
+Do not call v0.2 release-ready while the release gates lack claimed target-host
+CUDA and MLX pilot and full-run evidence. Repository tests are not a substitute.
 
 ## Related documentation
 

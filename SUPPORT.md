@@ -16,8 +16,8 @@ and the current documented boundary.
    inferred.
 6. State the operating system, backend, device names, and package environment.
 
-Do not attach tokens, private datasets, model weights, checkpoints, caches,
-unredacted logs, or proprietary provider responses.
+Do not attach tokens, private datasets, model weights, adapters, checkpoints,
+weight snapshots, caches, unredacted logs, or proprietary provider responses.
 
 ## Where to report
 

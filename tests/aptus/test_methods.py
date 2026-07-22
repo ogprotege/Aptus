@@ -7,6 +7,7 @@ from aptus.methods import (
     MethodLifecycle,
     descriptor_for_compiler,
     method_descriptors,
+    runtime_binding,
 )
 
 
@@ -74,6 +75,22 @@ class MethodRegistryTests(unittest.TestCase):
                         canonical_distributions
                     )
                 )
+
+    def test_runtime_bindings_separate_cuda_and_mlx_compilers(self) -> None:
+        cuda = runtime_binding(
+            Method.QLORA,
+            training_runtime="transformers-peft-cuda",
+            compute_backend="cuda",
+        )
+        mlx = runtime_binding(
+            Method.QLORA,
+            training_runtime="mlx-lm",
+            compute_backend="mps",
+        )
+        self.assertEqual(cuda.compiler_id, "transformers.peft-qlora.v2")
+        self.assertEqual(mlx.compiler_id, "mlx-lm.qlora.v1")
+        self.assertEqual(mlx.estimator_id, "aptus-memory-mlx-v1")
+        self.assertEqual(mlx.supported_distributions, ("single",))
 
 
 if __name__ == "__main__":

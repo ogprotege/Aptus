@@ -4,11 +4,11 @@
 
 <h1 align="center">Aptus</h1>
 
-<p align="center"><strong>Plan a fine-tuning run on your Mac before you spend GPU time.</strong></p>
+<p align="center"><strong>Plan, compile, and measure fine-tuning work on Apple Silicon or CUDA.</strong></p>
 
 <p align="center">
-  Aptus turns explicit model, dataset, hardware, and training facts into a ranked plan<br>
-  and a statically validated bundle for measured checks on a CUDA host.
+  Aptus turns explicit model, dataset, hardware, and runtime facts into a ranked plan,<br>
+  a runtime-bound bundle, and an evidence ladder that refuses unsupported claims.
 </p>
 
 <p align="center">
@@ -25,16 +25,15 @@
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
 **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the support contract changes
 
-Aptus plans, compiles, and statically validates on macOS. Measured validation
-and training run on the intended CUDA host. The Mac build is locally signed,
-not notarized for public distribution. No real CUDA pilot has completed the
-release gates yet.
+Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
+QLoRA candidates remain conditional until their exact bundle passes measured
+gates. The MLX-LM path now supports bounded measured preflight, an uninterrupted
+exact-model pilot, and explicitly confirmed full-duration adapter training from
+the pinned base model. It does not support crash resume. The Mac build is
+locally signed and not notarized. No real CUDA or Apple Silicon pilot has
+completed the release gates yet.
 
 </details>
-
-<p align="center"><a href="docs/assets/aptus-macos-compare.jpeg"><img src="docs/assets/aptus-macos-compare.jpeg" width="1200" alt="Aptus for Mac comparing fine-tuning candidates and showing an 8-bit LoRA recommendation"></a></p>
-
-<p align="center"><sub>Actual local planner output using the public synthetic dataset and declared example model and hardware facts. No model load or CUDA validation ran.</sub></p>
 
 ## One decision, with the reasons attached
 
@@ -55,7 +54,7 @@ It is not a quality prediction or a guarantee that unmeasured hardware will fit.
 | **Compare** | Apply hard feasibility rules, inspect memory ledgers, and explain the ranking. |
 | **Compile** | Write a new bundle directory and deterministic ZIP without overwriting prior work. |
 | **Validate** | Check contracts, identities, generated source, paths, hashes, and direct dependency pins. |
-| **Run / handoff** | Hand the ordered dependency, model-data, preflight, pilot, and training commands to the CUDA host. |
+| **Run / handoff** | Run the selected local Apple gates or transfer a CUDA bundle to its intended host. |
 
 ### A concrete example
 
@@ -76,8 +75,10 @@ can still reject the plan.
 
 ## Start on macOS
 
-The current distribution is a source build for Apple Silicon. You need macOS
-13 or newer, Xcode, XcodeGen, Node.js, `uv`, and Python 3.12 available to `uv`.
+The current distribution is a source build for Apple Silicon. macOS 26 is the
+primary development and release environment. macOS 15 is the fallback floor.
+You also need Xcode 26, XcodeGen, Node.js, `uv`, and Python 3.12 available to
+`uv`.
 
 ```bash
 git clone https://github.com/ogprotege/Aptus.git
@@ -99,30 +100,47 @@ development path.
 
 ## What runs where
 
-| On your Mac | On the CUDA host |
-| --- | --- |
-| Choose and profile data | Bind the exact dependency environment |
-| Enter or inspect pinned model facts | Load and verify the pinned model and tokenizer |
-| Compare supported strategies | Measure a synthetic optimizer step |
-| Compile and statically validate the bundle | Run the two-phase pilot |
-| Reveal the directory and ZIP in Finder | Admit and launch the full training run |
+| Native Mac product | MLX-LM runtime on Apple Silicon | CUDA runtime |
+| --- | --- | --- |
+| Inspect the Apple Silicon machine, models, data, plans, and runs | Verify exact MLX and MLX-LM versions | Verify Torch, Transformers, PEFT, and CUDA |
+| Profile data and inspect pinned model facts | Load the pinned revision and tokenize all bound rows | Load the pinned revision and tokenizer |
+| Compare runtime-specific estimates | Run a bounded adapter smoke with MLX memory telemetry | Run synthetic preflight, two-phase pilot, and admitted training |
+| Compile, validate, and reveal artifacts | Run an uninterrupted pilot, reload its adapter in a fresh process, then admit confirmed full-duration adapter training | Produce and verify the selected export |
 
-The desktop service enforces this boundary server-side. Entering a remote CUDA
-profile never enables local training controls on macOS.
+Choose the exact Python interpreter in the Mac Models screen. Aptus probes it,
+persists the canonical path privately, and never treats the bundled backend or
+an inference server as a training environment. CUDA profiles still describe a
+CUDA host. They do not enable CUDA work on the Mac.
 
 ## Supported now
 
-- Supervised fine-tuning with Full, LoRA, int8-LoRA, and QLoRA.
+- CUDA supervised fine-tuning with Full, LoRA, int8-LoRA, and QLoRA.
+- Conditional Apple Silicon MLX-LM LoRA and QLoRA planning and compilation.
+- Uninterrupted MLX-LM pilot and full-duration adapter training. Pilot requires
+  at least two optimizer updates, finite train and validation losses, an exact
+  target census, positive memory and adapter-delta evidence, immutable
+  artifacts, and fresh-process adapter reload with one to four generated tokens.
+- Runtime-bound plans with separate compute, compiler, estimator, evidence, and
+  export identities.
+- Apple platform discovery for macOS/build, chip, CPU count, unified memory,
+  current headroom, pressure, swap, Metal working-set guidance, optional Metal
+  GPU core count, and ML runtime facts when the host can measure them.
+- Apple planning keeps `free_vram_bytes` unknown and uses current free host RAM
+  as the live unified-memory headroom cap when that measurement exists.
+- Local LM Studio and oMLX model listing and generation adapters for inference
+  and evaluation. Neither service is a training engine.
 - JSON, JSONL, CSV, and text datasets using common SFT row shapes.
 - Single-device and DDP plans where capability and memory rules pass.
 - Conditional LoRA FSDP plans that still require a real multi-rank pilot.
 - Explicit memory components, decision traces, evidence records, and artifact
   manifests.
 
-Not yet supported: MPS, MLX, ROCm, or CPU training; CUDA execution inside the
-Mac app; sequence packing; full-training resume; tasks other than SFT; and a
-notarized public download. Read the [complete capability matrix](docs/reference/capability-matrix.md)
-before committing GPU time.
+Not yet supported: crash resume for MLX-LM or CUDA full runs, full-parameter or
+DoRA training through MLX-LM, PyTorch MPS compilation, ROCm or CPU training,
+CUDA execution on macOS, sequence packing, tasks other than SFT, and a
+notarized public download. Read the
+[complete capability matrix](docs/reference/capability-matrix.md) before
+committing compute time.
 
 ## Why Aptus fails closed
 
@@ -135,7 +153,8 @@ before committing GPU time.
 ## Data safety
 
 Compiled bundles and ZIPs contain cleartext copies of training data. Runtime
-artifacts can add model caches, logs, checkpoints, metrics, and final weights.
+artifacts can add model caches, logs, CUDA checkpoints, MLX weight snapshots,
+metrics, adapters, and final weights.
 Treat the entire bundle as sensitive. Read the [security policy](SECURITY.md)
 before using private or governed data.
 
@@ -145,7 +164,7 @@ before using private or governed data.
 | --- | --- |
 | Create a first plan without a GPU | [First-plan tutorial](docs/getting-started/first-plan.md) |
 | Prepare real training data | [Dataset guide](docs/guides/prepare-a-dataset.md) |
-| Operate a CUDA run | [Operator checklist](docs/operations/operator-checklist.md) |
+| Operate an Apple or CUDA bundle | [Operator checklist](docs/operations/operator-checklist.md) |
 | Understand the system | [Architecture](docs/architecture/system.md) |
 | Integrate with Aptus | [CLI](docs/reference/cli.md) and [API](docs/reference/api.md) |
 | Change the project | [Contributing](CONTRIBUTING.md) |

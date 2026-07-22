@@ -16,13 +16,20 @@ compatible. Decide the semantic effect before editing code.
 | Method descriptor | `aptus.method-descriptor.v1` | `methods/contracts.py` and registry |
 | Bundle manifest | `aptus.bundle.v2` | `generation.py` and `plan_contract.py` |
 | Trainer configuration | `aptus.trainer-config.v2` | `generation.py` |
-| Trainable census | `aptus.trainable-parameter-census.v1` | `attestation.py` and generated runtime |
-| Dataset split | `aptus.dataset-split.v1` | generated trainer and completion verifier |
-| Preflight metrics | `aptus.preflight-metrics.v1` | generated preflight and validation |
-| Pilot metrics | `aptus.pilot-metrics.v2` | generated validation and job verification |
-| Pilot run | `aptus.pilot-run.v1` | generated runtime and job verification |
-| Full-run output | `aptus.run-output.v1` | generated trainer and parent verifier |
-| Final export | `aptus.final-export.v1` | generated exporter and parent verifier |
+| CUDA trainable census | `aptus.trainable-parameter-census.v1` | `attestation.py` and generated CUDA runtime |
+| MLX target binding | `aptus.mlx-trainable-target-binding.v1` | generated MLX runtime and parent verifier |
+| CUDA dataset split | `aptus.dataset-split.v1` | generated CUDA trainer and completion verifier |
+| MLX dataset split | `aptus.mlx-split.v1` | compiler, generated MLX runtime, and parent verifier |
+| CUDA preflight metrics | `aptus.preflight-metrics.v1` | generated CUDA preflight and validation |
+| MLX preflight, pilot, and full metrics | `aptus.runtime-metrics.v1` | generated MLX runtime and parent verifier |
+| CUDA pilot metrics | `aptus.pilot-metrics.v2` | generated validation and job verification |
+| CUDA pilot run | `aptus.pilot-run.v1` | generated runtime and job verification |
+| MLX pilot and full-run output | `aptus.mlx-run-output.v1` | generated MLX runtime and parent verifier |
+| CUDA full-run output | `aptus.run-output.v1` | generated CUDA trainer and parent verifier |
+| CUDA final export | `aptus.final-export.v1` | generated exporter and parent verifier |
+| MLX final export | `aptus.mlx-final-export.v1` | generated MLX runtime and parent verifier |
+| MLX reload evidence | `aptus.mlx-reload-evidence.v1` | fresh reload process and parent verifier |
+| MLX artifact manifest | `aptus.mlx-artifact-manifest.v1` | generated MLX action owner and parent verifier |
 | GPU lease | `aptus.gpu-lease.v1` | host and portable lease implementations |
 | Validator behavior | `aptus-validator-v2` | `validation.py` |
 

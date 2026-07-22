@@ -34,11 +34,11 @@ full-run transaction. They are not standalone validation levels.
 | 0 | `invalid` | One or more required checks failed | Any positive gate |
 | 0 | `unsupported` | The requested contract is outside an accepted path | Runtime viability |
 | 1 | `contract-pass` | Plan and bundle integrity passed at the producing validator's contract scope | Generated source execution or dependencies |
-| 2 | `static-pass` | Generated Python parses and static bundle rules pass | Package installation, model load, or CUDA fit |
+| 2 | `static-pass` | Generated Python parses and static bundle rules pass | Package installation, model load, or accelerator fit |
 | 3 | `dependency-pass` | Exact direct package versions are installed and the environment closure is bound | Model or data compatibility |
-| 4 | `model-data-pass` | Exact model, tokenizer, selected method scope, and every canonical row pass | An optimizer step or measured memory fit |
-| 5 | `measured-preflight-pass` | Selected method executes a synthetic CUDA optimizer step with bound census and peak | Exact model and dataset training behavior |
-| 6 | `pilot-pass` | Two fresh real-model pilot phases, artifacts, and checkpoint continuation pass | Full-run completion or task quality |
+| 4 | `model-data-pass` | Runtime-specific exact model, tokenizer, and compiled-data compatibility pass | An optimizer step or measured memory fit |
+| 5 | `measured-preflight-pass` | Runtime-specific bounded optimizer work and memory evidence pass | Pilot-pass or full-run fit |
+| 6 | `pilot-pass` | Runtime-specific exact-model pilot passes: CUDA checkpoint continuation, or uninterrupted MLX adapter training plus fresh-process adapter reload | Full-run completion, general crash resume, or task quality |
 | 7 | `execution-approved` | A full run was admitted or is represented as pending against current evidence | Successful completion |
 | 8 | `measured-run-pass` | Parent verified one completed run and structural export tree | Task quality, safety, or deployment fitness |
 
@@ -50,8 +50,9 @@ Candidate support is a separate planner status.
 
 A report can be produced by:
 
-- host validator `aptus-validator-v2`, used by the repository CLI and API; or
-- generated validator `aptus-portable-validator-v2`, used inside a bundle.
+- host validator `aptus-validator-v2`, used by the repository CLI and API;
+- generated CUDA validator `aptus-portable-validator-v2`; or
+- generated MLX validator `aptus-validator-mlx-v1`.
 
 Inspect `validator_version`, `validation_level`, `checked_files`, `findings`, and
 `runtime_evidence`. The host contract pass includes required-file checks,
@@ -66,7 +67,8 @@ portable static level then parses every generated Python program.
 
 Core contract checks bind:
 
-- `aptus.training-plan.v2` and `aptus-memory-v2`;
+- `aptus.training-plan.v2`, every `aptus.runtime-contract.v1`, and the selected
+  memory estimator identity;
 - candidate and plan content IDs;
 - normalized model, dataset, hardware, and target facts;
 - the copied dataset digest when dataset verification is enabled;
@@ -74,7 +76,8 @@ Core contract checks bind:
 - absence of symlinks and unauthorized unmanifested files; and
 - method-specific direct requirements and trainer configuration on the host.
 
-Contract validation does not import the training stack or allocate CUDA memory.
+Contract validation does not import the training stack or allocate accelerator
+memory.
 
 ### Static
 
@@ -107,7 +110,8 @@ runtime record of what was actually resolved.
 
 ### Model-data
 
-Model-data validation runs `train.py --preflight-model-data`. It:
+For `transformers-peft-cuda`, model-data validation runs
+`train.py --preflight-model-data`. It:
 
 1. requires planned CUDA visibility and device parity;
 2. loads the pinned model configuration, tokenizer, and weights;
@@ -125,10 +129,16 @@ model structure while preparing the method, but it performs no training update.
 The model-data action enforces the census but does not persist a separate census
 object in the validation report. Later measured levels persist it in metrics.
 
+For `mlx-lm`, model-data validation loads the exact pinned revision through
+MLX-LM and tokenizes every row in the compiler-produced `data/mlx/train.jsonl`
+and `data/mlx/valid.jsonl` files. MLX QLoRA also requires explicit four-bit MLX
+quantization metadata in the pinned model configuration. It does not use a CUDA
+device capability flag or bitsandbytes.
+
 ### Measured preflight
 
-Measured preflight runs `train.py --synthetic-preflight`. It creates a bounded
-synthetic model for the selected method path, initializes the required
+CUDA measured preflight runs `train.py --synthetic-preflight`. It creates a
+bounded synthetic model for the selected method path, initializes the required
 quantization or adapter stack, performs one optimizer step, validates finite
 loss and trainable scope, and records a positive CUDA peak.
 
@@ -145,10 +155,28 @@ loss and trainable scope, and records a positive CUDA peak.
 This is selected-method and kernel evidence, not exact model-data training
 evidence.
 
+MLX measured preflight instead invokes the bounded MLX-LM compiler slice against
+the exact pinned model and compiled MLX data. It permits at most eight
+iterations, completes at least one optimizer update, writes an adapter pair, and
+emits `aptus.runtime-metrics.v1` with:
+
+- candidate, method, runtime, backend, and compiler bindings;
+- scope `bounded-compiler-smoke-not-pilot-evidence`;
+- positive `measured_peak_bytes` from MLX;
+- active and cache memory measurements; and
+- exact planned-target binding plus positive adapter delta; and
+- a path, size, and SHA-256 adapter manifest.
+
+The validator copies this evidence into `preflight-metrics.json` and may promote
+`measured-preflight-pass`. The real inputs make this stronger than the CUDA
+synthetic check in one respect, but it still proves no pilot result, restart
+continuation, or full-run fit.
+
 ### Pilot
 
-Pilot is the first bounded optimizer-step gate using the exact pinned model and
-the compiler-produced real-data pressure set. It launches two fresh processes:
+The CUDA pilot is the first bounded optimizer-step gate using the exact pinned
+model and compiler-produced real-data pressure set. It launches two fresh
+processes:
 
 1. phase one trains one step and saves `checkpoint-1`;
 2. phase two resumes that checkpoint and reaches at least step two.
@@ -164,22 +192,48 @@ The pilot requires:
 - phase two bound to the phase-one checkpoint; and
 - `checkpoint_continuation_observed: true`.
 
-Pilot evaluation is disabled. Pilot rows are repeated as needed and padded to
-the target sequence length to create a bounded pressure test.
+CUDA pilot evaluation is disabled. Pilot rows are repeated as needed and padded
+to the target sequence length to create a bounded pressure test.
+
+The MLX-LM pilot uses different proof semantics. It starts from the pinned base
+and runs the exact model and compiled train and validation files without
+interruption. It requires:
+
+- exactly the bounded two-update schedule and at least two completed optimizer
+  updates;
+- finite training and validation losses;
+- one LoRA A/B pair for every planned target in every planned layer, with no
+  other trainable tensor;
+- positive MLX peak memory and positive adapter delta;
+- a passing live unified-memory admission;
+- a fresh action-owned output root, immutable marker, adapter pair, metrics,
+  and artifact manifest; and
+- a fresh child process that loads the pinned base plus emitted adapter,
+  generates one to four tokens, and records a positive MLX peak.
+
+The adapter reload proves inference from the saved adapter. It does not restore
+the training optimizer, scheduler, random state, or data position. MLX periodic
+saves are weight snapshots, not resumable checkpoints. A passing pilot can
+promote `pilot-pass` and permit an explicitly confirmed full-duration adapter
+run from the pinned base.
 
 ### Execution approved
 
-Train admission rechecks the manifest, plan, report, source, model revision,
-environment, runtime hardware identity, pilot metrics and trees, current free
-VRAM, free host RAM, and free disk. A parent then records active or pending run
-evidence as `execution-approved` until completion verification succeeds.
+Train admission always rechecks the manifest, plan, report, source, model
+revision, and bound pilot artifacts. CUDA additionally rechecks the environment,
+runtime hardware identity, checkpoint and export trees, free VRAM, host RAM,
+and disk. MLX re-verifies the owned uninterrupted pilot, then requires current
+available unified memory above the measured pilot peak plus reserve and enough
+disk for the plan and measured adapter artifacts. A parent may record active or
+pending run evidence as `execution-approved` until completion verification
+succeeds.
 
 The state is not durable permission to start any future run. Admission is
 repeated for each submission.
 
 ### Measured run pass
 
-The parent promotes to `measured-run-pass` only after it verifies:
+The CUDA parent promotes to `measured-run-pass` only after it verifies:
 
 - aggregate process success and a positive completed step count;
 - plan, candidate, run, distribution, world-size, and rank bindings;
@@ -190,6 +244,13 @@ The parent promotes to `measured-run-pass` only after it verifies:
 - full-run metrics and marker identity;
 - method-specific safetensors files and index mapping; and
 - recursive final-export path, size, and SHA-256 coverage.
+
+The MLX parent promotes only after it verifies one uninterrupted full-duration
+run from the pinned base. It checks at least one completed optimizer update,
+finite train and validation losses, exact target binding, positive MLX peak and
+adapter delta, live headroom evidence, the owned run marker, immutable adapter
+and artifact manifests, fresh-process one-to-four-token generation, and the
+`aptus.mlx-final-export.v1` adapter tree. The full run does not become resumable.
 
 The state proves this execution and structural artifact contract. Aptus v0.2
 has no task metric, baseline, quality threshold, or deployment gate.
@@ -208,7 +269,7 @@ has no task metric, baseline, quality threshold, or deployment gate.
 | `bindings` | Bundle, data, environment, hardware, plan, candidate, and model identities |
 | `validator_version` | Producing host or portable validator |
 | `validated_at` | UTC validation timestamp |
-| `preflight_metrics` | Bound synthetic metrics after measured preflight |
+| `preflight_metrics` | Bound runtime-specific metrics after measured preflight; CUDA is synthetic, while MLX uses the pinned model and compiled data |
 | `pilot_metrics` | Bound aggregate pilot metrics after pilot |
 | `final_export` | Parent-verified final export summary after full completion |
 | `measured_run` | Parent-verified full-run summary |
@@ -217,14 +278,18 @@ has no task metric, baseline, quality threshold, or deployment gate.
 
 ## Bindings
 
-All pass reports bind the bundle fingerprint, dataset digest, environment,
-planned hardware, validator, and validation time. When available they also bind
-plan ID, candidate ID, and model revision.
+All pass reports bind the bundle fingerprint, dataset digest, validator, and
+validation time at their producing validator's scope. They also bind plan ID,
+candidate ID, model revision, environment, and hardware when that validator
+records those fields.
 
-Runtime reports replace planned hardware with an actual CUDA environment and
-device binding. Measured-preflight and pilot reports add digests for their
-metrics. Full completion adds the run ID, output directory, ranks, metrics
-digest, final export, and completion timestamp.
+CUDA runtime reports bind the actual environment and visible device identities.
+MLX jobs execute with the selected interpreter. Generated MLX reports bind the
+bundle, data, plan, candidate, model revision, and action metrics. Pilot adds the
+immutable pilot-metrics digest and owned output identity. Full completion adds
+the run ID, output directory, metrics digest, immutable adapter export, reload
+evidence digest, and completion timestamp. CUDA full completion also adds ranks
+and its runtime-specific final export.
 
 Changing a compiler-managed file invalidates the bundle. Changing the installed
 environment or target hardware can invalidate a historical runtime state even

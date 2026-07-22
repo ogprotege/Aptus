@@ -9,9 +9,62 @@ from typing import Any, Mapping
 
 SCHEMA_VERSION = "aptus.training-plan.v2"
 FORMULA_VERSION = "aptus-memory-v2"
+MLX_FORMULA_VERSION = "aptus-memory-mlx-v1"
+RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 CANDIDATE_STATUSES = {"feasible", "conditional", "infeasible", "unsupported"}
 METHODS = {"full", "lora", "int8-lora", "qlora"}
 DISTRIBUTIONS = {"single", "ddp", "fsdp"}
+TRAINING_RUNTIMES = {"transformers-peft-cuda", "mlx-lm", "pytorch-mps"}
+EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
+
+# This table is intentionally self-contained because plan_contract.py is copied
+# into every generated bundle. It mirrors the executable RuntimeBinding entries
+# in aptus.methods and lets a bundle reject invented compiler identities without
+# importing the Aptus package at validation time.
+RUNTIME_BINDING_IDENTITIES = {
+    ("full", "transformers-peft-cuda", "cuda"): (
+        "transformers.full.v2",
+        "aptus-memory-v2",
+        "full-model-safetensors",
+        "pilot-required",
+    ),
+    ("lora", "transformers-peft-cuda", "cuda"): (
+        "transformers.peft-lora.v2",
+        "aptus-memory-v2",
+        "peft-adapter-safetensors",
+        "pilot-required",
+    ),
+    ("lora", "mlx-lm", "mps"): (
+        "mlx-lm.lora.v1",
+        "aptus-memory-mlx-v1",
+        "mlx-lm-adapter",
+        "pilot-required",
+    ),
+    ("int8-lora", "transformers-peft-cuda", "cuda"): (
+        "transformers.peft-int8-lora.v2",
+        "aptus-memory-v2",
+        "peft-adapter-safetensors",
+        "pilot-required",
+    ),
+    ("qlora", "transformers-peft-cuda", "cuda"): (
+        "transformers.peft-qlora.v2",
+        "aptus-memory-v2",
+        "peft-adapter-safetensors",
+        "pilot-required",
+    ),
+    ("qlora", "mlx-lm", "mps"): (
+        "mlx-lm.qlora.v1",
+        "aptus-memory-mlx-v1",
+        "mlx-lm-adapter",
+        "pilot-required",
+    ),
+}
+UNAVAILABLE_RUNTIME_IDENTITY = (
+    None,
+    "unavailable",
+    None,
+    "implementation-required",
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -262,6 +315,7 @@ def _normalized_target(value: Any) -> dict[str, Any]:
             "packing",
             "checkpoint_steps",
             "max_wall_time_minutes",
+            "training_runtime",
         ),
     )
 
@@ -306,6 +360,7 @@ def candidate_id_for_payload(
     """Derive the portable content ID for an executable candidate contract."""
 
     target_modules = candidate.get("target_modules")
+    runtime_contract = candidate.get("runtime_contract")
     identity = {
         "strategy": {
             **_select(
@@ -336,6 +391,24 @@ def candidate_id_for_payload(
             if isinstance(target_modules, (list, tuple))
             else [],
             "memory": _normalized_memory(candidate.get("memory")),
+            **(
+                {
+                    "runtime_contract": _select(
+                        runtime_contract,
+                        (
+                            "schema_version",
+                            "compute_backend",
+                            "training_runtime",
+                            "compiler_id",
+                            "estimator_id",
+                            "evidence_requirement",
+                            "export_kind",
+                        ),
+                    )
+                }
+                if isinstance(runtime_contract, Mapping)
+                else {}
+            ),
         },
         "facts": {
             "model": _normalized_model(model),
@@ -501,9 +574,10 @@ def validate_plan_payload(
     if not isinstance(devices, list) or not devices:
         errors.append("Hardware requires at least one device.")
     elif any(
-        not isinstance(item, dict) or item.get("backend") != "cuda" for item in devices
+        not isinstance(item, dict) or item.get("backend") not in {"cuda", "mps"}
+        for item in devices
     ):
-        errors.append("Aptus v0.2 execution supports CUDA devices only.")
+        errors.append("Aptus execution plans support CUDA or MPS compute devices.")
     if isinstance(devices, list):
         for index, device in enumerate(devices):
             if not isinstance(device, dict):
@@ -585,6 +659,8 @@ def validate_plan_payload(
         errors.append("Target objective is invalid.")
     if target.get("method_preference") not in METHODS | {None}:
         errors.append("Target method_preference is invalid.")
+    if target.get("training_runtime") not in TRAINING_RUNTIMES | {None}:
+        errors.append("Target training_runtime is invalid.")
     if target.get("packing") is not False:
         errors.append("Aptus v0.2 target packing must be false.")
     evaluation_fraction = target.get("evaluation_fraction")
@@ -653,8 +729,68 @@ def validate_plan_payload(
         else:
             candidate_ids.add(candidate_id)
             candidate_by_id[candidate_id] = candidate
-        if candidate.get("method") not in METHODS:
+        candidate_method = candidate.get("method")
+        if candidate_method not in METHODS:
             errors.append(f"{name} method is invalid.")
+        runtime_contract = candidate.get("runtime_contract")
+        runtime_id = "transformers-peft-cuda"
+        runtime_backend = "cuda"
+        runtime_estimator = FORMULA_VERSION
+        if not isinstance(runtime_contract, dict):
+            errors.append(f"{name} runtime_contract must be an object.")
+        elif isinstance(runtime_contract, dict):
+            runtime_id = runtime_contract.get("training_runtime")
+            runtime_backend = runtime_contract.get("compute_backend")
+            runtime_estimator = runtime_contract.get("estimator_id")
+            if runtime_contract.get("schema_version") != RUNTIME_CONTRACT_VERSION:
+                errors.append(
+                    f"{name} runtime contract schema must be {RUNTIME_CONTRACT_VERSION}."
+                )
+            if runtime_id not in TRAINING_RUNTIMES:
+                errors.append(f"{name} training runtime is invalid.")
+            if runtime_backend not in {"cuda", "mps"}:
+                errors.append(f"{name} runtime compute backend is invalid.")
+            expected_runtime_backend = {
+                "transformers-peft-cuda": "cuda",
+                "mlx-lm": "mps",
+                "pytorch-mps": "mps",
+            }.get(runtime_id)
+            if expected_runtime_backend and runtime_backend != expected_runtime_backend:
+                errors.append(f"{name} runtime and compute backend do not match.")
+            if (
+                runtime_contract.get("evidence_requirement")
+                not in EVIDENCE_REQUIREMENTS
+            ):
+                errors.append(f"{name} runtime evidence requirement is invalid.")
+            expected_runtime_identity = RUNTIME_BINDING_IDENTITIES.get(
+                (candidate_method, runtime_id, runtime_backend)
+            )
+            actual_runtime_identity = (
+                runtime_contract.get("compiler_id"),
+                runtime_contract.get("estimator_id"),
+                runtime_contract.get("export_kind"),
+                runtime_contract.get("evidence_requirement"),
+            )
+            if expected_runtime_identity is None:
+                if actual_runtime_identity != UNAVAILABLE_RUNTIME_IDENTITY:
+                    errors.append(
+                        f"{name} unregistered method/runtime/backend contract must use the exact unavailable identity."
+                    )
+            elif actual_runtime_identity != expected_runtime_identity:
+                errors.append(
+                    f"{name} runtime contract does not match its registered compiler, estimator, export, and evidence identity."
+                )
+            viable_runtime = candidate.get("status") in {
+                "feasible",
+                "conditional",
+            }
+            if viable_runtime:
+                if expected_runtime_identity is None:
+                    errors.append(
+                        f"{name} viable runtime requires a registered method/runtime/backend compiler binding."
+                    )
+                elif runtime_contract.get("evidence_requirement") != "pilot-required":
+                    errors.append(f"{name} viable runtime must remain pilot-required.")
         if candidate.get("precision") not in {"bf16", "fp16"}:
             errors.append(f"{name} precision is invalid.")
         learning_rate = candidate.get("learning_rate")
@@ -708,6 +844,13 @@ def validate_plan_payload(
             errors.append(f"{name} device_indices reference invalid hardware facts.")
         else:
             selected_devices = [devices[item] for item in device_indices]
+            selected_backends = {item.get("backend") for item in selected_devices}
+            if len(selected_backends) != 1:
+                errors.append(f"{name} cannot mix compute backends.")
+            elif runtime_backend not in selected_backends:
+                errors.append(
+                    f"{name} runtime compute backend does not match selected hardware."
+                )
         for key in (
             "required_host_ram_bytes",
             "required_disk_bytes",
@@ -794,28 +937,47 @@ def validate_plan_payload(
                     errors.append(
                         f"{name} uncertainty alias must equal the named safety margin."
                     )
-                if memory.get("formula_version") != FORMULA_VERSION:
-                    errors.append(f"{name} memory formula must be {FORMULA_VERSION}.")
+                expected_memory_formula = (
+                    MLX_FORMULA_VERSION
+                    if runtime_id == "mlx-lm"
+                    and candidate.get("method") in {"lora", "qlora"}
+                    else FORMULA_VERSION
+                )
+                if memory.get("formula_version") != expected_memory_formula:
+                    errors.append(
+                        f"{name} memory formula must be {expected_memory_formula}."
+                    )
+                if (
+                    candidate.get("status") in {"feasible", "conditional"}
+                    and runtime_estimator != expected_memory_formula
+                ):
+                    errors.append(
+                        f"{name} runtime estimator does not match its memory formula."
+                    )
                 if (
                     candidate.get("status") in {"feasible", "conditional"}
                     and selected_devices
                     and isinstance(reserve, int)
                 ):
-                    usable = min(
-                        (item.get("free_vram_bytes") or item.get("total_vram_bytes", 0))
-                        - reserve
+                    capacities = [
+                        item.get("free_vram_bytes") or item.get("total_vram_bytes", 0)
                         for item in selected_devices
-                    )
+                    ]
+                    if runtime_backend == "mps" and _positive_int(host_free):
+                        capacities = [
+                            min(capacity, host_free) for capacity in capacities
+                        ]
+                    usable = min(capacity - reserve for capacity in capacities)
                     if point > usable:
                         errors.append(
-                            f"{name} viable status exceeds usable per-device VRAM at its point estimate."
+                            f"{name} viable status exceeds usable per-device memory at its point estimate."
                         )
                     if (
                         candidate.get("status") == "feasible"
                         and memory.get("upper_estimate_bytes", 0) > usable
                     ):
                         errors.append(
-                            f"{name} feasible status exceeds usable per-device VRAM at its heuristic upper envelope."
+                            f"{name} feasible status exceeds usable per-device memory at its heuristic upper envelope."
                         )
             else:
                 errors.append(
@@ -823,12 +985,16 @@ def validate_plan_payload(
                 )
         method = candidate.get("method")
         quantization = candidate.get("quantization")
-        expected_quantization = {
-            "full": None,
-            "lora": None,
-            "int8-lora": "int8-bitsandbytes",
-            "qlora": "nf4-double-quant",
-        }.get(method)
+        expected_quantization = (
+            "mlx-4bit-groupwise"
+            if runtime_id == "mlx-lm" and method == "qlora"
+            else {
+                "full": None,
+                "lora": None,
+                "int8-lora": "int8-bitsandbytes",
+                "qlora": "nf4-double-quant",
+            }.get(method)
+        )
         if method in METHODS and quantization != expected_quantization:
             errors.append(f"{name} quantization does not match method.")
         if method == "full" and (
@@ -854,8 +1020,10 @@ def validate_plan_payload(
                 not item.get("supports_bf16") for item in selected_devices
             ):
                 errors.append(f"{name} uses bf16 without device support.")
-            if method == "qlora" and any(
-                not item.get("supports_4bit") for item in selected_devices
+            if (
+                runtime_id != "mlx-lm"
+                and method == "qlora"
+                and any(not item.get("supports_4bit") for item in selected_devices)
             ):
                 errors.append(
                     f"{name} uses four-bit quantization without device support."
@@ -871,6 +1039,21 @@ def validate_plan_payload(
                 "qlora",
             }:
                 errors.append(f"{name} uses an unsupported quantized FSDP combination.")
+            if runtime_id == "mlx-lm":
+                if method not in {"lora", "qlora"}:
+                    errors.append(f"{name} MLX-LM method is unsupported.")
+                if candidate.get("distribution") != "single":
+                    errors.append(f"{name} MLX-LM distribution must be single.")
+                if candidate.get("status") != "conditional":
+                    errors.append(
+                        f"{name} MLX-LM status must remain conditional until pilot evidence."
+                    )
+                if runtime_contract and "bitsandbytes" in json.dumps(
+                    runtime_contract, sort_keys=True
+                ):
+                    errors.append(
+                        f"{name} MLX-LM contract cannot use bitsandbytes identity."
+                    )
         if isinstance(candidate_id, str) and candidate_id != candidate_id_for_payload(
             candidate,
             model=model,

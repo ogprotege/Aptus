@@ -3,8 +3,7 @@
 > **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-07-22 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
-applicable gate. Passing repository tests on a non-CUDA development Mac is not
-enough.
+applicable gate. Passing repository tests is not target-runtime evidence.
 
 ## 1. Source and packaging
 
@@ -17,6 +16,8 @@ enough.
   starts outside the repository without Homebrew or `.venv`, enforces its
   per-launch cookie, passes native bridge tests, and verifies every nested and
   outer code signature.
+- The native Mac interface uses the macOS 26 treatment when available and the
+  tested semantic-material fallback on macOS 15.
 - The DMG installs and launches on a clean supported Mac. A public artifact is
   Developer ID signed and notarized. An ad-hoc signature is local evidence only.
 - Generated bundles install from `requirements.txt` in clean environments.
@@ -45,12 +46,17 @@ enough.
   export identifiers.
 - Manifest and path-tamper tests pass.
 - Darwin arm64 discovery without CUDA reports one `mps` shared unified-memory
-  inventory record, leaves unavailable memory unknown, and produces no
-  executable candidate. Discovery must not route through MPS or MLX execution.
+  compatibility record and never presents it as dedicated VRAM. Live available
+  host memory constrains MLX planning separately from that record.
+- MLX-LM single-device LoRA and QLoRA candidates bind
+  `aptus.runtime-contract.v1`, compile with `aptus-memory-mlx-v1`, and remain
+  conditional. MLX QLoRA eligibility comes from pinned-model four-bit metadata,
+  not a CUDA capability flag.
+- PyTorch MPS has no compiler and produces no executable candidate.
 
-## 3. Runtime sequence on CUDA
+## 3. Runtime sequence by training runtime
 
-For each claimed executable method and placement:
+For each claimed CUDA method and placement:
 
 - Dependency action passes in a clean isolated environment.
 - Model-data action loads the pinned revision, checks parameter count, hidden
@@ -72,6 +78,34 @@ For each claimed executable method and placement:
   applicable, and distributed state contracts pass.
 - `checkpoint_continuation_observed` is true.
 - Current VRAM, host RAM, and disk admission passes under measured pressure.
+
+For each claimed MLX-LM LoRA or QLoRA path:
+
+- Dependency validation proves `mlx==0.31.2` and `mlx-lm==0.31.3` in the exact
+  configured Apple Silicon interpreter.
+- Model-data validation loads the pinned model and tokenizer, tokenizes every
+  compiled train and validation row, and verifies MLX four-bit metadata for
+  QLoRA.
+- Measured preflight runs the bounded real-input compiler slice, records a
+  positive MLX peak and adapter delta, completes at least one optimizer update,
+  proves exact target binding, and verifies its adapter manifest.
+- Pilot runs once without interruption from the pinned base against the bound
+  MLX train and validation files. It completes at least two optimizer updates
+  and records finite train and validation losses.
+- Pilot target binding contains exactly one LoRA A/B pair for every planned
+  target in every layer and no other trainable tensor.
+- Pilot live unified-memory admission passes, and measured MLX peak plus reserve
+  remains within current available headroom.
+- Pilot output uses a fresh owned directory. Its marker, metrics, adapter pair,
+  and artifact manifest bind exact plan, candidate, model, dataset, action,
+  paths, sizes, and hashes.
+- A fresh child process loads the pinned base plus emitted adapter and generates
+  one to four tokens with a positive MLX peak.
+- `pilot-pass` binds the immutable owned pilot metrics and can authorize an
+  explicitly confirmed full-duration adapter run.
+- Every MLX action reports uninterrupted semantics and
+  `resume_supported: false`. Resume arguments fail, and periodic MLX files are
+  called weight snapshots rather than resumable checkpoints.
 
 ## 4. Full-run transaction
 
@@ -100,6 +134,13 @@ For each claimed executable method and placement:
 - A crash after verified pending evidence can reconcile safely.
 - Historical reads clearly distinguish completion-time verification from current
   cheap presence status.
+- An MLX full run starts from the pinned base, derives its duration from the
+  compiled train rows, micro-batch, accumulation, and maximum epochs, and runs
+  without interruption.
+- MLX full completion verifies finite train and validation losses, at least one
+  completed optimizer update, exact target binding, positive memory and adapter
+  delta, live headroom, immutable artifacts, fresh-process one-to-four-token
+  generation, and `aptus.mlx-final-export.v1` before `measured-run-pass`.
 
 ## 5. Job control
 
@@ -122,7 +163,8 @@ For each claimed executable method and placement:
   executable methods.
 - Runtime validation must use cancellable jobs.
 - Hardware and local-scan operations respect active-job guards. The workbench
-  labels Apple Silicon discovery as inventory, not execution readiness.
+  labels Apple memory as shared, shows live headroom separately, and does not
+  present a conditional MLX plan as already proven.
 - Train admission, not cached UI state, performs deep authorization.
 - The UI exposes five ordered runtime actions, current phase, run output,
   completion attestation, and artifact integrity.
@@ -132,14 +174,17 @@ For each claimed executable method and placement:
   the packaged build.
 - Example mode is visibly non-executed on every stage.
 - The macOS app supplies native dataset and output pickers, reveals generated
-  artifacts in Finder, blocks all local CUDA actions, and shows exact target-host
-  handoff commands.
+  artifacts in Finder, configures an exact MLX Python, runs eligible MLX actions
+  locally, and keeps CUDA as an external target-host handoff.
+- LM Studio and oMLX integrations remain inference-only and never satisfy a
+  training runtime gate.
 
 ## 7. Security and data handling
 
 - Secret scan covers source and generated fixtures.
-- Cleartext source, canonical, pilot, archive, cache, checkpoint, and export
-  copies are documented and tested for expected placement.
+- Cleartext source, canonical, pilot, archive, cache, CUDA checkpoint, MLX
+  weight-snapshot, and export copies are documented and tested for expected
+  placement.
 - Loopback is the default and non-loopback requires explicit acknowledgment.
 - Desktop sessions use an ephemeral loopback port and a random token that is
   absent from URLs, readiness files, application state, JavaScript, and logs.
@@ -158,14 +203,17 @@ For each claimed executable method and placement:
   presence is never described as execution support.
 - Dataset-split documentation uses the current strategy identifiers and states
   that declared groups can prevent an exact requested fraction.
-- Hardware pages distinguish CUDA execution from Apple Silicon discovery.
+- Hardware pages distinguish CUDA dedicated VRAM from Apple shared unified
+  memory and describe the bounded MLX execution path accurately.
 - Future evaluation, exporter, provider, cloud, and MCP seams are labeled as
   future work.
 
 ## Current result
 
-Not passed. No real CUDA pilot or full training evidence has been completed on
-the current development Mac. Aptus v0.2 is not release-ready.
+Not passed. The uninterrupted MLX-LM pilot and full-duration adapter contracts
+are implemented, but no target Apple Silicon release evidence has completed
+these gates. No real CUDA pilot or full training evidence has been completed on
+an external CUDA host. Aptus v0.2 is not release-ready.
 
 ## Related documentation
 

@@ -3,9 +3,9 @@
   --porcelain: #ffffff;
   --graphite: #17252b;
   --circuit-teal: #0b6670;
-  --calibration-amber: #b76318;
+  --calibration-amber: #884500;
   --fault-red: #a43a32;
-  --muted: color-mix(in srgb, var(--graphite) 62%, var(--porcelain));
+  --muted: #526067;
   --faint: color-mix(in srgb, var(--graphite) 12%, var(--porcelain));
   --line: color-mix(in srgb, var(--graphite) 16%, var(--porcelain));
   --teal-soft: color-mix(in srgb, var(--circuit-teal) 10%, var(--porcelain));
@@ -15,10 +15,29 @@
   --font-display: "Familjen Grotesk", sans-serif;
   --font-body: "Atkinson Hyperlegible", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
+  color-scheme: light dark;
   color: var(--graphite);
   font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cloud: #111719;
+    --porcelain: #192124;
+    --graphite: #edf3f4;
+    --circuit-teal: #72d0d4;
+    --calibration-amber: #f2b35e;
+    --fault-red: #ff9389;
+    --muted: #b3c0c4;
+    --faint: color-mix(in srgb, var(--graphite) 15%, var(--porcelain));
+    --line: color-mix(in srgb, var(--graphite) 22%, var(--porcelain));
+    --teal-soft: color-mix(in srgb, var(--circuit-teal) 13%, var(--porcelain));
+    --amber-soft: color-mix(in srgb, var(--calibration-amber) 13%, var(--porcelain));
+    --red-soft: color-mix(in srgb, var(--fault-red) 12%, var(--porcelain));
+    --shadow: 0 18px 44px rgb(0 0 0 / 28%);
+  }
 }
 
 * {
@@ -186,18 +205,18 @@ code {
 }
 
 .brand-mark {
-  display: grid;
   width: 40px;
   height: 40px;
-  place-items: center;
-  border: 1px solid var(--graphite);
-  border-radius: 10px 3px 10px 3px;
-  background: var(--graphite);
-  color: var(--porcelain);
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 700;
-  line-height: 1;
+  flex: 0 0 40px;
+  color: var(--graphite);
+}
+
+.aptus-mark-accent {
+  stroke: var(--circuit-teal);
+}
+
+.aptus-mark-point {
+  fill: var(--circuit-teal);
 }
 
 .brand-lockup strong,
@@ -2589,7 +2608,7 @@ code {
   }
 
   .fact-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 

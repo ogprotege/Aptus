@@ -7,8 +7,8 @@ Do not edit the template into a claim that work passed. Fill every applicable
 field with links, digests, commands, and results. Mark a gate `Not run`,
 `Blocked`, or `Failed` when evidence is absent.
 
-Passing repository tests on a non-CUDA development host is not evidence that a
-training path works on its target hardware.
+Passing repository tests is not evidence that a training path works on its
+target runtime and hardware.
 
 ## Record identity
 
@@ -88,7 +88,10 @@ Attach evidence for:
 - [ ] compilation and ZIP output are deterministic and no-clobber;
 - [ ] source mutation, path tamper, symlink, and manifest tamper fail;
 - [ ] every supported source row is canonicalized, not only the profile sample;
-- [ ] Apple Silicon discovery remains inventory-only and nonexecutable.
+- [ ] Apple Silicon discovery records shared unified memory without inventing
+      dedicated VRAM, and live available memory constrains MLX planning.
+- [ ] MLX-LM LoRA and QLoRA runtime contracts compile only as conditional,
+      single-device paths; PyTorch MPS remains compilerless.
 
 ## Target-host inventory
 
@@ -100,9 +103,12 @@ Create one subsection per physical or isolated target-host configuration.
 |---|---|
 | Operating system and kernel | `[fill]` |
 | Python | `[fill]` |
+| Training runtime, compiler, and estimator IDs | `[fill]` |
 | CUDA runtime and driver | `[fill]` |
+| MLX and MLX-LM versions, when applicable | `[fill]` |
 | GPU model, visible index, UUID, and compute capability | `[fill]` |
 | Total and pre-run free VRAM by device | `[fill]` |
+| Apple chip, unified memory, live available memory, pressure, and swap | `[fill]` |
 | Host RAM and pre-run free RAM | `[fill]` |
 | Free disk and filesystem | `[fill]` |
 | Interconnect | `[fill]` |
@@ -138,6 +144,8 @@ Never place private dataset content in a public evidence record.
 Complete one row for every claimed compiler path and placement. Unsupported rows
 need negative-test evidence, not a training pilot.
 
+The first table records `transformers-peft-cuda` paths.
+
 | Method | Placement | Catalog status | Host ID | Plan ID | Candidate ID | Bundle fingerprint | Dependency | Model-data | Preflight | Pilot | Full run | Decision |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Full | Single | Gated executable with BF16 | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
@@ -152,6 +160,15 @@ need negative-test evidence, not a training pilot.
 | QLoRA | Single | Gated executable | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | QLoRA | DDP | Gated executable | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | QLoRA | FSDP | Unsupported | N/A | `[fill]` | `[fill]` | N/A | N/A | N/A | N/A | N/A | N/A | `[fill negative evidence]` |
+
+Record the Apple paths separately. A passed row requires the runtime-specific
+uninterrupted pilot and, when claimed, a parent-verified full-duration run.
+
+| Runtime | Method | Placement | Catalog status | Host ID | Plan ID | Candidate ID | Dependency | Model-data | Preflight | Pilot | Full run | Decision |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `mlx-lm` | LoRA | Single | Conditional | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| `mlx-lm` | QLoRA | Single | Conditional after pinned four-bit metadata check | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| `pytorch-mps` | Any | Any | Implementation required | `[fill]` | `[fill]` | `[fill]` | `N/A` | `N/A` | `N/A` | `N/A` | `N/A` | `[fill negative evidence]` |
 
 ## Per-path evidence packet
 
@@ -191,14 +208,16 @@ Repeat this section for each runtime row marked passed.
 | Method scope | `[fill]` | `[fill]` |
 | Complete target-instance pairs, when applicable | `[fill]` | `[fill]` |
 | Exact optimizer membership | `[fill]` | `[fill]` |
-| Pilot-phase equality | `[fill]` | `[fill]` |
+| CUDA pilot-phase equality | `[fill]` | `[fill]` |
 
-#### Resource and continuation evidence
+#### Resource and runtime evidence
+
+For CUDA, record the two checkpoint-continuation phases:
 
 | Metric | Phase 1 | Phase 2 | Full run |
 |---|---:|---:|---:|
-| Peak CUDA bytes by rank | `[fill]` | `[fill]` | `[fill]` |
-| Free VRAM at admission | N/A | N/A | `[fill]` |
+| Peak runtime memory bytes by rank or MLX process | `[fill]` | `[fill]` | `[fill]` |
+| Free VRAM or live unified-memory headroom at admission | N/A | N/A | `[fill]` |
 | Free host RAM at admission | N/A | N/A | `[fill]` |
 | Free disk at admission | N/A | N/A | `[fill]` |
 | Completed steps | `[fill]` | `[fill]` | `[fill]` |
@@ -209,6 +228,26 @@ Repeat this section for each runtime row marked passed.
 - [ ] Checkpoint paths, sizes, hashes, optimizer, scheduler, RNG, scaler where
       applicable, and distributed state passed.
 - [ ] `checkpoint_continuation_observed` is true.
+
+For MLX-LM, record the uninterrupted pilot separately:
+
+| Metric | Pilot | Full run |
+|---|---:|---:|
+| Completed optimizer updates | `[fill, at least 2]` | `[fill, at least 1]` |
+| Finite train and validation loss | `[fill]` | `[fill]` |
+| Exact target-instance census digest | `[fill]` | `[fill]` |
+| Positive adapter delta | `[fill]` | `[fill]` |
+| Measured peak MLX bytes | `[fill]` | `[fill]` |
+| Available unified memory and required reserve | `[fill]` | `[fill]` |
+| Owned artifact-manifest digest | `[fill]` | `[fill]` |
+| Fresh-process generated token count, 1 to 4 | `[fill]` | `[fill]` |
+| Adapter reload evidence digest | `[fill]` | `[fill]` |
+
+- [ ] MLX pilot and full runs started from the pinned base and completed without
+      interruption.
+- [ ] MLX output records `resume_supported: false`.
+- [ ] All MLX resume argument paths fail closed.
+- [ ] Periodic MLX files are described as weight snapshots, not checkpoints.
 
 #### Full-run split and export
 
@@ -250,6 +289,7 @@ Record test names and immutable results for:
       rejection;
 - [ ] missing LoRA pair and optimizer-set mismatch rejection;
 - [ ] checkpoint corruption and continuation mismatch rejection;
+- [ ] MLX resume-argument rejection and weight-snapshot non-resume boundary;
 - [ ] current capacity regression after pilot rejection;
 - [ ] wrong run, rank, split, metric, and export binding rejection;
 - [ ] child exit zero with invalid evidence rejection;
@@ -275,7 +315,8 @@ Record test names and immutable results for:
 - [ ] Bootstrap exposes all 11 descriptors and only four selectable IDs.
 - [ ] Runtime validation routes through cancellable jobs.
 - [ ] Active jobs guard hardware scan and conflicting actions.
-- [ ] Apple inventory is labeled shared memory and nonexecutable.
+- [ ] Apple memory is labeled shared, live headroom is separate, and eligible
+      MLX actions proceed only through their ordered prerequisites.
 - [ ] Method preference cannot select experimental or research-only methods.
 - [ ] All five runtime actions, phase, output, attestation, and integrity are
       visible.
@@ -295,8 +336,8 @@ Attach browser, automated, and installed-wheel evidence:
 - [ ] Non-loopback behavior requires explicit acknowledgment and remains outside
       the built-in security boundary.
 - [ ] Provider metadata cannot set training permission.
-- [ ] Cleartext source, canonical, pilot, ZIP, cache, checkpoint, log, and export
-      locations were reviewed.
+- [ ] Cleartext source, canonical, pilot, ZIP, cache, CUDA checkpoint, MLX
+      weight-snapshot, log, and export locations were reviewed.
 - [ ] Generated source and direct dependency changes received manual review.
 - [ ] No private data, token, model weight, checkpoint, or machine artifact is
       included in the public release evidence.
@@ -312,7 +353,10 @@ Attach browser, automated, and installed-wheel evidence:
 - [ ] No current page claims guaranteed fit, quality, or universal optimality.
 - [ ] Method lifecycle wording matches the runtime registry.
 - [ ] Dataset split strategy identifiers and grouped error behavior are current.
-- [ ] Apple discovery remains distinct from MPS or MLX execution.
+- [ ] Apple discovery, uninterrupted MLX adapter execution, MLX no-resume
+      semantics, and PyTorch MPS compiler absence are described as distinct
+      facts.
+- [ ] LM Studio and oMLX remain inference-only.
 - [ ] Future evaluation, export, provider, cloud, and MCP work is labeled future.
 
 ## Failures, deviations, and open gates

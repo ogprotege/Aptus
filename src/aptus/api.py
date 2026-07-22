@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import sys
 import threading
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,6 +22,12 @@ from .domain import (
     training_plan_from_primitive,
 )
 from .evidence import EVIDENCE_REGISTRY
+from .integrations import (
+    LMStudioClient,
+    OMLXClient,
+    LocalInferenceError,
+    discover_local_inference_services,
+)
 from .methods import method_descriptors, selectable_method_ids
 from .plan_contract import validate_bundle_manifest, validate_plan_payload
 from .planning import NoFeasiblePlanError, plan_training
@@ -28,6 +36,12 @@ from .profiling import (
     build_model_spec,
     probe_local_hardware,
     profile_dataset,
+    probe_apple_platform,
+)
+from .runtime_env import (
+    runtime_environment_key,
+    runtime_inventory,
+    validate_runtime_configuration,
 )
 
 
@@ -69,6 +83,9 @@ class TargetRequest(StrictModel):
     effective_batch_size: int = Field(default=16, gt=0)
     max_epochs: int = Field(default=3, gt=0)
     method_preference: Method | None = None
+    training_runtime: (
+        Literal["transformers-peft-cuda", "mlx-lm", "pytorch-mps"] | None
+    ) = None
     task: str = "sft"
     evaluation_fraction: float = Field(default=0.1, ge=0, lt=1)
     packing: bool = False
@@ -116,6 +133,29 @@ class ModelInspectRequest(StrictModel):
     timeout_seconds: float = Field(default=10.0, gt=0, le=30)
 
 
+class InferenceServiceRequest(StrictModel):
+    service: Literal["lm-studio", "omlx"]
+    endpoint: str | None = None
+    timeout_seconds: float = Field(default=5.0, gt=0, le=30)
+
+
+class InferenceMessage(StrictModel):
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str = Field(min_length=1, max_length=131_072)
+
+
+class InferenceGenerateRequest(InferenceServiceRequest):
+    model: str = Field(min_length=1, max_length=256)
+    messages: list[InferenceMessage] = Field(min_length=1, max_length=256)
+    max_tokens: int = Field(default=256, ge=1, le=32_768)
+    temperature: float = Field(default=0.0, ge=0, le=2)
+
+
+class RuntimeConfigureRequest(StrictModel):
+    runtime_id: Literal["mlx-lm", "pytorch-mps", "transformers-peft-cuda"]
+    interpreter_path: str = Field(min_length=1, max_length=4096)
+
+
 class ApiContext:
     def __init__(self, state_dir: Path) -> None:
         from .execution import JobService
@@ -124,8 +164,73 @@ class ApiContext:
         self.plans_dir = self.state_dir / "plans"
         self.plans_dir.mkdir(parents=True, exist_ok=True)
         self.current_bundle_path = self.state_dir / "current-bundle.json"
+        self.runtime_config_path = self.state_dir / "runtime-config.json"
         self._state_lock = threading.RLock()
-        self.jobs = JobService(state_dir / "jobs")
+        self.runtime_paths = self._load_runtime_configuration()
+        runtime_environment = dict(os.environ)
+        runtime_environment.update(
+            {
+                runtime_environment_key(runtime_id): path
+                for runtime_id, path in self.runtime_paths.items()
+            }
+        )
+        self.jobs = JobService(
+            state_dir / "jobs", runtime_environment=runtime_environment
+        )
+
+    def _load_runtime_configuration(self) -> dict[str, str]:
+        if not self.runtime_config_path.exists():
+            return {}
+        if (
+            self.runtime_config_path.is_symlink()
+            or not self.runtime_config_path.is_file()
+        ):
+            raise PermissionError(
+                f"Aptus runtime configuration must be a regular file: {self.runtime_config_path}"
+            )
+        value = json.loads(self.runtime_config_path.read_text(encoding="utf-8"))
+        runtimes = value.get("runtimes") if isinstance(value, dict) else None
+        if (
+            not isinstance(value, dict)
+            or value.get("schema_version") != "aptus.runtime-config.v1"
+            or not isinstance(runtimes, dict)
+        ):
+            raise ValueError("Aptus runtime configuration has an invalid contract.")
+        result: dict[str, str] = {}
+        for runtime_id, path in runtimes.items():
+            runtime_environment_key(str(runtime_id))
+            if not isinstance(path, str) or not path:
+                raise ValueError(
+                    "Aptus runtime configuration contains an invalid path."
+                )
+            result[str(runtime_id)] = path
+        return result
+
+    def configure_runtime(
+        self, runtime_id: str, interpreter_path: Path
+    ) -> dict[str, Any]:
+        from .execution import _atomic_write_json
+
+        probe = validate_runtime_configuration(runtime_id, interpreter_path)
+        key = runtime_environment_key(runtime_id)
+        with self._state_lock:
+            self.runtime_paths[runtime_id] = probe.path
+            self.jobs.runtime_environment[key] = probe.path
+            _atomic_write_json(
+                self.runtime_config_path,
+                {
+                    "schema_version": "aptus.runtime-config.v1",
+                    "runtimes": dict(sorted(self.runtime_paths.items())),
+                },
+            )
+            self.runtime_config_path.chmod(0o600)
+        return {
+            "status": "ok",
+            "runtime_id": runtime_id,
+            "interpreter_path": probe.path,
+            "interpreter": probe.to_dict(),
+            "persisted": True,
+        }
 
     def save_plan(self, plan: TrainingPlan) -> None:
         from .execution import _atomic_write_json
@@ -183,12 +288,20 @@ def _build_plan(request: PlanRequest) -> TrainingPlan:
         sequence_length=request.target.sequence_length,
     )
     model = build_model_spec(**request.model.model_dump())
+    reserve_gib = request.hardware.reserve_gib
+    uses_unified_memory = (
+        request.hardware.backend == Backend.MPS
+        or request.target.training_runtime in {"mlx-lm", "pytorch-mps"}
+        or (request.hardware.discovery == "local-scan" and sys.platform == "darwin")
+    )
+    if uses_unified_memory:
+        reserve_gib = max(reserve_gib, 8.0)
     if request.hardware.discovery == "local-scan":
-        hardware = probe_local_hardware(reserve_gib=request.hardware.reserve_gib)
+        hardware = probe_local_hardware(reserve_gib=reserve_gib)
     else:
-        hardware = build_hardware_spec(
-            **request.hardware.model_dump(exclude={"discovery"})
-        )
+        hardware_values = request.hardware.model_dump(exclude={"discovery"})
+        hardware_values["reserve_gib"] = reserve_gib
+        hardware = build_hardware_spec(**hardware_values)
     target = TrainingTarget(**request.target.model_dump())
     return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
 
@@ -205,7 +318,7 @@ def create_app(
         from fastapi import FastAPI, HTTPException
         from fastapi.exceptions import HTTPException as FastApiHTTPException
         from fastapi.exceptions import RequestValidationError
-        from fastapi.responses import FileResponse, JSONResponse
+        from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
         from starlette.middleware.trustedhost import TrustedHostMiddleware
     except ImportError as error:  # pragma: no cover - exercised in deployment extras
         raise RuntimeError(
@@ -241,21 +354,71 @@ def create_app(
         allowed_hosts=sorted(trusted_hosts),
     )
 
-    if session_token is not None:
+    @app.middleware("http")
+    async def enforce_session_boundary(request: Any, call_next: Any) -> Any:
+        path = request.url.path
+        protected = (
+            path == "/api"
+            or (path.startswith("/api/") and path != "/api/v1/health")
+            or path in {"/docs", "/redoc", "/openapi.json"}
+        )
 
-        @app.middleware("http")
-        async def require_desktop_session(request: Any, call_next: Any) -> Any:
-            supplied = request.cookies.get("aptus_desktop_session", "")
-            if not secrets.compare_digest(supplied, session_token):
-                return JSONResponse(
-                    status_code=403,
-                    content={"error": "desktop_session_required"},
-                    headers=desktop_security_headers,
+        if session_token is not None:
+            query_token = request.query_params.get("aptus_session_token", "")
+            if request.method == "GET" and not protected and query_token:
+                if not secrets.compare_digest(query_token, session_token):
+                    return JSONResponse(
+                        status_code=403,
+                        content={"error": "desktop_session_required"},
+                        headers=desktop_security_headers,
+                    )
+                remaining_query = urlencode(
+                    [
+                        (key, value)
+                        for key, value in request.query_params.multi_items()
+                        if key != "aptus_session_token"
+                    ]
                 )
-            response = await call_next(request)
-            for name, value in desktop_security_headers.items():
-                response.headers[name] = value
-            return response
+                location = path or "/"
+                if remaining_query:
+                    location = f"{location}?{remaining_query}"
+                response = RedirectResponse(url=location, status_code=303)
+                response.set_cookie(
+                    "aptus_desktop_session",
+                    session_token,
+                    httponly=True,
+                    samesite="strict",
+                    path="/",
+                )
+                for name, value in desktop_security_headers.items():
+                    response.headers[name] = value
+                return response
+
+            if protected:
+                cookie_token = request.cookies.get("aptus_desktop_session", "")
+                authorization = request.headers.get("authorization", "")
+                authorization_scheme, separator, authorization_value = (
+                    authorization.partition(" ")
+                )
+                bearer_token = (
+                    authorization_value
+                    if separator and authorization_scheme.lower() == "bearer"
+                    else ""
+                )
+                authorized = secrets.compare_digest(cookie_token, session_token)
+                if not authorized:
+                    authorized = secrets.compare_digest(bearer_token, session_token)
+                if not authorized:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"error": "desktop_session_required"},
+                        headers=desktop_security_headers,
+                    )
+
+        response = await call_next(request)
+        for name, value in desktop_security_headers.items():
+            response.headers[name] = value
+        return response
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(
@@ -310,6 +473,25 @@ def create_app(
             },
         )
 
+    @app.exception_handler(LocalInferenceError)
+    async def local_inference_error(
+        _request: Any, error: LocalInferenceError
+    ) -> JSONResponse:
+        if error.code in {
+            "unsupported_service",
+            "invalid_endpoint",
+            "non_loopback_endpoint",
+            "invalid_timeout",
+            "invalid_request",
+            "request_too_large",
+        }:
+            status_code = 400
+        elif error.code == "timeout":
+            status_code = 504
+        else:
+            status_code = 502
+        return JSONResponse(status_code=status_code, content=error.to_dict())
+
     @app.exception_handler(FastApiHTTPException)
     async def http_error(_request: Any, error: FastApiHTTPException) -> JSONResponse:
         detail = error.detail
@@ -326,15 +508,31 @@ def create_app(
 
     @app.get("/api/v1/bootstrap")
     def bootstrap() -> dict[str, Any]:
+        preferred_backend = (
+            Backend.MPS.value if sys.platform == "darwin" else Backend.CUDA.value
+        )
+        preferred_runtime = (
+            "mlx-lm"
+            if preferred_backend == Backend.MPS.value
+            else "transformers-peft-cuda"
+        )
         method_catalog = [to_primitive(item) for item in method_descriptors()]
         capabilities = {
-            "backends": [Backend.CUDA.value],
+            "backends": [Backend.CUDA.value, Backend.MPS.value],
             "known_backends": [item.value for item in Backend],
+            "training_runtimes": ["transformers-peft-cuda", "mlx-lm"],
+            "known_training_runtimes": [
+                "transformers-peft-cuda",
+                "mlx-lm",
+                "pytorch-mps",
+            ],
+            "inference_services": ["lm-studio", "omlx"],
             "methods": list(selectable_method_ids()),
             "method_catalog": method_catalog,
             "objectives": [item.value for item in Objective],
-            "supported_execution_backend": Backend.CUDA.value,
-            "supported_execution_backends": [Backend.CUDA.value],
+            "supported_execution_backend": preferred_backend,
+            "supported_execution_backends": [Backend.CUDA.value, Backend.MPS.value],
+            "local_execution_enabled": execution_enabled,
             "model_families": sorted(TARGET_MODULES),
             "validation_levels": [
                 "contract",
@@ -355,7 +553,9 @@ def create_app(
             "capabilities": capabilities,
             "defaults": {
                 "sample_limit": 512,
-                "reserve_gib": 2.0,
+                "backend": preferred_backend,
+                "training_runtime": preferred_runtime,
+                "reserve_gib": (8.0 if preferred_backend == Backend.MPS.value else 2.0),
                 "task": "sft",
                 "packing": False,
             },
@@ -494,6 +694,11 @@ def create_app(
                     else None
                 ),
                 "files": bundle_files(bundle_dir),
+                "runtime_contract": (
+                    plan_payload.get("recommended", {}).get("runtime_contract")
+                    if isinstance(plan_payload.get("recommended"), dict)
+                    else None
+                ),
                 "report": report_payload,
             }
             restored_bundle_dir = bundle_dir
@@ -534,6 +739,73 @@ def create_app(
             "scope": "server-local",
             "hardware": to_primitive(hardware),
         }
+
+    @app.get("/api/v1/runtimes")
+    def inspect_runtimes() -> dict[str, Any]:
+        inventory = runtime_inventory(environment=context.jobs.runtime_environment)
+        return {
+            **inventory,
+            "selected": dict(sorted(context.runtime_paths.items())),
+        }
+
+    @app.post("/api/v1/runtimes/configure")
+    def configure_runtime(request: RuntimeConfigureRequest) -> dict[str, Any]:
+        try:
+            return context.configure_runtime(
+                request.runtime_id,
+                Path(request.interpreter_path).expanduser(),
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "runtime_configuration_invalid",
+                    "details": str(error),
+                },
+            ) from error
+
+    @app.get("/api/v1/platform")
+    def inspect_platform() -> dict[str, Any]:
+        try:
+            profile = probe_apple_platform()
+        except ValueError as error:
+            return {
+                "status": "unsupported",
+                "platform": None,
+                "error": str(error),
+            }
+        return {"status": "ok", "platform": profile.to_dict()}
+
+    @app.get("/api/v1/inference/services")
+    def inspect_inference_services() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "scope": "explicit-default-loopback-origins",
+            "training_capability": False,
+            "services": discover_local_inference_services(),
+        }
+
+    def inference_client(request: InferenceServiceRequest) -> Any:
+        client_type = LMStudioClient if request.service == "lm-studio" else OMLXClient
+        return client_type(
+            endpoint=request.endpoint,
+            timeout=request.timeout_seconds,
+        )
+
+    @app.post("/api/v1/inference/models")
+    def list_inference_models(request: InferenceServiceRequest) -> dict[str, Any]:
+        return inference_client(request).list_models()
+
+    @app.post("/api/v1/inference/generate")
+    def generate_with_inference_service(
+        request: InferenceGenerateRequest,
+    ) -> dict[str, Any]:
+        return inference_client(request).generate(
+            model=request.model,
+            messages=[item.model_dump() for item in request.messages],
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+        )
 
     @app.post("/api/v1/models/inspect")
     def inspect_model(request: ModelInspectRequest) -> dict[str, Any]:
@@ -597,6 +869,9 @@ def create_app(
             "bundle_dir": str(bundle_dir),
             "archive_path": str(archive),
             "files": bundle_files(bundle_dir),
+            "runtime_contract": to_primitive(
+                getattr(plan_value.recommended, "runtime_contract", None)
+            ),
             "report": to_primitive(report),
         }
 
@@ -614,8 +889,9 @@ def create_app(
                     detail={
                         "error": "desktop_execution_disabled",
                         "message": (
-                            "Aptus for Mac does not execute runtime validation or "
-                            "training jobs. Transfer the compiled bundle to a CUDA host."
+                            "This Aptus service was started with local execution "
+                            "disabled. Enable execution for a compatible local runtime "
+                            "or transfer the bundle to its target host."
                         ),
                     },
                 )
@@ -669,8 +945,9 @@ def create_app(
                 detail={
                     "error": "desktop_execution_disabled",
                     "message": (
-                        "Aptus for Mac does not execute runtime validation or training "
-                        "jobs. Transfer the compiled bundle to a CUDA host."
+                        "This Aptus service was started with local execution disabled. "
+                        "Enable execution for a compatible local runtime or transfer "
+                        "the bundle to its target host."
                     ),
                 },
             )
@@ -690,6 +967,14 @@ def create_app(
                     "required_state": error.required_state,
                     "current_state": error.current_state,
                     "reason": error.reason,
+                },
+            ) from error
+        except RuntimeError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "runtime_unavailable",
+                    "message": str(error),
                 },
             ) from error
         except ActiveJobError as error:

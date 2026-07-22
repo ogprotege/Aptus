@@ -174,7 +174,7 @@ report can contain:
 | --- | --- |
 | `runtime_evidence` | Executed command, return code, and bounded output tail from host-driven validation |
 | `bindings` | Digests and identities that tie the report to the bundle, data, environment, hardware, plan, candidate, model revision, and metrics |
-| `preflight_metrics` | Parsed synthetic method-preflight evidence |
+| `preflight_metrics` | Parsed runtime-specific measured-preflight evidence |
 | `pilot_metrics` | Parsed exact model-and-data pilot evidence |
 | `final_export` | Verified final export identity and manifest information |
 | `measured_run` | Verified full-run metrics and output binding |
@@ -220,12 +220,14 @@ contract
 ```
 
 Static success is structural evidence only. Model-data success proves that the
-pinned model, tokenizer, canonical rows, target modules, trainable census, and
-device path can be instantiated. Measured preflight adds a synthetic backward
-and optimizer step. Pilot adds a bounded real-model and real-data training run,
-checkpoint and reload checks, metrics, and export evidence. Full-run evidence
-is promoted only after the execution service verifies both pending attestations
-against the completed output tree.
+pinned model, tokenizer, canonical rows, target modules, and device path can be
+instantiated. CUDA measured preflight adds a synthetic backward and optimizer
+step. MLX measured preflight adds bounded real-input optimizer work, exact target
+binding, adapter delta, memory, and adapter evidence. CUDA pilot proves bounded
+checkpoint continuation across two fresh training processes. MLX pilot proves
+one uninterrupted two-update run plus fresh-process adapter reload and bounded
+generation. Full-run evidence is promoted only after the execution service
+verifies the runtime-specific completed output tree.
 
 The validator preserves a stronger report only when its bindings and artifacts
 remain current. If a later weaker recheck runs, `latest_recheck` records that

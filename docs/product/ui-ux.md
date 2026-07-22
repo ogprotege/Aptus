@@ -2,12 +2,26 @@
 
 > **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the workbench changes
 
-The workbench is a local operator interface for the same API contracts exposed by
-the CLI. It must make evidence state and blocked actions visible.
+The Mac product and contained workbench are local operator interfaces for the
+same Python contracts exposed by the CLI. They must make runtime identity,
+evidence state, and blocked actions visible.
 
-Inside Aptus for Mac, the same workbench receives a complete native bridge for
-dataset selection, output selection, and Finder reveal actions. Partial native
-bridges are ignored. The macOS host owns backend startup and session security.
+## Native Mac shell
+
+AppKit owns application lifecycle and the main window. SwiftUI owns the Home,
+Machine, Models, Data, Plans, and Runs destinations. The shell uses system
+typography and adaptive colors, with macOS 26 as the primary visual design and
+macOS 15 as the deployment fallback.
+
+The Machine destination reports measured Apple facts without promising model
+fit. The Models destination keeps training runtimes separate from inference
+services. Its `Choose MLX Python` action validates one exact executable through
+the authenticated local API and displays the persisted canonical path.
+
+The complete React workbench appears in a contained, authenticated WebKit
+sheet. It is transitional, not the application window or the native product
+architecture. Its complete bridge provides dataset selection, output selection,
+Finder reveal, and readiness reporting. Partial bridges are ignored.
 
 ## Five stages
 
@@ -22,7 +36,7 @@ The run stage contains five distinct actions:
 
 1. Install and verify dependencies.
 2. Resolve model and validate every canonical data row.
-3. Run measured synthetic preflight.
+3. Run the runtime-specific measured preflight.
 4. Run the two-phase real-model and data pilot.
 5. Confirm and start full training.
 
@@ -36,8 +50,10 @@ provider-declared facts, and can infer a normalized Aptus family through an
 explicit alias rule. The UI distinguishes that inferred family from the raw
 provider evidence and shows warnings. Inspection cannot check the
 training-permission box or decide a license. Hardware scanning clearly names the
-server host. Apple Silicon scans label the shared unified-memory pool and state
-that the current compiler remains fail-closed. CUDA previews explain that
+server host. Apple Silicon scans label the shared unified-memory pool, select
+the MLX-LM training runtime, keep device free VRAM unknown, use measured free
+host RAM as live unified-memory headroom when available, and apply an 8 GiB
+minimum reserve for local planning. CUDA previews explain that
 single-device rows bind the strongest method-compatible visible GPU, while
 distributed rows use limiting VRAM and capabilities shared by every
 participating GPU.
@@ -86,8 +102,19 @@ Pilot success can be shown before train admission, but the UI must explain that
 deep authorization occurs when train is submitted. Cached authorization text is
 not treated as a durable entitlement.
 
-The macOS app always presents target-host handoff instead of local run controls.
-This remains true when the operator enters manual CUDA facts for another host.
+For an MLX-LM bundle on the Mac, the run stage exposes local dependency,
+model-data, measured-preflight, pilot, and confirmed full-training jobs in their
+required order. Pilot status must explain its uninterrupted two-update run and
+fresh-process adapter generation. Full training becomes available only after
+current `pilot-pass` evidence. The UI must never label MLX weight snapshots as
+resumable checkpoints.
+
+For a CUDA bundle, the Mac app presents target-host handoff instead of local
+run controls. This remains true when the operator enters manual CUDA facts for
+another host. PyTorch MPS must not appear executable until it has a compiler.
+
+LM Studio and oMLX controls, when present, must say inference or evaluation.
+They must never satisfy a training-runtime field or evidence gate.
 
 On completion, display the unique run output directory, report state, completion
 attestation, final export manifest location, and artifact-integrity status. Label

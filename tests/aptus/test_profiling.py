@@ -9,13 +9,18 @@ from unittest.mock import patch
 
 from aptus.domain import Backend, MeasurementKind, gibibytes
 from aptus.profiling import (
+    RuntimeCapability,
     _apple_silicon_chip_name,
+    _apple_metal_gpu_core_count,
     _bitsandbytes_capabilities,
+    _darwin_available_memory,
     _nvidia_smi_devices,
+    _probe_mlx_runtime,
     build_hardware_spec,
     build_model_spec,
     canonical_training_rows,
     pilot_sample_rows,
+    probe_apple_platform,
     probe_local_hardware,
     profile_dataset,
 )
@@ -180,6 +185,76 @@ class HardwareInspectionTests(unittest.TestCase):
         with patch("aptus.profiling.subprocess.run", return_value=completed):
             self.assertIsNone(_apple_silicon_chip_name())
 
+    def test_apple_chip_probe_uses_privacy_reduced_system_profiler_fallback(
+        self,
+    ) -> None:
+        failed_sysctl = subprocess.CompletedProcess([], 1, "", "denied")
+        safe_fallback = subprocess.CompletedProcess(
+            [],
+            0,
+            json.dumps(
+                {
+                    "SPHardwareDataType": [
+                        {"chip_type": "Apple M5 Pro", "machine_model": "Mac17,9"}
+                    ]
+                }
+            ),
+            "",
+        )
+        with patch(
+            "aptus.profiling.subprocess.run",
+            side_effect=[failed_sysctl, safe_fallback],
+        ) as run:
+            self.assertEqual(_apple_silicon_chip_name(), "Apple M5 Pro")
+        self.assertEqual(
+            run.call_args_list[1].args[0],
+            [
+                "/usr/sbin/system_profiler",
+                "-detailLevel",
+                "mini",
+                "SPHardwareDataType",
+                "-json",
+            ],
+        )
+
+    def test_mlx_probe_requires_an_actual_device_query(self) -> None:
+        fake_metal = SimpleNamespace(is_available=lambda: True)
+        fake_mlx = SimpleNamespace(
+            metal=fake_metal,
+            device_info=lambda: (_ for _ in ()).throw(RuntimeError("no device")),
+        )
+        with (
+            patch("aptus.profiling._module_is_installed", return_value=True),
+            patch("aptus.profiling._distribution_version", return_value="0.32.0"),
+            patch("aptus.profiling.importlib.import_module", return_value=fake_mlx),
+        ):
+            capability = _probe_mlx_runtime()
+        self.assertTrue(capability.installed)
+        self.assertFalse(capability.available)
+        self.assertIn("no device", capability.detail)
+
+    def test_apple_gpu_core_probe_reads_only_the_builtin_gpu_record(self) -> None:
+        payload = json.dumps(
+            {
+                "SPDisplaysDataType": [
+                    {
+                        "_name": "External display",
+                        "sppci_bus": "spdisplays_external",
+                        "sppci_device_type": "spdisplays_display",
+                        "sppci_cores": "999",
+                    },
+                    {
+                        "_name": "Apple M5 Pro",
+                        "sppci_bus": "spdisplays_builtin",
+                        "sppci_device_type": "spdisplays_gpu",
+                        "sppci_cores": "20",
+                    },
+                ]
+            }
+        )
+        with patch("aptus.profiling._fixed_command_text", return_value=payload):
+            self.assertEqual(_apple_metal_gpu_core_count(), 20)
+
     def test_darwin_arm64_falls_back_to_measured_shared_memory(self) -> None:
         fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
         with (
@@ -196,6 +271,10 @@ class HardwareInspectionTests(unittest.TestCase):
                 return_value="Apple M5 Pro",
             ),
             patch(
+                "aptus.profiling._metal_recommended_working_set_bytes",
+                return_value=None,
+            ),
+            patch(
                 "aptus.profiling.shutil.disk_usage",
                 return_value=SimpleNamespace(free=gibibytes(100)),
             ),
@@ -208,13 +287,15 @@ class HardwareInspectionTests(unittest.TestCase):
         self.assertEqual(device.backend, Backend.MPS)
         self.assertEqual(device.name, "Apple M5 Pro (shared unified memory)")
         self.assertEqual(device.total_vram_bytes, gibibytes(64))
-        self.assertEqual(device.free_vram_bytes, gibibytes(48))
+        self.assertIsNone(device.free_vram_bytes)
         self.assertFalse(device.supports_bf16)
         self.assertFalse(device.supports_4bit)
         self.assertFalse(device.supports_8bit)
         self.assertIn("shared unified memory", device.provenance.detail)
         self.assertIn("not dedicated VRAM", device.provenance.detail)
-        self.assertIn("fail-closed for MPS", device.provenance.detail)
+        self.assertIn(
+            "free_vram_bytes is intentionally omitted", device.provenance.detail
+        )
         self.assertIn("not dedicated VRAM", hardware.provenance.detail)
 
     def test_darwin_arm64_omits_unmeasured_available_memory(self) -> None:
@@ -227,6 +308,10 @@ class HardwareInspectionTests(unittest.TestCase):
             patch("aptus.profiling.platform.machine", return_value="arm64"),
             patch("aptus.profiling._apple_silicon_chip_name", return_value=None),
             patch(
+                "aptus.profiling._metal_recommended_working_set_bytes",
+                return_value=None,
+            ),
+            patch(
                 "aptus.profiling.shutil.disk_usage",
                 return_value=SimpleNamespace(free=gibibytes(100)),
             ),
@@ -234,6 +319,83 @@ class HardwareInspectionTests(unittest.TestCase):
             hardware = probe_local_hardware(disk_path=Path("/tmp"))
         self.assertIsNone(hardware.host_ram_free_bytes)
         self.assertIsNone(hardware.devices[0].free_vram_bytes)
+
+    def test_darwin_vm_stat_available_memory_is_conservative(self) -> None:
+        output = """Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free: 100.
+Pages inactive: 200.
+Pages speculative: 50.
+Pages purgeable: 900.
+"""
+        with patch("aptus.profiling._fixed_command_text", return_value=output):
+            measured = _darwin_available_memory(gibibytes(64))
+        self.assertEqual(measured, 350 * 16384)
+
+    def test_apple_platform_report_keeps_runtime_capabilities_separate(self) -> None:
+        mlx = RuntimeCapability(True, True, "0.31.2", "ready")
+        mlx_lm = RuntimeCapability(True, True, "0.31.3", "ready")
+        torch_mps = RuntimeCapability(True, False, "2.9.0", "not available")
+
+        def command(arguments, *, timeout=3):
+            del timeout
+            if arguments[-1] == "-productVersion":
+                return "26.5.2"
+            if arguments[-1] == "-buildVersion":
+                return "25F84"
+            return None
+
+        with (
+            patch("aptus.profiling.platform.system", return_value="Darwin"),
+            patch("aptus.profiling.platform.machine", return_value="arm64"),
+            patch(
+                "aptus.profiling._host_memory",
+                return_value=(gibibytes(64), gibibytes(23)),
+            ),
+            patch("aptus.profiling._fixed_command_text", side_effect=command),
+            patch(
+                "aptus.profiling._apple_silicon_chip_name",
+                return_value="Apple M5 Pro",
+            ),
+            patch("aptus.profiling.os.cpu_count", return_value=18),
+            patch("aptus.profiling._apple_metal_gpu_core_count", return_value=20),
+            patch("aptus.profiling._darwin_memory_free_percent", return_value=36),
+            patch(
+                "aptus.profiling._darwin_swap_usage",
+                return_value=(gibibytes(4), gibibytes(1), gibibytes(3)),
+            ),
+            patch(
+                "aptus.profiling._metal_recommended_working_set_bytes",
+                return_value=gibibytes(48),
+            ),
+            patch("aptus.profiling._probe_mlx_runtime", return_value=mlx),
+            patch("aptus.profiling._probe_mlx_lm_runtime", return_value=mlx_lm),
+            patch(
+                "aptus.profiling._probe_pytorch_mps_runtime",
+                return_value=torch_mps,
+            ),
+        ):
+            profile = probe_apple_platform()
+
+        self.assertEqual(profile.os_version, "26.5.2")
+        self.assertEqual(profile.os_build, "25F84")
+        self.assertEqual(profile.chip_name, "Apple M5 Pro")
+        self.assertEqual(profile.logical_cpu_count, 18)
+        self.assertEqual(profile.metal_gpu_core_count, 20)
+        self.assertEqual(profile.unified_memory_bytes, gibibytes(64))
+        self.assertEqual(profile.available_memory_bytes, gibibytes(23))
+        self.assertEqual(profile.metal_recommended_working_set_bytes, gibibytes(48))
+        self.assertTrue(profile.mlx.available)
+        self.assertTrue(profile.mlx_lm.available)
+        self.assertFalse(profile.pytorch_mps.available)
+        self.assertEqual(profile.to_dict()["mlx"]["version"], "0.31.2")
+
+    def test_apple_platform_probe_fails_closed_off_apple_silicon(self) -> None:
+        with (
+            patch("aptus.profiling.platform.system", return_value="Linux"),
+            patch("aptus.profiling.platform.machine", return_value="aarch64"),
+        ):
+            with self.assertRaisesRegex(ValueError, "Darwin arm64"):
+                probe_apple_platform()
 
     def test_non_darwin_no_device_remains_an_explicit_failure(self) -> None:
         fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))

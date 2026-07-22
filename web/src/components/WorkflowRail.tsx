@@ -1,4 +1,5 @@
 import type { WorkflowStage } from "../types";
+import { AptusMark } from "./AptusMark";
 
 export const WORKFLOW_STAGES: Array<{
   id: WorkflowStage;
@@ -34,9 +35,7 @@ export function WorkflowRail({
   return (
     <aside className="workflow-rail" aria-label="Aptus workflow">
       <div className="brand-lockup">
-        <span className="brand-mark" aria-hidden="true">
-          A
-        </span>
+        <AptusMark className="brand-mark" />
         <span>
           <strong>Aptus</strong>
           <small>Fine-tuning workbench</small>

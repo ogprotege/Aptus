@@ -15,6 +15,11 @@ from aptus.execution import (
     _actual_runtime_snapshot,
     _environment_binding,
     _json_hash,
+    _promote_mlx_train_attestation,
+    _verify_mlx_completed_run,
+    _verify_mlx_pilot_attestation,
+    _verify_mlx_runtime_metrics,
+    _verify_mlx_train_artifacts,
     _verify_pilot_artifacts,
     _verify_safetensors_structure,
 )
@@ -100,7 +105,732 @@ def make_slow(bundle: Path) -> None:
     (bundle / "bundle-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
+def write_json(path: Path, value: object) -> None:
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def fake_mlx_plan() -> dict:
+    reserve = 8 * 1024**3
+    return {
+        "plan_id": "plan_" + "a" * 20,
+        "model": {
+            "model_id": "example/model",
+            "revision": "b" * 40,
+            "layers": 2,
+        },
+        "dataset": {"source_sha256": "c" * 64},
+        "hardware": {"reserve_per_device_bytes": reserve},
+        "target": {"max_epochs": 1},
+        "recommended": {
+            "candidate_id": "cand_" + "d" * 24,
+            "method": "lora",
+            "distribution": "single",
+            "world_size": 1,
+            "micro_batch_size": 1,
+            "gradient_accumulation_steps": 1,
+            "rank": 8,
+            "alpha": 16,
+            "target_modules": ["q_proj", "v_proj"],
+            "memory": {
+                "point_estimate_bytes": 1024,
+                "upper_estimate_bytes": 2048,
+            },
+            "final_export_bytes": 4096,
+            "required_disk_bytes": 8192,
+            "runtime_contract": {
+                "training_runtime": "mlx-lm",
+                "compute_backend": "mps",
+                "compiler_id": "mlx-lm.lora.v1",
+            },
+        },
+    }
+
+
+def write_fake_mlx_split_contract(bundle: Path) -> None:
+    split_root = bundle / "data" / "mlx"
+    split_root.mkdir(parents=True, exist_ok=True)
+    write_json(
+        split_root / "split-contract.json",
+        {
+            "schema_version": "aptus.mlx-split.v1",
+            "micro_batch_size": 1,
+            "padding_policy": "repeat-within-disjoint-split-to-complete-final-batch",
+            "splits": {
+                "train": {"source_row_count": 2, "compiled_row_count": 2},
+                "valid": {"source_row_count": 1, "compiled_row_count": 1},
+            },
+        },
+    )
+
+
+def fake_mlx_metrics(plan: dict, *, action: str) -> dict:
+    candidate = plan["recommended"]
+    binding = {
+        "schema_version": "aptus.mlx-trainable-target-binding.v1",
+        "planned_target_modules": candidate["target_modules"],
+        "resolved_layer_keys": ["self_attn.q_proj", "self_attn.v_proj"],
+        "transformer_layer_count": 2,
+        "expected_adapter_target_instance_count": 4,
+        "adapter_target_instance_count": 4,
+        "trainable_tensor_count": 8,
+        "target_instance_counts": {"q_proj": 2, "v_proj": 2},
+    }
+    binding["descriptor_sha256"] = _json_hash(binding)
+    reserve = 8 * 1024**3
+    admission = {
+        "schema_version": "aptus.mlx-unified-memory-admission.v1",
+        "available_unified_memory_bytes": reserve + 4096,
+        "point_estimate_bytes": 1024,
+        "upper_estimate_bytes": 2048,
+        "reserve_bytes": reserve,
+        "required_available_bytes": reserve + 2048,
+    }
+    updates = 2
+    return {
+        "schema_version": "aptus.runtime-metrics.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+        "method": "lora",
+        "training_runtime": "mlx-lm",
+        "compute_backend": "mps",
+        "compiler_id": "mlx-lm.lora.v1",
+        "model_load_binding": {
+            "schema_version": "aptus.mlx-model-load-binding.v1",
+            "model_id": plan["model"]["model_id"],
+            "model_revision": plan["model"]["revision"],
+            "resolved_local_snapshot": True,
+            "trust_remote_code": False,
+        },
+        "scope": f"uninterrupted-{action}"
+        if action == "pilot"
+        else "uninterrupted-full-train",
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "micro_iterations": updates,
+        "global_step": updates,
+        "gradient_accumulation_steps": 1,
+        "optimizer_update_opportunities": updates,
+        "completed_optimizer_updates": updates,
+        "train_examples": 2,
+        "validation_examples": 1,
+        "source_train_examples": 2,
+        "source_validation_examples": 1,
+        "max_epochs": 1,
+        "distribution": "single",
+        "actual_world_size": 1,
+        "measured_peak_bytes": 4096,
+        "active_memory_bytes": 2048,
+        "cache_memory_bytes": 1024,
+        "memory_metric_backend": "mlx",
+        "unified_memory_admission": admission,
+        "finite_train_loss": True,
+        "train_loss_observations": [1.0, 0.5],
+        "finite_validation_loss": True,
+        "validation_loss_observations": [0.75],
+        "optimizer_update_observed": True,
+        "trainable_target_binding": binding,
+        "adapter_delta_l1": 1.0,
+        "changed_adapter_tensor_count": 2,
+        "adapter_path": f"pilot-output/{action}_test/adapters",
+        "adapter_manifest": [
+            {
+                "path": "adapters.safetensors",
+                "size_bytes": 1,
+                "sha256": "a" * 64,
+            }
+        ],
+        "completed_at": "2026-07-22T00:00:00+00:00",
+    }
+
+
+def create_mlx_completed_run(
+    bundle: Path, plan: dict, *, action: str
+) -> tuple[Path, dict]:
+    write_fake_mlx_split_contract(bundle)
+    root = (
+        bundle / "pilot-output" / "pilot_test"
+        if action == "pilot"
+        else bundle / "runs" / "run_test"
+    )
+    adapter_name = "adapters" if action == "pilot" else "final"
+    adapter_dir = root / adapter_name
+    adapter_dir.mkdir(parents=True)
+    adapter_config = adapter_dir / "adapter_config.json"
+    write_json(
+        adapter_config,
+        {
+            "lora_parameters": {
+                "keys": ["self_attn.q_proj", "self_attn.v_proj"],
+                "rank": 8,
+                "scale": 2.0,
+            }
+        },
+    )
+    adapter_weights = adapter_dir / "adapters.safetensors"
+    adapter_weights.write_bytes(b"mlx-adapter")
+    adapter_manifest = [
+        {
+            "path": path.name,
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+        }
+        for path in (adapter_config, adapter_weights)
+    ]
+
+    training_metrics = fake_mlx_metrics(plan, action=action)
+    training_metrics["adapter_path"] = adapter_dir.relative_to(bundle).as_posix()
+    training_metrics["adapter_manifest"] = adapter_manifest
+    training_metrics_path = root / "training-metrics.json"
+    write_json(training_metrics_path, training_metrics)
+
+    marker = {
+        "schema_version": "aptus.mlx-run-output.v1",
+        "run_id": root.name,
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+        "created_at": "2026-07-22T00:00:00+00:00",
+    }
+    marker_path = root / ".aptus-run.json"
+    write_json(marker_path, marker)
+
+    reload_evidence = {
+        "schema_version": "aptus.mlx-reload-evidence.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "dataset_sha256": plan["dataset"]["source_sha256"],
+        "method": "lora",
+        "training_runtime": "mlx-lm",
+        "compute_backend": "mps",
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "fresh_process_observed": True,
+        "parent_pid": 100,
+        "verifier_pid": 101,
+        "adapter_manifest_sha256": _json_hash(adapter_manifest),
+        "generation_max_tokens": 4,
+        "generation_tokens": 2,
+        "generation_text_sha256": "e" * 64,
+        "measured_peak_bytes": 2048,
+        "unified_memory_admission": training_metrics["unified_memory_admission"],
+        "verified_at": "2026-07-22T00:00:01+00:00",
+    }
+    reload_path = root / "reload-evidence.json"
+    write_json(reload_path, reload_evidence)
+
+    manifest_paths = (
+        marker_path,
+        training_metrics_path,
+        adapter_config,
+        adapter_weights,
+        reload_path,
+    )
+    manifest_entries = sorted(
+        (
+            {
+                "path": path.relative_to(root).as_posix(),
+                "size_bytes": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+            for path in manifest_paths
+        ),
+        key=lambda entry: entry["path"],
+    )
+    artifact_manifest = {
+        "schema_version": "aptus.mlx-artifact-manifest.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": plan["recommended"]["candidate_id"],
+        "action": action,
+        "execution_semantics": "uninterrupted",
+        "resume_supported": False,
+        "files": manifest_entries,
+        "total_bytes": sum(entry["size_bytes"] for entry in manifest_entries),
+    }
+    artifact_manifest_path = root / "artifact-manifest.json"
+    write_json(artifact_manifest_path, artifact_manifest)
+
+    final_export = None
+    if action == "full":
+        final_export = {
+            "schema_version": "aptus.mlx-final-export.v1",
+            "verification_level": "immutable-adapter-file-tree",
+            "plan_id": plan["plan_id"],
+            "candidate_id": plan["recommended"]["candidate_id"],
+            "model_revision": plan["model"]["revision"],
+            "dataset_sha256": plan["dataset"]["source_sha256"],
+            "method": "lora",
+            "training_runtime": "mlx-lm",
+            "compute_backend": "mps",
+            "distribution": "single",
+            "world_size": 1,
+            "execution_semantics": "uninterrupted",
+            "resume_supported": False,
+            "files": adapter_manifest,
+            "total_bytes": sum(entry["size_bytes"] for entry in adapter_manifest),
+            "artifact_manifest_sha256": sha256_file(artifact_manifest_path),
+            "reload_evidence_sha256": sha256_file(reload_path),
+        }
+        write_json(root / "final-export.json", final_export)
+
+    completed_metrics = {
+        **training_metrics,
+        "run_id": root.name,
+        "output_dir": str(root.resolve()),
+        "run_marker_sha256": sha256_file(marker_path),
+        "artifact_manifest": artifact_manifest,
+        "artifact_manifest_sha256": sha256_file(artifact_manifest_path),
+        "reload_evidence": reload_evidence,
+        "reload_evidence_sha256": sha256_file(reload_path),
+        "final_export": final_export,
+        "run_completed": True,
+    }
+    write_json(root / "metrics.json", completed_metrics)
+    return root, completed_metrics
+
+
 class ExecutionJobTests(unittest.TestCase):
+    def test_cuda_jobs_use_the_configured_external_interpreter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["recommended"]["runtime_contract"] = {
+                "schema_version": "aptus.runtime-contract.v1",
+                "compute_backend": "cuda",
+                "training_runtime": "transformers-peft-cuda",
+                "compiler_id": "transformers.peft-lora.v2",
+                "estimator_id": "aptus-memory-v2",
+                "evidence_requirement": "pilot-required",
+                "export_kind": "peft-adapter-safetensors",
+            }
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            service = JobService(
+                root / "jobs",
+                runtime_environment={
+                    "APTUS_CUDA_PYTHON": "/managed/cuda-python",
+                },
+            )
+            with patch(
+                "aptus.execution.resolve_runtime_interpreter",
+                return_value=types.SimpleNamespace(path="/managed/cuda-python"),
+            ) as resolve:
+                command = service._command(bundle, "dependency", resume_from=None)
+
+        self.assertEqual(command[0], "/managed/cuda-python")
+        resolve.assert_called_once_with(
+            "transformers-peft-cuda",
+            environment={"APTUS_CUDA_PYTHON": "/managed/cuda-python"},
+        )
+
+    def test_mlx_jobs_use_the_resolved_external_interpreter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["recommended"]["runtime_contract"] = {
+                "schema_version": "aptus.runtime-contract.v1",
+                "compute_backend": "mps",
+                "training_runtime": "mlx-lm",
+                "compiler_id": "mlx-lm.lora.v1",
+                "estimator_id": "aptus-memory-mlx-v1",
+                "evidence_requirement": "pilot-required",
+                "export_kind": "mlx-lm-adapter",
+            }
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            service = JobService(root / "jobs")
+            with patch(
+                "aptus.execution.resolve_runtime_interpreter",
+                return_value=types.SimpleNamespace(path="/managed/mlx-python"),
+            ):
+                command = service._command(bundle, "dependency", resume_from=None)
+
+        self.assertEqual(command[0], "/managed/mlx-python")
+        self.assertEqual(command[-2:], ["--level", "dependency"])
+
+    def test_mlx_full_job_dispatches_through_the_uninterrupted_runner(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["recommended"]["runtime_contract"] = {
+                "schema_version": "aptus.runtime-contract.v1",
+                "compute_backend": "mps",
+                "training_runtime": "mlx-lm",
+                "compiler_id": "mlx-lm.lora.v1",
+                "estimator_id": "aptus-memory-mlx-v1",
+                "evidence_requirement": "pilot-required",
+                "export_kind": "mlx-lm-adapter",
+            }
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            service = JobService(root / "jobs")
+            with patch(
+                "aptus.execution.resolve_runtime_interpreter",
+                return_value=types.SimpleNamespace(path="/managed/mlx-python"),
+            ):
+                command = service._command(
+                    bundle,
+                    "train",
+                    resume_from=None,
+                    run_id="run_test",
+                )
+
+        self.assertEqual(command[0], "/managed/mlx-python")
+        self.assertEqual(command[1], str(bundle / "run.py"))
+        self.assertEqual(command[2:4], ["--confirm-full-train", "--output-dir"])
+        self.assertEqual(command[4], str(bundle / "runs" / "run_test"))
+
+    def test_mlx_runtime_metrics_reject_tampered_and_stale_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            write_fake_mlx_split_contract(bundle)
+            plan = fake_mlx_plan()
+            metrics = fake_mlx_metrics(plan, action="pilot")
+            metrics["adapter_manifest"] = [
+                {
+                    "path": "adapters.safetensors",
+                    "size_bytes": 1,
+                    "sha256": "a" * 64,
+                }
+            ]
+            self.assertIs(
+                _verify_mlx_runtime_metrics(bundle, plan, metrics, action="pilot"),
+                metrics,
+            )
+            for name, value in (
+                ("compiler_id", "invented.compiler"),
+                ("candidate_id", "cand_stale"),
+                ("execution_semantics", "resumed"),
+                ("completed_optimizer_updates", 1),
+                ("adapter_delta_l1", 0.0),
+                ("measured_peak_bytes", 0),
+                (
+                    "model_load_binding",
+                    {
+                        **metrics["model_load_binding"],
+                        "model_revision": "f" * 40,
+                    },
+                ),
+            ):
+                with self.subTest(name=name):
+                    tampered = json.loads(json.dumps(metrics))
+                    tampered[name] = value
+                    with self.assertRaises(ValueError):
+                        _verify_mlx_runtime_metrics(
+                            bundle, plan, tampered, action="pilot"
+                        )
+
+            invented = json.loads(json.dumps(metrics))
+            invented["free_vram_bytes"] = 1
+            with self.assertRaisesRegex(ValueError, "unexpected runtime field"):
+                _verify_mlx_runtime_metrics(bundle, plan, invented, action="pilot")
+
+            split_path = bundle / "data" / "mlx" / "split-contract.json"
+            split = json.loads(split_path.read_text(encoding="utf-8"))
+            split["splits"]["train"]["compiled_row_count"] = 3
+            write_json(split_path, split)
+            with self.assertRaisesRegex(ValueError, "compiled data split"):
+                _verify_mlx_runtime_metrics(bundle, plan, metrics, action="pilot")
+            write_fake_mlx_split_contract(bundle)
+
+            shortened = fake_mlx_metrics(plan, action="full")
+            shortened["adapter_manifest"] = metrics["adapter_manifest"]
+            shortened["micro_iterations"] = 1
+            shortened["global_step"] = 1
+            shortened["optimizer_update_opportunities"] = 1
+            shortened["completed_optimizer_updates"] = 1
+            with self.assertRaisesRegex(ValueError, "dataset-derived epoch schedule"):
+                _verify_mlx_runtime_metrics(
+                    bundle,
+                    plan,
+                    shortened,
+                    action="full",
+                )
+
+    def test_mlx_completed_full_run_verifies_runtime_neutral_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            run, metrics = create_mlx_completed_run(bundle, plan, action="full")
+
+            evidence = _verify_mlx_completed_run(
+                bundle,
+                plan,
+                run,
+                action="full",
+            )
+
+        self.assertEqual(evidence["metrics"], metrics)
+        self.assertEqual(evidence["measured_peak_bytes"], 4096)
+        self.assertGreater(evidence["adapter_total_bytes"], 0)
+
+    def test_mlx_completed_run_rejects_tampering_and_partial_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            run, _metrics = create_mlx_completed_run(bundle, plan, action="full")
+            reload_path = run / "reload-evidence.json"
+            reload_evidence = json.loads(reload_path.read_text(encoding="utf-8"))
+            reload_evidence["generation_tokens"] = 0
+            write_json(reload_path, reload_evidence)
+            with self.assertRaisesRegex(ValueError, "reload evidence"):
+                _verify_mlx_completed_run(bundle, plan, run, action="full")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            run, _metrics = create_mlx_completed_run(bundle, plan, action="full")
+            (run / "final-export.json").unlink()
+            with self.assertRaises(ValueError):
+                _verify_mlx_completed_run(bundle, plan, run, action="full")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            run, _metrics = create_mlx_completed_run(bundle, plan, action="full")
+            (run / "unexpected-empty-directory").mkdir()
+            with self.assertRaisesRegex(ValueError, "unexpected or partial"):
+                _verify_mlx_completed_run(bundle, plan, run, action="full")
+
+    def test_mlx_pilot_attestation_rejects_stale_report_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            pilot_run, metrics = create_mlx_completed_run(bundle, plan, action="pilot")
+            pilot_copy = bundle / "pilot-output" / "metrics.json"
+            write_json(pilot_copy, metrics)
+            (bundle / "bundle-manifest.json").write_text("manifest", encoding="utf-8")
+            bindings = {
+                "bundle": sha256_file(bundle / "bundle-manifest.json"),
+                "dataset": plan["dataset"]["source_sha256"],
+                "model_revision": plan["model"]["revision"],
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "pilot_metrics": sha256_file(pilot_copy),
+            }
+            report = {"bindings": bindings, "pilot_metrics": metrics}
+            evidence = _verify_mlx_pilot_attestation(
+                bundle,
+                plan,
+                report,
+                pilot_copy,
+            )
+            self.assertEqual(evidence["root"], str(pilot_run.resolve()))
+
+            report["bindings"] = {**bindings, "candidate_id": "cand_stale"}
+            with self.assertRaisesRegex(ValueError, "stale"):
+                _verify_mlx_pilot_attestation(
+                    bundle,
+                    plan,
+                    report,
+                    pilot_copy,
+                )
+
+    def test_mlx_train_admission_rejects_insufficient_live_headroom(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            write_json(bundle / "plan.json", plan)
+            write_json(
+                bundle / "validation-report.json",
+                {"state": "pilot-pass", "bindings": {}},
+            )
+            pilot_root = bundle / "pilot-output"
+            pilot_root.mkdir()
+            write_json(pilot_root / "metrics.json", {})
+            service = JobService(Path(temporary) / "jobs")
+            reserve = 8 * 1024**3
+            with (
+                patch("aptus.execution.validate_bundle_manifest", return_value=()),
+                patch("aptus.execution.validate_plan_payload", return_value=()),
+                patch(
+                    "aptus.execution._verify_mlx_pilot_attestation",
+                    return_value={
+                        "measured_peak_bytes": 4096,
+                        "adapter_total_bytes": 1024,
+                        "artifact_total_bytes": 2048,
+                    },
+                ),
+                patch(
+                    "aptus.execution._current_available_unified_memory_bytes",
+                    return_value=reserve + 4095,
+                ),
+            ):
+                with self.assertRaisesRegex(ValueError, "unified memory"):
+                    service._require_current_pilot(bundle)
+
+    def test_mlx_parent_promotion_allows_measured_run_attestation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            bindings = {"pilot_metrics": "a" * 64}
+            final_export = {"manifest_sha256": "b" * 64}
+            measured_run = {"metrics_sha256": "c" * 64}
+            write_json(
+                bundle / "validation-report.json",
+                {
+                    "state": "measured-run-pass",
+                    "validation_level": "measured-run",
+                    "bindings": bindings,
+                    "runtime_evidence": [],
+                    "final_export": final_export,
+                    "measured_run": measured_run,
+                },
+            )
+            evidence = {
+                "training_runtime": "mlx-lm",
+                "source_report_state": "measured-run-pass",
+                "source_bindings": bindings,
+                "final_export": final_export,
+                "measured_run": measured_run,
+                "source_report_sha256": sha256_file(bundle / "validation-report.json"),
+            }
+            promoted = _promote_mlx_train_attestation(
+                {"bundle_dir": str(bundle)}, evidence
+            )
+            report = json.loads(
+                (bundle / "validation-report.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(promoted["state"], "measured-run-pass")
+        self.assertEqual(report["state"], "measured-run-pass")
+        self.assertEqual(report["final_export"], evidence["final_export"])
+        self.assertEqual(report["measured_run"], evidence["measured_run"])
+
+    def test_mlx_host_accepts_only_the_exact_portable_measured_attestation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            write_json(bundle / "plan.json", plan)
+            run = bundle / "runs" / "run_test"
+            final_contract = {"schema_version": "aptus.mlx-final-export.v1"}
+            completed = {
+                "final_export": final_contract,
+                "final_export_sha256": "a" * 64,
+                "adapter_total_bytes": 128,
+                "artifact_manifest_sha256": "b" * 64,
+                "reload_evidence_sha256": "c" * 64,
+                "metrics_sha256": "d" * 64,
+                "metrics": {
+                    "global_step": 2,
+                    "completed_optimizer_updates": 2,
+                    "measured_peak_bytes": 4096,
+                },
+            }
+            final_report = {
+                "path": str(run.resolve() / "final"),
+                "manifest_sha256": "a" * 64,
+                "total_bytes": 128,
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "distribution": "single",
+                "world_size": 1,
+                "training_runtime": "mlx-lm",
+                "artifact_manifest_sha256": "b" * 64,
+                "reload_evidence_sha256": "c" * 64,
+                "export_contract": final_contract,
+            }
+            measured_report = {
+                "output_dir": str(run.resolve()),
+                "metrics_sha256": "d" * 64,
+                "global_step": 2,
+                "completed_optimizer_updates": 2,
+                "measured_peak_bytes": 4096,
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "distribution": "single",
+                "world_size": 1,
+                "training_runtime": "mlx-lm",
+                "execution_semantics": "uninterrupted",
+                "resume_supported": False,
+            }
+            report_path = bundle / "validation-report.json"
+            write_json(
+                report_path,
+                {
+                    "state": "measured-run-pass",
+                    "bindings": {},
+                    "pilot_metrics": {},
+                    "final_export": {"stale": True},
+                    "measured_run": measured_report,
+                },
+            )
+            record = {
+                "bundle_dir": str(bundle),
+                "run_output_dir": str(run),
+            }
+            with (
+                patch("aptus.execution.validate_bundle_manifest", return_value=()),
+                patch("aptus.execution.validate_plan_payload", return_value=()),
+                patch(
+                    "aptus.execution._verify_mlx_completed_run",
+                    return_value=completed,
+                ),
+                patch("aptus.execution._verify_mlx_pilot_attestation"),
+            ):
+                with self.assertRaisesRegex(ValueError, "does not match"):
+                    _verify_mlx_train_artifacts(record)
+
+                report = json.loads(report_path.read_text(encoding="utf-8"))
+                report["final_export"] = final_report
+                write_json(report_path, report)
+                evidence = _verify_mlx_train_artifacts(record)
+
+        self.assertEqual(evidence["final_export"], final_report)
+        self.assertEqual(evidence["measured_run"], measured_report)
+
+    def test_mlx_parent_promotion_rejects_report_toctou_change(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            report_path = bundle / "validation-report.json"
+            bindings = {"pilot_metrics": "a" * 64}
+            write_json(
+                report_path,
+                {
+                    "state": "pilot-pass",
+                    "bindings": bindings,
+                    "runtime_evidence": [],
+                },
+            )
+            evidence = {
+                "training_runtime": "mlx-lm",
+                "source_report_state": "pilot-pass",
+                "source_bindings": bindings,
+                "source_report_sha256": sha256_file(report_path),
+                "final_export": {"manifest_sha256": "b" * 64},
+                "measured_run": {"metrics_sha256": "c" * 64},
+            }
+            changed = json.loads(report_path.read_text(encoding="utf-8"))
+            changed["runtime_evidence"] = ["changed after verification"]
+            write_json(report_path, changed)
+
+            with self.assertRaisesRegex(ValueError, "changed before parent"):
+                _promote_mlx_train_attestation({"bundle_dir": str(bundle)}, evidence)
+
     def test_host_pilot_verifier_requires_matching_phase_censuses(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             bundle = fake_bundle(Path(temporary))

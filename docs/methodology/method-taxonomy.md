@@ -60,6 +60,11 @@ The lifecycle value and selectable flag answer different questions:
 The bootstrap API returns all runtime descriptors for explanation. Only its
 separate selectable method list can populate planner preferences.
 
+Selectable method identity does not make every runtime executable. The
+`transformers-peft-cuda` runtime binds all four selectable methods to CUDA.
+`mlx-lm` binds single-device LoRA and QLoRA to MPS as conditional,
+pilot-required paths. `pytorch-mps` is a known runtime without a compiler.
+
 ## Axis 1: objective and data contract
 
 The objective defines the loss and the data needed to compute it.
@@ -131,18 +136,19 @@ training objectives. A modifier alters another training objective.
 | Modifier | NEFTune, EWC, replay, LwF | Attach to an objective with explicit compatibility and evaluation rules |
 | Infrastructure modifier | Gradient checkpointing, sequence packing, offload, FlashAttention | Record as execution policy, not as a fine-tuning objective |
 
-QLoRA is not a new loss. It combines a frozen four-bit base, LoRA adapters, NF4,
-double quantization, and a memory-aware training recipe
-([Dettmers et al.](https://arxiv.org/abs/2305.14314)). Aptus currently compiles
-the frozen NF4 base, double quantization, and LoRA adapter path. Its optimizer
-choice remains an explicit Aptus policy, not an implied paper default.
+QLoRA is not a new loss. It combines a frozen four-bit base with LoRA adapters
+and a memory-aware training recipe
+([Dettmers et al.](https://arxiv.org/abs/2305.14314)). The CUDA compiler uses
+NF4 and double quantization through bitsandbytes. The MLX-LM compiler requires
+an already four-bit MLX model revision with explicit pinned metadata. Its
+optimizer choice remains an explicit Aptus policy, not an implied paper default.
 
 ## Axis 5: optimizer and schedule
 
 An optimizer changes the update rule. It does not by itself define the
 objective or parameter scope.
 
-V0.2 compiles these explicit defaults:
+The CUDA compiler uses these explicit defaults:
 
 - PyTorch AdamW;
 - linear scheduler;
@@ -150,6 +156,10 @@ V0.2 compiles these explicit defaults:
 - zero warmup steps;
 - maximum gradient norm of 1.0;
 - method-class learning-rate priors, not tuned optima.
+
+The MLX-LM compiler uses MLX-LM AdamW and gradient checkpointing. It does not
+declare a separate learning-rate scheduler, maximum gradient norm, or CUDA
+gradient-scaler policy.
 
 Sophia, Adam-mini, SAM, and PagedAdamW8bit are not current Aptus optimizer
 choices. The numeric suggestions in `Reference/hparam_methods_reference.md`
@@ -164,12 +174,14 @@ checkpoint contracts, and pilots before they can become executable.
 
 Compute precision and base-weight storage are separate facts.
 
-| Aptus method label | Base storage | Compute | Current rule |
+| Runtime and method | Base storage | Compute record | Current rule |
 |---|---|---|---|
-| `full` | Unquantized | BF16 when all participating GPUs support it | Full FP16 is fail-closed because the generated path does not retain verified FP32 trainable master weights |
-| `lora` | Unquantized frozen base | BF16 or FP16 from participating-device capability | Requires target-module inspection and pilot |
-| `int8-lora` | Bitsandbytes eight-bit frozen base | BF16 or FP16 | Every participating GPU must explicitly support the LLM.int8 path and compute capability 7.5 or newer |
-| `qlora` | NF4 four-bit frozen base with double quantization | BF16 or FP16 | Every participating GPU must explicitly support the four-bit path and compute capability 6.0 or newer |
+| CUDA `full` | Unquantized | BF16 | Full FP16 is fail-closed because the generated path does not retain verified FP32 trainable master weights |
+| CUDA `lora` | Unquantized frozen base | BF16 or FP16 | Requires target-module inspection and pilot |
+| CUDA `int8-lora` | Bitsandbytes eight-bit frozen base | BF16 or FP16 | Every participating GPU must support LLM.int8 and compute capability 7.5 or newer |
+| CUDA `qlora` | NF4 four-bit frozen base with double quantization | BF16 or FP16 | Every participating GPU must support the four-bit path and compute capability 6.0 or newer |
+| MLX-LM `lora` | Unquantized frozen MLX base | Candidate precision field | Conditional single-device path through uninterrupted adapter training |
+| MLX-LM `qlora` | MLX groupwise four-bit frozen base | Candidate precision field | Pinned model metadata must declare four-bit quantization; no CUDA flag is used |
 
 The planner does not assume that nominal total VRAM proves a quantized kernel
 works. Declared capability permits planning. Dependency validation, model-data
@@ -183,7 +195,7 @@ a fine-tuning method.
 
 | Distribution | Meaning | Current rule |
 |---|---|---|
-| Single | One selected CUDA GPU | Eligible when the candidate and resource gates pass |
+| Single | One selected CUDA GPU or Apple unified-memory device | Eligible when a registered runtime binding and resource gates pass |
 | DDP | One complete replica per participating GPU | Requires at least two CUDA GPUs, per-device fit, and exact global-batch divisibility |
 | FSDP | Selected state is sharded across ranks | Only LoRA is a conditional v0.2 candidate; it uses `use_orig_params=true`, and exact behavior requires the real-model pilot |
 
@@ -201,7 +213,7 @@ Evaluation must name a target, dataset, metric, baseline, threshold, direction,
 sample policy, and uncertainty rule. Operational evidence and quality evidence
 are different.
 
-V0.2 currently verifies operational behavior:
+The CUDA runtime can verify this operational behavior through pilot:
 
 - the exact model and tokenizer resolve at the pinned revision;
 - supported rows transform without empty supervision;
@@ -210,6 +222,14 @@ V0.2 currently verifies operational behavior:
 - losses are finite and training steps are positive;
 - checkpoint continuation is observed across the two pilot phases;
 - measured resources and output sizes are recorded.
+
+The MLX-LM runtime uses a different pilot proof. Measured preflight exercises a
+bounded real-input adapter update. Pilot starts from the pinned base and runs the
+exact model and data without interruption for at least two optimizer updates.
+It requires finite losses, exact target binding, positive MLX memory and adapter
+delta, live headroom, immutable artifacts, and fresh-process adapter reload with
+one to four generated tokens. That reload does not preserve or resume training
+state.
 
 This does not prove that a model meets a user quality target. MMLU, HellaSwag,
 GSM8K, TruthfulQA, custom task metrics, safety evaluations, regression
@@ -222,12 +242,19 @@ disposition is preserved in the
 
 Export is an output contract, not a successful-training synonym.
 
-V0.2 emits one of two structural forms:
+The CUDA compiler emits one of two structural forms:
 
 - full fine-tuning: pinned model configuration, tokenizer material, and
   safetensors weight files;
 - LoRA-based training: pinned adapter configuration, tokenizer material, and
   safetensors adapter weights that retain base-model provenance.
+
+MLX measured preflight emits `adapter_config.json` and
+`adapters.safetensors` under one owned evidence directory with a path, size, and
+SHA-256 manifest. That bounded adapter is preflight evidence, not a pilot or
+full-run export. Pilot emits its own immutable adapter tree and fresh reload
+evidence. Full training emits `aptus.mlx-final-export.v1` after the same bounded
+reload check.
 
 The verifier opens safetensors files, checks non-empty tensor keys, checks index
 mappings when present, and binds the file tree and metrics to the run. This is
@@ -243,32 +270,43 @@ and do not make those features current.
 ## Current executable matrix
 
 The planner enumerates four Aptus method labels across three distribution
-choices, producing 12 visible candidates. "Eligible" below means the compiler
-has a guarded path. It does not mean that every model, dataset, GPU, or pinned
-library combination has passed a real CUDA pilot.
+choices, producing 12 visible candidates. Runtime binding determines which
+cells have a guarded compiler path. It does not mean every model, dataset,
+machine, or pinned library combination has passed its required evidence.
 
-| SFT parameter and storage path | Single | DDP | FSDP |
+| CUDA SFT parameter and storage path | Single | DDP | FSDP |
 |---|---|---|---|
 | Full, unquantized | Eligible only with BF16 and all resource gates | Eligible only with BF16, two or more GPUs, per-replica fit, and exact batch arithmetic | **Unsupported, fail-closed** |
 | LoRA, unquantized base | Eligible with target-module and resource gates | Eligible with two or more GPUs, per-replica fit, and exact batch arithmetic | **Conditional** under an uncalibrated sharding prior; real pilot required |
 | Eight-bit LoRA | Eligible with explicit eight-bit capability and resource gates | Eligible with explicit capability on every rank, per-replica fit, and exact batch arithmetic | **Unsupported** |
 | QLoRA, NF4 plus double quantization | Eligible with explicit four-bit capability and resource gates | Eligible with explicit capability on every rank, per-replica fit, and exact batch arithmetic | **Unsupported** |
 
-Every eligible row still requires:
+MLX-LM adds two single-device MPS paths:
 
-1. a CUDA backend and supported model family;
+| MLX-LM path | Single | DDP | FSDP |
+|---|---|---|---|
+| LoRA, unquantized base | **Conditional**, executable through uninterrupted pilot and full-duration adapter training | Unsupported | Unsupported |
+| QLoRA, pinned MLX four-bit base | **Conditional**, executable through uninterrupted pilot and full-duration adapter training after metadata verification | Unsupported | Unsupported |
+| Full or eight-bit LoRA | Unsupported | Unsupported | Unsupported |
+
+Every guarded row still requires:
+
+1. a matching runtime contract, compute backend, and supported model family;
 2. an immutable provider model commit and explicit training permission;
 3. a supported SFT dataset schema and content-bound digest;
 4. sequence length within the model context;
 5. point and upper memory checks, host RAM, disk, and user reserve;
 6. dependency and environment validation;
 7. model-data inspection and measured preflight;
-8. the exact bounded pilot and current full-training admission;
+8. the required bounded pilot and current full-training admission before any
+   full run;
 9. explicit full-run confirmation;
 10. aggregate process success and artifact verification.
 
 No row bypasses these gates because a paper, README, or user preference calls a
-method efficient.
+method efficient. MLX-LM satisfies item 8 only through its uninterrupted pilot.
+Its fresh-process adapter generation is not CUDA-style checkpoint continuation
+and does not authorize crash resume.
 
 ## Nonselectable and future method families
 
@@ -296,9 +334,10 @@ backlog. Those names have no runtime descriptor unless listed above.
   GaLore, LISA, LOMO, MeZO, SAM, Sophia, and Adam-mini.
 - Infrastructure: ZeRO, tensor parallelism, pipeline parallelism, CPU or NVMe
   offload, FlashAttention selection, and sequence packing.
-- Backends and runners: ROCm execution, MPS execution, MLX execution, CPU
-  training, managed cloud runners, and provider execution connectors. Apple
-  Silicon MPS hardware discovery is current inventory behavior, not execution.
+- Backends and runners: ROCm execution, a PyTorch MPS compiler, CPU training,
+  managed cloud runners, and provider execution connectors. MLX-LM LoRA and
+  QLoRA uninterrupted adapter training is current. MLX crash resume remains
+  unsupported.
 - Evaluation and export: named benchmark suites, custom target thresholds,
   inference-parity checks, GGUF, ONNX, adapter merge, publication, and
   deployment.
@@ -324,7 +363,8 @@ executable only when all of these exist:
 10. an artifact verifier and negative tests for every unsupported combination;
 11. a gated runtime descriptor with a compiler ID, export contract, supported
     backend and placement, and `selectable=true`; and
-12. real CUDA evidence for the pinned stack before a release support claim.
+12. real target-runtime evidence for the pinned stack before a release support
+    claim.
 
 ## Related documentation
 

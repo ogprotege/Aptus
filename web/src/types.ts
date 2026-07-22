@@ -198,6 +198,15 @@ export interface CandidatePlan {
   required_disk_bytes?: number;
   checkpoint_retention_bytes?: number;
   final_export_bytes?: number;
+  runtime_contract?: {
+    schema_version: string;
+    compute_backend: string;
+    training_runtime: string;
+    compiler_id: string | null;
+    estimator_id: string;
+    evidence_requirement: string;
+    export_kind: string | null;
+  };
   [key: string]: unknown;
 }
 
@@ -214,6 +223,7 @@ export interface MethodDescriptor {
   compiler_id: string | null;
   export_kind: string | null;
   supported_backends: string[];
+  supported_runtimes?: string[];
   supported_distributions: string[];
   evidence_ids: string[];
   pilot_requirement: string;
@@ -283,6 +293,7 @@ export interface PlanRequest {
     effective_batch_size: number;
     max_epochs: number;
     method_preference?: string;
+    training_runtime?: string;
     task: string;
     evaluation_fraction: number;
     packing: boolean;
@@ -307,6 +318,48 @@ export interface ValidationGate {
   detail?: string;
 }
 
+export interface UnifiedMemoryAdmission {
+  schema_version?: string;
+  available_unified_memory_bytes?: number;
+  point_estimate_bytes?: number;
+  upper_estimate_bytes?: number;
+  reserve_bytes?: number;
+  required_available_bytes?: number;
+  [key: string]: unknown;
+}
+
+export interface AdapterTargetBinding {
+  schema_version?: string;
+  planned_target_modules?: string[];
+  resolved_layer_keys?: string[];
+  transformer_layer_count?: number;
+  expected_adapter_target_instance_count?: number;
+  adapter_target_instance_count?: number;
+  trainable_tensor_count?: number;
+  target_instance_counts?: Record<string, number>;
+  descriptor_sha256?: string;
+  [key: string]: unknown;
+}
+
+export interface ArtifactManifestEntry {
+  path?: string;
+  size_bytes?: number;
+  sha256?: string;
+  [key: string]: unknown;
+}
+
+export interface MlxReloadEvidence {
+  schema_version?: string;
+  execution_semantics?: string;
+  resume_supported?: boolean;
+  fresh_process_observed?: boolean;
+  generation_max_tokens?: number;
+  generation_tokens?: number;
+  measured_peak_bytes?: number;
+  unified_memory_admission?: UnifiedMemoryAdmission;
+  [key: string]: unknown;
+}
+
 export interface ValidationReport {
   state?: string;
   findings?: ValidationFinding[];
@@ -328,15 +381,47 @@ export interface ValidationReport {
     distribution?: string;
     world_size?: number;
     measured_peak_cuda_bytes?: number;
+    measured_peak_bytes?: number;
+    memory_metric_backend?: string;
+    training_runtime?: string;
+    compute_backend?: string;
+    execution_semantics?: string;
+    resume_supported?: boolean;
+    unified_memory_admission?: UnifiedMemoryAdmission;
     scope?: string;
     [key: string]: unknown;
   } | null;
   pilot_metrics?: {
+    training_runtime?: string;
+    compute_backend?: string;
+    scope?: string;
+    action?: string;
+    execution_semantics?: string;
+    resume_supported?: boolean;
+    global_step?: number;
+    completed_optimizer_updates?: number;
+    finite_train_loss?: boolean;
+    finite_validation_loss?: boolean;
+    validation_examples?: number;
+    measured_peak_bytes?: number;
+    memory_metric_backend?: string;
+    unified_memory_admission?: UnifiedMemoryAdmission;
+    trainable_target_binding?: AdapterTargetBinding;
+    adapter_manifest?: ArtifactManifestEntry[];
+    artifact_manifest?: {
+      schema_version?: string;
+      total_bytes?: number;
+      files?: ArtifactManifestEntry[];
+      [key: string]: unknown;
+    };
+    reload_evidence?: MlxReloadEvidence;
     checkpoint_continuation_observed?: boolean;
     measured_checkpoint_bytes?: number;
     measured_final_export_bytes?: number;
     pilot_run_id?: string;
     pilot_run_dir?: string;
+    run_id?: string;
+    output_dir?: string;
     phase_one_checkpoint?: {
       total_bytes?: number;
       manifest_sha256?: string;
@@ -375,6 +460,7 @@ export interface CompileResponse {
   bundle_dir: string;
   archive_path?: string | null;
   files: Array<string | BundleFile>;
+  runtime_contract?: CandidatePlan["runtime_contract"];
   report?: ValidationReport | null;
   [key: string]: unknown;
 }
@@ -436,6 +522,8 @@ export interface BootstrapResponse {
   version?: string;
   defaults?: Partial<FactDraft> & {
     sample_limit?: number;
+    backend?: string;
+    training_runtime?: string;
     reserve_gib?: number;
     task?: string;
     packing?: boolean;
@@ -481,6 +569,49 @@ export interface HardwareProbeResponse {
   disk_free_gib?: number | null;
   provenance?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+export interface ApplePlatformResponse {
+  status: "ok" | "unsupported" | string;
+  error?: string;
+  platform?: {
+    os_version?: string;
+    os_build?: string | null;
+    chip_name?: string | null;
+    logical_cpu_count?: number | null;
+    metal_gpu_core_count?: number | null;
+    unified_memory_bytes?: number;
+    available_memory_bytes?: number | null;
+    memory_free_percent?: number | null;
+    metal_recommended_working_set_bytes?: number | null;
+    mlx?: Record<string, unknown>;
+    mlx_lm?: Record<string, unknown>;
+    pytorch_mps?: Record<string, unknown>;
+    [key: string]: unknown;
+  } | null;
+}
+
+export interface RuntimeInventory {
+  schema_version: "aptus.runtime-inventory.v1" | string;
+  interpreters: Array<Record<string, unknown>>;
+  available: Record<string, string[]>;
+  configuration: Record<string, string>;
+}
+
+export interface InferenceServiceRequest {
+  service: "lm-studio" | "omlx";
+  endpoint?: string;
+  timeout_seconds?: number;
+}
+
+export interface InferenceGenerateRequest extends InferenceServiceRequest {
+  model: string;
+  messages: Array<{
+    role: "system" | "user" | "assistant" | "tool";
+    content: string;
+  }>;
+  max_tokens?: number;
+  temperature?: number;
 }
 
 export type WorkflowStage = "facts" | "compare" | "compile" | "validate" | "run";

@@ -13,6 +13,13 @@
 The sum of named planner memory components before the separate uncertainty
 envelope. It is a heuristic calculation, not a measurement.
 
+## Apple platform profile
+
+A measured Darwin arm64 record containing macOS version and build, chip name,
+logical CPU count, unified-memory capacity and headroom, memory pressure, swap,
+Metal working-set guidance, optional Metal GPU core count, and separate MLX,
+MLX-LM, and PyTorch MPS capabilities. It uses no chip allowlist.
+
 ## Artifact fingerprint
 
 The SHA-256 of `bundle-manifest.json` when the manifest exists. Validation uses
@@ -46,6 +53,12 @@ Tokenizer-specific transformation happens later.
 The managed parent's record that it verified one full run's marker, metrics,
 rank evidence, dataset split, trainable census, and structural export before
 marking the job completed.
+
+## Compute backend
+
+The accelerator family bound to a candidate, such as `cuda` or `mps`. It is
+separate from the training runtime. For example, MLX-LM and PyTorch MPS both use
+`mps`, but only MLX-LM has a current Aptus compiler.
 
 ## Conditional candidate
 
@@ -88,7 +101,7 @@ proof. It does not mean every model and host combination is ready.
 
 ## Host-global Aptus lease
 
-A per-user local coordination record that permits one Aptus GPU action across
+A per-user local coordination record that permits one Aptus accelerator action across
 managed state roots and POSIX portable bundle launches. It does not coordinate
 unrelated programs.
 
@@ -110,8 +123,10 @@ path, byte size, and SHA-256. Changing it invalidates the bundle.
 
 ## Measured preflight
 
-A selected-method synthetic CUDA optimizer step. It binds a trainable census
-and positive peak without loading the exact planned model or training corpus.
+A runtime-specific measured gate before pilot. CUDA runs a selected-method
+synthetic optimizer step and binds its trainable census. MLX-LM runs a bounded
+real model and data adapter smoke, writes an adapter, and records a positive
+runtime-neutral memory peak. Neither result is pilot evidence.
 
 ## Measured run pass
 
@@ -127,9 +142,11 @@ support declarations, evidence, required pilot, aliases, and blocker.
 
 ## Model-data validation
 
-The runtime gate that loads the pinned model and tokenizer, verifies structural
-facts, prepares the selected method, enforces trainable scope, and transforms
-every canonical row. It performs no optimizer step.
+The runtime gate that loads the pinned model and tokenizer and transforms every
+canonical row. CUDA also verifies structural facts, prepares the selected
+method, and enforces trainable scope. MLX-LM validates the QLoRA metadata when
+applicable and tokenizes the bound train and validation rows. It performs no
+optimizer step.
 
 ## No-clobber
 
@@ -145,8 +162,12 @@ verifies pending full-run evidence before changing the report to
 
 ## Pilot
 
-A bounded exact-model and real-data pressure run in two fresh processes. Phase
-one saves step one. Phase two resumes it and reaches at least step two.
+The runtime-specific exact-model gate after measured preflight. The CUDA pilot
+runs real data in two fresh processes, saves step one, and restores complete
+state to reach at least step two. The MLX-LM pilot instead runs from the pinned
+base without interruption for at least two optimizer updates, then reloads the
+emitted adapter in a fresh process and generates one to four tokens. The MLX
+reload proves adapter inference, not training continuation.
 
 ## Planner parity
 
@@ -157,7 +178,7 @@ the resulting candidates, recommendation, and plan ID to match the bundle.
 
 A compiler-produced directory with relative data paths, direct pins,
 configuration, self-contained validators, training code, and an immutable
-manifest. It can move to the target CUDA host as a reviewed unit.
+manifest. It can move to its runtime-compatible target host as a reviewed unit.
 
 ## Provenance
 
@@ -175,6 +196,18 @@ matrix. It is not a universal optimum or a model-quality prediction.
 One managed operation: `dependency`, `model-data`, `preflight`, `pilot`, or
 `train`. Actions have ordered report-state prerequisites.
 
+## Runtime configuration
+
+The private `aptus.runtime-config.v1` mapping from a training-runtime ID to one
+probed canonical Python executable. Aptus persists it with mode 0600. A
+Finder-launched Mac app uses this record instead of relying on shell variables.
+
+## Runtime contract
+
+An `aptus.runtime-contract.v1` record binding one candidate to its compute
+backend, training runtime, compiler, estimator, evidence requirement, and export
+kind. Runtime presence alone does not create a compiler contract.
+
 ## Runtime exclusion
 
 An unmanifested mutable path explicitly permitted by the bundle validator:
@@ -184,8 +217,10 @@ the report lock, validation report, preflight metrics, `pilot-output/`, or
 ## Split group
 
 An optional non-empty string at top level or `metadata.split_group`. All rows
-with the same value remain in one full-run partition. Aptus does not decide
-whether the declared value is the correct leakage unit.
+with the same value remain in one CUDA full-run partition. The current MLX
+compiler uses a separate precompiled split and does not claim group-aware
+assignment. Aptus does not decide whether the declared value is the correct
+leakage unit.
 
 ## Split unit
 
@@ -200,21 +235,35 @@ that inference produces correct behavior.
 
 ## Train admission
 
-The atomic transaction that rechecks current bundle, pilot, environment,
-hardware, VRAM, host RAM, disk, checkpoint, and export evidence before a queued
-train record is written.
+The runtime-specific atomic transaction before a queued train record is written.
+CUDA rechecks the current bundle, pilot, environment, hardware, VRAM, host RAM,
+disk, checkpoint, and export evidence. MLX re-verifies its owned uninterrupted
+pilot, then checks current unified-memory headroom and disk.
 
 ## Trainable-parameter census
 
 An `aptus.trainable-parameter-census.v1` object containing trainable and frozen
 tensor and parameter counts, finite-value status, adapter target-pair counters,
 unexpected-trainable count, and a SHA-256 over sorted trainable names, shapes,
-and dtypes.
+and dtypes. MLX uses `aptus.mlx-trainable-target-binding.v1` instead. It binds
+one LoRA A/B pair to every planned target instance and rejects other trainables.
 
 ## Training authorization
 
 The current result of train admission. A historical `pilot-pass` or cached UI
 message is not authorization for a new run.
+
+## Training runtime
+
+The concrete software path that compiles and executes a candidate.
+`transformers-peft-cuda` and `mlx-lm` have current compiler bindings.
+`pytorch-mps` is known and discoverable but lacks a compiler.
+
+## Unified memory
+
+The physical memory pool shared by CPU and GPU on Apple Silicon. Aptus records
+it separately from dedicated VRAM and retains free VRAM as unknown. The MLX-LM
+estimator uses current free host RAM as the live headroom cap when available.
 
 ## Upper envelope
 
@@ -235,6 +284,12 @@ The strongest evidence recorded in `validation-report.json`, such as
 
 A candidate whose status is `feasible` or `conditional`. Ranking ignores
 infeasible and unsupported rows.
+
+## Weight snapshot
+
+A periodic MLX adapter-weight save. It does not contain the complete optimizer,
+scheduler, random, and data-position state required to resume training. Aptus
+rejects every MLX resume argument and never calls these files checkpoints.
 
 ## Related documentation
 

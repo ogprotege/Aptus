@@ -91,6 +91,22 @@ export function FactsStage({
     },
   }));
 
+  const updateBackend = (backend: string) => setDraft((current) => ({
+    ...current,
+    hardware: {
+      ...current.hardware,
+      reserve_per_device_gib:
+        backend === "mps"
+          ? Math.max(current.hardware.reserve_per_device_gib ?? 0, 8)
+          : current.hardware.reserve_per_device_gib,
+      devices: [{ ...current.hardware.devices[0], backend }],
+    },
+    target: {
+      ...current.target,
+      runtime: backend === "mps" ? "mlx-lm" : "transformers-peft-cuda",
+    },
+  }));
+
   const updateTarget = <K extends keyof FactDraft["target"]>(
     key: K,
     value: FactDraft["target"][K],
@@ -345,16 +361,16 @@ export function FactsStage({
             {hardwareScanned ? <p className="example-inline measured-inline">Measured on this Aptus host. Confirm this is the intended execution machine.</p> : null}
             {unifiedMemory ? (
               <p className="fact-boundary">
-                Apple Silicon shares one unified-memory pool between the CPU and GPU. This is not dedicated VRAM. The current Aptus compiler remains fail-closed for MPS while the MLX runtime contract is implemented and calibrated.
+                Apple Silicon shares one memory pool between the CPU and GPU. This is not dedicated VRAM. Aptus evaluates MLX-LM LoRA and QLoRA with a separate estimator, then runs a bounded measured preflight. A passing uninterrupted pilot authorizes an explicitly confirmed full-duration run from scratch. Resume is not supported.
               </p>
             ) : null}
             <div className="field-row">
               <div className="field">
                 <label htmlFor="backend">Backend</label>
-                <select id="backend" value={draft.hardware.devices[0]?.backend ?? "cuda"} onChange={(event) => updateDevice("backend", event.target.value)}>
-                  <option value="cuda">CUDA</option>
+                <select id="backend" value={draft.hardware.devices[0]?.backend ?? "cuda"} onChange={(event) => updateBackend(event.target.value)}>
+                  <option value="cuda">NVIDIA CUDA</option>
+                  <option value="mps">Apple Metal</option>
                   <option value="rocm" disabled>ROCm · not supported in v0.2</option>
-                  <option value="mps" disabled>MPS · not supported in v0.2</option>
                   <option value="cpu" disabled>CPU · not supported in v0.2</option>
                 </select>
               </div>
@@ -375,7 +391,7 @@ export function FactsStage({
             </div>
             <div className="field-row">
               <div className="field">
-                <label htmlFor="device-free-vram">{unifiedMemory ? "Available unified memory" : "Free VRAM now"}</label>
+                <label htmlFor="device-free-vram">{unifiedMemory ? "Measured memory headroom" : "Free VRAM now"}</label>
                 <div className="unit-input"><input id="device-free-vram" type="number" min="0.1" step="0.1" value={draft.hardware.devices[0]?.free_vram_gib ?? ""} onChange={(event) => updateDevice("free_vram_gib", numberValue(event.target.value))} placeholder="Optional" /><span>GiB</span></div>
               </div>
               <div className="field">
@@ -395,8 +411,8 @@ export function FactsStage({
             </div>
             {unifiedMemory ? (
               <div className="mps-capability-boundary" role="note" aria-label="Apple Silicon capability boundary">
-                <strong>MLX capabilities are not measured yet.</strong>
-                <span>CUDA BF16 and bitsandbytes capability flags do not apply to this MPS inventory. Aptus will not translate their unchecked state into an MLX limitation.</span>
+                <strong>Apple capability rules are runtime-specific.</strong>
+                <span>CUDA BF16 and bitsandbytes flags do not apply to MLX. Unknown live headroom stays unknown, and every proposed MLX-LM run remains pilot-required.</span>
               </div>
             ) : (
             <div className="capability-checks" role="group" aria-label="Device capabilities">
@@ -528,9 +544,28 @@ export function FactsStage({
               <span><strong>Sequence packing · not supported in v0.2</strong><small>The masking compiler rejects packing until its loss-boundary rules are implemented.</small></span>
             </label>
             <div className="field full-field">
-              <span className="field-label">Bundle runtime</span>
-              <strong>Transformers + PEFT + Accelerate</strong>
-              <small>V0.2 emits this single pinned runtime.</small>
+              <label htmlFor="bundle-runtime">Bundle runtime</label>
+              <select
+                id="bundle-runtime"
+                value={draft.target.runtime}
+                onChange={(event) => updateTarget("runtime", event.target.value)}
+              >
+                {unifiedMemory ? (
+                  <>
+                    <option value="mlx-lm">MLX-LM · native Apple training</option>
+                    <option value="pytorch-mps" disabled>
+                      PyTorch MPS · known compatibility runtime, compiler unavailable
+                    </option>
+                  </>
+                ) : (
+                  <option value="transformers-peft-cuda">Transformers + PEFT · CUDA</option>
+                )}
+              </select>
+              <small>
+                {unifiedMemory
+                  ? "MLX-LM is the primary Apple runtime. PyTorch MPS is detected separately but cannot be selected until Aptus ships a compiler binding."
+                  : "CUDA bundles use the pinned Transformers, PEFT, and Accelerate compiler."}
+              </small>
             </div>
           </fieldset>
         </div>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .domain import Method
+from .domain import Method, TrainingRuntime
 
 
 TARGET_MODULES: dict[str, tuple[str, ...]] = {
@@ -33,15 +33,28 @@ STACK_VERSIONS = {
     "accelerate": "1.14.0",
     "bitsandbytes": "0.49.2",
     "safetensors": "0.8.0",
+    "mlx": "0.31.2",
+    "mlx-lm": "0.31.3",
 }
 
 
-def bundle_requirements(method: str | Method) -> tuple[str, ...]:
+def bundle_requirements(
+    method: str | Method,
+    training_runtime: str | TrainingRuntime = TrainingRuntime.TRANSFORMERS_PEFT_CUDA,
+) -> tuple[str, ...]:
     normalized = Method(method)
+    runtime = TrainingRuntime(training_runtime)
+    if runtime == TrainingRuntime.MLX_LM:
+        if normalized not in {Method.LORA, Method.QLORA}:
+            raise ValueError("MLX-LM bundles currently compile LoRA and QLoRA only.")
+        return tuple(f"{name}=={STACK_VERSIONS[name]}" for name in ("mlx", "mlx-lm"))
     packages = ["torch", "transformers", "accelerate", "safetensors"]
     if normalized != Method.FULL:
         packages.append("peft")
-    if normalized in {Method.INT8_LORA, Method.QLORA}:
+    if runtime == TrainingRuntime.TRANSFORMERS_PEFT_CUDA and normalized in {
+        Method.INT8_LORA,
+        Method.QLORA,
+    }:
         packages.append("bitsandbytes")
     return tuple(f"{name}=={STACK_VERSIONS[name]}" for name in packages)
 

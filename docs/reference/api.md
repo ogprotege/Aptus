@@ -8,14 +8,53 @@
 | Last reviewed | 2026-07-22 |
 | Next review | 2026-10-22, or sooner when `src/aptus/api.py` changes |
 
-The FastAPI service is a trusted-user local interface. The default origin is
-`http://127.0.0.1:8787`. Install the `server` optional dependency group before
-creating the app or running `aptus serve`.
+The FastAPI service is an authenticated single-user local interface when
+started by `aptus serve`. The default origin is `http://127.0.0.1:8787`.
+Install the `server` optional dependency group before creating the app or
+running the command.
 
 Request models are strict. Unknown fields produce `422 request_validation`.
 Default Host-header validation accepts `127.0.0.1`, `localhost`, `[::1]`, and
-`testserver`. The CLI can explicitly allow all hosts, but that acknowledgment
-does not add authentication or authorization.
+`testserver`. The CLI can explicitly allow all hosts for non-loopback serving.
+Session authentication remains active in that mode, but TLS, tenant isolation,
+filesystem scoping, and worker isolation do not appear automatically.
+
+## Authentication
+
+`aptus serve` generates a fresh token for every launch and prints both a
+workbench handoff URL and the token for API clients. The handoff URL has this
+shape:
+
+```text
+http://127.0.0.1:8787/?aptus_session_token=TOKEN
+```
+
+A valid token on a GET to a public workbench path produces an immediate `303`
+response. The response sets `aptus_desktop_session=TOKEN` with `HttpOnly`,
+`SameSite=Strict`, and `Path=/`, then redirects to the same path without the
+token parameter. Other query parameters are preserved. An invalid handoff token
+returns `403 desktop_session_required`.
+
+API clients can avoid the cookie exchange:
+
+```http
+Authorization: Bearer TOKEN
+```
+
+Only `GET /api/v1/health`, `GET /health`, and non-API static workbench assets
+are public. Every other `/api` route, plus `/docs`, `/redoc`, and
+`/openapi.json`, requires the valid cookie or bearer token. The stable rejection
+code remains `desktop_session_required` for both desktop and ordinary serve
+sessions.
+
+The CLI disables Uvicorn access logs to keep the handoff query out of normal
+request logging. Operators must still protect terminal output, browser history,
+and the token itself. Explicit non-loopback serving uses plain HTTP, so a
+network observer can steal either credential. Put that mode behind approved TLS
+and network controls.
+
+Programmatic `create_app()` callers can omit `session_token`. That direct mode
+has no application authentication. The caller owns its security boundary.
 
 ## Endpoint summary
 
@@ -25,6 +64,12 @@ does not add authentication or authorization.
 | `GET /health` | Hidden health alias | None |
 | `GET /api/v1/bootstrap` | Capabilities and restorable state | Reconciles persisted jobs |
 | `GET /api/v1/hardware` | Probe service-host hardware | None; blocked by an active job |
+| `GET /api/v1/platform` | Probe Apple platform and unified-memory facts | None |
+| `GET /api/v1/runtimes` | Probe configured Python training runtimes | Starts bounded interpreter probes |
+| `POST /api/v1/runtimes/configure` | Validate and persist one training interpreter | Writes private runtime configuration |
+| `GET /api/v1/inference/services` | Probe known LM Studio and oMLX loopback origins | Bounded local requests |
+| `POST /api/v1/inference/models` | List models from one explicit local inference service | Bounded local request |
+| `POST /api/v1/inference/generate` | Generate through one explicit local inference service | Local inference request |
 | `POST /api/v1/models/inspect` | Inspect provider metadata | Bounded provider requests |
 | `POST /api/v1/profile` | Profile a local dataset | Reads and hashes the source |
 | `POST /api/v1/plan` | Create and persist a plan | Writes `STATE_DIR/plans/{plan_id}.json` |
@@ -59,12 +104,17 @@ Bootstrap always returns:
 - top-level `version`, `service`, `calibrated`, `stack_versions`, `defaults`,
   and `evidence`;
 - top-level compatibility copies of the capability fields;
-- `capabilities.backends`, which contains only `cuda`;
+- `capabilities.backends`, which contains `cuda` and `mps`;
 - `capabilities.known_backends`, which contains `cuda`, `rocm`, `mps`, and
   `cpu`;
 - `capabilities.methods`, which contains the four selectable method IDs;
 - `capabilities.method_catalog`, which contains all 11 descriptors;
-- objectives, supported model families, and validation levels.
+- training-runtime IDs, inference-service IDs, objectives, supported model
+  families, and validation levels.
+
+On macOS, bootstrap selects `mps`, `mlx-lm`, and an 8 GiB reserve as the new
+workspace defaults. Other hosts retain `cuda`, `transformers-peft-cuda`, and a
+2 GiB reserve. These defaults do not replace measured hardware facts.
 
 When restorable state exists, the response can also contain:
 
@@ -96,10 +146,55 @@ Success:
 Probe failure is a normal `200` response with `status: unavailable`, an `error`,
 and `manual_facts_supported: true`. CUDA hosts report each visible device. On
 Darwin arm64 without CUDA, the probe reports one `mps` shared-memory inventory
-record. That record does not make a candidate executable.
+record. The inventory alone does not make a candidate executable. An MLX-LM
+candidate also requires a registered compiler, a compatible exact Python
+runtime, model-data validation, and measured runtime gates.
 
 An active managed job causes `409 active_job_conflict`. This guard prevents a
 probe from competing with Aptus-owned accelerator work.
+
+### `GET /api/v1/platform`
+
+On Apple Silicon this returns macOS version and build, chip identity, logical
+CPU count, the built-in Metal GPU core count when reported, total unified
+memory, measured current availability when obtainable, memory pressure, swap
+facts, Metal's recommended working set when obtainable, and separate MLX,
+MLX-LM, and PyTorch MPS runtime facts. Missing measurements remain `null`. A
+non-Apple host returns `status: unsupported`.
+
+### `GET /api/v1/runtimes`
+
+Returns `aptus.runtime-inventory.v1`. Every record identifies the exact Python
+executable, source, Python version, package versions, and measured availability
+for `mlx-lm`, `pytorch-mps`, and `transformers-peft-cuda`. The endpoint can use
+the explicit `APTUS_MLX_PYTHON`, `APTUS_PYTORCH_PYTHON`, and
+`APTUS_CUDA_PYTHON` paths. It never treats LM Studio or oMLX as a training
+interpreter.
+
+`POST /api/v1/runtimes/configure` accepts `runtime_id` and an
+`interpreter_path`. Aptus executes a bounded capability probe, requires the
+selected runtime to be available, resolves the canonical executable path, and
+persists it in the private state directory. Finder-launched Mac builds use this
+route because they cannot depend on shell startup environment variables.
+
+## Local inference services
+
+LM Studio and oMLX are inference and evaluation services. They are not Aptus
+training runtimes. Aptus accepts only explicit HTTP loopback origins with an
+explicit port. It disables proxies and redirects, applies request and response
+bounds, and never scans local ports.
+
+`GET /api/v1/inference/services` checks only the documented defaults,
+`127.0.0.1:1234` for LM Studio and `127.0.0.1:8000` for oMLX.
+
+`POST /api/v1/inference/models` accepts `service`, optional `endpoint`, and
+optional `timeout_seconds`, then returns the service's OpenAI-compatible model
+list.
+
+`POST /api/v1/inference/generate` adds `model`, `messages`, `max_tokens`, and
+`temperature`. It performs one non-streaming chat-completions request. A local
+service error uses a nested structured error with service, operation, code,
+message, and upstream status.
 
 ### `POST /api/v1/models/inspect`
 
@@ -191,6 +286,11 @@ The strict request schema still requires `gpu_count`, `vram_gib`, and
 re-probes the host, retaining only the submitted reserve. Local scan is blocked
 during an active managed job. Manual mode performs no probe.
 
+For CUDA, `supports_4bit` is a device and kernel eligibility fact. MLX-LM
+QLoRA does not reuse that CUDA-shaped flag. It remains conditional until the
+model-data gate verifies explicit four-bit MLX quantization metadata on the
+pinned model revision.
+
 `target` fields:
 
 | Field | Type | Required | Default or constraint |
@@ -200,10 +300,11 @@ during an active managed job. Manual mode performs no probe.
 | `effective_batch_size` | integer | No | `16` |
 | `max_epochs` | integer | No | `3` |
 | `method_preference` | executable method or null | No | `null` |
+| `training_runtime` | runtime ID or null | No | Inferred from the compute backend |
 | `task` | string | No | `sft`; other values are rejected by planning |
 | `evaluation_fraction` | number | No | `0.1`, in `[0, 1)` |
 | `packing` | boolean | No | False; true is rejected by planning |
-| `checkpoint_steps` | integer | No | `100` |
+| `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
 
 Success persists and returns one full `aptus.training-plan.v2` object. When no
 candidate is viable, the response is `422 no_feasible_plan` and still includes
@@ -236,6 +337,7 @@ suffix is `.zip`. The bundle and archive are no-clobber. Success writes
   "bundle_dir": "/absolute/new-bundle",
   "archive_path": "/absolute/new-bundle.zip",
   "files": [],
+  "runtime_contract": {},
   "report": {}
 }
 ```
@@ -255,8 +357,7 @@ not part of the immutable manifest.
 validation guard. Runtime levels with `run: false` return the direct static
 report plus `RUNTIME_NOT_EXECUTED`. Runtime levels with `run: true` return
 `409 runtime_validation_requires_job` and a `suggested_action`. Runtime work
-must use jobs so it is serialized and cancellable. The macOS sidecar has
-execution disabled and returns `403 desktop_execution_disabled` instead.
+must use jobs so it is serialized and cancellable.
 
 ## Jobs
 
@@ -271,13 +372,23 @@ execution disabled and returns `403 desktop_execution_disabled` instead.
 The endpoint rejects forward skips with `409 job_prerequisite_not_met`. It
 rejects a competing job with `409 active_job_conflict`. Confirmation is valid
 only for `train`, and training requires it to be true. No resume field is
-accepted. Aptus for Mac rejects every submission here with
-`403 desktop_execution_disabled`; its bundles must continue on a CUDA host.
+accepted. Aptus for Mac can execute an Apple bundle only when the exact external
+MLX-LM or PyTorch MPS interpreter is available. A missing interpreter returns
+`409 runtime_unavailable`. CUDA bundles still require a CUDA runtime, whether
+local or on a transferred target host.
 
 Train submission validates the immutable bundle and prior state, then deeply
-checks the current pilot, environment, hardware, free VRAM, host RAM, disk,
-checkpoint contracts, and export contracts while holding the global lease and
-record locks. The queued record is written only after that admission succeeds.
+checks the current runtime-specific pilot and capacity while holding the global
+lease and record locks. CUDA admission verifies environment, hardware, free
+VRAM, host RAM, disk, checkpoint contracts, and export contracts. MLX admission
+verifies the owned uninterrupted pilot, current available unified memory above
+measured peak plus reserve, and current disk against planned and measured
+adapter artifacts. The queued record is written only after admission succeeds.
+
+MLX `pilot` means an uninterrupted exact-model run with at least two optimizer
+updates plus fresh-process adapter reload and one-to-four-token generation. MLX
+`train` starts again from the pinned base and runs for the plan-derived duration.
+Neither action accepts resume state.
 
 ### `GET /api/v1/jobs`
 
@@ -321,16 +432,20 @@ then inspect the remaining fields.
 
 | HTTP status | Emitted errors |
 | ---: | --- |
-| `400` | `invalid_request`, `filesystem_error` |
+| `400` | `invalid_request`, `filesystem_error`, `runtime_configuration_invalid`, local-inference configuration errors |
 | `403` | `path_forbidden`, `desktop_session_required` |
 | `404` | `path_not_found`, `plan_not_found`, `job_not_found`, route `not_found` |
-| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job` |
+| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable` |
 | `422` | `request_validation`, `no_feasible_plan` |
+| `502`, `504` | Bounded local-inference service or timeout errors |
 
 An explicit framework HTTP error with non-object detail uses `http_error`.
 Invalid Host headers are rejected by middleware before the endpoint contract.
-The internal macOS desktop entrypoint enables `desktop_session_required` for
-every route. Ordinary `aptus serve` does not enable that cookie boundary.
+The internal macOS desktop entrypoint preinstalls the same protected-API cookie
+through an exact-origin native path before WebKit makes its first request. It
+never carries the token in a URL. Ordinary `aptus serve` instead uses the
+printed query-to-cookie handoff described above. Both paths accept the bearer
+header for protected API requests.
 
 ## Static workbench routes
 
@@ -338,6 +453,9 @@ When a workbench build is available, the hidden `GET /{full_path:path}` route
 serves matching non-API assets inside the selected static root. Other non-API
 paths return `index.html` for
 client-side routing. Unknown paths under `/api/` return JSON `404 not_found`.
+Static files are public so the browser can load the application shell. The
+application cannot read protected state until its API requests carry the valid
+cookie.
 
 ## Related documentation
 

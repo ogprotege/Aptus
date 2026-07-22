@@ -52,6 +52,17 @@ final class DesktopBridgeTests: XCTestCase {
         XCTAssertNotNil(Bundle.main.url(forResource: "AptusMark", withExtension: "svg"))
     }
 
+    func testWebViewRefreshesNativePanelParentAndExposesRetry() throws {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/WebViewController.swift")
+        let contents = try String(contentsOf: source, encoding: .utf8)
+        XCTAssertTrue(contents.contains("bridge.updateWindow(view.window)"))
+        XCTAssertTrue(contents.contains("func retryLoad()"))
+        XCTAssertTrue(contents.contains("webView.stopLoading()"))
+    }
+
     func testBridgeAcceptsOnlyTheMainFrameAtTheExactSessionOrigin() throws {
         let origin = try XCTUnwrap(URL(string: "http://127.0.0.1:49152"))
         XCTAssertTrue(DesktopBridgeMessagePolicy.allows(

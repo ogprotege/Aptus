@@ -5,21 +5,25 @@
 Methodology version: `aptus-preflight-v2`.
 
 V0.2 separates a synthetic method check from the first exact model and data
-step. Neither establishes final task quality.
+step. The exact work differs by runtime. Neither establishes final task quality.
 
 ## Model-data validation
 
 The model-data gate uses the pinned revision to resolve the configuration,
-tokenizer, and exact model weights. It validates the loaded parameter count and
-plan-driving structural config fields against the plan, confirms every adapter
-target-module name exists, transforms every canonical row under the selected
-sequence length, and confirms visible CUDA device count. Quantized candidates
-use the same 4-bit or 8-bit base-load contract as training.
+tokenizer, and exact model weights. CUDA validation checks parameter count,
+plan-driving structure, adapter targets, every canonical row, visible device
+count, and the selected bitsandbytes load contract. MLX-LM validation loads the
+pinned revision through MLX-LM and tokenizes every compiled train and validation
+row. MLX QLoRA additionally requires explicit four-bit MLX quantization metadata
+in that pinned revision. It does not consult a CUDA device flag or substitute
+bitsandbytes.
 
-The gate prepares the selected method exactly far enough to prove its trainable
-scope. It disables model cache use, enables gradient checkpointing, performs
-k-bit preparation when required, injects PEFT LoRA for adapter methods, and
-computes the plan-bound trainable census. It then releases the model.
+The CUDA gate prepares the selected method exactly far enough to prove its
+trainable scope. It disables model cache use, enables gradient checkpointing,
+performs k-bit preparation when required, injects PEFT LoRA for adapter methods,
+and computes the plan-bound trainable census. It then releases the model. The
+MLX-LM gate verifies load and tokenization compatibility without an optimizer
+step.
 
 This gate does not construct the optimizer, run a batch, compute a loss, mutate
 weights, or take an optimizer step. Its temporary allocation is not recorded as
@@ -28,8 +32,8 @@ preflight and the real-model pilot.
 
 ## Measured preflight
 
-The measured-preflight gate runs a small synthetic Llama causal model on CUDA.
-It exercises the selected broad method:
+For `transformers-peft-cuda`, the measured-preflight gate runs a small synthetic
+Llama causal model. It exercises the selected broad method:
 
 - full or PEFT LoRA construction;
 - an 8-bit or 4-bit bitsandbytes kernel when selected;
@@ -41,9 +45,19 @@ The synthetic model uses fixed small dimensions. Adapter rank and alpha are
 capped for this probe. The recorded metric is method and kernel evidence. It is
 not an observed peak for the planned model, sequence length, or batch.
 
+For `mlx-lm`, measured preflight runs the bounded compiler slice against the
+plan-pinned model and compiled MLX train and validation files. It permits one to
+eight iterations, completes at least one optimizer update, writes an MLX
+adapter, and records `measured_peak_bytes`, active memory, cache memory, exact
+target binding, positive adapter delta, and an adapter manifest under
+`aptus.runtime-metrics.v1`. This stronger real-input smoke still has scope
+`bounded-compiler-smoke-not-pilot-evidence`. It does not prove checkpoint
+continuation, pilot-pass, or full-run fit.
+
 ## Real-model pilot
 
-The pilot is the first exact model and dataset training gate. It must:
+For the CUDA runtime, the pilot is the first exact model and dataset training
+gate. It must:
 
 - load the pinned model and tokenizer revision;
 - apply the selected precision, quantization, adapters, distribution, batch,
@@ -57,8 +71,17 @@ The pilot is the first exact model and dataset training gate. It must:
 - preserve finite loss;
 - emit bound metrics and checkpoint evidence.
 
-Only this gate can support `pilot-pass`. Full training requires explicit
-confirmation against the same pilot-bound bundle.
+Only the runtime-specific pilot gate can support `pilot-pass`. Full training
+requires explicit confirmation against the same pilot-bound bundle.
+
+For MLX-LM, the pilot is one uninterrupted exact-model and exact-data run from
+the pinned base. It completes the fixed two-update schedule, requires finite
+train and validation losses, proves exact target coverage and positive adapter
+delta, records positive MLX peak and live headroom admission, and seals its
+action-owned artifacts. A fresh child process then loads the pinned base plus
+adapter and generates one to four tokens. This adapter reload is not training
+continuation. `pilot-pass` can authorize an uninterrupted full-duration adapter
+run, while every resume argument remains fail-closed.
 
 ## Calibration status
 

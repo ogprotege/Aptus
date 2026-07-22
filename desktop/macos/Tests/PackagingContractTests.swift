@@ -2,6 +2,31 @@ import Foundation
 import XCTest
 
 final class PackagingContractTests: XCTestCase {
+    func testProjectUsesMacOS15FallbackWithoutPinningAnOldSDK() throws {
+        let directory = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let project = try String(
+            contentsOf: directory.appendingPathComponent("project.yml"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(project.contains("macOS: \"15.0\""))
+        XCTAssertTrue(project.contains("MACOSX_DEPLOYMENT_TARGET: \"15.0\""))
+        XCTAssertFalse(project.contains("13.0"))
+        XCTAssertFalse(project.contains("SDKROOT"))
+    }
+
+    func testBuildTargetsAppleSiliconAndUsesTheInstalledSDK() throws {
+        let script = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("build.sh")
+        let contents = try String(contentsOf: script, encoding: .utf8)
+        XCTAssertTrue(contents.contains("platform=macOS,arch=arm64"))
+        XCTAssertTrue(contents.contains("ARCHS=arm64"))
+        XCTAssertFalse(contents.contains("-sdk macosx"))
+    }
+
     func testPyInstallerUsesTheRequestedDeveloperIDForEmbeddedBinaries() throws {
         let spec = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

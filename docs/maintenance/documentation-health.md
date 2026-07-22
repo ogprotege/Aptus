@@ -18,9 +18,10 @@ artifacts, API shapes, CLI help, and workbench copy without enough automated
 parity checks.
 
 Overall documentation health is **strong with named maintenance gaps**. The
-release itself remains blocked until real CUDA evidence exists. The repository
-now checks its principal navigation and executable-reference surfaces, but it
-does not yet derive every default, status, and response field from one source.
+release itself remains blocked until qualifying target-host CUDA and MLX
+evidence exists for the capabilities being claimed. The repository now checks
+its principal navigation and executable-reference surfaces, but it does not yet
+derive every default, status, and response field from one source.
 
 ## Scorecard
 
@@ -35,7 +36,7 @@ does not yet derive every default, status, and response field from one source.
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
 | Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, and bundle-environment safety; generated-doc and structured default parity remain partial |
-| Release evidence | Blocked | No approved real CUDA pilot and full-run evidence record exists |
+| Release evidence | Blocked | No approved target-host CUDA or MLX pilot and full-run evidence record exists |
 
 ## Freshness and classification
 
@@ -119,13 +120,14 @@ For the 2026-07-22 governance batch:
 The same change passed the full Python suite, Python static and compile checks,
 the web test, typecheck, and production-build gate, an executable planning-only
 tutorial, and an isolated wheel smoke test. These checks establish repository
-consistency. They do not replace the required target-host CUDA evidence.
+consistency. They do not replace the required target-host CUDA or MLX evidence.
 
 ## Recommended actions by impact
 
 1. Close the remaining structured API, CLI, and generated-bundle parity gaps.
 2. Publish a concrete private security-reporting route.
-3. Complete real CUDA evidence and publish a versioned release record.
+3. Complete qualifying CUDA and MLX target-host evidence and publish a versioned
+   release record.
 4. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

@@ -30,7 +30,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `hardware` | Inspect local hardware | Local probe | None |
 | `inspect hardware` | Alias for `hardware` | Local probe | None |
 | `inspect model` | Inspect bounded provider metadata | 10-second timeout | Provider network requests only |
-| `serve` | Serve the API and packaged workbench | `127.0.0.1:8787` | State directories and job records as requests arrive |
+| `serve` | Serve an authenticated API and packaged workbench | `127.0.0.1:8787` | Per-launch workbench handoff, bearer token, state, and job records |
 
 ## Planning fact options
 
@@ -57,7 +57,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 
 | Option | Required | Default | Contract |
 | --- | ---: | --- | --- |
-| `--backend {cuda,rocm,mps,cpu}` | No | `cuda` | Known value only; v0.2 execution remains CUDA-only |
+| `--backend {cuda,rocm,mps,cpu}` | No | `cuda` | Planned compute backend |
 | `--gpu-count INTEGER` | Yes | None | Positive homogeneous manual device count |
 | `--vram-gib NUMBER` | Yes | None | Positive total memory for every declared device |
 | `--free-vram-gib NUMBER` | No | `null` | Current free memory; planner uses total when omitted |
@@ -78,13 +78,22 @@ host.
 | Option | Required | Default | Contract |
 | --- | ---: | --- | --- |
 | `--objective {quality,memory,speed}` | No | `memory` | Lexicographic ranking policy |
+| `--training-runtime {transformers-peft-cuda,mlx-lm,pytorch-mps}` | No | `null` | Explicit runtime binding; must match `--backend` |
 | `--sequence-length INTEGER` | Yes | None | Positive training sequence limit |
 | `--effective-batch-size INTEGER` | No | `16` | Requested exact global batch |
 | `--epochs INTEGER` | No | `3` | Positive full-run epoch count |
 | `--prefer-method {full,lora,int8-lora,qlora}` | No | `null` | Tie-breaking preference, not a hard method constraint |
 | `--evaluation-fraction NUMBER` | No | `0.1` | Value in `[0, 1)` |
-| `--checkpoint-steps INTEGER` | No | `100` | Positive save and evaluation interval |
+| `--checkpoint-steps INTEGER` | No | `100` | Positive CUDA save and evaluation interval; MLX keeps it as a plan fact but uses non-resumable weight snapshots |
 | `--packing` | No | False | Accepted as a fact, then rejected by the v0.2 planner |
+
+When `--training-runtime` is omitted, the planner preserves legacy inference:
+CUDA uses `transformers-peft-cuda`; MPS LoRA and QLoRA candidates use `mlx-lm`;
+and other MPS methods use the known but unimplemented `pytorch-mps` binding.
+An explicit `transformers-peft-cuda` selection requires `--backend cuda`.
+Explicit `mlx-lm` and `pytorch-mps` selections require `--backend mps`.
+`pytorch-mps` remains an implementation-required runtime, so it cannot produce
+an executable candidate.
 
 The CLI fixes `task` to `sft`. It exposes no maximum wall-time field and no
 full-training resume field.
@@ -142,6 +151,8 @@ The plan is rehydrated through the v2 domain contract. The default archive is
 the bundle path with its suffix replaced by `.zip`. The archive must be outside
 the bundle. Bundle and archive publication are no-clobber. On success the
 command prints the bundle path, archive path, and static validation report.
+The persisted candidate runtime contract controls compilation. `compile` does
+not accept a runtime override.
 
 Compilation copies cleartext data and writes a mutable
 `validation-report.json` to the directory. The deterministic ZIP excludes that
@@ -180,6 +191,12 @@ command submits one managed job, waits, then prints the reconciled terminal
 record. `--confirm-full-train` is valid only for `train` and is mandatory for
 that action. There is no full-run resume option.
 
+For CUDA, `pilot` performs two fresh-process phases and checkpoint continuation.
+For MLX-LM, `pilot` performs one uninterrupted two-update adapter run, followed
+by fresh-process adapter reload and one-to-four-token generation. A passing MLX
+pilot permits confirmed uninterrupted full-duration adapter training. It does
+not enable resume.
+
 Pressing Control-C requests cancellation through the owning job service. The
 CLI prints the resulting record when available and exits `130`.
 
@@ -207,8 +224,10 @@ Both commands probe the local host and print this envelope:
 ```
 
 CUDA hosts report visible devices and current capacity. Darwin arm64 without
-CUDA reports one `mps` discovery record for shared unified memory. That record
-does not enable MPS or MLX execution. Other unmeasurable hosts return
+CUDA reports one `mps` discovery record for shared unified memory. MLX-LM LoRA
+and QLoRA bundles can run managed validation, uninterrupted pilot, and confirmed
+full-duration adapter training when a compatible interpreter is configured.
+MLX resume remains unsupported. Other unmeasurable hosts return
 `status: unavailable`, `manual_facts_supported: true`, and exit `2`.
 
 ## `aptus inspect model`
@@ -234,8 +253,31 @@ aptus serve [--host 127.0.0.1] [--port 8787] \
 The command requires the `server` optional dependency group. The packaged
 workbench is used unless `--web-dist` names an explicit valid build. Binding to
 anything other than `127.0.0.1`, `localhost`, or `::1` is rejected unless
-`--allow-non-loopback` is present. That flag prints a warning and allows all
-Host headers. It adds no authentication, bundle-root policy, or worker
+`--allow-non-loopback` is present.
+
+Every launch generates a new random session token. Before Uvicorn starts, the
+CLI prints these values to standard error:
+
+```text
+Aptus workbench: http://127.0.0.1:8787/?aptus_session_token=TOKEN
+Aptus API bearer token: TOKEN
+```
+
+Open the printed workbench URL. The first valid public GET exchanges the query
+token for an HttpOnly, SameSite Strict cookie, then returns `303` to the same
+path without `aptus_session_token`. Subsequent browser requests use the cookie.
+API clients can instead send `Authorization: Bearer TOKEN`.
+
+Only `GET /api/v1/health`, `GET /health`, and static workbench assets are public.
+All other API routes, `/docs`, `/redoc`, and `/openapi.json` require the cookie
+or bearer token. The CLI runs Uvicorn with access logging disabled so the query
+handoff is not written to normal request logs. Treat the printed URL and token
+as credentials despite that protection.
+
+`--allow-non-loopback` prints a warning and allows all Host headers. Session
+authentication remains active, but Aptus still serves plain HTTP. A network
+observer can steal the cookie or bearer token. Use an approved TLS and network
+boundary. The flag adds no tenant isolation, bundle-root policy, or worker
 isolation.
 
 ## Exit status

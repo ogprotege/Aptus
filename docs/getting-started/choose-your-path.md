@@ -3,9 +3,10 @@
 > **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
-an ordinary development computer. Its current training compiler executes only
-on CUDA. Choose a path based on the result you need and the host you actually
-have.
+an ordinary development computer. Its CUDA compiler covers the complete
+evidence ladder. Its separate MLX-LM compiler on Apple Silicon covers
+uninterrupted LoRA and QLoRA pilot and full-duration adapter training. Choose a
+path based on the result you need and the host you actually have.
 
 ## Choose by outcome
 
@@ -13,9 +14,10 @@ have.
 |---|---|---|---|
 | Understand Aptus without training | Open Aptus for Mac or start the browser workbench | macOS app or Python 3.11 or newer | You can explain the five stages and the evidence boundary |
 | Profile a dataset | Run `aptus profile` | Any supported Python host | You have reviewed counts, schemas, duplicates, truncation warnings, and the source digest |
-| Compare plans for a future CUDA host | Enter explicit, user-attested CUDA facts | Any supported Python host | You have reviewed every candidate status, assumption, and memory envelope |
+| Compare plans for an Apple or CUDA host | Select the training runtime and enter measured or user-attested facts | Any supported Python host | You have reviewed every candidate status, runtime contract, assumption, and memory envelope |
 | Produce a reviewable bundle | Compile a persisted plan and run static validation | Any supported Python host | The no-clobber bundle and archive pass `static-pass` |
-| Validate and train | Run the five ordered actions on the target CUDA host | Compatible CUDA devices, dependencies, model access, and sufficient storage | Parent verification promotes the exact run to `measured-run-pass` |
+| Validate and train an MLX-LM bundle | Run the five ordered actions | Apple Silicon, the exact external MLX-LM Python, model access, and sufficient storage | Parent verification promotes the exact uninterrupted adapter run to `measured-run-pass` |
+| Validate and train on CUDA | Run the five ordered actions on the target CUDA host | Compatible CUDA devices, dependencies, model access, and sufficient storage | Parent verification promotes the exact run to `measured-run-pass` |
 | Change Aptus | Use the contributor path | Python, Node.js, and the repository checkout | The relevant Python, web, packaging, and documentation checks pass |
 
 ## Path A: Learn and plan locally
@@ -29,21 +31,52 @@ CUDA training host.
    `aptus serve --host 127.0.0.1 --port 8787`, or use the CLI.
 3. Profile a local dataset.
 4. Inspect the local hardware inventory if useful.
-5. Enter measured or user-attested facts for the intended CUDA host.
-6. Compare the 12 method-placement candidates.
-7. Compile the selected plan to a new path.
-8. Run static validation.
+5. Select MLX-LM for Apple Silicon or Transformers and PEFT for CUDA.
+6. Enter measured or user-attested facts for the intended host.
+7. Compare the 12 method-placement candidates and their runtime contracts.
+8. Compile the selected plan to a new path.
+9. Run static validation.
 
-Planning against manual CUDA facts is a forecast for another host. It is not a
-measurement of the local computer and does not authorize training. Preserve the
-`user-attested` provenance label.
+Planning against manual hardware facts is a forecast for another host. It is
+not a measurement of the local computer and does not authorize training.
+Preserve the `user-attested` provenance label.
 
-On Darwin arm64, hardware inspection records one `mps` shared unified-memory
-device when CUDA is absent. That inventory does not create an executable MPS or
-MLX candidate. Aptus 0.2 does not convert unified memory into dedicated VRAM or
-invent a current-free-memory value.
+On Apple Silicon, hardware inspection records one `mps` shared unified-memory
+device. Aptus does not convert unified memory into dedicated VRAM or copy host
+free RAM into free VRAM. MLX-LM uses a separate unified-memory estimator.
+PyTorch MPS remains a known runtime without a compiler.
 
-## Path B: Validate and train on CUDA
+## Path B: Run an MLX-LM bundle on Apple Silicon
+
+Use this path on the Mac that will run the measured checks.
+
+1. Build and open Aptus for Mac.
+2. Create an external Python environment with the pinned MLX and MLX-LM
+   versions.
+3. Open **Models**, choose **Choose MLX Python**, and select that environment's
+   exact Python executable.
+4. Open the contained workbench and scan this Mac.
+5. Select MLX-LM and a single-device LoRA or QLoRA candidate.
+6. Compile to a new bundle path and pass static validation.
+7. Run dependency validation.
+8. Run model-data validation. Aptus loads the pinned revision and tokenizes all
+   bound train and validation rows.
+9. Run measured preflight. Aptus runs a bounded adapter smoke and records
+   runtime-neutral memory metrics.
+10. Run pilot. Aptus trains from the pinned base without interruption for at
+    least two optimizer updates, verifies finite losses and exact target
+    coverage, then reloads the adapter in a fresh process for one to four tokens.
+11. Inspect `pilot-pass` and current headroom admission.
+12. Confirm full training only when the requestor accepts its cost. The full run
+    starts again from the pinned base and runs for the plan-derived duration.
+13. Wait for parent verification and `measured-run-pass`.
+
+MLX-LM crash resume is unsupported. Its periodic files are weight snapshots,
+not resumable checkpoints, and every resume argument fails. QLoRA also requires
+a pinned MLX model with explicit four-bit quantization metadata. It never uses
+bitsandbytes.
+
+## Path C: Validate and train on CUDA
 
 Use this path only on the target host named by the plan.
 
@@ -65,28 +98,32 @@ Do not skip an action. A higher validation action repeats its lower checks, but
 the managed workflow still requires the preceding recorded state before it
 admits a forward action.
 
-No real CUDA pilot has been completed on the current development Mac. The
-repository remains an engineering preview until the applicable
+No real CUDA pilot has been recorded for this release. The repository remains
+an engineering preview until the applicable
 [release gates](../operations/release-gates.md) pass on target hardware.
 
-## Path C: Use the Mac app, browser workbench, or CLI
+## Path D: Use the Mac app, browser workbench, or CLI
 
 All three interfaces use the same Python contracts.
 
-Choose the Mac app for a native launch surface, file and folder pickers,
-authenticated private backend lifecycle, Finder actions, and explicit CUDA-host
-handoff. It never submits CUDA work on macOS, even when the plan describes a
-different CUDA machine.
+Choose the Mac app for the AppKit lifecycle, SwiftUI Home, Machine, Models,
+Data, Plans, and Runs shell, exact MLX Python selection, authenticated private
+backend, Finder actions, local MLX-LM gates, and explicit CUDA-host handoff. The
+full React workbench remains available as a contained transitional sheet.
 
 Choose the workbench when you want guided fact entry, candidate cards, evidence
-disclosures, and job monitoring. Keep it on loopback because the service can
-read files and launch processes and has no authentication boundary.
+disclosures, and job monitoring. `aptus serve` prints a new authenticated
+workbench URL and bearer token on every launch. Open the printed URL so its
+one-time query handoff can set the HttpOnly, SameSite Strict cookie and redirect
+to a clean URL. Keep the service on loopback because its protected API can read
+files and launch processes. The token is single-user access control, not tenant
+isolation.
 
 Choose the CLI when you need repeatable local commands, persisted JSON, explicit
 paths, or automation around a single-user host. The CLI does not weaken any
 planner, compiler, validation, lease, or confirmation rule.
 
-The portable bundle is a third interface. It carries its own validators and
+The portable bundle is an additional interface. It carries its own validators and
 parent runner. Direct portable full-run execution is supported on POSIX. On
 Windows, use the managed `aptus run` path because direct portable child process
 control is fail-closed in Aptus 0.2.
@@ -100,7 +137,7 @@ Stop and correct the facts or implementation when any of these occurs:
 - the loaded model does not match the pinned structural facts;
 - target modules or the trainable-parameter census do not match the selected
   method;
-- a measured preflight or pilot fails;
+- a measured preflight or runtime-specific pilot fails;
 - current VRAM, host RAM, or disk no longer passes admission;
 - the final metrics or export tree fails parent verification.
 

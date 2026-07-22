@@ -46,6 +46,11 @@ export function RunStage({
     job && bundle && job.bundle_dir && job.bundle_dir === bundle.bundle_dir,
   );
   const macDesktop = desktopBridge?.platform === "macos";
+  const selectedRuntime = bundle?.runtime_contract?.training_runtime;
+  const mlxRuntime = selectedRuntime === "mlx-lm";
+  const localAppleRuntime = macDesktop
+    && (selectedRuntime === "mlx-lm" || selectedRuntime === "pytorch-mps");
+  const desktopHandoff = macDesktop && !localAppleRuntime;
 
   useEffect(() => {
     setConfirmed(false);
@@ -91,7 +96,7 @@ export function RunStage({
         </>
       ) : null}
     </>
-  ) : macDesktop ? null : (
+  ) : desktopHandoff ? null : (
     <section className="run-empty-log">
       <h2>No job has started.</h2>
       <p>Select a mode and complete the preflight. Aptus will poll the persisted job log and show it here.</p>
@@ -144,7 +149,9 @@ export function RunStage({
       <StageHeader
         eyebrow="Stage 5 · Execution"
         title="Run only what the evidence supports."
-        lede="Choose the smallest execution that answers the next question. Run dependency, model-data, and synthetic method checks, then observe checkpoint continuation with the bounded real-data pilot."
+        lede={mlxRuntime
+          ? "Choose the smallest execution that answers the next question. Measured preflight is a bounded MLX smoke. The pilot then proves uninterrupted LoRA or QLoRA updates and a fresh-process adapter reload before a confirmed full run from scratch."
+          : "Choose the smallest execution that answers the next question. Run dependency, model-data, and synthetic method checks, then observe checkpoint continuation with the bounded real-data pilot."}
         meta={demoMode ? <ProvenanceBadge kind="example" label="Example run" /> : job ? <StatusBadge state={displayJobState ?? job.state} /> : undefined}
       />
 
@@ -152,18 +159,21 @@ export function RunStage({
         <div>
           <p className="eyebrow">Execution boundary</p>
           <h2 id="run-preflight-title">Run preflight</h2>
-          {desktopBridge?.platform === "macos" ? (
+          {desktopHandoff ? (
             <p className="desktop-handoff-intro">
-              This Mac can prepare and inspect the bundle. The current training runtime still requires a CUDA host. Transfer <code>{bundle.bundle_dir}</code> to the target machine before measured preflight, pilot, or training.
+              This bundle targets CUDA. Transfer <code>{bundle.bundle_dir}</code> to the intended NVIDIA host before measured preflight, pilot, or training.
             </p>
           ) : (
-            <p>The next forward action is selected automatically. You can still rerun an earlier passed gate. The job executes the compiled bundle at <code>{bundle.bundle_dir}</code>.</p>
+            <p>
+              The next forward action is selected automatically. You can still rerun an earlier passed gate. The {localAppleRuntime ? `${selectedRuntime} runtime on this Mac` : "local runtime"} executes the compiled bundle at <code>{bundle.bundle_dir}</code>.
+            </p>
           )}
           <p className="fact-boundary dependency-contract-note" role="note">
             <code>requirements.txt</code> contains exact direct package pins for the selected method. It is not a complete transitive lock.
+            {mlxRuntime ? " This MLX path executes LoRA and QLoRA only. DoRA, full-parameter training, and resume are not supported." : null}
           </p>
         </div>
-        {macDesktop ? (
+        {desktopHandoff ? (
           <section className="target-host-handoff" aria-labelledby="target-host-handoff-title">
             <p className="eyebrow">Target-host handoff</p>
             <h3 id="target-host-handoff-title">Continue on the CUDA machine.</h3>
@@ -187,15 +197,15 @@ export function RunStage({
                 </label>
                 <label>
                   <input type="radio" name="run-mode" value="preflight" checked={mode === "preflight"} onChange={() => chooseMode("preflight")} />
-                  <span><strong>Measured preflight</strong><small>Run dependency, model-data, and synthetic CUDA method checks.</small></span>
+                  <span><strong>Measured preflight</strong><small>{mlxRuntime ? "Run dependency, model-data, and a bounded MLX adapter smoke. This is not pilot evidence." : "Run dependency, model-data, and synthetic runtime-specific method checks."}</small></span>
                 </label>
                 <label>
                   <input type="radio" name="run-mode" value="pilot" checked={mode === "pilot"} onChange={() => chooseMode("pilot")} />
-                  <span><strong>Measured pilot</strong><small>Run step 1, manifest a checkpoint, start a fresh process, and continue through step 2.</small></span>
+                  <span><strong>{mlxRuntime ? "Uninterrupted MLX pilot" : "Measured pilot"}</strong><small>{mlxRuntime ? "Prove at least two optimizer updates, exact adapter targets, live memory admission, bound artifacts, and a 1–4 token fresh-process reload." : "Run step 1, manifest a checkpoint, start a fresh process, and continue through step 2."}</small></span>
                 </label>
                 <label>
                   <input type="radio" name="run-mode" value="train" checked={mode === "train"} onChange={() => chooseMode("train")} />
-                  <span><strong>Training job</strong><small>Use the pinned model and local dataset.</small></span>
+                  <span><strong>Training job</strong><small>{mlxRuntime ? "After pilot-pass, run the compiled full training duration for LoRA or QLoRA from the pinned base model. Resume is unavailable." : "Use the pinned model and local dataset."}</small></span>
                 </label>
               </div>
             </fieldset>
@@ -205,12 +215,14 @@ export function RunStage({
                 <label className="check-row run-confirmation">
                   <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
                   <span>
-                    <strong>I reviewed the exact plan, paths, resource estimate, warnings, pilot metrics, and attestation bindings.</strong>
-                    <small>Training receives a unique run-ID-bound directory. Aptus verifies the file tree at completion, but does not make the directory immutable. Full-training resume remains fail-closed.</small>
+                    <strong>{mlxRuntime ? "I reviewed the exact plan, paths, resource estimate, warnings, pilot metrics, and bindings, and I confirm a full-duration MLX LoRA or QLoRA run from scratch." : "I reviewed the exact plan, paths, resource estimate, warnings, pilot metrics, and attestation bindings."}</strong>
+                    <small>{mlxRuntime ? "Training receives a unique run-ID-bound directory and starts from the pinned base model. Resume is unavailable, so an interrupted run must start again." : "Training receives a unique run-ID-bound directory. Aptus verifies the file tree at completion, but does not make the directory immutable. Full-training resume remains fail-closed."}</small>
                   </span>
                 </label>
                 <p className="fact-boundary submit-admission-note">
-                  The server performs the authoritative admission atomically when you submit: it acquires the host lease, deeply verifies the pilot bindings, and probes current VRAM, host RAM, and disk. A stale browser snapshot never authorizes training.
+                  {mlxRuntime
+                    ? "The server performs authoritative admission when you submit. It acquires the host lease, verifies the pilot bindings, and checks live unified-memory headroom, the Aptus reserve, and disk. A stale browser snapshot never authorizes training."
+                    : "The server performs the authoritative admission atomically when you submit: it acquires the host lease, deeply verifies the pilot bindings, and probes current VRAM, host RAM, and disk. A stale browser snapshot never authorizes training."}
                 </p>
               </>
             ) : null}
@@ -226,7 +238,7 @@ export function RunStage({
                 disabled={busy !== null || demoMode || Boolean(activeJob) || !canStartAction(activeReport?.state, mode) || (trainNeedsConfirmation && !confirmed)}
                 onClick={startJob}
               >
-                {busy === "job" ? "Starting…" : mode === "train" ? "Start training" : mode === "pilot" ? "Run measured pilot" : mode === "preflight" ? "Run measured preflight" : mode === "model-data" ? "Inspect model and data" : "Check dependencies"}
+                {busy === "job" ? "Starting…" : mode === "train" ? (mlxRuntime ? "Start full MLX training" : "Start training") : mode === "pilot" ? (mlxRuntime ? "Run uninterrupted pilot" : "Run measured pilot") : mode === "preflight" ? "Run measured preflight" : mode === "model-data" ? "Inspect model and data" : "Check dependencies"}
               </button>
             </div>
             {demoMode ? <p className="example-inline">Execution is disabled for example data. Clear the example and profile real inputs to create a job.</p> : null}
@@ -241,7 +253,14 @@ export function RunStage({
                       ? "Complete model-data validation before running measured preflight."
                       : mode === "pilot"
                         ? "Select Measured preflight and complete it before starting the pilot."
-                        : "Select Measured pilot and observe both checkpoint-continuation phases before starting training."}
+                        : mlxRuntime
+                          ? "Complete the uninterrupted MLX pilot and fresh-process adapter reload before starting full training."
+                          : "Select Measured pilot and observe both checkpoint-continuation phases before starting training."}
+              </p>
+            ) : null}
+            {mlxRuntime && mode === "pilot" && canStartAction(activeReport?.state, mode) ? (
+              <p className="example-inline">
+                The pilot starts from the pinned base model and does not create a resume point. A pass authorizes an explicitly confirmed full-duration run from scratch.
               </p>
             ) : null}
           </>

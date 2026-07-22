@@ -27,9 +27,6 @@ final class AptusApplication: NSObject, NSApplicationDelegate {
             return
         }
         NSApplication.shared.setActivationPolicy(.regular)
-        if let mark = Bundle.main.image(forResource: "AptusMark") {
-            NSApplication.shared.applicationIconImage = mark
-        }
         let controller = makeMainWindowController()
         mainWindowController = controller
         controller.onWorkbenchReady = { [weak self] session in
@@ -141,6 +138,24 @@ final class AptusApplication: NSObject, NSApplicationDelegate {
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
+        let viewItem = NSMenuItem()
+        mainMenu.addItem(viewItem)
+        let viewMenu = NSMenu(title: "View")
+        viewItem.submenu = viewMenu
+        let workbenchItem = viewMenu.addItem(
+            withTitle: "Open Workbench",
+            action: #selector(openWorkbench(_:)),
+            keyEquivalent: "w"
+        )
+        workbenchItem.target = self
+        workbenchItem.keyEquivalentModifierMask = [.command, .option]
+        let sidebarItem = viewMenu.addItem(
+            withTitle: "Toggle Sidebar",
+            action: #selector(NSSplitViewController.toggleSidebar(_:)),
+            keyEquivalent: "s"
+        )
+        sidebarItem.keyEquivalentModifierMask = [.command, .control]
+
         let windowItem = NSMenuItem()
         mainMenu.addItem(windowItem)
         let windowMenu = NSMenu(title: "Window")
@@ -149,5 +164,9 @@ final class AptusApplication: NSObject, NSApplicationDelegate {
         windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
         NSApplication.shared.windowsMenu = windowMenu
         NSApplication.shared.mainMenu = mainMenu
+    }
+
+    @objc private func openWorkbench(_ sender: Any?) {
+        mainWindowController?.openWorkbench()
     }
 }

@@ -26,7 +26,14 @@ All notable changes are recorded here.
 - Local FastAPI service, React workbench, CLI, persisted jobs, cancellation, and
   a per-user host-global Aptus execution lease.
 - Immutable full-run output IDs and parent-owned completion verification.
-- Pilot checkpoint continuation evidence and measured capacity admission.
+- Runtime-specific pilot and measured-capacity admission contracts. CUDA proves
+  checkpoint continuation. MLX proves exact target binding, at least two
+  optimizer updates with finite losses, changed adapter weights, positive peak
+  and delta measurements, live unified-memory headroom, immutable artifacts,
+  and a fresh-process adapter reload that generates one to four tokens.
+- Uninterrupted full-duration MLX LoRA and QLoRA execution from the pinned base
+  model after `pilot-pass`, with duration derived from compiled training rows,
+  batch size, accumulation, and maximum epochs.
 - Method-specific trainable-parameter census checks before optimizer creation,
   with strict typed counts, finite values, one LoRA A/B pair per inspected target
   instance, exact optimizer membership, and a stable name-shape-dtype descriptor
@@ -36,8 +43,9 @@ All notable changes are recorded here.
   grouped selection otherwise, canonical and assignment digests, target and
   realized evaluation sizes, cross-rank agreement, and mutation detection during
   split and consumption.
-- Fail-closed Apple Silicon discovery that records measured shared unified memory
-  without claiming MPS or MLX execution.
+- Fail-closed Apple Silicon discovery that records measured shared unified
+  memory, plus generated MLX-LM validation, pilot, full-run, and adapter-reload
+  entrypoints for supported LoRA and QLoRA plans.
 - Structural safetensors export file-tree verification and environment bindings.
 - A governed reviewed-corpus contract, Apple Silicon pilot matrix, and complete
   reconciliation ledgers for the retained Reference packet, removed TO-REVIEW
@@ -74,7 +82,9 @@ All notable changes are recorded here.
 
 - The 75-file local `EXAMPLE` intake after accepted findings were integrated
   and unsafe, duplicate, stale, or copyrighted source copies were discarded.
-- Pass-through full-training resume.
+- Pass-through full-training resume. CUDA arbitrary-checkpoint resume remains
+  fail-closed, every MLX resume argument is rejected, and MLX weight snapshots
+  are not described as resumable checkpoints.
 - Claims of automatic FP16 fallback.
 - Claims that analysis alone proves fit, speed, cost, or quality.
 - Reviewed TO-REVIEW implementation sketches after their exact snapshot and
@@ -83,8 +93,8 @@ All notable changes are recorded here.
 ### Evidence status
 
 Repository tests and static checks are necessary but not sufficient for release.
-No real CUDA pilot has been completed on the current development Mac. Version
-0.2.0 remains unreleased.
+No qualifying CUDA or MLX target-host pilot and full-run release evidence has
+been recorded. Version 0.2.0 remains unreleased.
 
 ## Related documentation
 

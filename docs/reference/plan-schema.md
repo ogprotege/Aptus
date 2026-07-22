@@ -36,7 +36,7 @@ plan identities and rejects semantic mutation.
 | --- | --- | --- |
 | `schema_version` | string | Exact plan schema identifier |
 | `plan_id` | string | `plan_` plus a 20-hex content identity |
-| `formula_version` | string | Memory equation contract used by all candidates |
+| `formula_version` | string | Plan-level baseline formula identity; each candidate memory object carries its exact estimator version |
 | `model` | object | Explicit model identity, structure, permission, and provenance |
 | `dataset` | object | Source identity and profile |
 | `hardware` | object | Planned devices, host capacity, and provenance |
@@ -133,6 +133,13 @@ single row, the candidate records the selected method-compatible device index.
 When free VRAM is null, planning uses total memory, then subtracts the reserve.
 Runtime admission later requires a current measurement.
 
+For a discovered Apple Silicon device, `total_vram_bytes` is a compatibility
+capacity from the Metal recommended working set when measurable, otherwise the
+unified-memory capacity. It is not dedicated VRAM. `free_vram_bytes` remains
+null. When `host_ram_free_bytes` is present, MLX planning uses the lesser of
+that live available-memory value and the compatibility capacity, then subtracts
+the reserve.
+
 ## Target object
 
 | Field | Type | Contract |
@@ -145,8 +152,9 @@ Runtime admission later requires a current measurement.
 | `task` | string | Only `sft` is supported |
 | `evaluation_fraction` | number | In `[0, 1)` |
 | `packing` | boolean | Must remain false in v0.2 |
-| `checkpoint_steps` | integer | Positive save and evaluation interval |
+| `checkpoint_steps` | integer | Positive CUDA checkpoint and evaluation interval; retained as a plan fact for MLX, whose generated runtime uses non-resumable adapter weight snapshots |
 | `max_wall_time_minutes` | integer or null | Positive when present, but any value is fail-closed in v0.2 |
+| `training_runtime` | string or null | Explicit `transformers-peft-cuda`, `mlx-lm`, or `pytorch-mps` binding; null requests backend-based inference |
 
 ## Candidate object
 
@@ -166,6 +174,7 @@ Every row remains visible even when unsupported.
 | `world_size` | integer | One for single; participating rank count otherwise |
 | `device_indices` | integer array | Bound planned devices in rank order |
 | `user_reserve_bytes` | integer | Reserve excluded from usable capacity |
+| `runtime_contract` | object | Versioned compute, compiler, estimator, evidence, and export binding |
 
 Consumers must use `status`, not only `feasible`. A conditional row can become
 the recommendation, but unresolved reasons remain binding warnings.
@@ -175,7 +184,7 @@ the recommendation, but unresolved reasons remain binding warnings.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `precision` | string | `bf16` when every participating device declares it, otherwise `fp16` |
-| `quantization` | string or null | `int8-bitsandbytes`, `nf4-double-quant`, or null |
+| `quantization` | string or null | `int8-bitsandbytes`, `nf4-double-quant`, `mlx-4bit-groupwise`, or null |
 | `micro_batch_size` | integer | Per-device batch selected from exact divisors up to 32 |
 | `gradient_accumulation_steps` | integer | Exact global-batch accumulation |
 | `effective_batch_size` | integer | `micro * accumulation * world_size` |
@@ -191,7 +200,7 @@ the recommendation, but unresolved reasons remain binding warnings.
 | `memory` | object | Point components, upper components, uncertainty, and assumptions |
 | `required_host_ram_bytes` | integer | Host model-loading prior for the planned rank count |
 | `required_disk_bytes` | integer | Staging, pilot, retention, and export prior |
-| `checkpoint_retention_bytes` | integer | Three retained checkpoint units |
+| `checkpoint_retention_bytes` | integer | Conservative retention estimate; it does not make MLX weight snapshots resumable checkpoints |
 | `final_export_bytes` | integer | Minimum predicted final export size |
 | `preference_score` | number | Negative deterministic rank, or a large negative sentinel for rejected rows |
 | `pareto_frontier` | boolean | Nondominated viable row under memory, fidelity, and accumulation criteria |
@@ -199,6 +208,31 @@ the recommendation, but unresolved reasons remain binding warnings.
 | `confidence` | string | Currently `uncalibrated-pilot-required` |
 | `assumptions` | string array | Formula and policy assumptions |
 | `evidence` | string array | Evidence IDs resolved at plan level |
+
+### Runtime contract
+
+Every current candidate contains an `aptus.runtime-contract.v1` object:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `schema_version` | string | Exact runtime contract identity |
+| `compute_backend` | string | `cuda` for Transformers/PEFT or `mps` for Apple runtimes |
+| `training_runtime` | string | `transformers-peft-cuda`, `mlx-lm`, or `pytorch-mps` |
+| `compiler_id` | string or null | Exact compiler identity; null means implementation is required |
+| `estimator_id` | string | `aptus-memory-v2`, `aptus-memory-mlx-v1`, or `unavailable` |
+| `evidence_requirement` | string | `pilot-required` or `implementation-required` |
+| `export_kind` | string or null | Runtime-specific artifact contract; null when no compiler exists |
+
+Runtime and backend pairs are strict. `transformers-peft-cuda` requires CUDA.
+`mlx-lm` and `pytorch-mps` require MPS. MLX-LM currently has single-device LoRA
+and QLoRA compilers. PyTorch MPS has no compiler and remains
+`implementation-required`.
+
+For MLX-LM, `pilot-required` means an uninterrupted pilot from the pinned base,
+not CUDA-style checkpoint continuation. A passing pilot can authorize an
+uninterrupted full-duration adapter run from the same pinned base. Both actions
+record `resume_supported: false`, and every resume argument is rejected. The
+MLX compiler has no full-parameter or DoRA path.
 
 ## Memory object
 
@@ -217,8 +251,9 @@ Stored point components are:
 - `load_transient_bytes`.
 
 The object also stores `component_upper_bounds`, `safety_margin_bytes`,
-`formula_version`, and `assumptions`. Serialization adds calculated
-`point_estimate_bytes`, compatibility alias `estimated_peak_bytes`,
+`formula_version`, and `assumptions`. CUDA candidates use `aptus-memory-v2`.
+MLX-LM LoRA and QLoRA candidates use `aptus-memory-mlx-v1`. Serialization adds
+calculated `point_estimate_bytes`, compatibility alias `estimated_peak_bytes`,
 `upper_estimate_bytes`, and `uncertainty_bytes`. The user reserve is not a
 memory-use component.
 

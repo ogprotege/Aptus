@@ -9,12 +9,19 @@ target-host evidence all agree.
 ## v0.2 stabilization
 
 - Complete a real CUDA run for every claimed executable method and placement.
+- Complete MLX-LM dependency, model-data, measured-preflight, uninterrupted
+  pilot, and full-duration adapter-run evidence on representative Apple Silicon
+  systems.
+- Prove that every MLX resume argument fails closed and that interruption leaves
+  preserved evidence without creating a resumable-training claim.
 - Record clean-environment dependency installation on each supported path.
 - Prove managed cancellation, stale-owner recovery, global-lease behavior, and
   crash-safe completion promotion on the target operating systems.
-- Verify structural exports by loading the pinned base model and adapter where
-  applicable.
+- Extend semantic export checks beyond the MLX pilot and full-run fresh-process
+  adapter reload with bounded generation.
 - Run browser accessibility and responsive checks against the packaged web app.
+- Run native accessibility and appearance checks on macOS 26 and the macOS 15
+  fallback.
 - Publish a reproducible release evidence record.
 
 Full-parameter FSDP remains unsupported during v0.2. LoRA FSDP remains
@@ -52,14 +59,22 @@ conditional until its runtime gate is complete.
 - Design a full checkpoint manifest that binds model, optimizer, scheduler,
   scaler, RNG, dataloader progress, environment, plan, and distributed topology.
 - Enable full-run resume only after that manifest survives interruption tests.
+- Treat MLX-LM periodic saves as weight snapshots until a separately versioned
+  optimizer, scheduler, random-state, and data-position continuation contract
+  survives interruption tests.
 - Add an explicit deep re-verification command for historical artifacts.
 - Add retention and cleanup policies for unique no-clobber runs and caches.
 
 ## Additional platforms and integrations
 
-- Build MLX as a separate Apple Silicon compiler with unified-memory
-  accounting, MLX-LM dependency and data contracts, save and reload
-  verification, and measured M5 pilots. Do not reuse CUDA VRAM formulas.
+- Harden the separate MLX-LM LoRA and QLoRA pilot and full-duration path across
+  supported Apple Silicon systems. Keep unified-memory accounting separate from
+  CUDA VRAM formulas.
+- Add a PyTorch MPS compiler only after it has its own estimator, export
+  contract, generated bundle, and measured evidence. Runtime discovery alone
+  is not compiler support.
+- Expand LM Studio and oMLX integrations only as bounded inference and
+  evaluation adapters. Do not treat either service as a training runtime.
 - Evaluate ROCm after its own runtime and hardware contracts are defined.
 - Add cloud runner and provider adapters behind explicit credentials and cost
   boundaries.

@@ -6,7 +6,8 @@
 
 - Python 3.11 or newer.
 - Node.js only when rebuilding the React application.
-- A CUDA host for measured preflight, pilot, and training actions.
+- An Apple Silicon Mac for MLX-LM dependency, model-data, and measured-preflight
+  actions, or a CUDA host for the complete CUDA evidence ladder.
 - Enough local disk for the bundle, model cache, pilot artifacts, checkpoints,
   and final export.
 
@@ -16,8 +17,10 @@ intended target host.
 
 ## Build Aptus for Mac
 
-The native app requires macOS 13 or newer, Xcode, XcodeGen, Node.js, `uv`, and
-an installed `uv` Python 3.12 runtime. From the repository root, run:
+The native app requires Apple Silicon and macOS 15 or newer. macOS 26 is the
+primary design and release environment. macOS 15 uses the tested fallback.
+Install current Xcode, XcodeGen, Node.js, `uv`, and a `uv` Python 3.12 runtime.
+From the repository root, run:
 
 ```bash
 desktop/macos/build.sh
@@ -44,8 +47,29 @@ session cookie. It does not expose the desktop API to the ordinary browser.
 Application state lives under `~/Library/Application Support/Aptus`, and the
 backend log lives under `~/Library/Logs/Aptus`.
 
-The Mac app does not run CUDA actions. It prepares and statically validates the
-bundle, then shows the ordered commands to run on the intended CUDA host.
+The Mac app runs supported local MLX-LM gates and shows an explicit target-host
+handoff for CUDA bundles. It does not run CUDA on macOS.
+
+## Configure an MLX-LM training runtime
+
+The packaged sidecar does not absorb an arbitrary training stack. Create a
+separate environment and install the current MLX-LM pins:
+
+```bash
+python3 -m venv /path/to/aptus-mlx-env
+/path/to/aptus-mlx-env/bin/python -m pip install --upgrade pip
+/path/to/aptus-mlx-env/bin/python -m pip install 'mlx==0.31.2' 'mlx-lm==0.31.3'
+```
+
+Open **Models** in Aptus for Mac, choose **Choose MLX Python**, and select
+`/path/to/aptus-mlx-env/bin/python`. Aptus probes that exact executable before
+persisting its canonical path. Finder-launched applications do not inherit your
+shell environment, so this selection is the authoritative desktop path.
+
+The environment makes MLX-LM dependency and runtime checks possible. It does
+not itself authorize training. The exact bundle must pass model-data, measured
+preflight, and uninterrupted pilot before full-duration adapter training can be
+confirmed.
 
 ## Development install
 
@@ -84,16 +108,27 @@ packaged assets. Then build a clean wheel and run the installed-wheel smoke test
 aptus serve --host 127.0.0.1 --port 8787
 ```
 
-Keep the service on loopback. The local jobs API can launch processes and has no
-built-in authentication. See [security boundaries](../architecture/security-boundaries.md).
-This statement applies to `aptus serve`. The native Mac host adds a per-launch
-cookie boundary around its private service.
+Keep the service on loopback. Every launch prints a new authenticated workbench
+URL and the same secret as an API bearer token. Open the printed URL, not a
+manually typed root URL. The service exchanges its query token for an HttpOnly,
+SameSite Strict cookie and immediately redirects to a clean URL. Only health and
+static workbench assets are public. Protected API requests require that cookie
+or `Authorization: Bearer TOKEN`.
+
+The CLI disables Uvicorn access logs, but terminal output and the printed URL
+still contain the secret. Do not paste or persist them. Non-loopback mode is
+blocked unless explicitly enabled. Even then, Aptus serves plain HTTP, so use an
+approved TLS and network boundary.
+
+The native Mac host uses a separate exact-origin handoff. It installs its
+per-launch cookie before WebKit's first request and never places the token in a
+URL. See [security boundaries](../architecture/security-boundaries.md).
 
 ## Bundle environments
 
 Each bundle contains `requirements.txt`, an exact set of direct pins selected by
-method. Create the isolated environment outside the bundle. The manifest rejects
-unexpected files, including an in-bundle `.venv` directory.
+method and training runtime. Create the isolated environment outside the bundle.
+The manifest rejects unexpected files, including an in-bundle `.venv` directory.
 
 ```bash
 python -m venv /path/to/aptus-bundle-env
@@ -109,11 +144,13 @@ does not require the Aptus package in that environment. Managed `aptus run`
 does: install Aptus and the bundle requirements into the same external
 environment because jobs inherit the interpreter that launched the CLI.
 
-## CUDA evidence status
+## Evidence status
 
-The current development Mac cannot provide the required CUDA runtime evidence.
-Before release, repeat installation and the full five-action sequence on each
-claimed CUDA configuration.
+The current development Mac cannot provide CUDA runtime evidence. Repeat the
+complete five-action sequence on each claimed CUDA configuration. For MLX-LM,
+run the complete five-action sequence on the target Apple Silicon host. Its
+pilot and full run are uninterrupted adapter-training actions. A fresh adapter
+reload verifies bounded generation, but crash resume remains unsupported.
 
 ## Related documentation
 

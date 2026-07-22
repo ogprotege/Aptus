@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
-  <title id="title">Aptus calibration mark</title>
-  <desc id="desc">An asymmetric letter A formed from a graphite datum and a teal calibration circuit.</desc>
-  <rect width="1024" height="1024" rx="224" fill="#F3F7F8"/>
-  <path d="M220 792 444 230c16-40 73-41 91-2l25 59" fill="none" stroke="#17252B" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M554 286 797 792" fill="none" stroke="#0B6670" stroke-width="82" stroke-linecap="round"/>
-  <path d="M346 625h327" fill="none" stroke="#17252B" stroke-width="58" stroke-linecap="round"/>
-  <path d="M673 625h76v-89h73" fill="none" stroke="#0B6670" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="822" cy="536" r="39" fill="#B76318"/>
-  <circle cx="346" cy="625" r="27" fill="#FFFFFF" stroke="#0B6670" stroke-width="20"/>
+  <title id="title">Aptus calibrated A mark</title>
+  <desc id="desc">A precise letter A drawn from a graphite datum and a teal measurement path.</desc>
+  <path d="M218 806 447 232c17-43 78-43 96 0l26 65" fill="none" stroke="#20343B" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M566 297 785 806" fill="none" stroke="#0C6E77" stroke-width="82" stroke-linecap="round"/>
+  <path d="M345 625h322" fill="none" stroke="#20343B" stroke-width="58" stroke-linecap="round"/>
+  <path d="M667 625h82V510h76" fill="none" stroke="#0C6E77" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="825" cy="510" r="35" fill="#0C6E77"/>
 </svg>

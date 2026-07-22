@@ -95,7 +95,7 @@ def _serve(state_dir: Path, ready_file: Path, session_token: str) -> int:
                 state_dir=state_root,
                 allowed_hosts=("127.0.0.1",),
                 session_token=session_token,
-                execution_enabled=False,
+                execution_enabled=True,
             ),
             host="127.0.0.1",
             port=port,

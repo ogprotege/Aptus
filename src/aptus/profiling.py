@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import csv
+import ctypes
 import hashlib
 import heapq
+import importlib
+import importlib.metadata
+import importlib.util
 import json
 import math
 import os
@@ -12,6 +16,7 @@ import re
 import shutil
 import subprocess
 from collections import Counter
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
@@ -27,6 +32,43 @@ from .domain import (
     ProvenanceKind,
     gibibytes,
 )
+
+
+@dataclass(frozen=True)
+class RuntimeCapability:
+    """A runtime fact measured in the interpreter that will execute the work."""
+
+    installed: bool
+    available: bool
+    version: str | None = None
+    detail: str | None = None
+
+
+@dataclass(frozen=True)
+class ApplePlatformProfile:
+    """Apple host facts that do not fit Aptus's legacy CUDA-shaped schema."""
+
+    system: str
+    architecture: str
+    os_version: str
+    os_build: str | None
+    chip_name: str | None
+    logical_cpu_count: int | None
+    metal_gpu_core_count: int | None
+    unified_memory_bytes: int
+    available_memory_bytes: int | None
+    memory_free_percent: int | None
+    swap_total_bytes: int | None
+    swap_used_bytes: int | None
+    swap_free_bytes: int | None
+    metal_recommended_working_set_bytes: int | None
+    mlx: RuntimeCapability
+    mlx_lm: RuntimeCapability
+    pytorch_mps: RuntimeCapability
+    observed_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 def _sha256(path: Path) -> str:
@@ -393,6 +435,10 @@ def _host_memory() -> tuple[int, int | None]:
     if not hasattr(os, "sysconf"):
         raise ValueError("Host-memory inspection is unavailable on this platform.")
     host_ram = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    if platform.system() == "Darwin":
+        measured_available = _darwin_available_memory(host_ram)
+        if measured_available is not None:
+            return host_ram, measured_available
     try:
         host_free = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_AVPHYS_PAGES")
     except (ValueError, OSError):
@@ -456,12 +502,306 @@ def _apple_silicon_chip_name() -> str | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    if completed.returncode:
+    if not completed.returncode:
+        chip_name = completed.stdout.strip()
+        if re.fullmatch(r"Apple M[0-9]+(?: (?:Pro|Max|Ultra))?", chip_name):
+            return chip_name
+
+    # ``detailLevel mini`` omits the serial number and hardware UUID. Parse only
+    # the chip field and discard the rest of the bounded local response.
+    fallback = _fixed_command_text(
+        [
+            "/usr/sbin/system_profiler",
+            "-detailLevel",
+            "mini",
+            "SPHardwareDataType",
+            "-json",
+        ],
+        timeout=8,
+    )
+    if not fallback:
         return None
-    chip_name = completed.stdout.strip()
-    if not re.fullmatch(r"Apple M[0-9]+(?: (?:Pro|Max|Ultra))?", chip_name):
+    try:
+        payload = json.loads(fallback)
+        rows = payload.get("SPHardwareDataType")
+        chip_name = (
+            rows[0].get("chip_type") if isinstance(rows, list) and rows else None
+        )
+    except (AttributeError, IndexError, json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(chip_name, str) or not re.fullmatch(
+        r"Apple M[0-9]+(?: (?:Pro|Max|Ultra))?", chip_name
+    ):
         return None
     return chip_name
+
+
+def _fixed_command_text(arguments: list[str], *, timeout: float = 3) -> str | None:
+    """Run one fixed local probe without a shell or inherited user arguments."""
+
+    try:
+        completed = subprocess.run(
+            arguments,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode:
+        return None
+    return completed.stdout.strip()
+
+
+def _apple_metal_gpu_core_count() -> int | None:
+    """Read the built-in Apple GPU core count without collecting identifiers."""
+
+    output = _fixed_command_text(
+        [
+            "/usr/sbin/system_profiler",
+            "-detailLevel",
+            "mini",
+            "SPDisplaysDataType",
+            "-json",
+        ],
+        timeout=8,
+    )
+    if not output:
+        return None
+    try:
+        payload = json.loads(output)
+        rows = payload.get("SPDisplaysDataType")
+    except (AttributeError, json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(rows, list):
+        return None
+    values: set[int] = set()
+    for row in rows:
+        if (
+            not isinstance(row, dict)
+            or row.get("sppci_bus") != "spdisplays_builtin"
+            or row.get("sppci_device_type") != "spdisplays_gpu"
+        ):
+            continue
+        raw = row.get("sppci_cores")
+        if isinstance(raw, str) and raw.isascii() and raw.isdigit():
+            value = int(raw)
+            if 0 < value <= 1024:
+                values.add(value)
+    return values.pop() if len(values) == 1 else None
+
+
+def _darwin_available_memory(total_memory: int) -> int | None:
+    """Return a conservative available-memory estimate from ``vm_stat``."""
+
+    output = _fixed_command_text(["/usr/bin/vm_stat"])
+    if not output:
+        return None
+    page_match = re.search(r"page size of\s+(\d+) bytes", output)
+    if page_match is None:
+        return None
+    page_size = int(page_match.group(1))
+    page_counts: dict[str, int] = {}
+    for line in output.splitlines():
+        match = re.fullmatch(r"([^:]+):\s*([0-9]+)\.", line.strip())
+        if match is not None:
+            page_counts[match.group(1)] = int(match.group(2))
+    names = ("Pages free", "Pages inactive", "Pages speculative")
+    if not any(name in page_counts for name in names):
+        return None
+    available = sum(page_counts.get(name, 0) for name in names) * page_size
+    if available <= 0:
+        return None
+    return min(total_memory, available)
+
+
+def _darwin_memory_free_percent() -> int | None:
+    output = _fixed_command_text(["/usr/bin/memory_pressure", "-Q"])
+    if not output:
+        return None
+    match = re.search(r"System-wide memory free percentage:\s*(\d+)%", output)
+    if match is None:
+        return None
+    value = int(match.group(1))
+    return value if 0 <= value <= 100 else None
+
+
+def _size_token_bytes(value: str, unit: str) -> int:
+    multipliers = {
+        "K": 1024,
+        "M": 1024**2,
+        "G": 1024**3,
+        "T": 1024**4,
+    }
+    return round(float(value) * multipliers[unit.upper()])
+
+
+def _darwin_swap_usage() -> tuple[int | None, int | None, int | None]:
+    output = _fixed_command_text(["/usr/sbin/sysctl", "-n", "vm.swapusage"])
+    if not output:
+        return None, None, None
+    values: dict[str, int] = {}
+    for name in ("total", "used", "free"):
+        match = re.search(
+            rf"\b{name}\s*=\s*([0-9]+(?:\.[0-9]+)?)([KMGT])\b",
+            output,
+            flags=re.IGNORECASE,
+        )
+        if match is None:
+            return None, None, None
+        values[name] = _size_token_bytes(match.group(1), match.group(2))
+    return values["total"], values["used"], values["free"]
+
+
+def _metal_recommended_working_set_bytes() -> int | None:
+    """Read ``MTLDevice.recommendedMaxWorkingSetSize`` without PyObjC."""
+
+    if platform.system() != "Darwin":
+        return None
+    try:
+        metal = ctypes.CDLL(
+            "/System/Library/Frameworks/Metal.framework/Versions/Current/Metal"
+        )
+        objc = ctypes.CDLL("/usr/lib/libobjc.A.dylib")
+        create_device = metal.MTLCreateSystemDefaultDevice
+        create_device.restype = ctypes.c_void_p
+        device = create_device()
+        if not device:
+            return None
+        selector_for_name = objc.sel_registerName
+        selector_for_name.argtypes = [ctypes.c_char_p]
+        selector_for_name.restype = ctypes.c_void_p
+        selector = selector_for_name(b"recommendedMaxWorkingSetSize")
+        send = objc.objc_msgSend
+        send.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        send.restype = ctypes.c_uint64
+        measured = int(send(device, selector))
+    except (AttributeError, OSError, TypeError, ValueError):
+        return None
+    return measured if measured > 0 else None
+
+
+def _distribution_version(*distribution_names: str) -> str | None:
+    for name in distribution_names:
+        try:
+            return importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            continue
+    return None
+
+
+def _module_is_installed(module_name: str) -> bool:
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except Exception:  # Native package discovery can execute a broken parent import.
+        return False
+
+
+def _probe_mlx_runtime() -> RuntimeCapability:
+    installed = _module_is_installed("mlx.core")
+    version = _distribution_version("mlx")
+    if not installed:
+        return RuntimeCapability(False, False, version, "mlx.core is not installed.")
+    try:
+        mlx_core = importlib.import_module("mlx.core")
+        metal = getattr(mlx_core, "metal", None)
+        available = bool(metal is not None and metal.is_available())
+        if available:
+            device_info = getattr(mlx_core, "device_info", None) or getattr(
+                metal, "device_info", None
+            )
+            if device_info is None or not isinstance(device_info(), dict):
+                available = False
+    except Exception as error:  # A broken native runtime must remain unavailable.
+        return RuntimeCapability(
+            True,
+            False,
+            version,
+            f"MLX import or Metal capability probe failed: {error}",
+        )
+    detail = (
+        "MLX reports a usable Metal device."
+        if available
+        else "MLX is installed but reports no usable Metal device."
+    )
+    return RuntimeCapability(True, available, version, detail)
+
+
+def _probe_mlx_lm_runtime(mlx: RuntimeCapability) -> RuntimeCapability:
+    installed = _module_is_installed("mlx_lm")
+    version = _distribution_version("mlx-lm", "mlx_lm")
+    if not installed:
+        return RuntimeCapability(False, False, version, "mlx_lm is not installed.")
+    try:
+        importlib.import_module("mlx_lm")
+    except Exception as error:  # Native dependency failures are capability facts.
+        return RuntimeCapability(True, False, version, f"MLX-LM import failed: {error}")
+    if not mlx.available:
+        return RuntimeCapability(
+            True,
+            False,
+            version,
+            "MLX-LM imports, but the current MLX runtime has no usable Metal device.",
+        )
+    return RuntimeCapability(
+        True, True, version, "MLX-LM imports in the Metal-capable MLX runtime."
+    )
+
+
+def _probe_pytorch_mps_runtime() -> RuntimeCapability:
+    installed = _module_is_installed("torch")
+    version = _distribution_version("torch")
+    if not installed:
+        return RuntimeCapability(False, False, version, "torch is not installed.")
+    try:
+        torch = importlib.import_module("torch")
+        mps_backend = torch.backends.mps
+        built = bool(mps_backend.is_built())
+        available = bool(mps_backend.is_available())
+    except Exception as error:
+        return RuntimeCapability(
+            True, False, version, f"PyTorch MPS capability probe failed: {error}"
+        )
+    return RuntimeCapability(
+        True,
+        available,
+        version,
+        f"PyTorch MPS built={str(built).lower()}, available={str(available).lower()}.",
+    )
+
+
+def probe_apple_platform() -> ApplePlatformProfile:
+    """Measure the current Apple host and interpreter without chip allowlists."""
+
+    system = platform.system()
+    architecture = platform.machine().lower()
+    if system != "Darwin" or architecture != "arm64":
+        raise ValueError("Apple platform probing requires a Darwin arm64 host.")
+    host_ram, host_available = _host_memory()
+    mlx = _probe_mlx_runtime()
+    swap_total, swap_used, swap_free = _darwin_swap_usage()
+    return ApplePlatformProfile(
+        system=system,
+        architecture=architecture,
+        os_version=_fixed_command_text(["/usr/bin/sw_vers", "-productVersion"])
+        or platform.mac_ver()[0],
+        os_build=_fixed_command_text(["/usr/bin/sw_vers", "-buildVersion"]),
+        chip_name=_apple_silicon_chip_name(),
+        logical_cpu_count=os.cpu_count(),
+        metal_gpu_core_count=_apple_metal_gpu_core_count(),
+        unified_memory_bytes=host_ram,
+        available_memory_bytes=host_available,
+        memory_free_percent=_darwin_memory_free_percent(),
+        swap_total_bytes=swap_total,
+        swap_used_bytes=swap_used,
+        swap_free_bytes=swap_free,
+        metal_recommended_working_set_bytes=_metal_recommended_working_set_bytes(),
+        mlx=mlx,
+        mlx_lm=_probe_mlx_lm_runtime(mlx),
+        pytorch_mps=_probe_pytorch_mps_runtime(),
+        observed_at=datetime.now(timezone.utc).isoformat(),
+    )
 
 
 def probe_local_hardware(
@@ -558,12 +898,14 @@ def probe_local_hardware(
         and platform.machine().lower() == "arm64"
     ):
         chip_name = _apple_silicon_chip_name() or "Apple Silicon"
+        metal_working_set = _metal_recommended_working_set_bytes()
+        compatibility_capacity = metal_working_set or host_ram
         devices.append(
             DeviceSpec(
                 name=f"{chip_name} (shared unified memory)",
                 backend=Backend.MPS,
-                total_vram_bytes=host_ram,
-                free_vram_bytes=host_free,
+                total_vram_bytes=compatibility_capacity,
+                free_vram_bytes=None,
                 supports_bf16=False,
                 supports_4bit=False,
                 supports_8bit=False,
@@ -572,10 +914,13 @@ def probe_local_hardware(
                     "local Darwin arm64 host",
                     observed_at,
                     detail=(
-                        "This device represents the measured shared unified memory "
-                        "pool, not dedicated VRAM. CUDA and bitsandbytes capability "
-                        "flags remain false because they do not establish MLX or MPS "
-                        "support. Aptus v0.2 execution remains fail-closed for MPS."
+                        "This compatibility device represents Apple shared unified "
+                        "memory, not dedicated VRAM. total_vram_bytes is the Metal "
+                        "recommended working-set ceiling when measurable, otherwise "
+                        "the measured unified-memory capacity. free_vram_bytes is "
+                        "intentionally omitted because host free RAM is not free VRAM. "
+                        "CUDA and bitsandbytes flags do not establish MLX or MPS "
+                        "support; use probe_apple_platform for runtime capability facts."
                     ),
                 ),
             )
@@ -590,8 +935,8 @@ def probe_local_hardware(
     )
     if devices[0].backend == Backend.MPS:
         provenance_detail += (
-            " The MPS device uses that shared unified memory pool, not dedicated "
-            "VRAM; Aptus v0.2 execution remains fail-closed for MPS."
+            " The MPS compatibility device uses shared unified memory, not dedicated "
+            "VRAM. Host available memory is recorded only as host RAM headroom."
         )
     return HardwareSpec(
         devices=tuple(devices),

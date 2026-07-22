@@ -84,8 +84,12 @@ Without an ID, prints persisted jobs. With an ID, prints the reconciled record.
 
 ## `aptus hardware` and `aptus inspect hardware`
 
-Inspect local CUDA facts. They return status `unavailable` with manual-fact
-support when CUDA cannot be measured.
+Inspect local hardware facts. CUDA hosts report each visible device and current
+capacity. On Darwin arm64 without CUDA, discovery reports one `mps` device for
+the measured shared unified-memory pool. That record does not enable MPS or MLX
+execution, and current availability remains unknown when macOS does not expose
+it. Other unmeasurable hosts return status `unavailable` with manual-fact
+support. V0.2 execution remains CUDA-only.
 
 ## `aptus inspect model`
 

@@ -24,10 +24,17 @@ host.
 
 ## End state
 
-The longer-term system can add versioned method registries, calibrated priors,
-evaluation targets, exporter contracts, additional hardware backends, cloud
-runners, provider integrations, and controlled automation interfaces. Each must
-enter through an explicit contract and its own evidence gate.
+V0.2 already has a versioned method-descriptor registry. It separates four
+selectable, gated executable identities from four experimental and three
+research-only identities. Registry presence alone never grants planner or
+compiler access.
 
-V0.2 is the local core. It does not yet implement those integrations and has not
-completed release CUDA evidence.
+The longer-term system can extend that registry with method-specific estimators,
+compilers, checkpoint and restart state, export and reload contracts, and real
+pilot evidence. It can also add calibrated priors, evaluation targets,
+additional execution backends, cloud runners, provider integrations, and
+controlled automation interfaces. Each addition must enter through an explicit
+contract and its own evidence gate.
+
+V0.2 is the local CUDA core. It does not yet implement those later integrations
+and has not completed release CUDA evidence.

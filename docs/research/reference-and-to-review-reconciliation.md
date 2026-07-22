@@ -1,10 +1,13 @@
 # Reference and TO-REVIEW reconciliation
 
-Status: reviewed against the Aptus v0.2 source tree on 2026-07-21.
+Status: reviewed against the Aptus v0.2 source tree, salvaged, and removed from
+the working tree on 2026-07-22.
 
-This ledger records every file supplied in `Reference/` and `TO-REVIEW/`. It
-preserves the useful product intent without treating research notes, marketing
-copy, or implementation sketches as executable proof.
+This ledger records every file supplied in `Reference/` and the former
+`TO-REVIEW/` staging folder. The `Reference/` research packet remains in the
+repository. The `TO-REVIEW/` files were removed after review because none was
+safe to import as executable code. Their exact digests and dispositions remain
+below, and Git commit `b1314b3` retains the last tracked snapshot.
 
 The disposition terms mean:
 
@@ -12,9 +15,10 @@ The disposition terms mean:
   contracts.
 - **Roadmap**: preserve the requirement, but do not present it as a current
   capability.
-- **Archive**: retain as historical product input only.
+- **Archive**: retain the historical requirement in this ledger, not a raw
+  staging copy in the current tree.
 - **Reject**: do not import the factual claim or code into an executable path.
-  Rejection does not delete the source.
+  Rejected staging files are removed after their disposition is recorded.
 
 ## Review rules
 
@@ -149,7 +153,12 @@ Limits and corrections:
 - The file cannot support a claim of hyperparameter optimization. At most, it
   supplies priors that must be labeled, tested, and compared.
 
-## TO-REVIEW folder
+## Former TO-REVIEW folder
+
+Every path in this section is historical. The staging folder no longer exists
+in the current tree. The product requirements that survived review now live in
+the typed method registry, planner, compiler, execution service, UI, and the
+roadmap named below.
 
 ### `TO-REVIEW/SystemArchitecture.md`
 
@@ -369,17 +378,17 @@ isolation contracts.
 **Disposition: Reject as repository content and exclude from commits during
 repository hygiene.**
 
-This is a 6,148-byte Finder metadata file. It contains no product, research, or
-implementation material. It was reviewed as binary metadata and is included in
-the digest inventory below. The supplied source copy remains untouched for
-review traceability, and the repository-wide `.gitignore` excludes it.
+This was a 6,148-byte Finder metadata file. It contained no product, research,
+or implementation material. It was reviewed as binary metadata, recorded in
+the digest inventory below, and deleted with the rest of the staging folder.
+The repository-wide `.gitignore` excludes future copies.
 
 ## Accepted product requirements
 
 The review yields the following requirements without importing unsafe code:
 
-1. A versioned method registry must separate research identity from executable
-   implementation status.
+1. The versioned registry in `src/aptus/methods/` separates research identity
+   from executable status and supplies the API workbench catalog.
 2. Candidate selection must be a fact-driven comparison, not a hard-coded top
    method or a claim of universal optimality.
 3. Compatibility inspection must bind the exact model commit, dataset digest,
@@ -392,9 +401,33 @@ The review yields the following requirements without importing unsafe code:
    pinned-runtime tests, conservative estimates, measured preflight, bounded
    pilot, artifact verifier, and explicit unsupported cases.
 
+## Salvage implementation
+
+The folder review produced concrete changes instead of leaving historical
+drafts in place:
+
+- `src/aptus/methods/contracts.py` defines a versioned method descriptor whose
+  lifecycle is independent of whether the planner may select it.
+- `src/aptus/methods/registry.py` exposes the four guarded executable methods
+  and separately labels DoRA, BitFit, AdaLoRA, and ShareLoRA experimental, plus
+  LoReFT, AFLoRA, and BiLoRA research-only. All seven are nonselectable and have
+  an explicit blocker and required proof.
+- `/api/v1/bootstrap` returns the same registry to the workbench. The method
+  preference control is populated from selectable descriptors, while a
+  readiness board explains why the other methods remain unavailable.
+- The generated trainer rejects an empty, non-finite, or method-scope-invalid
+  trainable set and binds a name-shape-dtype census to measured evidence.
+- Full-run dataset splitting respects an explicit `split_group` so related
+  corpus chunks cannot cross train and evaluation partitions. It also binds
+  canonical and assignment digests, reports realized split error, and rejects
+  mutation or distributed disagreement.
+- Provider, evaluator, exporter, cloud, and MCP ideas remain typed roadmap
+  seams. The unauthenticated server and deployment sketches were not retained.
+
 ## Complete reviewed snapshot
 
-These SHA-256 digests bind this ledger to the exact reviewed files.
+These SHA-256 digests bind this ledger to the exact reviewed files, including
+the removed staging snapshot.
 
 | Path | SHA-256 |
 |---|---|

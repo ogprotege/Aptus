@@ -19,6 +19,7 @@ from .domain import (
     training_plan_from_primitive,
 )
 from .evidence import EVIDENCE_REGISTRY
+from .methods import method_descriptors, selectable_method_ids
 from .plan_contract import validate_bundle_manifest, validate_plan_payload
 from .planning import NoFeasiblePlanError, plan_training
 from .profiling import (
@@ -291,10 +292,12 @@ def create_app(
 
     @app.get("/api/v1/bootstrap")
     def bootstrap() -> dict[str, Any]:
+        method_catalog = [to_primitive(item) for item in method_descriptors()]
         capabilities = {
             "backends": [Backend.CUDA.value],
             "known_backends": [item.value for item in Backend],
-            "methods": [item.value for item in Method],
+            "methods": list(selectable_method_ids()),
+            "method_catalog": method_catalog,
             "objectives": [item.value for item in Objective],
             "supported_execution_backend": Backend.CUDA.value,
             "supported_execution_backends": [Backend.CUDA.value],

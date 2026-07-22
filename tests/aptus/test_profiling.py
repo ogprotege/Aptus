@@ -1,12 +1,15 @@
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from aptus.domain import Backend, MeasurementKind, gibibytes
 from aptus.profiling import (
+    _apple_silicon_chip_name,
     _bitsandbytes_capabilities,
     _nvidia_smi_devices,
     build_hardware_spec,
@@ -157,10 +160,98 @@ class HardwareInspectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "probe failed"):
                 _nvidia_smi_devices()
 
-    def test_probe_returns_measured_local_facts_or_explicitly_fails(self) -> None:
-        with patch("aptus.profiling._nvidia_smi_devices", return_value=[]):
+    def test_apple_chip_probe_uses_fixed_bounded_argument_vector(self) -> None:
+        completed = subprocess.CompletedProcess([], 0, "Apple M5 Pro\n", "")
+        with patch("aptus.profiling.subprocess.run", return_value=completed) as run:
+            chip_name = _apple_silicon_chip_name()
+        self.assertEqual(chip_name, "Apple M5 Pro")
+        arguments, keywords = run.call_args
+        self.assertEqual(
+            arguments[0],
+            ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"],
+        )
+        self.assertNotIn("shell", keywords)
+        self.assertEqual(keywords["timeout"], 3)
+
+    def test_apple_chip_probe_does_not_admit_serial_or_uuid_output(self) -> None:
+        completed = subprocess.CompletedProcess(
+            [], 0, "Hardware UUID: 00000000-0000-0000-0000-000000000000\n", ""
+        )
+        with patch("aptus.profiling.subprocess.run", return_value=completed):
+            self.assertIsNone(_apple_silicon_chip_name())
+
+    def test_darwin_arm64_falls_back_to_measured_shared_memory(self) -> None:
+        fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch(
+                "aptus.profiling._host_memory",
+                return_value=(gibibytes(64), gibibytes(48)),
+            ),
+            patch("aptus.profiling._nvidia_smi_devices", return_value=[]),
+            patch("aptus.profiling.platform.system", return_value="Darwin"),
+            patch("aptus.profiling.platform.machine", return_value="arm64"),
+            patch(
+                "aptus.profiling._apple_silicon_chip_name",
+                return_value="Apple M5 Pro",
+            ),
+            patch(
+                "aptus.profiling.shutil.disk_usage",
+                return_value=SimpleNamespace(free=gibibytes(100)),
+            ),
+        ):
+            hardware = probe_local_hardware(disk_path=Path("/tmp"))
+        self.assertEqual(hardware.host_ram_bytes, gibibytes(64))
+        self.assertEqual(hardware.host_ram_free_bytes, gibibytes(48))
+        self.assertEqual(len(hardware.devices), 1)
+        device = hardware.devices[0]
+        self.assertEqual(device.backend, Backend.MPS)
+        self.assertEqual(device.name, "Apple M5 Pro (shared unified memory)")
+        self.assertEqual(device.total_vram_bytes, gibibytes(64))
+        self.assertEqual(device.free_vram_bytes, gibibytes(48))
+        self.assertFalse(device.supports_bf16)
+        self.assertFalse(device.supports_4bit)
+        self.assertFalse(device.supports_8bit)
+        self.assertIn("shared unified memory", device.provenance.detail)
+        self.assertIn("not dedicated VRAM", device.provenance.detail)
+        self.assertIn("fail-closed for MPS", device.provenance.detail)
+        self.assertIn("not dedicated VRAM", hardware.provenance.detail)
+
+    def test_darwin_arm64_omits_unmeasured_available_memory(self) -> None:
+        fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch("aptus.profiling._host_memory", return_value=(gibibytes(64), None)),
+            patch("aptus.profiling._nvidia_smi_devices", return_value=[]),
+            patch("aptus.profiling.platform.system", return_value="Darwin"),
+            patch("aptus.profiling.platform.machine", return_value="arm64"),
+            patch("aptus.profiling._apple_silicon_chip_name", return_value=None),
+            patch(
+                "aptus.profiling.shutil.disk_usage",
+                return_value=SimpleNamespace(free=gibibytes(100)),
+            ),
+        ):
+            hardware = probe_local_hardware(disk_path=Path("/tmp"))
+        self.assertIsNone(hardware.host_ram_free_bytes)
+        self.assertIsNone(hardware.devices[0].free_vram_bytes)
+
+    def test_non_darwin_no_device_remains_an_explicit_failure(self) -> None:
+        fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
+        with (
+            patch.dict(sys.modules, {"torch": fake_torch}),
+            patch("aptus.profiling._host_memory", return_value=(gibibytes(64), None)),
+            patch("aptus.profiling._nvidia_smi_devices", return_value=[]),
+            patch("aptus.profiling.platform.system", return_value="Linux"),
+            patch("aptus.profiling.platform.machine", return_value="aarch64"),
+            patch("aptus.profiling._apple_silicon_chip_name") as chip_probe,
+            patch(
+                "aptus.profiling.shutil.disk_usage",
+                return_value=SimpleNamespace(free=gibibytes(100)),
+            ),
+        ):
             with self.assertRaisesRegex(ValueError, "unavailable"):
-                probe_local_hardware()
+                probe_local_hardware(disk_path=Path("/tmp"))
+        chip_probe.assert_not_called()
 
     def test_manual_hardware_and_model_facts_remain_available(self) -> None:
         hardware = build_hardware_spec(

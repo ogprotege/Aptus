@@ -6,7 +6,9 @@ import heapq
 import json
 import math
 import os
+import platform
 import random
+import re
 import shutil
 import subprocess
 from collections import Counter
@@ -441,6 +443,27 @@ def _bitsandbytes_capabilities(major: int, minor: int) -> tuple[bool, bool]:
     return capability >= (6, 0), capability >= (7, 5)
 
 
+def _apple_silicon_chip_name() -> str | None:
+    """Read only the Apple CPU brand key, never a serial or hardware UUID."""
+
+    try:
+        completed = subprocess.run(
+            ["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode:
+        return None
+    chip_name = completed.stdout.strip()
+    if not re.fullmatch(r"Apple M[0-9]+(?: (?:Pro|Max|Ultra))?", chip_name):
+        return None
+    return chip_name
+
+
 def probe_local_hardware(
     *, reserve_gib: float = 2.0, disk_path: Path | None = None
 ) -> HardwareSpec:
@@ -529,10 +552,46 @@ def probe_local_hardware(
                     ),
                 )
             )
+    if (
+        not devices
+        and platform.system() == "Darwin"
+        and platform.machine().lower() == "arm64"
+    ):
+        chip_name = _apple_silicon_chip_name() or "Apple Silicon"
+        devices.append(
+            DeviceSpec(
+                name=f"{chip_name} (shared unified memory)",
+                backend=Backend.MPS,
+                total_vram_bytes=host_ram,
+                free_vram_bytes=host_free,
+                supports_bf16=False,
+                supports_4bit=False,
+                supports_8bit=False,
+                provenance=Provenance(
+                    ProvenanceKind.MEASURED,
+                    "local Darwin arm64 host",
+                    observed_at,
+                    detail=(
+                        "This device represents the measured shared unified memory "
+                        "pool, not dedicated VRAM. CUDA and bitsandbytes capability "
+                        "flags remain false because they do not establish MLX or MPS "
+                        "support. Aptus v0.2 execution remains fail-closed for MPS."
+                    ),
+                ),
+            )
+        )
     if not devices:
         raise ValueError(
             "CUDA hardware inspection is unavailable on this Aptus host. "
             "Supply explicit manual facts; Aptus will not infer a remote user's hardware."
+        )
+    provenance_detail = (
+        "Host RAM and disk availability were measured on the server running Aptus."
+    )
+    if devices[0].backend == Backend.MPS:
+        provenance_detail += (
+            " The MPS device uses that shared unified memory pool, not dedicated "
+            "VRAM; Aptus v0.2 execution remains fail-closed for MPS."
         )
     return HardwareSpec(
         devices=tuple(devices),
@@ -544,7 +603,7 @@ def probe_local_hardware(
             ProvenanceKind.MEASURED,
             f"local-host:{disk_target}",
             observed_at,
-            detail="Host RAM and disk availability were measured on the server running Aptus.",
+            detail=provenance_detail,
         ),
     )
 

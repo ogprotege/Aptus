@@ -19,6 +19,18 @@ service.
 - [Compile, validate, and run](guides/compile-validate-run.md)
 - [Recovery and the resume boundary](guides/resume-recover.md)
 
+## Methodology
+
+- [Methodology overview](methodology/overview.md)
+- [Facts and provenance](methodology/facts-and-provenance.md)
+- [Fine-tuning method taxonomy](methodology/method-taxonomy.md)
+- [Machine-readable research catalog](methodology/method-catalog.json)
+- [Candidate enumeration](methodology/candidate-enumeration.md)
+- [Precision and quantization](methodology/precision-quantization.md)
+- [Memory estimation](methodology/memory-estimation.md)
+- [Ranking and uncertainty](methodology/ranking-uncertainty.md)
+- [Preflight and calibration](methodology/preflight-calibration.md)
+
 ## Understand the system
 
 - [System architecture](architecture/system.md)
@@ -40,13 +52,20 @@ service.
 - [Run states](reference/run-states.md)
 - [Error codes](reference/error-codes.md)
 - [Glossary](reference/glossary.md)
+- [Reviewed corpus contract](reference/reviewed-corpus-contract.md)
 
 ## Operations
 
 - [Release gates](operations/release-gates.md)
+- [Apple Silicon pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 - [Contributing](../CONTRIBUTING.md)
 - [Roadmap](../ROADMAP.md)
+
+## Research intake
+
+- [Reference and former TO-REVIEW reconciliation](research/reference-and-to-review-reconciliation.md)
+- [EXAMPLE forensic review and salvage ledger](research/example-intake-reconciliation.md)
 
 ## Evidence notice
 

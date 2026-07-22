@@ -1,5 +1,10 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
-import type { FactDraft, InputProfile, ModelInspectionResponse } from "../types";
+import type {
+  FactDraft,
+  InputProfile,
+  MethodDescriptor,
+  ModelInspectionResponse,
+} from "../types";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { StageHeader } from "../components/StageHeader";
 
@@ -18,6 +23,7 @@ interface FactsStageProps {
   onHardwareScan: () => Promise<void>;
   hardwareScanned: boolean;
   modelInspection: ModelInspectionResponse | null;
+  methodCatalog: MethodDescriptor[];
 }
 
 function numberValue(value: string): number | null {
@@ -39,6 +45,7 @@ export function FactsStage({
   onHardwareScan,
   hardwareScanned,
   modelInspection,
+  methodCatalog,
 }: FactsStageProps) {
   const updateModel = <K extends keyof FactDraft["model"]>(
     key: K,
@@ -112,6 +119,23 @@ export function FactsStage({
         { key: "license_name", label: "License label", value: modelInspection.facts.license_name },
       ].filter((fact) => fact.value !== null && fact.value !== undefined)
     : [];
+  const selectableMethods = methodCatalog.filter((method) => method.selectable);
+  const selectedBackend = draft.hardware.devices[0]?.backend ?? "cuda";
+  const unifiedMemory = selectedBackend === "mps";
+  const backendSelectableMethods = selectableMethods.filter((method) =>
+    method.supported_backends.includes(selectedBackend),
+  );
+  const preferenceOptions = selectableMethods.length
+    ? selectableMethods.map((method) => ({
+        value: method.method_id,
+        label: `Prefer ${method.display_name} if feasible`,
+      }))
+    : [
+        { value: "full", label: "Prefer full fine-tuning on an objective tie" },
+        { value: "lora", label: "Prefer LoRA if feasible" },
+        { value: "int8-lora", label: "Prefer 8-bit LoRA if feasible" },
+        { value: "qlora", label: "Prefer QLoRA if feasible" },
+      ];
 
   return (
     <>
@@ -278,7 +302,7 @@ export function FactsStage({
               <span><span className="fact-index">H</span> Hardware</span>
               <ProvenanceBadge kind={demoMode ? "example" : hardwareScanned ? "measured" : "user-supplied"} />
             </legend>
-            <p className="fact-intro">Bind single-device rows to the strongest compatible GPU; evaluate distributed rows against every participating GPU.</p>
+            <p className="fact-intro">Measure the intended training host, then let each runtime apply its own memory and capability rules.</p>
             <div className="field full-field">
               <label htmlFor="hardware-discovery">Source</label>
               <select id="hardware-discovery" value={draft.hardware.discovery} onChange={(event) => updateHardware("discovery", event.target.value as FactDraft["hardware"]["discovery"])}>
@@ -291,6 +315,11 @@ export function FactsStage({
               {busy === "hardware" ? "Scanning this Aptus host…" : "Scan this Aptus host"}
             </button>
             {hardwareScanned ? <p className="example-inline measured-inline">Measured on this Aptus host. Confirm this is the intended execution machine.</p> : null}
+            {unifiedMemory ? (
+              <p className="fact-boundary">
+                Apple Silicon shares one unified-memory pool between the CPU and GPU. This is not dedicated VRAM. The current Aptus compiler remains fail-closed for MPS while the MLX runtime contract is implemented and calibrated.
+              </p>
+            ) : null}
             <div className="field-row">
               <div className="field">
                 <label htmlFor="backend">Backend</label>
@@ -302,13 +331,13 @@ export function FactsStage({
                 </select>
               </div>
               <div className="field">
-                <label htmlFor="device-vram">VRAM per device</label>
+                <label htmlFor="device-vram">{unifiedMemory ? "Unified memory pool" : "VRAM per device"}</label>
                 <div className="unit-input"><input id="device-vram" type="number" required min="0.1" step="0.1" value={draft.hardware.devices[0]?.total_vram_gib ?? ""} onChange={(event) => updateDevice("total_vram_gib", numberValue(event.target.value))} /><span>GiB</span></div>
               </div>
             </div>
             <div className="field-row">
               <div className="field">
-                <label htmlFor="gpu-count">GPU count</label>
+                <label htmlFor="gpu-count">Accelerator count</label>
                 <input id="gpu-count" type="number" required min="1" value={draft.hardware.gpu_count} onChange={(event) => updateHardware("gpu_count", Number(event.target.value))} />
               </div>
               <div className="field">
@@ -318,7 +347,7 @@ export function FactsStage({
             </div>
             <div className="field-row">
               <div className="field">
-                <label htmlFor="device-free-vram">Free VRAM now</label>
+                <label htmlFor="device-free-vram">{unifiedMemory ? "Available unified memory" : "Free VRAM now"}</label>
                 <div className="unit-input"><input id="device-free-vram" type="number" min="0.1" step="0.1" value={draft.hardware.devices[0]?.free_vram_gib ?? ""} onChange={(event) => updateDevice("free_vram_gib", numberValue(event.target.value))} placeholder="Optional" /><span>GiB</span></div>
               </div>
               <div className="field">
@@ -336,6 +365,12 @@ export function FactsStage({
                 <div className="unit-input"><input id="device-reserve" type="number" required min="0" step="0.5" value={draft.hardware.reserve_per_device_gib ?? ""} onChange={(event) => updateHardware("reserve_per_device_gib", numberValue(event.target.value))} /><span>GiB</span></div>
               </div>
             </div>
+            {unifiedMemory ? (
+              <div className="mps-capability-boundary" role="note" aria-label="Apple Silicon capability boundary">
+                <strong>MLX capabilities are not measured yet.</strong>
+                <span>CUDA BF16 and bitsandbytes capability flags do not apply to this MPS inventory. Aptus will not translate their unchecked state into an MLX limitation.</span>
+              </div>
+            ) : (
             <div className="capability-checks" role="group" aria-label="Device capabilities">
               <label className="check-row compact-check">
                 <input type="checkbox" checked={draft.hardware.devices[0]?.supports_bf16 ?? false} onChange={(event) => updateDevice("supports_bf16", event.target.checked)} />
@@ -350,6 +385,7 @@ export function FactsStage({
                 <span><strong>4-bit backend supported</strong></span>
               </label>
             </div>
+            )}
           </fieldset>
 
           <fieldset className="fact-panel">
@@ -393,13 +429,62 @@ export function FactsStage({
               <label htmlFor="method-preference">Tie-break method preference</label>
               <select id="method-preference" value={draft.target.method_preference} onChange={(event) => updateTarget("method_preference", event.target.value)}>
                 <option value="">No preference. Compare feasible methods.</option>
-                <option value="full">Prefer full fine-tuning on an objective tie</option>
-                <option value="lora">Prefer LoRA if feasible</option>
-                <option value="int8-lora">Prefer 8-bit LoRA if feasible</option>
-                <option value="qlora">Prefer QLoRA if feasible</option>
+                {preferenceOptions.map((method) => (
+                  <option key={method.value} value={method.value}>{method.label}</option>
+                ))}
               </select>
               <small>The primary objective ranks first. A preference never reverses it or overrides a failed gate.</small>
             </div>
+            {methodCatalog.length ? (
+              <details className="method-readiness-board">
+                <summary>
+                  <span>Inspect method readiness</span>
+                  <small>
+                    {selectableMethods.length} compiler paths · {backendSelectableMethods.length} available on {selectedBackend.toUpperCase()} · {methodCatalog.length - selectableMethods.length} held behind research gates
+                  </small>
+                </summary>
+                <div
+                  className="method-readiness-list"
+                  role="region"
+                  aria-label="Fine-tuning method readiness"
+                  tabIndex={0}
+                >
+                  {methodCatalog.map((method) => {
+                    const availableOnBackend = method.selectable
+                      && method.supported_backends.includes(selectedBackend);
+                    return (
+                    <article key={method.method_id} className={`method-readiness-row lifecycle-${method.lifecycle}`}>
+                      <header>
+                        <div>
+                          <strong>{method.display_name}</strong>
+                          <code>{method.method_id}</code>
+                        </div>
+                        <span>
+                          {method.lifecycle === "gated-executable"
+                            ? availableOnBackend
+                              ? "Executable behind gates"
+                              : `Unavailable on ${selectedBackend.toUpperCase()}`
+                            : method.lifecycle === "experimental"
+                              ? "Experimental"
+                              : "Research only"}
+                        </span>
+                      </header>
+                      <p>{method.summary}</p>
+                      <dl>
+                        <div><dt>Trainable object</dt><dd>{method.parameter_scope}</dd></div>
+                        <div><dt>Base storage</dt><dd>{method.base_storage}</dd></div>
+                      </dl>
+                      {method.blocker ? <p className="method-blocker"><strong>Blocked:</strong> {method.blocker}</p> : null}
+                      {method.selectable && !availableOnBackend ? (
+                        <p className="method-blocker"><strong>Backend gate:</strong> This compiler supports {method.supported_backends.join(", ") || "no released backend"}, not {selectedBackend}.</p>
+                      ) : null}
+                      <p className="method-next-gate"><strong>Required proof:</strong> {method.pilot_requirement}</p>
+                    </article>
+                    );
+                  })}
+                </div>
+              </details>
+            ) : null}
             <div className="field-row">
               <div className="field">
                 <label htmlFor="evaluation-fraction">Evaluation fraction</label>

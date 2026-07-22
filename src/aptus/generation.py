@@ -13,6 +13,7 @@ from typing import Any
 
 from .catalog import STACK_VERSIONS, bundle_requirements
 from .domain import Provenance, TrainingPlan, ValidationReport, to_primitive
+from .methods import method_descriptor
 from .profiling import canonical_training_rows, pilot_sample_rows
 
 
@@ -25,6 +26,7 @@ import argparse
 import csv
 import gc
 import hashlib
+import heapq
 import json
 import math
 import os
@@ -148,6 +150,28 @@ def load_trainer_config() -> dict[str, Any]:
     return json.loads(TRAINER_CONFIG_PATH.read_text(encoding="utf-8"))
 
 
+def require_compiler_contract(
+    plan: dict[str, Any], trainer_config: dict[str, Any]
+) -> None:
+    expected = {
+        "full": ("transformers.full.v2", "full-model-safetensors"),
+        "lora": ("transformers.peft-lora.v2", "peft-adapter-safetensors"),
+        "int8-lora": (
+            "transformers.peft-int8-lora.v2",
+            "peft-adapter-safetensors",
+        ),
+        "qlora": ("transformers.peft-qlora.v2", "peft-adapter-safetensors"),
+    }
+    method = plan["recommended"]["method"]
+    if method not in expected:
+        raise RuntimeError("The selected method has no generated compiler contract.")
+    if (
+        trainer_config.get("compiler_id"),
+        trainer_config.get("export_kind"),
+    ) != expected[method]:
+        raise RuntimeError("Trainer configuration does not bind the selected compiler.")
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -183,6 +207,62 @@ def verify_checkpoint_contract(checkpoint: Path, contract: dict[str, Any]) -> No
         != sum(item["size_bytes"] for item in observed_files)
     ):
         raise RuntimeError("Pilot checkpoint no longer matches its bound manifest.")
+
+
+def require_census(value: Any, *, method: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError("Metrics do not contain a trainable-parameter census.")
+    expected_scope = "all-parameters" if method == "full" else "lora-adapter-only"
+    expected_identity = {
+        "schema_version": "aptus.trainable-parameter-census.v1",
+        "method": method,
+        "parameter_scope": expected_scope,
+    }
+    if any(value.get(name) != expected_value for name, expected_value in expected_identity.items()):
+        raise RuntimeError("Trainable-parameter census violates the selected method scope.")
+    if value.get("all_values_finite") is not True:
+        raise RuntimeError("Trainable-parameter census does not attest finite values.")
+    for name in ("trainable_parameter_count", "trainable_tensor_count"):
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            raise RuntimeError(f"Trainable-parameter census requires positive {name}.")
+    counter_names = (
+        "frozen_parameter_count",
+        "frozen_tensor_count",
+        "unexpected_trainable_tensor_count",
+        "expected_adapter_target_match_count",
+        "adapter_target_instance_count",
+        "incomplete_adapter_target_instance_count",
+    )
+    for name in counter_names:
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise RuntimeError(f"Trainable-parameter census requires non-negative integer {name}.")
+    if method == "full":
+        if any(value[name] != 0 for name in counter_names):
+            raise RuntimeError("Full fine-tuning census contains frozen or adapter counters.")
+    else:
+        for name in ("frozen_parameter_count", "frozen_tensor_count"):
+            if value[name] <= 0:
+                raise RuntimeError(
+                    f"Adapter census requires positive {name} for its frozen base."
+                )
+        if value["unexpected_trainable_tensor_count"] != 0:
+            raise RuntimeError("Adapter census contains an unexpected trainable tensor.")
+        if (
+            value["expected_adapter_target_match_count"] <= 0
+            or value["adapter_target_instance_count"] != value["expected_adapter_target_match_count"]
+            or value["incomplete_adapter_target_instance_count"] != 0
+        ):
+            raise RuntimeError("Adapter census does not bind one complete LoRA A/B pair to every target instance.")
+    digest = value.get("descriptor_sha256")
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise RuntimeError("Trainable-parameter census has an invalid descriptor digest.")
+    return value
 
 
 def verify_pilot_artifacts(metrics: dict[str, Any]) -> tuple[int, int]:
@@ -237,6 +317,15 @@ def verify_pilot_artifacts(metrics: dict[str, Any]) -> tuple[int, int]:
     phases = (metrics.get("phase_one"), metrics.get("phase_two_resumed"))
     if not all(isinstance(phase, dict) for phase in phases):
         raise RuntimeError("Pilot phase metrics are missing.")
+    censuses = tuple(
+        require_census(
+            phase.get("trainable_parameter_census"),
+            method=plan["recommended"]["method"],
+        )
+        for phase in phases
+    )
+    if censuses[0] != censuses[1]:
+        raise RuntimeError("Pilot phases do not bind the same trainable parameter set.")
     try:
         expected_final_export_bytes = max(
             int(phase["final_export"]["total_bytes"]) for phase in phases
@@ -1040,7 +1129,217 @@ def verify_loaded_config_contract(config: Any, plan: dict[str, Any]) -> None:
         )
 
 
-def model_data_preflight(plan: dict[str, Any], trainer_config: dict[str, Any], *, local_files_only: bool) -> None:
+def _compiled_lora_binding(
+    name: str, *, target_modules: tuple[str, ...]
+) -> tuple[str, str] | None:
+    parts = name.split(".")
+    component_indices = [
+        index for index, part in enumerate(parts) if part in {"lora_A", "lora_B"}
+    ]
+    if len(component_indices) != 1:
+        return None
+    index = component_indices[0]
+    if (
+        index == 0
+        or parts[index - 1] not in target_modules
+        or parts[index + 1 :] != ["default", "weight"]
+    ):
+        return None
+    return ".".join(parts[:index]), parts[index]
+
+
+def trainable_parameter_census(
+    model: Any,
+    *,
+    method: str,
+    target_modules: tuple[str, ...],
+    expected_adapter_target_match_count: int,
+) -> dict[str, Any]:
+    """Describe trainable tensors without recording names or parameter values."""
+    import torch
+
+    if method not in {"full", "lora", "int8-lora", "qlora"}:
+        raise RuntimeError("The selected method has no trainable-scope contract.")
+    descriptors: list[tuple[str, tuple[int, ...], str]] = []
+    trainable_parameter_count = 0
+    frozen_parameter_count = 0
+    frozen_tensor_count = 0
+    unexpected_trainable_tensor_count = 0
+    all_values_finite = True
+    observed_names: set[str] = set()
+    adapter_components: dict[str, set[str]] = {}
+    if method == "full":
+        if target_modules or expected_adapter_target_match_count != 0:
+            raise RuntimeError("Full fine-tuning cannot declare adapter target matches.")
+    elif not target_modules or expected_adapter_target_match_count <= 0:
+        raise RuntimeError("Adapter census requires plan-bound target matches.")
+    for name, parameter in model.named_parameters():
+        if not isinstance(name, str) or not name:
+            raise RuntimeError("A model parameter has no stable name.")
+        if name in observed_names:
+            raise RuntimeError("Model parameter names are not unique.")
+        observed_names.add(name)
+        try:
+            shape = tuple(int(dimension) for dimension in parameter.shape)
+            parameter_count = int(parameter.numel())
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "A trainable parameter has an invalid shape or element count."
+            ) from error
+        if parameter_count < 0 or any(dimension < 0 for dimension in shape):
+            raise RuntimeError(
+                "A trainable parameter has an invalid shape or element count."
+            )
+        if not parameter.requires_grad:
+            frozen_parameter_count += parameter_count
+            frozen_tensor_count += 1
+            continue
+        if method != "full":
+            binding = _compiled_lora_binding(name, target_modules=target_modules)
+            if binding is None:
+                unexpected_trainable_tensor_count += 1
+            else:
+                parent, component = binding
+                observed_components = adapter_components.setdefault(parent, set())
+                if component in observed_components:
+                    unexpected_trainable_tensor_count += 1
+                observed_components.add(component)
+        trainable_parameter_count += parameter_count
+        descriptors.append((name, shape, str(parameter.dtype)))
+        if parameter_count:
+            try:
+                finite = bool(torch.isfinite(parameter.detach()).all().item())
+            except Exception as error:
+                raise RuntimeError(
+                    "A trainable parameter could not be checked for finite values."
+                ) from error
+            all_values_finite = all_values_finite and finite
+
+    digest = hashlib.sha256()
+    digest.update(b"aptus.trainable-parameter-descriptors.v1\n")
+    for name, shape, dtype in sorted(descriptors, key=lambda item: item[0]):
+        digest.update(
+            (
+                json.dumps(
+                    [name, list(shape), dtype],
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode("utf-8")
+        )
+    scope = "all-parameters" if method == "full" else "lora-adapter-only"
+    incomplete_adapter_target_instance_count = sum(
+        components != {"lora_A", "lora_B"}
+        for components in adapter_components.values()
+    )
+    return {
+        "schema_version": "aptus.trainable-parameter-census.v1",
+        "method": method,
+        "parameter_scope": scope,
+        "trainable_parameter_count": trainable_parameter_count,
+        "trainable_tensor_count": len(descriptors),
+        "frozen_parameter_count": frozen_parameter_count,
+        "frozen_tensor_count": frozen_tensor_count,
+        "unexpected_trainable_tensor_count": unexpected_trainable_tensor_count,
+        "expected_adapter_target_match_count": expected_adapter_target_match_count,
+        "adapter_target_instance_count": len(adapter_components),
+        "incomplete_adapter_target_instance_count": incomplete_adapter_target_instance_count,
+        "all_values_finite": all_values_finite,
+        "descriptor_sha256": digest.hexdigest(),
+    }
+
+
+def require_trainable_parameter_census(
+    model: Any,
+    *,
+    method: str,
+    target_modules: tuple[str, ...],
+    expected_adapter_target_match_count: int,
+) -> dict[str, Any]:
+    census = trainable_parameter_census(
+        model,
+        method=method,
+        target_modules=target_modules,
+        expected_adapter_target_match_count=expected_adapter_target_match_count,
+    )
+    if census["trainable_parameter_count"] <= 0 or census["trainable_tensor_count"] <= 0:
+        raise RuntimeError(
+            "Method preparation selected zero trainable parameters; training is refused."
+        )
+    if census["all_values_finite"] is not True:
+        raise FloatingPointError(
+            "Method preparation produced non-finite trainable parameter values."
+        )
+    if method == "full" and census["frozen_tensor_count"]:
+        raise RuntimeError(
+            "Full fine-tuning left one or more model parameters frozen; training is refused."
+        )
+    if method != "full" and census["unexpected_trainable_tensor_count"]:
+        raise RuntimeError(
+            "Adapter preparation left non-LoRA model parameters trainable; training is refused."
+        )
+    if method != "full" and (
+        census["frozen_parameter_count"] <= 0 or census["frozen_tensor_count"] <= 0
+    ):
+        raise RuntimeError(
+            "Adapter preparation did not retain a non-empty frozen base; training is refused."
+        )
+    if method != "full" and (
+        census["adapter_target_instance_count"]
+        != census["expected_adapter_target_match_count"]
+        or census["incomplete_adapter_target_instance_count"] != 0
+    ):
+        raise RuntimeError(
+            "Adapter preparation does not contain exactly one LoRA A/B pair for every plan-bound target instance."
+        )
+    return census
+
+
+def prepare_model_for_training(model: Any, plan: dict[str, Any]) -> Any:
+    candidate = plan["recommended"]
+    model.config.use_cache = False
+    use_reentrant_checkpointing = (
+        candidate["method"] == "qlora" and candidate["distribution"] == "single"
+    )
+    checkpointing_kwargs = {"use_reentrant": use_reentrant_checkpointing}
+    model.gradient_checkpointing_enable(
+        gradient_checkpointing_kwargs=checkpointing_kwargs
+    )
+
+    if candidate["method"] in {"int8-lora", "qlora"}:
+        from peft import prepare_model_for_kbit_training
+
+        model = prepare_model_for_kbit_training(
+            model,
+            use_gradient_checkpointing=True,
+            gradient_checkpointing_kwargs=checkpointing_kwargs,
+        )
+    if candidate["method"] != "full":
+        from peft import LoraConfig, get_peft_model
+
+        adapter = LoraConfig(
+            r=candidate["rank"],
+            lora_alpha=candidate["alpha"],
+            lora_dropout=0.05,
+            target_modules=candidate["target_modules"],
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(
+            model,
+            adapter,
+            revision=plan["model"]["revision"],
+        )
+    return model
+
+
+def model_data_preflight(
+    plan: dict[str, Any],
+    trainer_config: dict[str, Any],
+    *,
+    local_files_only: bool,
+) -> dict[str, Any]:
     import torch
     from transformers import AutoConfig, AutoTokenizer
 
@@ -1071,6 +1370,13 @@ def model_data_preflight(plan: dict[str, Any], trainer_config: dict[str, Any], *
         actual_parameter_count, target_match_count = verify_loaded_model_contract(
             loaded_model, plan
         )
+        loaded_model = prepare_model_for_training(loaded_model, plan)
+        trainable_census = require_trainable_parameter_census(
+            loaded_model,
+            method=candidate["method"],
+            target_modules=tuple(candidate.get("target_modules", ())),
+            expected_adapter_target_match_count=target_match_count,
+        )
     finally:
         loaded_model = None
         gc.collect()
@@ -1091,8 +1397,11 @@ def model_data_preflight(plan: dict[str, Any], trainer_config: dict[str, Any], *
     print(
         "Selected model revision, loaded weight structure, "
         f"{actual_parameter_count} parameters, {target_match_count} adapter target matches, "
-        f"tokenizer, method capability, and all {row_count} canonical training rows passed."
+        f"tokenizer, method capability, {trainable_census['trainable_parameter_count']} "
+        f"finite trainable parameters ({trainable_census['descriptor_sha256']}), "
+        f"and all {row_count} canonical training rows passed."
     )
+    return trainable_census
 
 
 def synthetic_preflight(plan: dict[str, Any]) -> None:
@@ -1144,18 +1453,35 @@ def synthetic_preflight(plan: dict[str, Any]) -> None:
         max_position_embeddings=64,
     )
     model = LlamaForCausalLM(config).to(device=device, dtype=compute_dtype)
+    synthetic_target_modules: tuple[str, ...] = ()
+    synthetic_target_match_count = 0
     if candidate["method"] != "full":
         from peft import LoraConfig, get_peft_model
 
+        synthetic_target_modules = ("q_proj", "k_proj", "v_proj", "o_proj")
+        synthetic_target_match_count = sum(
+            1
+            for name, _module in model.named_modules()
+            if any(
+                name == target or name.endswith("." + target)
+                for target in synthetic_target_modules
+            )
+        )
         model = get_peft_model(
             model,
             LoraConfig(
                 r=min(8, candidate["rank"]),
                 lora_alpha=min(16, candidate["alpha"]),
-                target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+                target_modules=list(synthetic_target_modules),
                 task_type="CAUSAL_LM",
             ),
         )
+    trainable_census = require_trainable_parameter_census(
+        model,
+        method=candidate["method"],
+        target_modules=synthetic_target_modules,
+        expected_adapter_target_match_count=synthetic_target_match_count,
+    )
     trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=1e-3)
     ids = torch.randint(0, 128, (2, 16), device=device)
@@ -1184,6 +1510,7 @@ def synthetic_preflight(plan: dict[str, Any]) -> None:
         "distribution": candidate["distribution"],
         "world_size": candidate["world_size"],
         "measured_peak_cuda_bytes": measured_peak,
+        "trainable_parameter_census": trainable_census,
         "scope": "synthetic-method-preflight-not-model-data-pilot",
     }
     if local_rank == 0:
@@ -1294,10 +1621,9 @@ def verify_loaded_model_contract(
 
 def build_model(
     plan: dict[str, Any], *, local_files_only: bool
-) -> tuple[Any, Any, int]:
+) -> tuple[Any, Any, int, dict[str, Any]]:
     from transformers import AutoTokenizer
 
-    candidate = plan["recommended"]
     model_spec = plan["model"]
     tokenizer = AutoTokenizer.from_pretrained(
         model_spec.get("tokenizer_id") or model_spec["model_id"],
@@ -1311,43 +1637,17 @@ def build_model(
         tokenizer.pad_token = tokenizer.eos_token
 
     model = load_pinned_base_model(plan, local_files_only=local_files_only)
-    actual_parameter_count, _target_match_count = verify_loaded_model_contract(
+    actual_parameter_count, target_match_count = verify_loaded_model_contract(
         model, plan
     )
-    model.config.use_cache = False
-    use_reentrant_checkpointing = (
-        candidate["method"] == "qlora" and candidate["distribution"] == "single"
+    model = prepare_model_for_training(model, plan)
+    trainable_census = require_trainable_parameter_census(
+        model,
+        method=plan["recommended"]["method"],
+        target_modules=tuple(plan["recommended"].get("target_modules", ())),
+        expected_adapter_target_match_count=target_match_count,
     )
-    checkpointing_kwargs = {"use_reentrant": use_reentrant_checkpointing}
-    model.gradient_checkpointing_enable(
-        gradient_checkpointing_kwargs=checkpointing_kwargs
-    )
-
-    if candidate["method"] in {"int8-lora", "qlora"}:
-        from peft import prepare_model_for_kbit_training
-
-        model = prepare_model_for_kbit_training(
-            model,
-            use_gradient_checkpointing=True,
-            gradient_checkpointing_kwargs=checkpointing_kwargs,
-        )
-    if candidate["method"] != "full":
-        from peft import LoraConfig, get_peft_model
-
-        adapter = LoraConfig(
-            r=candidate["rank"],
-            lora_alpha=candidate["alpha"],
-            lora_dropout=0.05,
-            target_modules=candidate["target_modules"],
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
-        model = get_peft_model(
-            model,
-            adapter,
-            revision=model_spec["revision"],
-        )
-    return model, tokenizer, actual_parameter_count
+    return model, tokenizer, actual_parameter_count, trainable_census
 
 
 def resolve_max_steps(*, pilot: bool, max_steps: int | None) -> int:
@@ -1467,6 +1767,160 @@ def claim_output_dir(
     return output_dir
 
 
+def require_recorded_trainable_parameter_census(
+    value: Any, *, expected_method: str
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError("Training metrics do not contain a trainable-parameter census.")
+    if value.get("schema_version") != "aptus.trainable-parameter-census.v1":
+        raise RuntimeError("Training metrics carry an unknown trainable-parameter census.")
+    if value.get("method") != expected_method:
+        raise RuntimeError("Training metrics bind the wrong trainable method scope.")
+    expected_scope = (
+        "all-parameters" if expected_method == "full" else "lora-adapter-only"
+    )
+    if value.get("parameter_scope") != expected_scope:
+        raise RuntimeError("Training metrics bind the wrong trainable parameter scope.")
+    for name in ("trainable_parameter_count", "trainable_tensor_count"):
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            raise RuntimeError(
+                f"Training metrics require a positive {name.replace('_', ' ')}."
+            )
+    if value.get("all_values_finite") is not True:
+        raise RuntimeError("Training metrics do not attest finite trainable parameters.")
+    for name in (
+        "frozen_parameter_count",
+        "frozen_tensor_count",
+        "unexpected_trainable_tensor_count",
+        "expected_adapter_target_match_count",
+        "adapter_target_instance_count",
+        "incomplete_adapter_target_instance_count",
+    ):
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise RuntimeError(
+                f"Training metrics require a non-negative {name.replace('_', ' ')}."
+            )
+    adapter_counter_names = (
+        "expected_adapter_target_match_count",
+        "adapter_target_instance_count",
+        "incomplete_adapter_target_instance_count",
+    )
+    if expected_method == "full":
+        if value["frozen_parameter_count"] or value["frozen_tensor_count"]:
+            raise RuntimeError("Full-training metrics attest frozen model parameters.")
+        if any(value[name] for name in adapter_counter_names):
+            raise RuntimeError("Full-training metrics attest adapter target instances.")
+    else:
+        if value["unexpected_trainable_tensor_count"]:
+            raise RuntimeError("Adapter metrics attest unexpected trainable parameters.")
+        if value["frozen_parameter_count"] <= 0 or value["frozen_tensor_count"] <= 0:
+            raise RuntimeError("Adapter metrics do not attest a non-empty frozen base.")
+        if (
+            value["expected_adapter_target_match_count"] <= 0
+            or value["adapter_target_instance_count"]
+            != value["expected_adapter_target_match_count"]
+            or value["incomplete_adapter_target_instance_count"] != 0
+        ):
+            raise RuntimeError(
+                "Adapter metrics do not bind one complete LoRA A/B pair to every target instance."
+            )
+    descriptor_digest = value.get("descriptor_sha256")
+    if (
+        not isinstance(descriptor_digest, str)
+        or len(descriptor_digest) != 64
+        or any(character not in "0123456789abcdef" for character in descriptor_digest)
+    ):
+        raise RuntimeError("Training metrics carry an invalid trainable descriptor digest.")
+    return value
+
+
+def require_recorded_dataset_split(
+    value: Any, *, training_count: Any, evaluation_count: Any
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError("Full training metrics do not contain dataset-split evidence.")
+    if value.get("schema_version") != "aptus.dataset-split.v1":
+        raise RuntimeError("Full training metrics carry unknown dataset-split evidence.")
+    integer_fields = (
+        "total_row_count",
+        "training_row_count",
+        "evaluation_row_count",
+        "declared_group_count",
+        "training_declared_group_count",
+        "evaluation_declared_group_count",
+        "ungrouped_row_count",
+        "split_unit_count",
+        "training_split_unit_count",
+        "evaluation_split_unit_count",
+        "target_evaluation_row_count",
+        "evaluation_row_error",
+    )
+    for name in integer_fields:
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise RuntimeError(
+                f"Dataset-split evidence requires a non-negative {name.replace('_', ' ')}."
+            )
+    if value["training_row_count"] <= 0:
+        raise RuntimeError("Dataset-split evidence contains no training rows.")
+    if value["total_row_count"] != (
+        value["training_row_count"] + value["evaluation_row_count"]
+    ):
+        raise RuntimeError("Dataset-split row counts are inconsistent.")
+    if value["declared_group_count"] != (
+        value["training_declared_group_count"]
+        + value["evaluation_declared_group_count"]
+    ):
+        raise RuntimeError("Dataset-split declared-group counts are inconsistent.")
+    if value["split_unit_count"] != (
+        value["training_split_unit_count"]
+        + value["evaluation_split_unit_count"]
+    ):
+        raise RuntimeError("Dataset-split unit counts are inconsistent.")
+    if (
+        not isinstance(training_count, int)
+        or isinstance(training_count, bool)
+        or training_count != value["training_row_count"]
+        or not isinstance(evaluation_count, int)
+        or isinstance(evaluation_count, bool)
+        or evaluation_count != value["evaluation_row_count"]
+    ):
+        raise RuntimeError("Dataset-split evidence differs from the trainer dataset sizes.")
+    strategy = value.get("strategy")
+    expected_strategy = (
+        "deterministic-size-aware-group-sha256"
+        if value["declared_group_count"]
+        else "deterministic-exact-row-count-sha256"
+    )
+    if strategy != expected_strategy:
+        raise RuntimeError("Dataset-split evidence carries the wrong strategy marker.")
+    if value["target_evaluation_row_count"] >= value["total_row_count"]:
+        raise RuntimeError("Dataset-split target leaves no training row.")
+    if value["evaluation_row_error"] != abs(
+        value["evaluation_row_count"] - value["target_evaluation_row_count"]
+    ):
+        raise RuntimeError("Dataset-split evaluation error is inconsistent.")
+    realized_fraction = value.get("realized_evaluation_fraction")
+    if (
+        not isinstance(realized_fraction, (int, float))
+        or isinstance(realized_fraction, bool)
+        or not math.isfinite(realized_fraction)
+        or realized_fraction != value["evaluation_row_count"] / value["total_row_count"]
+    ):
+        raise RuntimeError("Dataset-split realized fraction is inconsistent.")
+    for name in ("canonical_jsonl_sha256", "assignment_sha256"):
+        digest = value.get(name)
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise RuntimeError(f"Dataset-split evidence carries an invalid {name}.")
+    return value
+
+
 def assert_measured_training_metrics(
     metrics: dict[str, Any],
     *,
@@ -1500,6 +1954,7 @@ def assert_measured_training_metrics(
         "finite_backward_loss_checks",
         "finite_gradient_norm_checks",
         "finite_trainable_parameter_scans",
+        "optimizer_parameter_binding_checks",
         "non_skipped_optimizer_steps",
     ):
         value = metrics.get(name)
@@ -1507,6 +1962,19 @@ def assert_measured_training_metrics(
             raise RuntimeError(
                 f"{phase} did not attest at least one {name.replace('_', ' ')}."
             )
+    require_recorded_trainable_parameter_census(
+        metrics.get("trainable_parameter_census"),
+        expected_method=str(candidate["method"]),
+    )
+    if pilot:
+        if metrics.get("dataset_split") is not None:
+            raise RuntimeError("Pilot metrics must not claim a full-dataset split.")
+    else:
+        require_recorded_dataset_split(
+            metrics.get("dataset_split"),
+            training_count=metrics.get("training_example_count"),
+            evaluation_count=metrics.get("evaluation_example_count"),
+        )
     if metrics.get("pilot") is not pilot:
         raise RuntimeError(f"{phase} metrics carry the wrong phase marker.")
     if metrics.get("candidate_id") != candidate["candidate_id"]:
@@ -1766,30 +2234,404 @@ def select_pilot_rows(
     return [row for _, row in ranked]
 
 
-def split_jsonl_offsets(
+def _declared_split_group(row: dict[str, Any], *, line_number: int) -> str | None:
+    missing = object()
+    top_level = row.get("split_group", missing)
+    metadata = row.get("metadata")
+    nested = metadata.get("split_group", missing) if isinstance(metadata, dict) else missing
+    declared = [value for value in (top_level, nested) if value is not missing]
+    if not declared:
+        return None
+    if any(not isinstance(value, str) or not value.strip() for value in declared):
+        raise ValueError(
+            f"Canonical training row {line_number} split_group must be a non-empty string."
+        )
+    if len(declared) == 2 and declared[0] != declared[1]:
+        raise ValueError(
+            f"Canonical training row {line_number} declares conflicting split_group values."
+        )
+    return declared[0]
+
+
+def _split_unit_digest(
+    *, group: str | None, offset: int, line: bytes
+) -> str:
+    digest = hashlib.sha256()
+    if group is None:
+        digest.update(b"aptus.ungrouped-row.v1\0")
+        digest.update(str(offset).encode("ascii"))
+        digest.update(b"\0")
+        digest.update(line)
+    else:
+        digest.update(b"aptus.declared-split-group.v1\0")
+        digest.update(group.encode("utf-8"))
+    return digest.hexdigest()
+
+
+def _split_unit_priority(unit_digest: str, *, seed: int) -> int:
+    return int.from_bytes(
+        hashlib.sha256(
+            f"aptus.split-priority.v2\0{seed}\0{unit_digest}".encode("ascii")
+        ).digest(),
+        "big",
+    )
+
+
+def _reachable_row_count_bits(counts: tuple[int, ...], *, limit: int) -> int:
+    if limit < 0:
+        return 0
+    reachable = 1
+    mask = (1 << (limit + 1)) - 1
+    for count in counts:
+        if count <= limit:
+            reachable = (reachable | (reachable << count)) & mask
+    return reachable
+
+
+def _reconstruct_group_subset(
+    groups: tuple[tuple[str, int, str], ...], *, target: int
+) -> set[str]:
+    if target == 0:
+        return set()
+    if not groups:
+        raise RuntimeError("Dataset split could not reconstruct its group assignment.")
+    if len(groups) == 1:
+        group, count, _digest = groups[0]
+        if count != target:
+            raise RuntimeError("Dataset split could not reconstruct its group assignment.")
+        return {group}
+
+    midpoint = len(groups) // 2
+    left, right = groups[:midpoint], groups[midpoint:]
+    left_total = sum(item[1] for item in left)
+    right_total = sum(item[1] for item in right)
+    left_bits = _reachable_row_count_bits(
+        tuple(item[1] for item in left), limit=min(target, left_total)
+    )
+    right_bits = _reachable_row_count_bits(
+        tuple(item[1] for item in right), limit=min(target, right_total)
+    )
+    minimum_left = max(0, target - right_total)
+    maximum_left = min(target, left_total)
+    for left_target in range(maximum_left, minimum_left - 1, -1):
+        right_target = target - left_target
+        if (left_bits >> left_target) & 1 and (right_bits >> right_target) & 1:
+            return _reconstruct_group_subset(
+                left, target=left_target
+            ) | _reconstruct_group_subset(right, target=right_target)
+    raise RuntimeError("Dataset split could not reconstruct its group assignment.")
+
+
+def split_jsonl_offsets_with_evidence(
     path: Path, *, evaluation_fraction: float, seed: int
-) -> tuple[array, array]:
+) -> tuple[array, array, dict[str, Any]]:
     if not 0 <= evaluation_fraction < 1:
         raise ValueError("evaluation_fraction must be in [0, 1).")
-    train_offsets, eval_offsets = array("Q"), array("Q")
-    rng = random.Random(seed)
+
+    declared_group_counts: dict[str, int] = {}
+    ungrouped_row_count = 0
+
+    first_pass_digest = hashlib.sha256()
     with path.open("rb") as source:
+        line_number = 0
         while True:
             offset = source.tell()
             line = source.readline()
             if not line:
                 break
+            first_pass_digest.update(line)
+            line_number += 1
             if not line.strip():
                 continue
-            target = eval_offsets if evaluation_fraction and rng.random() < evaluation_fraction else train_offsets
-            target.append(offset)
-    if not train_offsets and eval_offsets:
-        train_offsets.append(eval_offsets.pop())
-    if evaluation_fraction and not eval_offsets and len(train_offsets) > 1:
-        eval_offsets.append(train_offsets.pop())
-    if not train_offsets:
+            try:
+                row = json.loads(line.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"Canonical training row {line_number} is not valid UTF-8 JSON."
+                ) from error
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"Canonical training row {line_number} must be an object."
+                )
+            group = _declared_split_group(row, line_number=line_number)
+            if group is not None:
+                declared_group_counts[group] = declared_group_counts.get(group, 0) + 1
+                continue
+            ungrouped_row_count += 1
+
+    if not declared_group_counts and ungrouped_row_count == 0:
         raise ValueError("Canonical training dataset contains no rows.")
+
+    total_row_count = sum(declared_group_counts.values()) + ungrouped_row_count
+    split_unit_count = len(declared_group_counts) + ungrouped_row_count
+    target_evaluation_row_count = (
+        min(total_row_count - 1, max(1, round(total_row_count * evaluation_fraction)))
+        if evaluation_fraction > 0 and split_unit_count > 1
+        else 0
+    )
+    minimum_group_rows = max(
+        0, target_evaluation_row_count - ungrouped_row_count
+    )
+    maximum_group_rows = target_evaluation_row_count
+
+    def group_distance(value: int) -> int:
+        if value < minimum_group_rows:
+            return minimum_group_rows - value
+        if value > maximum_group_rows:
+            return value - maximum_group_rows
+        return 0
+
+    ordered_groups = sorted(
+        declared_group_counts.items(),
+        key=lambda item: (
+            _split_unit_priority(
+                _split_unit_digest(group=item[0], offset=0, line=b""), seed=seed
+            ),
+            _split_unit_digest(group=item[0], offset=0, line=b""),
+        ),
+    )
+    group_units = tuple(
+        (group, count, _split_unit_digest(group=group, offset=0, line=b""))
+        for group, count in ordered_groups
+    )
+    maximum_group_selection = min(
+        sum(item[1] for item in group_units), total_row_count - 1
+    )
+    reachable_group_rows = _reachable_row_count_bits(
+        tuple(item[1] for item in group_units), limit=maximum_group_selection
+    )
+    interval_width = maximum_group_rows - minimum_group_rows + 1
+    interval = (
+        reachable_group_rows >> minimum_group_rows
+    ) & ((1 << interval_width) - 1)
+    if interval:
+        group_evaluation_rows = minimum_group_rows + interval.bit_length() - 1
+    else:
+        candidates: list[int] = []
+        if minimum_group_rows > 0:
+            lower = reachable_group_rows & ((1 << minimum_group_rows) - 1)
+            if lower:
+                candidates.append(lower.bit_length() - 1)
+        upper = reachable_group_rows >> (maximum_group_rows + 1)
+        if upper:
+            candidates.append(
+                maximum_group_rows
+                + 1
+                + ((upper & -upper).bit_length() - 1)
+            )
+        if not candidates:
+            raise RuntimeError("Dataset split has no valid group assignment.")
+        group_evaluation_rows = min(
+            candidates, key=lambda value: (group_distance(value), value)
+        )
+    evaluation_groups = _reconstruct_group_subset(
+        group_units, target=group_evaluation_rows
+    )
+    group_assignments = {
+        group: (
+            "evaluation" if group in evaluation_groups else "train",
+            unit_digest,
+        )
+        for group, _count, unit_digest in group_units
+    }
+
+    ungrouped_evaluation_count = min(
+        ungrouped_row_count,
+        max(0, target_evaluation_row_count - group_evaluation_rows),
+    )
+    select_evaluation_rows = (
+        ungrouped_evaluation_count <= ungrouped_row_count - ungrouped_evaluation_count
+    )
+    selected_side_count = (
+        ungrouped_evaluation_count
+        if select_evaluation_rows
+        else ungrouped_row_count - ungrouped_evaluation_count
+    )
+    selected_ungrouped_digests: set[str] = set()
+    selection_heap: list[tuple[int, str]] = []
+    second_pass_digest = hashlib.sha256()
+    with path.open("rb") as source:
+        line_number = 0
+        while True:
+            offset = source.tell()
+            line = source.readline()
+            if not line:
+                break
+            second_pass_digest.update(line)
+            line_number += 1
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"Canonical training row {line_number} is not valid UTF-8 JSON."
+                ) from error
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"Canonical training row {line_number} must be an object."
+                )
+            group = _declared_split_group(row, line_number=line_number)
+            if group is not None or selected_side_count == 0:
+                continue
+            unit_digest = _split_unit_digest(group=None, offset=offset, line=line)
+            priority = _split_unit_priority(unit_digest, seed=seed)
+            candidate = (-priority, unit_digest)
+            if len(selection_heap) < selected_side_count:
+                heapq.heappush(selection_heap, candidate)
+            elif priority < -selection_heap[0][0]:
+                heapq.heapreplace(selection_heap, candidate)
+
+    if first_pass_digest.digest() != second_pass_digest.digest():
+        raise RuntimeError("Canonical training dataset changed while it was split.")
+    selected_ungrouped_digests = {item[1] for item in selection_heap}
+    if len(selected_ungrouped_digests) != selected_side_count:
+        raise RuntimeError("Dataset split could not select unique ungrouped units.")
+
+    declared_group_side_counts = {
+        "train": sum(
+            1 for side, _digest in group_assignments.values() if side == "train"
+        ),
+        "evaluation": sum(
+            1
+            for side, _digest in group_assignments.values()
+            if side == "evaluation"
+        )
+    }
+    row_counts = {
+        "evaluation": group_evaluation_rows + ungrouped_evaluation_count,
+        "train": total_row_count
+        - group_evaluation_rows
+        - ungrouped_evaluation_count,
+    }
+    unit_counts = {
+        "evaluation": declared_group_side_counts["evaluation"]
+        + ungrouped_evaluation_count,
+        "train": declared_group_side_counts["train"]
+        + ungrouped_row_count
+        - ungrouped_evaluation_count,
+    }
+    if row_counts["train"] <= 0:
+        raise RuntimeError("Dataset split could not retain a training unit.")
+
+    train_offsets, eval_offsets = array("Q"), array("Q")
+    assignment_digest = hashlib.sha256()
+    assignment_digest.update(b"aptus.dataset-split-assignments.v2\n")
+    third_pass_digest = hashlib.sha256()
+    observed_rows = 0
+    with path.open("rb") as source:
+        line_number = 0
+        while True:
+            offset = source.tell()
+            line = source.readline()
+            if not line:
+                break
+            third_pass_digest.update(line)
+            line_number += 1
+            if not line.strip():
+                continue
+            row = json.loads(line.decode("utf-8"))
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"Canonical training row {line_number} must be an object."
+                )
+            group = _declared_split_group(row, line_number=line_number)
+            if group is None:
+                unit_digest = _split_unit_digest(group=None, offset=offset, line=line)
+                selected = unit_digest in selected_ungrouped_digests
+                side = (
+                    "evaluation"
+                    if selected == select_evaluation_rows
+                    else "train"
+                )
+            else:
+                side, unit_digest = group_assignments[group]
+            target = eval_offsets if side == "evaluation" else train_offsets
+            target.append(offset)
+            assignment_digest.update(
+                f"{offset}:{unit_digest}:{side}\n".encode("ascii")
+            )
+            observed_rows += 1
+
+    if first_pass_digest.digest() != third_pass_digest.digest():
+        raise RuntimeError("Canonical training dataset changed while it was split.")
+    if observed_rows != row_counts["train"] + row_counts["evaluation"]:
+        raise RuntimeError("Canonical training dataset changed while it was split.")
+    if (
+        len(train_offsets) != row_counts["train"]
+        or len(eval_offsets) != row_counts["evaluation"]
+    ):
+        raise RuntimeError("Dataset split evidence does not match its row assignments.")
+    evidence = {
+        "schema_version": "aptus.dataset-split.v1",
+        "strategy": (
+            "deterministic-size-aware-group-sha256"
+            if declared_group_counts
+            else "deterministic-exact-row-count-sha256"
+        ),
+        "seed": seed,
+        "evaluation_fraction": evaluation_fraction,
+        "target_evaluation_row_count": target_evaluation_row_count,
+        "evaluation_row_error": abs(
+            len(eval_offsets) - target_evaluation_row_count
+        ),
+        "realized_evaluation_fraction": len(eval_offsets) / observed_rows,
+        "total_row_count": observed_rows,
+        "training_row_count": len(train_offsets),
+        "evaluation_row_count": len(eval_offsets),
+        "declared_group_count": len(declared_group_counts),
+        "training_declared_group_count": declared_group_side_counts["train"],
+        "evaluation_declared_group_count": declared_group_side_counts["evaluation"],
+        "ungrouped_row_count": ungrouped_row_count,
+        "split_unit_count": unit_counts["train"] + unit_counts["evaluation"],
+        "training_split_unit_count": unit_counts["train"],
+        "evaluation_split_unit_count": unit_counts["evaluation"],
+        "canonical_jsonl_sha256": third_pass_digest.hexdigest(),
+        "assignment_sha256": assignment_digest.hexdigest(),
+    }
+    return train_offsets, eval_offsets, evidence
+
+
+def split_jsonl_offsets(
+    path: Path, *, evaluation_fraction: float, seed: int
+) -> tuple[array, array]:
+    train_offsets, eval_offsets, _evidence = split_jsonl_offsets_with_evidence(
+        path, evaluation_fraction=evaluation_fraction, seed=seed
+    )
     return train_offsets, eval_offsets
+
+
+def require_collective_dataset_split_binding(
+    path: Path, evidence: dict[str, Any]
+) -> None:
+    import torch
+
+    try:
+        local_digest = _sha256(path)
+        local_error = None
+    except OSError as error:
+        local_digest = None
+        local_error = f"{type(error).__name__}: {error}"
+    local = {
+        "canonical_jsonl_sha256": local_digest,
+        "assignment_sha256": evidence.get("assignment_sha256"),
+        "training_row_count": evidence.get("training_row_count"),
+        "evaluation_row_count": evidence.get("evaluation_row_count"),
+        "error": local_error,
+    }
+    gathered = [local]
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        gathered = [None] * torch.distributed.get_world_size()
+        torch.distributed.all_gather_object(gathered, local)
+    expected_digest = evidence.get("canonical_jsonl_sha256")
+    if (
+        local_error is not None
+        or local_digest != expected_digest
+        or any(item != local for item in gathered)
+    ):
+        raise RuntimeError(
+            "Canonical training data or split assignments differ from their collective evidence."
+        )
 
 
 class LazyJsonlDataset:
@@ -1799,21 +2641,56 @@ class LazyJsonlDataset:
         offsets: array,
         tokenizer: Any,
         sequence_length: int,
+        expected_sha256: str,
     ) -> None:
         self.path = path
         self.offsets = offsets
         self.tokenizer = tokenizer
         self.sequence_length = sequence_length
+        self.expected_sha256 = expected_sha256
         self._source = None
+        self._source_stat = None
+
+    @staticmethod
+    def _stat_identity(value: Any) -> tuple[int, int, int, int, int]:
+        return (
+            int(value.st_dev),
+            int(value.st_ino),
+            int(value.st_size),
+            int(value.st_mtime_ns),
+            int(value.st_ctime_ns),
+        )
+
+    def _open_verified_source(self) -> None:
+        source = self.path.open("rb")
+        before = self._stat_identity(os.fstat(source.fileno()))
+        digest = hashlib.sha256()
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+        after = self._stat_identity(os.fstat(source.fileno()))
+        if before != after:
+            source.close()
+            raise RuntimeError("Canonical training data changed while it was verified.")
+        if digest.hexdigest() != self.expected_sha256:
+            source.close()
+            raise RuntimeError("Canonical training data no longer matches split evidence.")
+        source.seek(0)
+        self._source = source
+        self._source_stat = after
 
     def __len__(self) -> int:
         return len(self.offsets)
 
     def __getitem__(self, index: int) -> dict[str, list[int]]:
         if self._source is None:
-            self._source = self.path.open("rb")
+            self._open_verified_source()
+        if self._source_stat != self._stat_identity(os.fstat(self._source.fileno())):
+            raise RuntimeError("Canonical training data changed during consumption.")
         self._source.seek(self.offsets[index])
-        row = json.loads(self._source.readline().decode("utf-8"))
+        line = self._source.readline()
+        if self._source_stat != self._stat_identity(os.fstat(self._source.fileno())):
+            raise RuntimeError("Canonical training data changed during consumption.")
+        row = json.loads(line.decode("utf-8"))
         if not isinstance(row, dict):
             raise ValueError("Canonical training row must be an object.")
         return encode_record(row, self.tokenizer, self.sequence_length)
@@ -1821,6 +2698,7 @@ class LazyJsonlDataset:
     def __getstate__(self) -> dict[str, Any]:
         state = dict(self.__dict__)
         state["_source"] = None
+        state["_source_stat"] = None
         return state
 
     def __del__(self) -> None:
@@ -1849,7 +2727,34 @@ def run_training(
         finite_backward_loss_checks = 0
         finite_gradient_norm_checks = 0
         finite_trainable_parameter_scans = 0
+        optimizer_parameter_binding_checks = 0
         non_skipped_optimizer_steps = 0
+
+        def create_optimizer(self) -> Any:
+            optimizer = super().create_optimizer()
+            if self.optimizer is None:
+                raise RuntimeError("Trainer did not create an optimizer.")
+            expected_parameters = [
+                parameter for parameter in self.model.parameters() if parameter.requires_grad
+            ]
+            observed_parameters = [
+                parameter
+                for group in self.optimizer.param_groups
+                for parameter in group.get("params", ())
+            ]
+            expected_ids = [id(parameter) for parameter in expected_parameters]
+            observed_ids = [id(parameter) for parameter in observed_parameters]
+            if (
+                not expected_ids
+                or len(expected_ids) != len(set(expected_ids))
+                or len(observed_ids) != len(set(observed_ids))
+                or set(observed_ids) != set(expected_ids)
+            ):
+                raise RuntimeError(
+                    "Optimizer parameters do not exactly match the validated trainable set."
+                )
+            self.optimizer_parameter_binding_checks += 1
+            return optimizer
 
         @staticmethod
         def require_collective_condition(
@@ -1958,9 +2863,11 @@ def run_training(
     set_seed(seed)
     random.seed(seed)
     candidate = plan["recommended"]
+    initialize_and_require_strategy(plan)
     pilot_rows: list[dict[str, Any]] | None = None
     train_offsets: array | None = None
     eval_offsets: array | None = None
+    split_evidence: dict[str, Any] | None = None
     if pilot:
         pilot_rows = load_rows(ROOT / trainer_config["pilot_dataset_path"])
         pilot_rows = select_pilot_rows(
@@ -1968,11 +2875,12 @@ def run_training(
         )
     else:
         training_path = ROOT / trainer_config["training_dataset_path"]
-        train_offsets, eval_offsets = split_jsonl_offsets(
+        train_offsets, eval_offsets, split_evidence = split_jsonl_offsets_with_evidence(
             training_path,
             evaluation_fraction=trainer_config["evaluation_fraction"],
             seed=seed,
         )
+        require_collective_dataset_split_binding(training_path, split_evidence)
 
     effective_steps = resolve_max_steps(pilot=pilot, max_steps=max_steps)
     checkpoint_steps = trainer_config["checkpoint_steps"]
@@ -2011,11 +2919,10 @@ def run_training(
         data_seed=seed,
         remove_unused_columns=trainer_config["remove_unused_columns"],
     )
-    initialize_and_require_strategy(plan)
     if not pilot:
         collectively_require_full_train_approval(plan, output_dir)
     require_hardware_parity(plan)
-    model, tokenizer, actual_parameter_count = build_model(
+    model, tokenizer, actual_parameter_count, trainable_census = build_model(
         plan, local_files_only=local_files_only
     )
     if pilot:
@@ -2041,11 +2948,19 @@ def run_training(
     else:
         assert train_offsets is not None and eval_offsets is not None
         train_dataset = LazyJsonlDataset(
-            training_path, train_offsets, tokenizer, trainer_config["sequence_length"]
+            training_path,
+            train_offsets,
+            tokenizer,
+            trainer_config["sequence_length"],
+            split_evidence["canonical_jsonl_sha256"],
         )
         eval_dataset = (
             LazyJsonlDataset(
-                training_path, eval_offsets, tokenizer, trainer_config["sequence_length"]
+                training_path,
+                eval_offsets,
+                tokenizer,
+                trainer_config["sequence_length"],
+                split_evidence["canonical_jsonl_sha256"],
             )
             if eval_offsets
             else None
@@ -2081,11 +2996,18 @@ def run_training(
     )
     step_callback.trainer = trainer
     require_trainer_strategy(trainer, plan)
+    if not pilot:
+        assert split_evidence is not None
+        require_collective_dataset_split_binding(training_path, split_evidence)
     result = trainer.train(resume_from_checkpoint=resume_from)
+    if not pilot:
+        require_collective_dataset_split_binding(training_path, split_evidence)
     trainer.require_trainable_parameters_finite()
     metrics = dict(result.metrics)
     if eval_dataset is not None:
         metrics.update(trainer.evaluate())
+    if not pilot:
+        require_collective_dataset_split_binding(training_path, split_evidence)
     export_evidence = export_final_artifact(trainer, tokenizer, output_dir, plan)
     if torch.cuda.is_available():
         local_peaks = torch.tensor(
@@ -2123,11 +3045,13 @@ def run_training(
         "pilot_evaluation_enabled": False if pilot else eval_dataset is not None,
         "training_example_count": len(train_dataset),
         "evaluation_example_count": len(eval_dataset) if eval_dataset is not None else 0,
+        "dataset_split": split_evidence,
         "global_step": trainer.state.global_step,
         "finite_raw_loss_checks": trainer.finite_raw_loss_checks,
         "finite_backward_loss_checks": trainer.finite_backward_loss_checks,
         "finite_gradient_norm_checks": trainer.finite_gradient_norm_checks,
         "finite_trainable_parameter_scans": trainer.finite_trainable_parameter_scans,
+        "optimizer_parameter_binding_checks": trainer.optimizer_parameter_binding_checks,
         "non_skipped_optimizer_steps": trainer.non_skipped_optimizer_steps,
         "resume_from": resume_from,
         "distribution": candidate["distribution"],
@@ -2138,6 +3062,7 @@ def run_training(
         ),
         "actual_parameter_count": actual_parameter_count,
         "parameter_count_tolerance_fraction": 0.02,
+        "trainable_parameter_census": trainable_census,
         "final_export": export_evidence,
     })
     assert_measured_training_metrics(metrics, candidate=candidate, pilot=pilot)
@@ -2182,6 +3107,7 @@ def main() -> int:
     plan = load_plan()
     bind_visible_cuda_devices(plan)
     trainer_config = load_trainer_config()
+    require_compiler_contract(plan, trainer_config)
     if arguments.promote_pending is not None:
         promote_pending_run(arguments.promote_pending, plan)
         print(f"Promoted measured-run evidence for {arguments.promote_pending}.")
@@ -2647,6 +3573,62 @@ def training_command(plan: dict, *arguments: str) -> list[str]:
     ]
 
 
+def require_census(value: Any, *, method: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError("Metrics do not contain a trainable-parameter census.")
+    expected_scope = "all-parameters" if method == "full" else "lora-adapter-only"
+    expected_identity = {
+        "schema_version": "aptus.trainable-parameter-census.v1",
+        "method": method,
+        "parameter_scope": expected_scope,
+    }
+    if any(value.get(name) != expected_value for name, expected_value in expected_identity.items()):
+        raise RuntimeError("Trainable-parameter census violates the selected method scope.")
+    if value.get("all_values_finite") is not True:
+        raise RuntimeError("Trainable-parameter census does not attest finite values.")
+    for name in ("trainable_parameter_count", "trainable_tensor_count"):
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            raise RuntimeError(f"Trainable-parameter census requires positive {name}.")
+    counter_names = (
+        "frozen_parameter_count",
+        "frozen_tensor_count",
+        "unexpected_trainable_tensor_count",
+        "expected_adapter_target_match_count",
+        "adapter_target_instance_count",
+        "incomplete_adapter_target_instance_count",
+    )
+    for name in counter_names:
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise RuntimeError(f"Trainable-parameter census requires non-negative integer {name}.")
+    if method == "full":
+        if any(value[name] != 0 for name in counter_names):
+            raise RuntimeError("Full fine-tuning census contains frozen or adapter counters.")
+    else:
+        for name in ("frozen_parameter_count", "frozen_tensor_count"):
+            if value[name] <= 0:
+                raise RuntimeError(
+                    f"Adapter census requires positive {name} for its frozen base."
+                )
+        if value["unexpected_trainable_tensor_count"] != 0:
+            raise RuntimeError("Adapter census contains an unexpected trainable tensor.")
+        if (
+            value["expected_adapter_target_match_count"] <= 0
+            or value["adapter_target_instance_count"] != value["expected_adapter_target_match_count"]
+            or value["incomplete_adapter_target_instance_count"] != 0
+        ):
+            raise RuntimeError("Adapter census does not bind one complete LoRA A/B pair to every target instance.")
+    digest = value.get("descriptor_sha256")
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise RuntimeError("Trainable-parameter census has an invalid descriptor digest.")
+    return value
+
+
 def run_validation(arguments: argparse.Namespace) -> int:
     target = LEVELS.index(arguments.level)
     plan = require_contract()
@@ -2713,6 +3695,16 @@ def run_validation(arguments: argparse.Namespace) -> int:
             return completed.returncode
         phase_one_metrics = json.loads((phase_one / "metrics.json").read_text(encoding="utf-8"))
         phase_two_metrics = json.loads((phase_two / "metrics.json").read_text(encoding="utf-8"))
+        phase_one_census = require_census(
+            phase_one_metrics.get("trainable_parameter_census"),
+            method=plan["recommended"]["method"],
+        )
+        phase_two_census = require_census(
+            phase_two_metrics.get("trainable_parameter_census"),
+            method=plan["recommended"]["method"],
+        )
+        if phase_one_census != phase_two_census:
+            raise RuntimeError("Pilot phases do not bind the same trainable parameter set.")
         if phase_one_metrics.get("global_step") != 1 or phase_two_metrics.get("global_step", 0) < 2:
             raise RuntimeError("Pilot did not prove a step-one checkpoint and resumed step two.")
         for phase_name, metrics in (("phase one", phase_one_metrics), ("phase two", phase_two_metrics)):
@@ -2919,6 +3911,62 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def require_census(value: Any, *, method: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError("Metrics do not contain a trainable-parameter census.")
+    expected_scope = "all-parameters" if method == "full" else "lora-adapter-only"
+    expected_identity = {
+        "schema_version": "aptus.trainable-parameter-census.v1",
+        "method": method,
+        "parameter_scope": expected_scope,
+    }
+    if any(value.get(name) != expected_value for name, expected_value in expected_identity.items()):
+        raise RuntimeError("Trainable-parameter census violates the selected method scope.")
+    if value.get("all_values_finite") is not True:
+        raise RuntimeError("Trainable-parameter census does not attest finite values.")
+    for name in ("trainable_parameter_count", "trainable_tensor_count"):
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            raise RuntimeError(f"Trainable-parameter census requires positive {name}.")
+    counter_names = (
+        "frozen_parameter_count",
+        "frozen_tensor_count",
+        "unexpected_trainable_tensor_count",
+        "expected_adapter_target_match_count",
+        "adapter_target_instance_count",
+        "incomplete_adapter_target_instance_count",
+    )
+    for name in counter_names:
+        count = value.get(name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise RuntimeError(f"Trainable-parameter census requires non-negative integer {name}.")
+    if method == "full":
+        if any(value[name] != 0 for name in counter_names):
+            raise RuntimeError("Full fine-tuning census contains frozen or adapter counters.")
+    else:
+        for name in ("frozen_parameter_count", "frozen_tensor_count"):
+            if value[name] <= 0:
+                raise RuntimeError(
+                    f"Adapter census requires positive {name} for its frozen base."
+                )
+        if value["unexpected_trainable_tensor_count"] != 0:
+            raise RuntimeError("Adapter census contains an unexpected trainable tensor.")
+        if (
+            value["expected_adapter_target_match_count"] <= 0
+            or value["adapter_target_instance_count"] != value["expected_adapter_target_match_count"]
+            or value["incomplete_adapter_target_instance_count"] != 0
+        ):
+            raise RuntimeError("Adapter census does not bind one complete LoRA A/B pair to every target instance.")
+    digest = value.get("descriptor_sha256")
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise RuntimeError("Trainable-parameter census has an invalid descriptor digest.")
+    return value
+
+
 def require_preflight_metrics(plan: dict) -> dict:
     metrics_path = ROOT / "preflight-metrics.json"
     try:
@@ -2950,6 +3998,10 @@ def require_preflight_metrics(plan: dict) -> dict:
         raise RuntimeError(
             "Measured-preflight metrics require a positive measured_peak_cuda_bytes integer."
         )
+    require_census(
+        metrics.get("trainable_parameter_census"),
+        method=candidate["method"],
+    )
     return metrics
 
 
@@ -3450,8 +4502,11 @@ def _accelerate_config(plan: TrainingPlan) -> str:
 def _trainer_config(plan: TrainingPlan) -> dict[str, Any]:
     candidate = plan.recommended
     target = plan.target
+    descriptor = method_descriptor(candidate.method)
     return {
         "schema_version": "aptus.trainer-config.v2",
+        "compiler_id": descriptor.compiler_id,
+        "export_kind": descriptor.export_kind,
         "task": target.task,
         "sequence_length": target.sequence_length,
         "packing": target.packing,

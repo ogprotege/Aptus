@@ -15,6 +15,7 @@ from aptus.execution import (
     _actual_runtime_snapshot,
     _environment_binding,
     _json_hash,
+    _verify_pilot_artifacts,
     _verify_safetensors_structure,
 )
 from aptus.plan_contract import sha256_file
@@ -39,6 +40,7 @@ def fake_bundle(
         "hardware": {"reserve_per_device_bytes": 0},
         "recommended": {
             "candidate_id": "cand_test",
+            "method": "lora",
             "distribution": "single",
             "world_size": 1,
             "required_host_ram_bytes": 1,
@@ -99,6 +101,87 @@ def make_slow(bundle: Path) -> None:
 
 
 class ExecutionJobTests(unittest.TestCase):
+    def test_host_pilot_verifier_requires_matching_phase_censuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = fake_bundle(Path(temporary))
+            plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
+            pilot_id = "pilot_" + "d" * 32
+            pilot_root = bundle / "runs" / pilot_id
+            pilot_root.mkdir(parents=True)
+            (pilot_root / ".aptus-pilot-run.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "aptus.pilot-run.v1",
+                        "pilot_run_id": pilot_id,
+                        "plan_id": plan["plan_id"],
+                        "candidate_id": plan["recommended"]["candidate_id"],
+                        "model_revision": plan["model"]["revision"],
+                        "dataset_sha256": plan["dataset"]["source_sha256"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            def checkpoint_contract(phase: str, checkpoint: str) -> dict:
+                root = pilot_root / phase / checkpoint
+                root.mkdir(parents=True)
+                state = root / "state.bin"
+                state.write_bytes(b"x")
+                files = [
+                    {
+                        "path": "state.bin",
+                        "size_bytes": 1,
+                        "sha256": sha256_file(state),
+                    }
+                ]
+                return {
+                    "files": files,
+                    "manifest_sha256": _json_hash(files),
+                    "total_bytes": 1,
+                }
+
+            phase_one_contract = checkpoint_contract("phase-1", "checkpoint-1")
+            phase_two_contract = checkpoint_contract("phase-2", "checkpoint-2")
+            metrics = {
+                "checkpoint_continuation_observed": True,
+                "pilot_run_dir": f"runs/{pilot_id}",
+                "pilot_run_id": pilot_id,
+                "phase_one_checkpoint": phase_one_contract,
+                "phase_two_checkpoint": phase_two_contract,
+                "measured_checkpoint_bytes": 1,
+                "measured_final_export_bytes": 1,
+                "phase_one": {"final_export": {"total_bytes": 1}},
+                "phase_two_resumed": {"final_export": {"total_bytes": 1}},
+            }
+            with self.assertRaisesRegex(ValueError, "census"):
+                _verify_pilot_artifacts(bundle, metrics)
+
+            census = {
+                "schema_version": "aptus.trainable-parameter-census.v1",
+                "method": "lora",
+                "parameter_scope": "lora-adapter-only",
+                "trainable_parameter_count": 8,
+                "trainable_tensor_count": 2,
+                "frozen_parameter_count": 100,
+                "frozen_tensor_count": 1,
+                "unexpected_trainable_tensor_count": 0,
+                "expected_adapter_target_match_count": 1,
+                "adapter_target_instance_count": 1,
+                "incomplete_adapter_target_instance_count": 0,
+                "all_values_finite": True,
+                "descriptor_sha256": "a" * 64,
+            }
+            metrics["phase_one"]["trainable_parameter_census"] = census
+            metrics["phase_two_resumed"]["trainable_parameter_census"] = {
+                **census,
+                "descriptor_sha256": "b" * 64,
+            }
+            with self.assertRaisesRegex(ValueError, "same trainable parameter set"):
+                _verify_pilot_artifacts(bundle, metrics)
+
+            metrics["phase_two_resumed"]["trainable_parameter_census"] = census
+            self.assertEqual(_verify_pilot_artifacts(bundle, metrics), (1, 1))
+
     def test_parent_runtime_probe_selects_candidate_device_indices(self) -> None:
         completed = subprocess.CompletedProcess(
             [],

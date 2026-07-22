@@ -20,13 +20,17 @@ conditional until its runtime gate is complete.
 
 ## Planner depth
 
-- Version the method catalog independently from planner code.
+- Evolve the versioned method descriptor registry into method-dispatched
+  estimators, compilers, checkpoint contracts, and export verifiers.
 - Separate training objective, parameterization, recipe modifiers, optimizer,
   precision, quantization, and distribution as explicit planning axes.
 - Add calibrated device and model-family priors without replacing measured
   pilot evidence.
 - Add target wall-time and budget constraints with honest abstention.
 - Add richer dataset quality, contamination, and task-shape diagnostics.
+- Implement DoRA first through the pinned maintained runtime, then BitFit with
+  architecture-gated bias selection and a bias-delta artifact. Keep AdaLoRA,
+  LoReFT, AFLoRA, BiLoRA, and ShareLoRA behind their documented gates.
 
 ## Evaluation and export contracts
 
@@ -48,13 +52,27 @@ conditional until its runtime gate is complete.
 
 ## Additional platforms and integrations
 
-- Evaluate ROCm, then MPS, under separate capability and pilot gates.
+- Build MLX as a separate Apple Silicon compiler with unified-memory
+  accounting, MLX-LM dependency and data contracts, save and reload
+  verification, and measured M5 pilots. Do not reuse CUDA VRAM formulas.
+- Evaluate ROCm after its own runtime and hardware contracts are defined.
 - Add cloud runner and provider adapters behind explicit credentials and cost
   boundaries.
 - Add MCP and external automation adapters after the local authorization model
   is defined.
 - Add experiment trackers as optional sinks, never as the source of truth for
   local completion.
+
+## Corpus governance
+
+- Build an append-only capture and review service with immutable interaction,
+  turn, correction, reviewer, consent, license, redaction, and provenance
+  records.
+- Export only approved rows into versioned SFT or preference schemas.
+- Bind deduplication, `split_group`, train, validation, and test identities so
+  related chunks and paraphrases cannot leak across evaluation boundaries.
+- Support revocation and trace which historical dataset digests contained a
+  record.
 
 ## Non-goals
 

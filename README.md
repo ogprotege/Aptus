@@ -14,10 +14,20 @@ host.
 
 - Validates every source training row from local JSON, JSONL, CSV, or text data
   and records a source digest.
+- During full training, keeps related rows with the same explicit `split_group`
+  on one side of the deterministic train and evaluation boundary. It records
+  target and realized sizes because indivisible groups can prevent an exact
+  requested fraction.
 - Accepts an immutable model revision plus explicit architecture and permission
   facts.
 - Enumerates full fine-tuning, LoRA, int8-LoRA, and QLoRA across supported
   single-device and distributed placements.
+- Publishes a typed method-readiness catalog that separates those executable
+  paths from experimental and research-only methods.
+- Enforces a positive, finite, method-specific trainable-parameter census before
+  optimizer construction. Adapter paths require one LoRA A/B pair for every
+  inspected target instance. The optimizer parameter identities must then equal
+  that validated set. Measured evidence records its name-shape-dtype digest.
 - Produces point and upper memory estimates with cited assumptions.
 - Compiles a no-clobber bundle containing data, plan, evidence, direct package
   pins, launch configuration, validators, and training code.
@@ -33,7 +43,9 @@ host.
 ## Current boundaries
 
 - CUDA is the only execution backend in the v0.2 support contract. Other
-  backends can appear as known values but are not execution-ready.
+  backends can appear as known values but are not execution-ready. Local Apple
+  Silicon inspection records its shared unified-memory pool without treating
+  it as dedicated VRAM or pretending the CUDA compiler can run there.
 - Full fine-tuning requires BF16. Adapter methods can select FP16 when BF16 is
   not declared, subject to the exact pilot gate.
 - Full-parameter FSDP is unsupported. LoRA FSDP is conditional. Quantized FSDP
@@ -159,6 +171,8 @@ execution is fail-closed in v0.2.
 - [System architecture](docs/architecture/system.md)
 - [Validation states](docs/reference/validation-states.md)
 - [Release gates](docs/operations/release-gates.md)
+- [Apple Silicon pilot matrix](docs/operations/apple-silicon-pilot.md)
+- [Reviewed corpus contract](docs/reference/reviewed-corpus-contract.md)
 - [Security policy](SECURITY.md)
 
 ## License

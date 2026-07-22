@@ -7,6 +7,7 @@ import type {
   HardwareProbeResponse,
   Job,
   JobRequest,
+  MethodDescriptor,
   ModelInspectionResponse,
   PlanRequest,
   ProfileRequest,
@@ -17,6 +18,70 @@ import type {
 } from "./types";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const METHOD_LIFECYCLES = new Set([
+  "gated-executable",
+  "experimental",
+  "research-only",
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function normalizeMethodCatalog(value: unknown): MethodDescriptor[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Aptus returned an invalid method catalog.");
+  }
+  return value.map((item, index) => {
+    if (!isRecord(item)) {
+      throw new Error(`Aptus method descriptor ${index} is not an object.`);
+    }
+    const requiredStrings = [
+      "schema_version",
+      "method_id",
+      "display_name",
+      "summary",
+      "parameter_scope",
+      "parameterization",
+      "base_storage",
+      "pilot_requirement",
+    ];
+    const requiredArrays = [
+      "supported_backends",
+      "supported_distributions",
+      "evidence_ids",
+    ];
+    if (
+      requiredStrings.some(
+        (key) => typeof item[key] !== "string" || !item[key],
+      )
+      || requiredArrays.some((key) => !isStringArray(item[key]))
+      || !METHOD_LIFECYCLES.has(String(item.lifecycle))
+      || typeof item.selectable !== "boolean"
+      || !(typeof item.compiler_id === "string" || item.compiler_id === null)
+      || !(typeof item.export_kind === "string" || item.export_kind === null)
+      || !(
+        item.blocker === undefined
+        || item.blocker === null
+        || typeof item.blocker === "string"
+      )
+      || !(item.aliases === undefined || isStringArray(item.aliases))
+    ) {
+      throw new Error(`Aptus method descriptor ${index} violates its API contract.`);
+    }
+    if (
+      item.selectable
+      && (!item.compiler_id || !item.export_kind)
+    ) {
+      throw new Error(`Selectable Aptus method descriptor ${index} has no compiler contract.`);
+    }
+    return item as unknown as MethodDescriptor;
+  });
+}
 
 function requiredNumber(value: number | null, label: string): number {
   if (value === null || !Number.isFinite(value)) {
@@ -300,6 +365,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   async bootstrap(signal?: AbortSignal) {
     const payload = await request<Record<string, unknown>>("/api/v1/bootstrap", { signal });
+    const capabilities = isRecord(payload.capabilities)
+      ? { ...payload.capabilities }
+      : undefined;
+    if (capabilities && "method_catalog" in capabilities) {
+      capabilities.method_catalog = normalizeMethodCatalog(
+        capabilities.method_catalog,
+      );
+    }
     const plan = typeof payload.plan === "object" && payload.plan !== null
       ? normalizePlan(payload.plan as Record<string, unknown>)
       : null;
@@ -308,6 +381,7 @@ export const api = {
       : null;
     return {
       ...payload,
+      capabilities,
       plan,
       bundle:
         typeof payload.bundle === "object" && payload.bundle !== null

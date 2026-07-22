@@ -25,6 +25,7 @@ try:
 except ImportError:  # pragma: no cover - POSIX only.
     msvcrt = None
 
+from .attestation import require_trainable_parameter_census
 from .catalog import bundle_requirements
 from .domain import (
     ValidationFinding,
@@ -204,6 +205,10 @@ def _read_preflight_metrics(path: Path, plan: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             "Measured-preflight metrics require a positive measured_peak_cuda_bytes integer."
         )
+    require_trainable_parameter_census(
+        metrics.get("trainable_parameter_census"),
+        method=str(candidate.get("method")),
+    )
     return metrics
 
 

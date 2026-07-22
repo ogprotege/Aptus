@@ -9,7 +9,7 @@ from unittest.mock import patch
 from aptus.domain import ValidationState
 from aptus.generation import generate_bundle
 from aptus.plan_contract import sha256_file
-from aptus.validation import validate_bundle
+from aptus.validation import _read_preflight_metrics, validate_bundle
 
 from tests.aptus.helpers import make_plan
 
@@ -27,6 +27,31 @@ def install_measured_run_attestation(bundle: Path) -> dict:
         "world_size": candidate["world_size"],
         "measured_peak_cuda_bytes": 4096,
         "scope": "synthetic-method-preflight-not-model-data-pilot",
+        "trainable_parameter_census": {
+            "schema_version": "aptus.trainable-parameter-census.v1",
+            "method": candidate["method"],
+            "parameter_scope": (
+                "all-parameters"
+                if candidate["method"] == "full"
+                else "lora-adapter-only"
+            ),
+            "trainable_parameter_count": 8192,
+            "trainable_tensor_count": 2,
+            "frozen_parameter_count": (
+                0 if candidate["method"] == "full" else 2_000_000
+            ),
+            "frozen_tensor_count": 0 if candidate["method"] == "full" else 1,
+            "unexpected_trainable_tensor_count": 0,
+            "expected_adapter_target_match_count": (
+                0 if candidate["method"] == "full" else 1
+            ),
+            "adapter_target_instance_count": (
+                0 if candidate["method"] == "full" else 1
+            ),
+            "incomplete_adapter_target_instance_count": 0,
+            "all_values_finite": True,
+            "descriptor_sha256": "b" * 64,
+        },
     }
     preflight_path = bundle / "preflight-metrics.json"
     preflight_path.write_text(json.dumps(preflight_metrics), encoding="utf-8")
@@ -115,6 +140,33 @@ def install_measured_run_attestation(bundle: Path) -> dict:
 
 
 class ValidationAttestationTests(unittest.TestCase):
+    def test_host_preflight_reader_requires_trainable_census(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+            plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
+            candidate = plan["recommended"]
+            metrics_path = bundle / "preflight-metrics.json"
+            metrics_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "aptus.preflight-metrics.v1",
+                        "candidate_id": candidate["candidate_id"],
+                        "method": candidate["method"],
+                        "precision": candidate["precision"],
+                        "quantization": candidate.get("quantization"),
+                        "distribution": candidate["distribution"],
+                        "world_size": candidate["world_size"],
+                        "measured_peak_cuda_bytes": 1,
+                        "scope": "synthetic-method-preflight-not-model-data-pilot",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "census"):
+                _read_preflight_metrics(metrics_path, plan)
+
     def test_lower_recheck_preserves_stronger_same_bundle_attestation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

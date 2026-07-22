@@ -73,6 +73,48 @@ class FakeModelParameter:
         return self._count
 
 
+class FakeCensusParameter:
+    def __init__(
+        self,
+        count: int,
+        *,
+        shape: tuple[int, ...],
+        dtype: str = "fixture-float32",
+        requires_grad: bool = True,
+        finite: bool = True,
+    ):
+        self._count = count
+        self.shape = shape
+        self.dtype = dtype
+        self.requires_grad = requires_grad
+        self.finite = finite
+
+    def numel(self):
+        return self._count
+
+    def detach(self):
+        return self
+
+
+class FakeCensusModel:
+    def __init__(self, parameters):
+        self._parameters = tuple(parameters)
+
+    def named_parameters(self):
+        return self._parameters
+
+
+class FakeFiniteResult:
+    def __init__(self, value: bool):
+        self.value = value
+
+    def all(self):
+        return self
+
+    def item(self):
+        return self.value
+
+
 class FakeLoadedModel:
     def __init__(
         self,
@@ -168,6 +210,36 @@ class BundleGenerationTests(unittest.TestCase):
             calls = {}
             encoded_rows = []
             cleanup_calls = []
+            preparation_events = []
+            expected_target_matches = (
+                0
+                if method == "full"
+                else sum(
+                    1
+                    for name in module_names
+                    if any(
+                        name == target or name.endswith("." + target)
+                        for target in target_modules
+                    )
+                )
+            )
+            census = {
+                "schema_version": "aptus.trainable-parameter-census.v1",
+                "method": method,
+                "parameter_scope": (
+                    "all-parameters" if method == "full" else "lora-adapter-only"
+                ),
+                "trainable_parameter_count": 8192,
+                "trainable_tensor_count": 2,
+                "frozen_parameter_count": 0 if method == "full" else actual_parameters,
+                "frozen_tensor_count": 0 if method == "full" else 1,
+                "unexpected_trainable_tensor_count": 0,
+                "expected_adapter_target_match_count": expected_target_matches,
+                "adapter_target_instance_count": expected_target_matches,
+                "incomplete_adapter_target_instance_count": 0,
+                "all_values_finite": True,
+                "descriptor_sha256": "b" * 64,
+            }
 
             class FakeAutoTokenizer:
                 @classmethod
@@ -225,12 +297,35 @@ class BundleGenerationTests(unittest.TestCase):
                 patch.object(module, "require_hardware_parity"),
                 patch.object(
                     module,
+                    "prepare_model_for_training",
+                    side_effect=lambda model, _plan: (
+                        preparation_events.append("prepare") or model
+                    ),
+                ),
+                patch.object(
+                    module,
+                    "require_trainable_parameter_census",
+                    side_effect=lambda _model, **_kwargs: (
+                        preparation_events.append("census") or census
+                    ),
+                ),
+                patch.object(
+                    module,
                     "encode_record",
                     side_effect=lambda row, *_args: encoded_rows.append(row),
                 ),
             ):
-                module.model_data_preflight(plan, trainer_config, local_files_only=True)
-            return calls, encoded_rows, cleanup_calls, loaded_model
+                observed_census = module.model_data_preflight(
+                    plan, trainer_config, local_files_only=True
+                )
+            return (
+                calls,
+                encoded_rows,
+                cleanup_calls,
+                loaded_model,
+                preparation_events,
+                observed_census,
+            )
 
     def test_compiles_canonical_portable_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -301,6 +396,8 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn('warmup_steps=trainer_config["warmup_steps"]', source)
         self.assertIn('revision=model_spec["revision"]', source)
         self.assertIn("class FiniteGuardTrainer(Trainer)", source)
+        self.assertIn("def create_optimizer(self)", source)
+        self.assertIn("exactly match the validated trainable set", source)
         self.assertIn("logging_nan_inf_filter=False", source)
         self.assertIn("def _clip_grad_norm(self, model", source)
         self.assertIn("require_trainable_parameters_finite", source)
@@ -313,6 +410,174 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("accelerate.commands.accelerate_cli", preflight)
         self.assertIn("safetensors==0.8.0", requirements)
         self.assertIn("fsdp_use_orig_params: true", accelerate)
+
+    def test_trainable_parameter_census_is_exact_stable_and_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_census")
+            first_parameters = (
+                (
+                    "decoder.q_proj.lora_B.default.weight",
+                    FakeCensusParameter(6, shape=(2, 3), dtype="fixture-float16"),
+                ),
+                (
+                    "decoder.frozen",
+                    FakeCensusParameter(100, shape=(10, 10), requires_grad=False),
+                ),
+                (
+                    "decoder.q_proj.lora_A.default.weight",
+                    FakeCensusParameter(2, shape=(2,), dtype="fixture-float32"),
+                ),
+            )
+            second_parameters = tuple(reversed(first_parameters))
+            fake_torch = types.ModuleType("torch")
+            fake_torch.isfinite = lambda parameter: FakeFiniteResult(parameter.finite)
+            lora_contract = {
+                "method": "lora",
+                "target_modules": ("q_proj",),
+                "expected_adapter_target_match_count": 1,
+            }
+            with patch.dict(sys.modules, {"torch": fake_torch}):
+                first = module.require_trainable_parameter_census(
+                    FakeCensusModel(first_parameters), **lora_contract
+                )
+                second = module.require_trainable_parameter_census(
+                    FakeCensusModel(second_parameters), **lora_contract
+                )
+                changed_dtype = module.require_trainable_parameter_census(
+                    FakeCensusModel(
+                        (
+                            (
+                                "decoder.q_proj.lora_B.default.weight",
+                                FakeCensusParameter(
+                                    6, shape=(2, 3), dtype="fixture-bfloat16"
+                                ),
+                            ),
+                            first_parameters[2],
+                            first_parameters[1],
+                        )
+                    ),
+                    **lora_contract,
+                )
+                with self.assertRaisesRegex(RuntimeError, "zero trainable"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.frozen",
+                                    FakeCensusParameter(
+                                        4, shape=(2, 2), requires_grad=False
+                                    ),
+                                ),
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(FloatingPointError, "non-finite"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.q_proj.lora_A.bad",
+                                    FakeCensusParameter(1, shape=(1,), finite=False),
+                                ),
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "non-LoRA"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.q_proj.weight",
+                                    FakeCensusParameter(4, shape=(2, 2)),
+                                ),
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "non-LoRA"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.lora_decoy.weight",
+                                    FakeCensusParameter(4, shape=(2, 2)),
+                                ),
+                                first_parameters[1],
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "non-LoRA"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.unplanned_proj.lora_A.default.weight",
+                                    FakeCensusParameter(2, shape=(2,)),
+                                ),
+                                (
+                                    "decoder.unplanned_proj.lora_B.default.weight",
+                                    FakeCensusParameter(2, shape=(2,)),
+                                ),
+                                first_parameters[1],
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "frozen base"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.q_proj.lora_A.default.weight",
+                                    FakeCensusParameter(4, shape=(2, 2)),
+                                ),
+                            )
+                        ),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "exactly one LoRA A/B pair"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel((first_parameters[2], first_parameters[1])),
+                        **lora_contract,
+                    )
+                with self.assertRaisesRegex(RuntimeError, "left one or more"):
+                    module.require_trainable_parameter_census(
+                        FakeCensusModel(
+                            (
+                                (
+                                    "decoder.weight",
+                                    FakeCensusParameter(4, shape=(2, 2)),
+                                ),
+                                (
+                                    "decoder.frozen",
+                                    FakeCensusParameter(
+                                        4, shape=(2, 2), requires_grad=False
+                                    ),
+                                ),
+                            )
+                        ),
+                        method="full",
+                        target_modules=(),
+                        expected_adapter_target_match_count=0,
+                    )
+
+        self.assertEqual(first["trainable_parameter_count"], 8)
+        self.assertEqual(first["trainable_tensor_count"], 2)
+        self.assertIs(first["all_values_finite"], True)
+        self.assertEqual(first["adapter_target_instance_count"], 1)
+        self.assertEqual(first["expected_adapter_target_match_count"], 1)
+        self.assertEqual(first["incomplete_adapter_target_instance_count"], 0)
+        self.assertEqual(first["descriptor_sha256"], second["descriptor_sha256"])
+        self.assertNotEqual(
+            first["descriptor_sha256"], changed_dtype["descriptor_sha256"]
+        )
+        serialized = json.dumps(first, sort_keys=True)
+        self.assertNotIn("decoder.q_proj.lora_B.default.weight", serialized)
+        self.assertNotIn("decoder.q_proj.lora_A.default.weight", serialized)
 
     def test_selected_cuda_visibility_maps_once_and_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -374,6 +639,33 @@ class BundleGenerationTests(unittest.TestCase):
                     "distribution": candidate["distribution"],
                     "world_size": candidate["world_size"],
                     "measured_peak_cuda_bytes": 4096,
+                    "trainable_parameter_census": {
+                        "schema_version": "aptus.trainable-parameter-census.v1",
+                        "method": candidate["method"],
+                        "parameter_scope": (
+                            "all-parameters"
+                            if candidate["method"] == "full"
+                            else "lora-adapter-only"
+                        ),
+                        "trainable_parameter_count": 8,
+                        "trainable_tensor_count": 2,
+                        "frozen_parameter_count": (
+                            0 if candidate["method"] == "full" else 2_000_000
+                        ),
+                        "frozen_tensor_count": (
+                            0 if candidate["method"] == "full" else 1
+                        ),
+                        "unexpected_trainable_tensor_count": 0,
+                        "expected_adapter_target_match_count": (
+                            0 if candidate["method"] == "full" else 1
+                        ),
+                        "adapter_target_instance_count": (
+                            0 if candidate["method"] == "full" else 1
+                        ),
+                        "incomplete_adapter_target_instance_count": 0,
+                        "all_values_finite": True,
+                        "descriptor_sha256": "a" * 64,
+                    },
                     "scope": "synthetic-method-preflight-not-model-data-pilot",
                     **overrides,
                 }
@@ -488,7 +780,14 @@ class BundleGenerationTests(unittest.TestCase):
     def test_model_data_preflight_accepts_exact_quantized_structure_without_mutation(
         self,
     ) -> None:
-        calls, encoded_rows, cleanup_calls, loaded_model = self._run_model_data_fixture(
+        (
+            calls,
+            encoded_rows,
+            cleanup_calls,
+            loaded_model,
+            preparation_events,
+            census,
+        ) = self._run_model_data_fixture(
             method="qlora",
             expected_parameters=2_000_000,
             actual_parameters=2_000_000,
@@ -519,6 +818,8 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertEqual(len(encoded_rows), 2)
         self.assertEqual(cleanup_calls, ["empty_cache"])
         self.assertEqual(loaded_model.mutations, [])
+        self.assertEqual(preparation_events, ["prepare", "census"])
+        self.assertEqual(census["trainable_parameter_count"], 8192)
 
     def test_final_export_binds_every_tensor_key_to_its_actual_shard(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -746,10 +1047,10 @@ class BundleGenerationTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            first = module.split_jsonl_offsets(
+            first = module.split_jsonl_offsets_with_evidence(
                 dataset, evaluation_fraction=0.2, seed=17
             )
-            second = module.split_jsonl_offsets(
+            second = module.split_jsonl_offsets_with_evidence(
                 dataset, evaluation_fraction=0.2, seed=17
             )
             self.assertEqual(tuple(first[0]), tuple(second[0]))
@@ -757,10 +1058,72 @@ class BundleGenerationTests(unittest.TestCase):
             self.assertTrue(first[0])
             self.assertTrue(first[1])
             self.assertEqual(len(first[0]) + len(first[1]), 20)
-            lazy = module.LazyJsonlDataset(dataset, first[0], FakeTokenizer(), 64)
+            lazy = module.LazyJsonlDataset(
+                dataset,
+                first[0],
+                FakeTokenizer(),
+                64,
+                first[2]["canonical_jsonl_sha256"],
+            )
             encoded = lazy[len(lazy) - 1]
             self.assertTrue(encoded["input_ids"])
             self.assertIsNone(lazy.__getstate__()["_source"])
+
+            changed = output / "data" / "changed.jsonl"
+            changed.write_text('{"text":"old-a"}\n{"text":"old-b"}\n', encoding="utf-8")
+            changed_train, _changed_eval, changed_evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    changed, evaluation_fraction=0.5, seed=17
+                )
+            )
+            changed.write_text('{"text":"new-a"}\n{"text":"new-b"}\n', encoding="utf-8")
+            changed_lazy = module.LazyJsonlDataset(
+                changed,
+                changed_train,
+                FakeTokenizer(),
+                64,
+                changed_evidence["canonical_jsonl_sha256"],
+            )
+            with self.assertRaisesRegex(RuntimeError, "no longer matches"):
+                changed_lazy[0]
+
+            race = output / "data" / "race.jsonl"
+            original_race = b'{"text":"old-a"}\n{"text":"old-b"}\n'
+            mutated_race = b'{"text":"new-a"}\n{"text":"new-b"}\n'
+            self.assertEqual(len(original_race), len(mutated_race))
+            race.write_bytes(original_race)
+            race_train, _race_eval, race_evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    race, evaluation_fraction=0.5, seed=17
+                )
+            )
+            race_lazy = module.LazyJsonlDataset(
+                race,
+                race_train,
+                FakeTokenizer(),
+                64,
+                race_evidence["canonical_jsonl_sha256"],
+            )
+            race_lazy._open_verified_source()
+            verified_source = race_lazy._source
+
+            class MutatingReadSource:
+                def fileno(self):
+                    return verified_source.fileno()
+
+                def seek(self, offset):
+                    return verified_source.seek(offset)
+
+                def readline(self):
+                    race.write_bytes(mutated_race)
+                    return verified_source.readline()
+
+                def close(self):
+                    return verified_source.close()
+
+            race_lazy._source = MutatingReadSource()
+            with self.assertRaisesRegex(RuntimeError, "during consumption"):
+                race_lazy[0]
 
             one = output / "data" / "one.jsonl"
             one.write_text('{"text":"only"}\n', encoding="utf-8")
@@ -769,6 +1132,167 @@ class BundleGenerationTests(unittest.TestCase):
             )
             self.assertEqual(len(train), 1)
             self.assertEqual(len(evaluation), 0)
+
+    def test_generated_group_aware_split_never_crosses_train_eval_boundary(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_group_split")
+            dataset = output / "data" / "grouped.jsonl"
+            rows = [
+                {"text": "alpha-1", "split_group": "source-alpha"},
+                {"text": "free-1"},
+                {"text": "beta-1", "metadata": {"split_group": "source-beta"}},
+                {"text": "alpha-2", "split_group": "source-alpha"},
+                {"text": "free-2"},
+                {
+                    "text": "gamma-1",
+                    "split_group": "source-gamma",
+                    "metadata": {"split_group": "source-gamma"},
+                },
+                {"text": "beta-2", "metadata": {"split_group": "source-beta"}},
+                {"text": "alpha-3", "split_group": "source-alpha"},
+                {"text": "free-3"},
+                {
+                    "text": "gamma-2",
+                    "split_group": "source-gamma",
+                    "metadata": {"split_group": "source-gamma"},
+                },
+            ]
+            dataset.write_text(
+                "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+
+            first = module.split_jsonl_offsets_with_evidence(
+                dataset, evaluation_fraction=0.4, seed=29
+            )
+            second = module.split_jsonl_offsets_with_evidence(
+                dataset, evaluation_fraction=0.4, seed=29
+            )
+            simple_train, simple_eval = module.split_jsonl_offsets(
+                dataset, evaluation_fraction=0.4, seed=29
+            )
+
+            def rows_at(offsets):
+                values = []
+                with dataset.open("rb") as source:
+                    for offset in offsets:
+                        source.seek(offset)
+                        values.append(json.loads(source.readline()))
+                return values
+
+            def group_of(row):
+                return row.get("split_group") or row.get("metadata", {}).get(
+                    "split_group"
+                )
+
+            train_rows = rows_at(first[0])
+            eval_rows = rows_at(first[1])
+            train_groups = {group_of(row) for row in train_rows if group_of(row)}
+            eval_groups = {group_of(row) for row in eval_rows if group_of(row)}
+            evidence = first[2]
+
+            self.assertFalse(train_groups & eval_groups)
+            for group in {"source-alpha", "source-beta", "source-gamma"}:
+                locations = {
+                    "train" if row in train_rows else "evaluation"
+                    for row in rows
+                    if group_of(row) == group
+                }
+                self.assertEqual(len(locations), 1)
+            self.assertEqual(tuple(first[0]), tuple(second[0]))
+            self.assertEqual(tuple(first[1]), tuple(second[1]))
+            self.assertEqual(first[2], second[2])
+            self.assertEqual(tuple(first[0]), tuple(simple_train))
+            self.assertEqual(tuple(first[1]), tuple(simple_eval))
+            self.assertEqual(
+                evidence["strategy"], "deterministic-size-aware-group-sha256"
+            )
+            self.assertEqual(evidence["total_row_count"], len(rows))
+            self.assertEqual(evidence["training_row_count"], len(train_rows))
+            self.assertEqual(evidence["evaluation_row_count"], len(eval_rows))
+            self.assertEqual(evidence["declared_group_count"], 3)
+            self.assertEqual(evidence["ungrouped_row_count"], 3)
+            self.assertEqual(len(evidence["assignment_sha256"]), 64)
+            self.assertNotIn("source-alpha", json.dumps(evidence, sort_keys=True))
+
+            one_group = output / "data" / "one-group.jsonl"
+            one_group.write_text(
+                "".join(
+                    json.dumps({"text": f"same-{index}", "split_group": "same"}) + "\n"
+                    for index in range(4)
+                ),
+                encoding="utf-8",
+            )
+            train, evaluation, one_group_evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    one_group, evaluation_fraction=0.9, seed=29
+                )
+            )
+            self.assertEqual(len(train), 4)
+            self.assertEqual(len(evaluation), 0)
+            self.assertEqual(one_group_evidence["training_declared_group_count"], 1)
+
+            conflicting = output / "data" / "conflicting-groups.jsonl"
+            conflicting.write_text(
+                json.dumps(
+                    {
+                        "text": "conflict",
+                        "split_group": "top",
+                        "metadata": {"split_group": "nested"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "conflicting split_group"):
+                module.split_jsonl_offsets_with_evidence(
+                    conflicting, evaluation_fraction=0.2, seed=29
+                )
+
+            imbalanced = output / "data" / "imbalanced-groups.jsonl"
+            imbalanced.write_text(
+                "".join(
+                    json.dumps({"text": f"huge-{index}", "split_group": "huge"}) + "\n"
+                    for index in range(900)
+                )
+                + "".join(
+                    json.dumps({"text": f"small-{index}", "split_group": "small"})
+                    + "\n"
+                    for index in range(100)
+                ),
+                encoding="utf-8",
+            )
+            imbalanced_train, imbalanced_eval, imbalanced_evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    imbalanced, evaluation_fraction=0.1, seed=0
+                )
+            )
+            self.assertEqual(len(imbalanced_train), 900)
+            self.assertEqual(len(imbalanced_eval), 100)
+            self.assertEqual(imbalanced_evidence["target_evaluation_row_count"], 100)
+            self.assertEqual(imbalanced_evidence["evaluation_row_error"], 0)
+
+            adversarial = output / "data" / "adversarial-groups.jsonl"
+            adversarial.write_text(
+                "".join(
+                    json.dumps({"text": f"{group}-{index}", "split_group": group})
+                    + "\n"
+                    for group, count in (("a", 51), ("b", 97), ("c", 49), ("d", 3))
+                    for index in range(count)
+                ),
+                encoding="utf-8",
+            )
+            adversarial_train, adversarial_eval, adversarial_evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    adversarial, evaluation_fraction=0.5, seed=0
+                )
+            )
+            self.assertEqual(len(adversarial_train), 100)
+            self.assertEqual(len(adversarial_eval), 100)
+            self.assertEqual(adversarial_evidence["evaluation_row_error"], 0)
 
     def test_portable_static_entrypoint_needs_no_ml_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -917,6 +1441,7 @@ class BundleGenerationTests(unittest.TestCase):
                         "finite_backward_loss_checks": 1,
                         "finite_gradient_norm_checks": 1,
                         "finite_trainable_parameter_scans": 1,
+                        "optimizer_parameter_binding_checks": 1,
                     },
                     candidate=plan["recommended"],
                     pilot=True,

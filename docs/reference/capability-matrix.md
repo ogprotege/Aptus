@@ -16,6 +16,11 @@ for the exact bundle and target host.
 “Supported” means the candidate can pass planner rules. It does not mean every
 model, dataset, driver, or device combination has release evidence.
 
+The bootstrap method catalog also describes DoRA, BitFit, AdaLoRA, ShareLoRA,
+LoReFT, AFLoRA, and BiLoRA. Those descriptors are evidence and lifecycle
+records, not additional selectable planner rows. Their blockers and required
+proof remain visible in the workbench.
+
 ## Precision and quantization
 
 | Path | Catalog behavior | Runtime evidence |
@@ -41,10 +46,16 @@ verify that every named module exists after loading the pinned model.
 - Packing: unsupported.
 - Enforced wall-time deadline: unsupported.
 - Canonical compilation: every row, not only the profiling sample.
+- Split grouping: optional top-level or `metadata.split_group`; a declared group
+  remains entirely in train or evaluation and produces hashed split evidence.
+  Indivisible groups can make the realized evaluation fraction differ from the
+  request, and the run records that row error.
 
 ## Execution
 
-- Backend: CUDA only.
+- Execution backend: CUDA only.
+- Discovery backend: CUDA, plus fail-closed Apple Silicon `mps` shared-memory
+  inventory. MPS discovery does not enable execution.
 - Managed concurrency: one Aptus job per local user and host across state roots.
 - Runtime actions: dependency, model-data, preflight, pilot, train.
 - Full-run resume: unsupported.
@@ -55,5 +66,6 @@ verify that every named module exists after loading the pinned model.
 
 ## Future seams
 
-ROCm, MPS, cloud providers, provider provisioning, evaluation policies, exporter
-plugins, and MCP adapters are outside the current support contract.
+ROCm execution, MPS or MLX execution, cloud providers, provider provisioning,
+evaluation policies, exporter plugins, and MCP adapters are outside the current
+support contract.

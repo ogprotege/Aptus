@@ -147,6 +147,18 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(
             set(capabilities["known_backends"]), {"cuda", "rocm", "mps", "cpu"}
         )
+        self.assertEqual(
+            set(capabilities["methods"]), {"full", "lora", "int8-lora", "qlora"}
+        )
+        method_catalog = {
+            item["method_id"]: item for item in capabilities["method_catalog"]
+        }
+        self.assertEqual(method_catalog["lora"]["lifecycle"], "gated-executable")
+        self.assertTrue(method_catalog["lora"]["selectable"])
+        self.assertEqual(method_catalog["dora"]["lifecycle"], "experimental")
+        self.assertFalse(method_catalog["dora"]["selectable"])
+        self.assertEqual(method_catalog["bitfit"]["lifecycle"], "experimental")
+        self.assertEqual(method_catalog["loreft"]["lifecycle"], "research-only")
 
         planned = self.client.post("/api/v1/plan", json=self.plan_payload())
         self.assertEqual(planned.status_code, 200, planned.text)

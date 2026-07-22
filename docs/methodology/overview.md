@@ -11,16 +11,17 @@ stage may repair missing facts silently.
 1. Resolve explicit model, dataset, hardware, and target facts.
 2. Profile dataset rows with a tokenizer when one is supplied, or with the
    recorded character-count estimate.
-3. Enumerate the fixed 12-candidate set.
-4. Apply capability and policy constraints.
-5. Calculate point and upper resource envelopes.
-6. Annotate the viable Pareto frontier.
-7. Rank every viable candidate under the recorded lexicographic objective.
-8. Compile one immutable plan into an atomic bundle.
-9. Validate the exact bundle through explicit levels.
-10. Run a real-model pilot on the target hardware.
-11. Require approval before full execution.
-12. Record observed behavior for later calibration.
+3. Resolve the selectable gated-executable methods from the typed registry.
+4. Enumerate the fixed 12-candidate method-placement set.
+5. Apply capability and policy constraints.
+6. Calculate point and upper resource envelopes.
+7. Annotate the viable Pareto frontier.
+8. Rank every viable candidate under the recorded lexicographic objective.
+9. Compile one immutable plan into an atomic bundle.
+10. Validate the exact bundle through explicit levels.
+11. Run a real-model pilot on the target hardware.
+12. Require approval before full execution.
+13. Record observed behavior for later calibration.
 
 ## Separation of concerns
 
@@ -37,6 +38,7 @@ boundaries.
 | Contract | Version | Purpose |
 | --- | --- | --- |
 | Facts | `aptus.facts.v2` | Explicit values and available provenance |
+| Method descriptor | `aptus.method-descriptor.v1` | Runtime lifecycle, selectability, compiler, export, evidence, and blocker metadata |
 | Candidates | `aptus-candidates-v2` | Finite strategy enumeration and constraint results |
 | Precision | `aptus-precision-v2` | Compute and quantization selection policy |
 | Memory | `aptus-memory-v2` | Per-device point and upper VRAM envelopes |
@@ -44,6 +46,8 @@ boundaries.
 | Preflight | `aptus-preflight-v2` | Method and kernel synthetic validation before the real pilot |
 | Bundle | `aptus.bundle.v2` | Atomic file manifest and execution contract |
 | Plan | `aptus.training-plan.v2` | Selected candidate and full decision trace |
+| Trainable census | `aptus.trainable-parameter-census.v1` | Method-scope tensor and parameter counts, finite state, and descriptor digest |
+| Dataset split | `aptus.dataset-split.v1` | Full-run assignment strategy, counts, canonical digest, assignment digest, and realized error |
 
 The plan records its schema and memory-formula versions. Related documentation
 names the other rule sets. A changed execution-affecting equation or rule

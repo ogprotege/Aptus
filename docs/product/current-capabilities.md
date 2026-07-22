@@ -10,8 +10,28 @@ still lacks target CUDA release evidence.
   compilation, followed by tokenizer-specific transformation at model-data and
   training time.
 - Bounded provider model-metadata inspection at an immutable revision.
-- Local CUDA hardware inspection or explicit manual hardware facts.
+- Local CUDA hardware inspection, explicit manual hardware facts, and
+  fail-closed Darwin arm64 discovery that records an `mps` shared
+  unified-memory inventory without treating it as executable or inventing free
+  memory.
 - Full, LoRA, int8-LoRA, and QLoRA candidate enumeration.
+- An 11-descriptor typed method registry. The four candidate methods are
+  `gated-executable` and selectable. DoRA, BitFit, AdaLoRA, and ShareLoRA are
+  `experimental`; LoReFT, AFLoRA, and BiLoRA are `research-only`. All seven are
+  visible but nonselectable and lack compiler and export contracts.
+- Deterministic full-run splitting. Ungrouped data uses an exact-row-count
+  strategy. Declared `split_group` values use exact subset selection when the
+  target is attainable, then the closest feasible size otherwise, while every
+  group remains atomic. Metrics record canonical and assignment digests, target
+  and realized evaluation sizes, and row error.
+- Canonical-dataset mutation checks across split passes and lazy consumption,
+  plus collective digest and count agreement for distributed runs.
+- A positive, finite trainable-parameter census before optimizer construction.
+  Full tuning requires every model tensor to remain trainable. LoRA-based paths
+  require one complete LoRA A/B pair per inspected target instance, reject every
+  other trainable tensor, and prove exact optimizer membership. Measured
+  preflight, pilot, and full-run evidence carry a stable digest over sorted names,
+  shapes, and dtypes, and both pilot phases must agree.
 - Single-device and DDP candidates where method, capability, batch, host RAM,
   disk, and memory rules pass.
 - Conditional LoRA FSDP candidates.
@@ -42,7 +62,9 @@ still lacks target CUDA release evidence.
 
 ## Explicitly unsupported
 
-- CPU, MPS, and ROCm execution.
+- CPU, MPS, MLX, and ROCm execution. Apple Silicon total shared memory can be
+  discovered, but the current compiler does not execute there and does not
+  claim current free unified memory when the host cannot provide it.
 - Full-parameter FP16 training.
 - Full-parameter FSDP.
 - int8-LoRA FSDP and QLoRA FSDP.
@@ -61,6 +83,8 @@ still lacks target CUDA release evidence.
 - MCP adapters or external automation authorization.
 - Experiment-tracker ownership of completion state.
 - Automated model-card or data-governance decisions.
+- Chat capture, human-review workflow, consent enforcement, PII adjudication,
+  or automatic feedback-to-training export.
 
 ## Evidence status
 

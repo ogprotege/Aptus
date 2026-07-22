@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { api, ApiError } from "./api";
 import { FitLedger } from "./components/FitLedger";
+import { summarizeHardwareProbe } from "./lib/hardware";
 import { applyProviderModelInspection } from "./lib/modelInspection";
 import {
   MobileStageBar,
@@ -29,6 +30,7 @@ import type {
   FactDraft,
   InputProfile,
   Job,
+  MethodDescriptor,
   ModelInspectionResponse,
   TrainingPlan,
   ValidationReport,
@@ -88,7 +90,11 @@ function restoredDraft(plan: TrainingPlan, bundle: CompileResponse): FactDraft {
           name: devices.length === 1
           ? String(devices[0]?.name ?? "Restored CUDA GPU")
           : `Distributed limiting profile across ${devices.length} restored GPUs`,
-        backend: "cuda",
+        backend: devices.every(
+          (device) => device.backend === devices[0]?.backend,
+        )
+          ? String(devices[0]?.backend ?? "cuda")
+          : "unknown",
         total_vram_gib: finiteMinimum(devices.map((device) => bytesToGiB(device.total_vram_bytes))),
         free_vram_gib: finiteMinimum(devices.map((device) => bytesToGiB(device.free_vram_bytes))),
         supports_bf16: devices.every((device) => device.supports_bf16 === true),
@@ -232,6 +238,7 @@ export default function App() {
   const [demoMode, setDemoMode] = useState(false);
   const [hardwareScanned, setHardwareScanned] = useState(false);
   const [modelInspection, setModelInspection] = useState<ModelInspectionResponse | null>(null);
+  const [methodCatalog, setMethodCatalog] = useState<MethodDescriptor[]>([]);
   const [outputDir, setOutputDir] = useState("");
   const [validationLevel, setValidationLevel] = useState<ValidateRequest["level"]>("static");
   const bundleRef = useRef<CompileResponse | null>(null);
@@ -271,6 +278,9 @@ export default function App() {
       .then((bootstrap: BootstrapResponse) => {
         setConnection("connected");
         setServiceVersion(bootstrap.service?.version ?? bootstrap.version);
+        if (Array.isArray(bootstrap.capabilities?.method_catalog)) {
+          setMethodCatalog(bootstrap.capabilities.method_catalog);
+        }
         const restoreWorkspace = draftVersionRef.current === bootstrapDraftVersion;
         if (bootstrap.defaults && restoreWorkspace) {
           const defaults = bootstrap.defaults;
@@ -631,65 +641,19 @@ export default function App() {
     beginAction("hardware");
     try {
       const probe = await api.hardware();
-      const bytesToGib = (value: number | undefined) =>
-        value === undefined ? null : value / 1024 ** 3;
-      const scannedDevices = probe.devices ?? [];
-      if (!scannedDevices.length) {
-        throw new Error("The hardware probe returned no CUDA devices.");
-      }
-      const totalGib = (device: (typeof scannedDevices)[number]) =>
-        device.total_vram_gib ?? bytesToGib(device.total_vram_bytes);
-      const freeGib = (device: (typeof scannedDevices)[number]) =>
-        device.free_vram_gib ?? bytesToGib(device.free_vram_bytes) ?? totalGib(device);
-      const limitingDevice = scannedDevices.reduce((current, candidate) =>
-        (freeGib(candidate) ?? Number.POSITIVE_INFINITY) <
-        (freeGib(current) ?? Number.POSITIVE_INFINITY)
-          ? candidate
-          : current,
-      );
-      const minimumTotal = Math.min(
-        ...scannedDevices.map((device) => totalGib(device) ?? Number.POSITIVE_INFINITY),
-      );
-      const minimumFree = Math.min(
-        ...scannedDevices.map((device) => freeGib(device) ?? Number.POSITIVE_INFINITY),
-      );
-      if (!Number.isFinite(minimumTotal) || !Number.isFinite(minimumFree)) {
-        throw new Error("The hardware probe did not return usable VRAM measurements.");
-      }
-      const allSupportBf16 = scannedDevices.every((device) => device.supports_bf16 === true);
-      const allSupport8bit = scannedDevices.every((device) => device.supports_8bit === true);
-      const allSupport4bit = scannedDevices.every((device) => device.supports_4bit === true);
+      const measuredHardware = summarizeHardwareProbe(probe, draft.hardware);
+      const backend = measuredHardware.devices[0]?.backend ?? "unknown";
       updateDraft((current) => ({
         ...current,
-        hardware: {
-          ...current.hardware,
-          discovery: "local-scan",
-          gpu_count: scannedDevices.length,
-          host_ram_gib: probe.host_ram_gib ?? bytesToGib(probe.host_ram_bytes) ?? current.hardware.host_ram_gib,
-          host_ram_free_gib:
-            probe.host_ram_free_gib ??
-            bytesToGib(probe.host_ram_free_bytes) ??
-            current.hardware.host_ram_free_gib,
-          reserve_per_device_gib:
-            probe.reserve_gib ?? bytesToGib(probe.reserve_per_device_bytes) ?? current.hardware.reserve_per_device_gib,
-          disk_free_gib: probe.disk_free_gib ?? bytesToGib(probe.disk_free_bytes) ?? current.hardware.disk_free_gib,
-          devices: [{
-            name:
-              scannedDevices.length === 1
-                ? limitingDevice.name ?? "Scanned CUDA GPU"
-                : `Distributed limiting profile across ${scannedDevices.length} GPUs`,
-            backend: "cuda",
-            total_vram_gib: minimumTotal,
-            free_vram_gib: minimumFree,
-            supports_bf16: allSupportBf16,
-            supports_8bit: allSupport8bit,
-            supports_4bit: allSupport4bit,
-          }],
-        },
+        hardware: summarizeHardwareProbe(probe, current.hardware),
       }));
       setHardwareScanned(true);
       setConnection("connected");
-      setNotice("Hardware measured on this Aptus host. Single-device rows bind the strongest method-compatible GPU. Distributed rows use limiting VRAM and capabilities shared by every scanned GPU.");
+      setNotice(
+        backend === "mps"
+          ? "Apple Silicon and its shared unified-memory pool were measured. The current CUDA compiler will mark execution methods unsupported until Aptus has a separately validated MLX backend."
+          : "Hardware measured on this Aptus host. Single-device rows bind the strongest method-compatible GPU. Distributed rows use limiting VRAM and capabilities shared by every scanned GPU.",
+      );
     } catch (caught) {
       setError(`${errorMessage(caught)} Enter a manual hardware profile instead.`);
     } finally {
@@ -820,6 +784,7 @@ export default function App() {
               onHardwareScan={handleHardwareScan}
               hardwareScanned={hardwareScanned}
               modelInspection={modelInspection}
+              methodCatalog={methodCatalog}
             />
           ) : null}
           {stage === "compare" ? (

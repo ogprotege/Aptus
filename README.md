@@ -46,6 +46,8 @@ represent. It preserves infeasible and unsupported candidates instead of hiding
 them. A recommendation means highest-ranked within this bounded Aptus catalog.
 It is not a quality prediction or a guarantee that unmeasured hardware will fit.
 
+---
+
 ## The five-stage workbench
 
 | Stage | What happens |
@@ -55,6 +57,8 @@ It is not a quality prediction or a guarantee that unmeasured hardware will fit.
 | **Compile** | Write a new bundle directory and deterministic ZIP without overwriting prior work. |
 | **Validate** | Check contracts, identities, generated source, paths, hashes, and direct dependency pins. |
 | **Run / handoff** | Run the selected local Apple gates or transfer a CUDA bundle to its intended host. |
+
+---
 
 ### A concrete example
 
@@ -72,6 +76,8 @@ ran the real planner. Under its quality policy, Aptus reports:
 The dataset profile and planning decision are real. The model and hardware facts
 are declared examples. Target-host model loading, measurement, and pilot gates
 can still reject the plan.
+
+---
 
 ## Start on macOS
 
@@ -105,6 +111,8 @@ See [installation details](docs/getting-started/install.md#build-aptus-for-mac)
 for prerequisites, signing options, persistent paths, and the browser-based
 development path.
 
+---
+
 ## What runs where
 
 | Native Mac product | MLX-LM runtime on Apple Silicon | CUDA runtime |
@@ -118,6 +126,8 @@ Choose the exact Python interpreter in the Mac Models screen. Aptus probes it,
 persists the canonical path privately, and never treats the bundled backend or
 an inference server as a training environment. CUDA profiles still describe a
 CUDA host. They do not enable CUDA work on the Mac.
+
+---
 
 ## Supported now
 
@@ -149,6 +159,8 @@ notarized public download. Read the
 [complete capability matrix](docs/reference/capability-matrix.md) before
 committing compute time.
 
+---
+
 ## Why Aptus fails closed
 
 - Unsupported combinations remain visible with their rejection reasons.
@@ -157,6 +169,8 @@ committing compute time.
 - Pilot and train admission repeat checks against the current environment and
   available capacity.
 
+---
+
 ## Data safety
 
 Compiled bundles and ZIPs contain cleartext copies of training data. Runtime
@@ -164,6 +178,8 @@ artifacts can add model caches, logs, CUDA checkpoints, MLX weight snapshots,
 metrics, adapters, and final weights.
 Treat the entire bundle as sensitive. Read the [security policy](SECURITY.md)
 before using private or governed data.
+
+---
 
 ## Go deeper
 
@@ -177,6 +193,14 @@ before using private or governed data.
 | Change the project | [Contributing](CONTRIBUTING.md) |
 
 The complete documentation hub is [docs/index.md](docs/index.md).
+
+---
+
+## Funding
+
+<a href="https://www.buymeacoffee.com/thebiscuit" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+---
 
 ## License
 

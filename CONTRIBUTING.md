@@ -17,6 +17,11 @@ python -m pip install -e '.[server,test]'
 cd web && npm ci
 ```
 
+The test extra pins Ruff exactly. The explicit `[tool.ruff.lint]` selection in
+`pyproject.toml` defines Aptus's lint policy, so a Ruff release cannot silently
+expand the required rule set. Upgrade the pin, lock, policy, and formatting in
+one reviewed change.
+
 ## Required checks
 
 ```bash

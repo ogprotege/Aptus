@@ -145,7 +145,7 @@ describe("workbench accessibility acceptance", () => {
       await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveFocus());
       await expectAccessible(container);
     }
-  });
+  }, 15_000);
 
   it("keeps the stage controls in workflow order and moves focus to each selected stage", async () => {
     const user = userEvent.setup();

@@ -65,7 +65,10 @@ launches the packaged app and requires a visible window, a ready sidecar, a
 successfully loaded authenticated workbench, and clean session teardown before
 it creates the artifacts below. The workbench gate requires both the finished
 same-origin document and a versioned React-ready handshake emitted only after
-the authenticated bootstrap request succeeds.
+the authenticated bootstrap request succeeds. DMG verification records the
+whole disk device returned by macOS and retries normal detachment for transient
+DiskImages contention. A forced detach is cleanup only and still fails the
+release gate.
 
 ```text
 desktop/macos/dist/Aptus.app

@@ -54,7 +54,7 @@ class BundleProgramPackagingTests(unittest.TestCase):
         self.assertIn("system-entities.$entity_index.content-hint", script)
         self.assertIn('"$DMG_ENTITY_HINT" == "GUID_partition_scheme"', script)
         self.assertIn("returned multiple backing devices", script)
-        self.assertIn('for attempt in {1..5}', script)
+        self.assertIn("for attempt in {1..5}", script)
         self.assertIn('hdiutil detach "$DMG_DEVICE"', script)
         self.assertIn('hdiutil detach -force "$DMG_DEVICE"', script)
         self.assertNotIn('hdiutil detach "$DMG_MOUNT"', script)

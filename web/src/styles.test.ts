@@ -14,4 +14,10 @@ describe("responsive workbench styles", () => {
     expect(actions).not.toContain("position: sticky");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
+
+  it("drives micro-interactions from shared motion tokens", () => {
+    expect(styles).toContain("--motion-fast:");
+    expect(styles).toContain("--motion-ease:");
+    expect(styles).toMatch(/transition:[\s\S]*?var\(--motion-fast\) var\(--motion-ease\)/);
+  });
 });

@@ -44,11 +44,29 @@ Remaining release work:
 Full-parameter FSDP remains unsupported during v0.2. LoRA FSDP remains
 conditional until its runtime gate is complete.
 
-## Near-term milestone: MoE model support
+## First post-v0.2 milestone: MoE model support
 
 Mixture-of-Experts models are not currently supported. Aptus does not silently
 map an MoE, multimodal, prefix-matched, or unknown architecture onto a dense
-family contract. MoE support requires all of these gates:
+family contract.
+
+Delivery is split so useful, honest MoE planning reaches users before every
+runtime is complete:
+
+1. **Inspection and fit planning.** Detect one exact, allowlisted MoE family,
+   report total and active parameters separately, census experts and routers,
+   and produce sparse memory, storage, and throughput estimates. Training stays
+   disabled and visibly marked unsupported in this slice.
+2. **Apple Silicon QLoRA execution.** Add compile, pilot, train, export, and
+   fresh-process reload support for that family through the maintained MLX-LM
+   runtime. Release it only after real target-host acceptance.
+3. **CUDA execution and family expansion.** Add each runtime, placement, and
+   architecture independently. A passing Apple path never implies CUDA support,
+   and one passing MoE family never admits prefix-matched variants.
+4. **Comparable evaluation.** Compare dense and MoE candidates against the same
+   immutable data, quality metrics, thresholds, and compute envelope.
+
+Each executable MoE slice requires these gates:
 
 1. an exact architecture and revision allowlist with explicit rejection for
    unknown or unreviewed variants;
@@ -58,15 +76,16 @@ family contract. MoE support requires all of these gates:
    trainable set and rejects accidental dense or zero-parameter selection;
 4. a sparse memory, storage, communication, and throughput estimator that does
    not substitute active parameters for resident weights;
-5. runtime-specific compile, train, artifact, export, and fresh-process reload
-   contracts for each supported method and placement;
+5. runtime-specific compile, pilot, train, artifact, export, and fresh-process
+   reload contracts for each supported method and placement;
 6. dense-versus-MoE evaluation on the same immutable data, metrics, thresholds,
    and compute envelope; and
 7. real target-host acceptance for every claimed runtime and placement.
 
-Planning visibility may precede execution only as an explicit unsupported or
-research state. No MoE row becomes selectable before every executable contract
-and evidence gate agrees.
+Inspection and fit-planning visibility may precede execution only as an explicit
+non-executable state. Training becomes selectable one allowlisted family and
+runtime at a time, after that exact executable contract and its evidence gates
+agree.
 
 ## Planner depth
 

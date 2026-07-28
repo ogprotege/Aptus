@@ -42,6 +42,23 @@ class BundleProgramPackagingTests(unittest.TestCase):
         self.assertLess(final_check, checksum_publication)
         self.assertGreaterEqual(script.count('REQUIRE_CLEAN_CHECKOUT" == "1'), 2)
 
+    def test_dmg_verification_detaches_the_whole_device_with_bounded_retries(
+        self,
+    ) -> None:
+        script = (REPOSITORY / "desktop" / "macos" / "build.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("hdiutil attach -plist -readonly", script)
+        self.assertIn("system-entities.$entity_index.dev-entry", script)
+        self.assertIn('"$DMG_ENTITY_DEVICE" == /dev/disk<->', script)
+        self.assertIn("system-entities.$entity_index.content-hint", script)
+        self.assertIn('"$DMG_ENTITY_HINT" == "GUID_partition_scheme"', script)
+        self.assertIn("returned multiple backing devices", script)
+        self.assertIn('for attempt in {1..5}', script)
+        self.assertIn('hdiutil detach "$DMG_DEVICE"', script)
+        self.assertIn('hdiutil detach -force "$DMG_DEVICE"', script)
+        self.assertNotIn('hdiutil detach "$DMG_MOUNT"', script)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -295,6 +295,7 @@ ditto -c -k --sequesterRsrc --keepParent "$OUTPUT_APP" "$APP_ZIP"
 if (( CREATE_DMG )); then
   DMG_STAGE="$BUILD_ROOT/dmg-stage"
   DMG_MOUNT="$BUILD_ROOT/dmg-verify"
+  DMG_ATTACH_PLIST="$BUILD_ROOT/dmg-attach.plist"
   DMG_PATH="$DIST_ROOT/Aptus-macOS-arm64.dmg"
   mkdir -p "$DMG_STAGE" "$DMG_MOUNT"
   ditto "$OUTPUT_APP" "$DMG_STAGE/Aptus.app"
@@ -305,12 +306,45 @@ if (( CREATE_DMG )); then
     -ov \
     -format UDZO \
     "$DMG_PATH"
-  hdiutil attach -readonly -nobrowse -mountpoint "$DMG_MOUNT" "$DMG_PATH" >/dev/null
+  hdiutil attach -plist -readonly -nobrowse -mountpoint "$DMG_MOUNT" "$DMG_PATH" > "$DMG_ATTACH_PLIST"
+  DMG_DEVICE=""
+  for entity_index in {0..15}; do
+    if ! DMG_ENTITY_DEVICE="$(plutil -extract system-entities.$entity_index.dev-entry raw -o - "$DMG_ATTACH_PLIST" 2>/dev/null)"; then
+      break
+    fi
+    DMG_ENTITY_HINT="$(plutil -extract system-entities.$entity_index.content-hint raw -o - "$DMG_ATTACH_PLIST" 2>/dev/null || true)"
+    if [[ "$DMG_ENTITY_DEVICE" == /dev/disk<-> \
+          && "$DMG_ENTITY_HINT" == "GUID_partition_scheme" ]]; then
+      if [[ -n "$DMG_DEVICE" ]]; then
+        print -u2 "Aptus disk image verification returned multiple backing devices."
+        hdiutil detach -force "$DMG_MOUNT" >/dev/null 2>&1 || true
+        exit 1
+      fi
+      DMG_DEVICE="$DMG_ENTITY_DEVICE"
+    fi
+  done
+  if [[ -z "$DMG_DEVICE" ]]; then
+    print -u2 "Aptus disk image verification did not return a valid whole-disk device."
+    hdiutil detach -force "$DMG_MOUNT" >/dev/null 2>&1 || true
+    exit 1
+  fi
   DMG_LAYOUT_VALID=1
   [[ -d "$DMG_MOUNT/Aptus.app" ]] || DMG_LAYOUT_VALID=0
   [[ -L "$DMG_MOUNT/Applications" ]] || DMG_LAYOUT_VALID=0
   [[ "$(readlink "$DMG_MOUNT/Applications")" == "/Applications" ]] || DMG_LAYOUT_VALID=0
-  hdiutil detach "$DMG_MOUNT" >/dev/null
+  DMG_DETACHED=0
+  for attempt in {1..5}; do
+    if hdiutil detach "$DMG_DEVICE" >/dev/null; then
+      DMG_DETACHED=1
+      break
+    fi
+    (( attempt == 5 )) || sleep 1
+  done
+  if (( ! DMG_DETACHED )); then
+    print -u2 "Aptus disk image could not be detached after five attempts."
+    hdiutil detach -force "$DMG_DEVICE" >/dev/null 2>&1 || true
+    exit 1
+  fi
   if (( ! DMG_LAYOUT_VALID )); then
     print -u2 "Aptus disk image is missing the app or Applications shortcut."
     exit 1

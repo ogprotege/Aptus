@@ -10,6 +10,10 @@ engineering builds at implementation commit
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
 target-host and public Developer ID signed and notarized desktop-distribution
 gates remain open.
+The exact Qwen3 30B-A3B MoE attempt passed dependency validation but stopped
+before model loading because live unified memory was 18.932 GiB below the
+required envelope. Full MoE model-data, preflight, pilot, reload, and training
+acceptance remain open.
 
 ## Available now
 
@@ -193,6 +197,9 @@ head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
 that identity. No real CUDA pilot has run on a CUDA target for this release. The
 default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
 public distribution.
+The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
+proves exact plan, compile, dependency, packed-checkpoint, and live-memory
+admission behavior. It does not prove 30B model loading or training speed.
 
 ## Related documentation
 

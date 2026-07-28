@@ -291,6 +291,11 @@ verification. That historical record does not bind a later source head. The
 submitted pull request must pass the repeated local gate after its documentation
 commit and the GitHub packaging workflow for the exact synthetic merge commit.
 
+The [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
+passed static and dependency gates, then blocked before model loading because
+live unified memory was 18.932 GiB below the exact packed-checkpoint-adjusted
+requirement. It is safe refusal evidence, not MoE acceptance.
+
 No real CUDA pilot or full training evidence has completed on an external CUDA
 host. The local Mac packages are ad-hoc signed, not Developer ID signed and
 notarized public artifacts. Aptus v0.2 remains unreleased until every claimed
@@ -300,6 +305,7 @@ release gate passes.
 
 - [Release evidence template](release-evidence-template.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
+- [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Operator checklist](operator-checklist.md)
 - [Documentation health](../maintenance/documentation-health.md)

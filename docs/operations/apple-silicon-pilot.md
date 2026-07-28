@@ -101,7 +101,7 @@ controls.
 | 0 | Accepted | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
 | 1A | Proposed | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish a larger unquantized runtime baseline on an Apache-2.0 model |
 | 2 | Proposed | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
-| 2M | Proposed | Revision-pinned Qwen3 30B-A3B MoE checkpoint with four-bit group-64 defaults and eight-bit group-64 router gates | QLoRA | Batch 1, 512 tokens, pilot only before any full run | Accept the exact `qwen3_moe` compatibility row and measure routed-expert memory and throughput |
+| 2M | Admission blocked | Revision-pinned Qwen3 30B-A3B MoE checkpoint with four-bit group-64 defaults and eight-bit group-64 router gates | QLoRA | Dependency passed; model-data refused before model load with an 18.932 GiB live-memory shortfall | Accept the exact `qwen3_moe` compatibility row and measure routed-expert memory and throughput |
 | 3 | Proposed | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Batch 1, 512 tokens, pilot only before any full run | Measure bounded pilot fit only. Do not claim useful tuning or quality from this run |
 
 Every proposed model must be replaced by one reviewed immutable revision before
@@ -112,6 +112,9 @@ The MoE row requires one router-gate override per layer, a complete
 no-shared-expert topology, attention-only adapters, and the v3 model contract.
 Its active parameter count cannot replace
 the total resident parameter count. The 70B run is intentionally last.
+The [Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
+binds the exact first attempt, packed checkpoint measurement, safe refusal, and
+separate synthetic MLX timings. It records no 30B training or generation speed.
 
 Four-bit weights for a 70B model start near 35 GB before quantization metadata,
 activations, adapter state, optimizer state, caches, temporary buffers, the

@@ -1,0 +1,93 @@
+{
+  "schema_version": "aptus.performance-summary.v1",
+  "recorded_at": "2026-07-28",
+  "source_commit": "e97ef5eca95a43f438e37e64bc78230ea8975e49",
+  "host": {
+    "chip": "Apple M5 Pro",
+    "unified_memory_bytes": 68719476736,
+    "operating_system": "macOS 26.6"
+  },
+  "control_plane_fresh_process_ms": {
+    "plan_generation": {
+      "runs": 7,
+      "first": 54.845,
+      "warm_median": 53.117,
+      "warm_min": 52.732,
+      "warm_max": 54.427
+    },
+    "compile_with_static_validation": {
+      "runs": 7,
+      "first": 107.054,
+      "warm_median": 102.745,
+      "warm_min": 98.162,
+      "warm_max": 129.564
+    },
+    "standalone_static_validation": {
+      "runs": 7,
+      "first": 87.443,
+      "warm_median": 83.003,
+      "warm_min": 82.456,
+      "warm_max": 84.805
+    },
+    "direct_generated_dependency_gate": {
+      "runs": 7,
+      "first": 71.167,
+      "warm_median": 68.047,
+      "warm_min": 67.803,
+      "warm_max": 68.58
+    },
+    "managed_dependency_cli_wait": {
+      "runs": 5,
+      "warm_median": 1171.059,
+      "warm_min": 1107.283,
+      "warm_max": 1190.598
+    },
+    "managed_dependency_job": {
+      "runs": 5,
+      "warm_median": 97.534,
+      "warm_min": 87.755,
+      "warm_max": 106.792
+    },
+    "packed_checkpoint_scan_and_live_admission": {
+      "runs": 9,
+      "warm_median": 1.95,
+      "warm_min": 1.716,
+      "warm_max": 2.901
+    },
+    "offline_cache_resolution_config_binding_and_admission": {
+      "runs": 7,
+      "first": 178.522,
+      "warm_median": 177.213,
+      "warm_min": 172.967,
+      "warm_max": 194.258
+    }
+  },
+  "real_mlx_synthetic_moe_probe": {
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "implementation": "mlx_lm.models.qwen3_moe.Model",
+    "sparse_layers": 2,
+    "experts": 4,
+    "experts_per_token": 2,
+    "total_parameters": 39192320,
+    "active_parameters": 39094016,
+    "logical_census_warm_runs": 30,
+    "logical_census_median_ms": 0.112,
+    "forward_warm_runs": 30,
+    "forward_median_ms": 0.877,
+    "forward_min_ms": 0.808,
+    "forward_max_ms": 1.178,
+    "input_shape": [1, 8],
+    "logits_shape": [1, 8, 151936],
+    "peak_mlx_memory_bytes": 161754000,
+    "derived_parallel_positions_per_second": 9118,
+    "census_digest": "1d256d33a5e3c2b8dc5831e999d8e81c41d6503f81bb5cb3c906449f8ee4cff1"
+  },
+  "claim_boundary": {
+    "synthetic_probe_is_real_mlx": true,
+    "synthetic_probe_is_quantized": false,
+    "synthetic_probe_is_autoregressive_generation": false,
+    "synthetic_probe_projects_thirty_billion_parameter_speed": false,
+    "thirty_billion_parameter_training_throughput_available": false
+  }
+}

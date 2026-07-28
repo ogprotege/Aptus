@@ -21,6 +21,9 @@ All notable changes are recorded here.
   sparse-layer counts, strict API and CLI inputs, and a workbench expert-routing
   rail. Resident-weight estimates always use the user-attested total parameter
   count.
+- Exact required, available, and shortfall bytes in MLX unified-memory
+  admission failures, plus a bound Qwen3 30B-A3B admission and performance
+  evidence record. The recorded 30B attempt stopped before model loading.
 - Full, LoRA, int8-LoRA, and QLoRA candidate enumeration with explicit
   distribution feasibility.
 - A typed 11-descriptor method registry. Four gated executable methods are

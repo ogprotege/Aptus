@@ -41,7 +41,10 @@ The first MoE compatibility slice is exact and fail-closed. It recognizes
 reviewed MLX layout: four-bit group-64 defaults plus one eight-bit group-64
 `model.layers.N.mlp.gate` override per layer. It then permits only
 single-device MLX-LM QLoRA with attention-only adapters. That MoE slice still
-requires its own real-model acceptance run.
+requires full real-model acceptance. Its first exact 30B attempt passed
+dependency validation, then refused model loading with an 18.932 GiB live
+unified-memory shortfall. See the
+[Qwen3 MoE admission record](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md).
 
 </details>
 
@@ -106,12 +109,16 @@ contracts. It is not a model-quality benchmark. See the
 | MLX-LM five-action workflow | 18.65 s and 17.47 s, 18.06 s mean |
 | Confirmed full train, export, and fresh reload | 4.73 s and 5.06 s |
 | Highest full-run MLX peak | 555.1 MiB |
+| Qwen3 30B MoE live admission | 47.759 GiB required, 28.827 GiB available, 18.932 GiB shortfall |
+| Real MLX synthetic MoE forward | 0.877 ms median for a small unquantized two-layer probe |
 | Ten clean desktop builds at `1038ecdd13103418ef1135e1ced634c10370a961` | 58.1 s mean, 55 to 63 s range |
 
 The MLX figures are acceptance telemetry for the recorded M5 Pro host, 0.5B
 four-bit model, and four-row synthetic dataset. They are not production
 throughput, scalability, or model-quality measurements. The desktop timing is
 historical evidence for its exact implementation commit.
+The synthetic MoE forward is not autoregressive generation and does not project
+30B speed. The 30B checkpoint never loaded, so no 30B throughput claim exists.
 
 ---
 

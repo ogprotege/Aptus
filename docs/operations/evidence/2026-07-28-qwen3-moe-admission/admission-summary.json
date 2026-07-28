@@ -1,0 +1,88 @@
+{
+  "schema_version": "aptus.moe-admission-evidence.v1",
+  "recorded_at": "2026-07-28T03:38:41.686623+00:00",
+  "status": "blocked-live-unified-memory-admission",
+  "source_commit": "35f80499918a8e7f06b8076dfd95b2985b1a765a",
+  "source_note": "The bundle was generated from byte-identical source immediately before the diagnostic commit was created.",
+  "host": {
+    "chip": "Apple M5 Pro",
+    "unified_memory_bytes": 68719476736,
+    "operating_system": "macOS 26.6",
+    "operating_system_build": "25G72"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "compiler_id": "mlx-lm.qlora.v1",
+    "estimator_id": "aptus-memory-mlx-v2"
+  },
+  "model": {
+    "model_id": "mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit",
+    "revision": "e9675aa3ca5f900ccef55267914466d55ab325fa",
+    "model_type": "qwen3_moe",
+    "architecture": "Qwen3MoeForCausalLM",
+    "total_parameters": 30532122624,
+    "active_parameters": 3353032704,
+    "active_fraction": 0.10981983615395032,
+    "sparse_layer_count": 48,
+    "expert_count": 128,
+    "experts_per_token": 8,
+    "expert_intermediate_size": 768,
+    "shared_expert_intermediate_size": null,
+    "quantization_default_bits": 4,
+    "quantization_default_group_size": 64,
+    "router_gate_override_bits": 8,
+    "router_gate_override_group_size": 64,
+    "router_gate_override_count": 48
+  },
+  "dataset": {
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "sequence_length": 64,
+    "evaluation_fraction": 0.25
+  },
+  "plan": {
+    "schema_version": "aptus.training-plan.v3",
+    "plan_id": "plan_26d00f729ee3ff7ec867",
+    "candidate_id": "cand_9c66201073d019d01372",
+    "plan_sha256": "948b15c63635ac25fb4979c952aeac7a198cdd6e5e5bb2604361c9ad731b44c1",
+    "artifact_fingerprint": "39a734df1d20852b811f427006a13c56503b85c87fb7a28d4d9463e83b2bfde2",
+    "bundle_zip_sha256": "cbc750cd45bae49214318c2a1008a24afe444e3a9e297b59b3d43ef849d293a8"
+  },
+  "memory_admission": {
+    "planned_resident_bytes": 17180610432,
+    "observed_safetensors_bytes": 17181071994,
+    "resident_adjustment_bytes": 461562,
+    "adjusted_point_estimate_bytes": 28481599618,
+    "adjusted_upper_estimate_bytes": 42690587353,
+    "reserve_bytes": 8589934592,
+    "required_available_bytes": 51280521945,
+    "available_unified_memory_bytes": 30952833024,
+    "shortfall_bytes": 20327688921
+  },
+  "timings": {
+    "plan_cli_wall_seconds": 0.11,
+    "compile_cli_wall_seconds": 0.15,
+    "dependency_cli_wall_seconds": 1.18,
+    "dependency_job_created_to_finished_ms": 92.421,
+    "model_data_cli_wall_seconds": 1.7,
+    "model_data_job_created_to_finished_ms": 769.325
+  },
+  "gate_results": {
+    "static": "pass",
+    "dependency": "pass",
+    "model_data": "blocked-before-model-load",
+    "measured_preflight": "not_run",
+    "pilot": "not_run",
+    "fresh_reload": "not_run",
+    "confirmed_training": "not_run",
+    "final_export": "not_run"
+  },
+  "claims": {
+    "weights_loaded": false,
+    "training_throughput_measured": false,
+    "optimizer_step_latency_measured": false,
+    "thirty_billion_parameter_peak_mlx_memory_measured": false,
+    "model_quality_measured": false
+  }
+}

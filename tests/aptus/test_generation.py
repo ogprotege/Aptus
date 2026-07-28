@@ -1340,9 +1340,16 @@ class BundleGenerationTests(unittest.TestCase):
             )
             with (
                 patch.object(module.subprocess, "run", return_value=failed),
-                self.assertRaisesRegex(RuntimeError, "8 GiB Aptus reserve"),
+                self.assertRaisesRegex(RuntimeError, "8 GiB Aptus reserve") as raised,
             ):
                 module.require_unified_memory_admission(plan, model_path)
+            required = (
+                max(memory["point_estimate_bytes"], memory["upper_estimate_bytes"])
+                + 8 * 1024**3
+            )
+            self.assertIn(f"required={required} bytes", str(raised.exception))
+            self.assertIn("available=4096 bytes", str(raised.exception))
+            self.assertIn(f"shortfall={required - 4096} bytes", str(raised.exception))
 
     def test_generated_mlx_model_data_refuses_right_truncation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

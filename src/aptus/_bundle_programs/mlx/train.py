@@ -41,7 +41,9 @@ def load_contract() -> tuple[dict[str, Any], dict[str, Any]]:
         or candidate.get("distribution") != "single"
         or candidate.get("method") not in {"lora", "qlora"}
     ):
-        raise RuntimeError("The selected candidate is not an executable MLX-LM contract.")
+        raise RuntimeError(
+            "The selected candidate is not an executable MLX-LM contract."
+        )
     return plan, candidate
 
 
@@ -58,7 +60,9 @@ def require_output(path: Path) -> Path:
     resolved = unresolved.resolve()
     allowed = ((ROOT / "runs").resolve(), (ROOT / "pilot-output").resolve())
     if not any(parent == resolved or parent in resolved.parents for parent in allowed):
-        raise RuntimeError("MLX adapter output must remain under runs/ or pilot-output/.")
+        raise RuntimeError(
+            "MLX adapter output must remain under runs/ or pilot-output/."
+        )
     resolved.mkdir(parents=True, exist_ok=False)
     return resolved
 
@@ -68,7 +72,9 @@ def require_data(path: Path) -> Path:
     resolved = unresolved.resolve(strict=True)
     expected = (ROOT / "data" / "mlx").resolve(strict=True)
     if resolved != expected:
-        raise RuntimeError("The MLX data argument must match the compiler-bound data/mlx directory.")
+        raise RuntimeError(
+            "The MLX data argument must match the compiler-bound data/mlx directory."
+        )
     for name in ("train.jsonl", "valid.jsonl", "split-contract.json"):
         if not (resolved / name).is_file():
             raise RuntimeError(f"MLX dataset is missing {name}.")
@@ -78,7 +84,9 @@ def require_data(path: Path) -> Path:
 def download_pinned_model(plan: dict[str, Any], requested_model: str) -> Path:
     model = plan["model"]
     if requested_model != model["model_id"]:
-        raise RuntimeError("The model argument must equal the plan-bound provider model ID.")
+        raise RuntimeError(
+            "The model argument must equal the plan-bound provider model ID."
+        )
     from huggingface_hub import snapshot_download
 
     return Path(
@@ -165,10 +173,8 @@ def build_mlx_packed_checkpoint_binding(
     ):
         raise RuntimeError("MLX packed-checkpoint evidence requires positive counts.")
     if plan["recommended"].get("method") == "qlora":
-        expected_weights, expected_metadata = (
-            mlx_quantized_storage_bytes_for_contract(
-                plan["model"], logical_parameters=int(observed_total)
-            )
+        expected_weights, expected_metadata = mlx_quantized_storage_bytes_for_contract(
+            plan["model"], logical_parameters=int(observed_total)
         )
     else:
         expected_weights = round(int(observed_total) * 2.0)
@@ -306,10 +312,7 @@ def build_mlx_model_parameter_census(
             and (index + 1) % decoder_sparse_step == 0
         }
         expected_per_layer = (
-            expert_count
-            * 3
-            * int(model_spec["hidden_size"])
-            * expert_intermediate_size
+            expert_count * 3 * int(model_spec["hidden_size"]) * expert_intermediate_size
         )
         for index, layer in enumerate(layers):
             mlp = getattr(layer, "mlp", None)
@@ -483,8 +486,8 @@ def require_mlx_model_load_binding(
             * int(model_spec["hidden_size"])
             * int(moe["expert_intermediate_size"])
         )
-        active_routed = routed * int(moe["experts_per_token"]) // int(
-            moe["expert_count"]
+        active_routed = (
+            routed * int(moe["experts_per_token"]) // int(moe["expert_count"])
         )
         inactive = routed - active_routed
         method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
@@ -524,7 +527,9 @@ def current_available_unified_memory_bytes() -> int:
             timeout=5,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise RuntimeError("Current Apple unified-memory admission probe failed.") from error
+        raise RuntimeError(
+            "Current Apple unified-memory admission probe failed."
+        ) from error
     if completed.returncode:
         raise RuntimeError("Current Apple unified-memory admission probe failed.")
     page_match = re.search(r"page size of\s+(\d+) bytes", completed.stdout)
@@ -614,7 +619,9 @@ def require_unified_memory_admission(
     if available < required:
         raise RuntimeError(
             "Current available Apple unified memory is below the packed-checkpoint-adjusted "
-            "candidate upper estimate plus the required 8 GiB Aptus reserve."
+            "candidate upper estimate plus the required 8 GiB Aptus reserve. "
+            f"required={required} bytes; available={available} bytes; "
+            f"shortfall={required - available} bytes."
         )
     admission = {
         "schema_version": "aptus.mlx-unified-memory-admission.v2",
@@ -630,7 +637,9 @@ def require_unified_memory_admission(
     return require_unified_memory_admission_binding(plan, admission)
 
 
-def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+def resolve_lora_keys(
+    model: Any, candidate: dict[str, Any]
+) -> tuple[list[str], dict[str, Any]]:
     planned = candidate.get("target_modules")
     if (
         not isinstance(planned, list)
@@ -638,7 +647,9 @@ def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str],
         or any(not isinstance(target, str) or not target for target in planned)
         or len(set(planned)) != len(planned)
     ):
-        raise RuntimeError("The MLX-LM candidate requires unique planned target modules.")
+        raise RuntimeError(
+            "The MLX-LM candidate requires unique planned target modules."
+        )
     layers = tuple(getattr(model, "layers", ()))
     if not layers:
         raise RuntimeError("The loaded MLX-LM model exposes no transformer layers.")
@@ -664,7 +675,9 @@ def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str],
         resolved[target] = observed[0]
     resolved_keys = [resolved[target] for target in planned]
     if len(set(resolved_keys)) != len(resolved_keys):
-        raise RuntimeError("Distinct planned MLX targets resolve to the same runtime key.")
+        raise RuntimeError(
+            "Distinct planned MLX targets resolve to the same runtime key."
+        )
     binding = {
         "schema_version": "aptus.mlx-trainable-target-binding.v1",
         "planned_target_modules": planned,
@@ -702,7 +715,9 @@ def require_trainable_binding(
             )
         pairs.setdefault(base, set()).add(suffix.removeprefix("."))
     if not pairs or any(kinds != {"lora_a", "lora_b"} for kinds in pairs.values()):
-        raise RuntimeError("Every planned MLX adapter instance requires one LoRA A/B pair.")
+        raise RuntimeError(
+            "Every planned MLX adapter instance requires one LoRA A/B pair."
+        )
     for base in pairs:
         target = next(
             target
@@ -711,9 +726,8 @@ def require_trainable_binding(
         )
         target_counts[target] += 1
     layer_count = binding["transformer_layer_count"]
-    if (
-        len(pairs) != binding["expected_adapter_target_instance_count"]
-        or any(count != layer_count for count in target_counts.values())
+    if len(pairs) != binding["expected_adapter_target_instance_count"] or any(
+        count != layer_count for count in target_counts.values()
     ):
         raise RuntimeError(
             "The MLX trainable adapter set does not cover every planned target in every layer."
@@ -755,7 +769,9 @@ def derive_iterations(
         micro_batch = int(candidate["micro_batch_size"])
         max_epochs = int(plan["target"]["max_epochs"])
         if micro_batch <= 0 or max_epochs <= 0:
-            raise RuntimeError("MLX-LM full-run batch and epoch values must be positive.")
+            raise RuntimeError(
+                "MLX-LM full-run batch and epoch values must be positive."
+            )
         if train_examples < micro_batch:
             raise RuntimeError("MLX-LM full training has no complete micro-batch.")
         batches_per_epoch = train_examples // micro_batch
@@ -795,7 +811,9 @@ def load_pinned_local_model(
     )
     loaded = loader(str(expected_path), tokenizer_config={"trust_remote_code": False})
     if not isinstance(loaded, tuple) or len(loaded) < 2:
-        raise RuntimeError("Pinned MLX-LM loader returned an unsupported model payload.")
+        raise RuntimeError(
+            "Pinned MLX-LM loader returned an unsupported model payload."
+        )
     binding = build_mlx_model_load_binding(
         loaded[0],
         plan,
@@ -868,9 +886,7 @@ def run_smoke(arguments: argparse.Namespace) -> int:
             *args,
             model_path=model_path,
             plan=plan,
-            observed_safetensors_bytes=memory_admission[
-                "observed_safetensors_bytes"
-            ],
+            observed_safetensors_bytes=memory_admission["observed_safetensors_bytes"],
             **kwargs,
         )
         evidence["model_load_binding"] = binding
@@ -898,17 +914,15 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         resolved_keys, binding = resolve_lora_keys(model, candidate)
         config["keys"] = resolved_keys
         evidence["resolved_binding"] = binding
-        original_linear_to_lora_layers(
-            model, num_layers, config, use_dora=use_dora
-        )
+        original_linear_to_lora_layers(model, num_layers, config, use_dora=use_dora)
 
     def instrumented_train(*args: Any, **kwargs: Any) -> Any:
         model = kwargs.get("model")
         training_args = kwargs.get("args")
         if model is None or training_args is None:
             raise RuntimeError("Pinned MLX-LM train invocation changed shape.")
-        update_opportunities = (
-            int(training_args.iters) // int(training_args.grad_accumulation_steps)
+        update_opportunities = int(training_args.iters) // int(
+            training_args.grad_accumulation_steps
         )
         if update_opportunities < 1:
             raise RuntimeError(
@@ -928,7 +942,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         result = original_train(*args, **kwargs)
         after = dict(tree_flatten(model.trainable_parameters()))
         if set(after) != set(before):
-            raise RuntimeError("The MLX trainable parameter set changed during training.")
+            raise RuntimeError(
+                "The MLX trainable parameter set changed during training."
+            )
         mx.eval(*after.values())
         mx.eval(optimizer.step)
         completed_optimizer_updates = int(optimizer.step.item()) - optimizer_step_before
@@ -988,7 +1004,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         or train_examples % int(candidate["micro_batch_size"])
         or valid_examples % int(candidate["micro_batch_size"])
     ):
-        raise RuntimeError("Compiled MLX split counts do not match their bound contract.")
+        raise RuntimeError(
+            "Compiled MLX split counts do not match their bound contract."
+        )
     source_train_examples = split_values["train"]["source_row_count"]
     source_validation_examples = split_values["valid"]["source_row_count"]
     required_iterations = derive_iterations(
@@ -999,7 +1017,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         train_examples=train_examples,
     )
     if required_iterations <= 0:
-        raise RuntimeError("MLX-LM derived no training iterations from the compiled data.")
+        raise RuntimeError(
+            "MLX-LM derived no training iterations from the compiled data."
+        )
     sys.argv = [
         "mlx_lm.lora",
         "--config",
@@ -1038,15 +1058,14 @@ def run_smoke(arguments: argparse.Namespace) -> int:
     if evidence.get("optimizer_update_observed") is not True:
         raise RuntimeError("MLX-LM did not prove a non-skipped optimizer update.")
     if action == "pilot" and evidence.get("completed_optimizer_updates", 0) < 2:
-        raise RuntimeError("MLX-LM pilot requires at least two completed optimizer updates.")
-    validation_losses = evidence.get("validation_losses")
-    if (
-        valid_examples > 0
-        and (
-            not isinstance(validation_losses, list)
-            or not validation_losses
-            or any(not math.isfinite(loss) for loss in validation_losses)
+        raise RuntimeError(
+            "MLX-LM pilot requires at least two completed optimizer updates."
         )
+    validation_losses = evidence.get("validation_losses")
+    if valid_examples > 0 and (
+        not isinstance(validation_losses, list)
+        or not validation_losses
+        or any(not math.isfinite(loss) for loss in validation_losses)
     ):
         raise RuntimeError("MLX-LM did not report finite validation loss evidence.")
     saved_parameters = mx.load(str(adapter_file))

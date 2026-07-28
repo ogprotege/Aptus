@@ -29,9 +29,13 @@ Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
 gates. Two clean, independent Apple Silicon workflows reached
 `measured-run-pass` against a revision-pinned public model. Crash resume remains
-unsupported. The default Mac build is ad-hoc signed. Public distribution still
-requires a Developer ID identity and notarization. No real CUDA target-host
-pilot has completed the release gates.
+unsupported. Ten consecutive clean local desktop engineering builds also passed
+at implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That
+record is historical evidence for that exact commit. Pull-request CI rebuilds
+and packages GitHub's exact tested merge commit. The artifact records that
+commit in `COMMIT`. The default Mac build is ad-hoc signed.
+Public distribution still requires a Developer ID identity and notarization.
+No real CUDA target-host pilot has completed the release gates.
 
 </details>
 
@@ -83,6 +87,26 @@ The dataset profile and planning decision are real. The model and hardware facts
 are declared examples. Target-host model loading, measurement, and pilot gates
 can still reject the plan.
 
+The same synthetic dataset later exercised the complete MLX-LM QLoRA runtime
+against a revision-pinned public model. Two clean workflows reached
+`measured-run-pass`. That result proves the recorded runtime and artifact
+contracts. It is not a model-quality benchmark. See the
+[MLX-LM acceptance record](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
+
+### Recorded acceptance snapshot
+
+| Exact recorded gate | Observed result |
+| --- | ---: |
+| MLX-LM five-action workflow | 18.65 s and 17.47 s, 18.06 s mean |
+| Confirmed full train, export, and fresh reload | 4.73 s and 5.06 s |
+| Highest full-run MLX peak | 555.1 MiB |
+| Ten clean desktop builds at `1038ecdd13103418ef1135e1ced634c10370a961` | 58.1 s mean, 55 to 63 s range |
+
+The MLX figures are acceptance telemetry for the recorded M5 Pro host, 0.5B
+four-bit model, and four-row synthetic dataset. They are not production
+throughput, scalability, or model-quality measurements. The desktop timing is
+historical evidence for its exact implementation commit.
+
 ---
 
 ## Start on macOS
@@ -115,6 +139,13 @@ ZIP, the DMG, their `SHA256SUMS`, and a `COMMIT` source marker under an
 `aptus-macos-arm64-<commit>` artifact. These CI artifacts use an ad-hoc
 signature for review and testing. A public distribution still requires a
 Developer ID signature and notarization.
+
+The first local ten-build stability gate passed 10 of 10 clean builds at
+implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. Its
+[desktop engineering evidence](docs/operations/evidence/2026-07-27-desktop-release/README.md)
+does not claim that later commits have the same binaries. Pull-request CI is the
+merge-candidate package check. It records the workflow commit rather than
+mislabeling it as the branch head.
 
 See [installation details](docs/getting-started/install.md#build-aptus-for-mac)
 for prerequisites, signing options, persistent paths, and the browser-based
@@ -205,6 +236,7 @@ before using private or governed data.
 | Prepare real training data | [Dataset guide](docs/guides/prepare-a-dataset.md) |
 | Operate an Apple or CUDA bundle | [Operator checklist](docs/operations/operator-checklist.md) |
 | Review the real Apple acceptance | [MLX-LM acceptance evidence](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) |
+| Review desktop engineering stability | [Desktop release evidence](docs/operations/evidence/2026-07-27-desktop-release/README.md) |
 | Understand the system | [Architecture](docs/architecture/system.md) |
 | Integrate with Aptus | [CLI](docs/reference/cli.md) and [API](docs/reference/api.md) |
 | Change the project | [Contributing](CONTRIBUTING.md) |

@@ -5,8 +5,13 @@
 ## Supported status
 
 Aptus v0.2 is an engineering preview. Apple Silicon MLX-LM acceptance reached
-`measured-run-pass` twice in a clean isolated checkout. CUDA target-host evidence,
-the complete product release gate, and public notarization remain open. Use GitHub's
+`measured-run-pass` twice in a clean isolated checkout. Ten of 10 clean local
+desktop engineering builds passed at implementation commit
+`1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
+recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
+exact workflow commit. Pull requests use GitHub's synthetic merge commit. CUDA
+target-host evidence and public Developer ID signing and notarization remain
+open. Use GitHub's
 [private vulnerability-reporting flow](https://github.com/ogprotege/Aptus/security/advisories/new)
 when it is available. Otherwise contact the repository owner through an
 existing private channel before sharing technical details. Do not include
@@ -141,6 +146,13 @@ Generated `requirements.txt` contains exact direct pins for the selected method.
 It is not a transitive dependency lock. Install in an isolated environment,
 review resolved dependencies, and retain the environment binding. Do not run
 untrusted bundles or install unreviewed packages on a sensitive host.
+
+The 2026-07-27 web audit reports zero production dependency advisories. The
+full development audit reports four high-severity transitive advisories in the
+OpenAPI generator chain: `@redocly/openapi-core`, `js-yaml`, `minimatch`, and
+`brace-expansion`. That generator processes the trusted checked-in OpenAPI
+document, but the advisories remain open release-engineering debt. Do not feed
+it untrusted schemas.
 
 ## Related documentation
 

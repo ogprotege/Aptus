@@ -62,7 +62,8 @@ and output directories are mutable exclusions with separate evidence contracts.
 6. Run contract and static validation.
 7. Diff the complete generated tree, not only the edited script.
 8. Import or execute generated modules through isolated test fixtures.
-9. Run the relevant runtime pilot on target CUDA hardware.
+9. Run the affected target-runtime gate. Use the CUDA pilot for CUDA resources
+   and the MLX-LM evidence ladder for MLX resources.
 10. Update bundle, validation, capability, and operations documentation.
 
 Do not reuse an old output directory. No-clobber behavior is part of the
@@ -146,8 +147,10 @@ Then run the complete repository gate. Compiler changes also require a clean
 wheel build and installed-wheel smoke. `tests.aptus.test_packaging` verifies
 wheel package-data declarations and frozen-sidecar collection. Generation tests
 compare emitted program bytes and manifest hashes with the packaged resources.
-Runtime-semantic changes require the
-applicable real CUDA pilots before a release support claim.
+Runtime-semantic changes require the applicable real target-host evidence before
+a release support claim. CUDA changes require the affected CUDA pilots. MLX-LM
+changes require the affected dependency, model-data, measured-preflight, pilot,
+full-run, and fresh-reload evidence.
 
 ## Review the generated diff
 

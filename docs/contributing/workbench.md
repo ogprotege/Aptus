@@ -1,6 +1,6 @@
 # Workbench Development
 
-> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 The React workbench is the complete transitional workflow inside the native Mac
 product and a local browser interface over the same strict FastAPI contracts
@@ -13,8 +13,10 @@ model.
 | Path | Responsibility |
 |---|---|
 | [`web/src/App.tsx`](../../web/src/App.tsx) | Application state, bootstrap restoration, stage transitions, polling, and active-job guards |
-| [`web/src/api.ts`](../../web/src/api.ts) | API requests, strict response normalization, and error handling |
-| [`web/src/types.ts`](../../web/src/types.ts) | Browser-side facts, plans, candidates, reports, jobs, and bootstrap types |
+| [`docs/reference/openapi.v1.json`](../reference/openapi.v1.json) | Generated server contract from explicit Pydantic response models |
+| [`web/src/generated/openapi.ts`](../../web/src/generated/openapi.ts) | Generated TypeScript schema and path types; not a complete SDK |
+| [`web/src/api.ts`](../../web/src/api.ts) | Maintained API requests, strict response normalization, generated-type consumption, and error handling |
+| [`web/src/types.ts`](../../web/src/types.ts) | Maintained browser-side facts, plans, candidates, reports, jobs, and presentation types |
 | [`web/src/stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
 | [`web/src/components/`](../../web/src/components) | Workflow rail, candidate comparison, fit ledger, validation gates, artifact tree, and run console |
 | [`web/src/lib/`](../../web/src/lib) | Hardware, model-inspection, and plan presentation helpers |
@@ -56,11 +58,32 @@ When adding an API field:
 
 1. change the Pydantic model and endpoint;
 2. add API success and rejection tests;
-3. update `types.ts`;
+3. regenerate the OpenAPI JSON and TypeScript schema and path map;
 4. update request construction or response normalization in `api.ts`;
-5. update restoration and stage state in `App.tsx`;
-6. add component or stage tests;
-7. update the API and UI documentation.
+5. update `types.ts` only when the maintained UI domain model changes;
+6. update applicable Swift decoders and their contract check;
+7. update restoration and stage state in `App.tsx`;
+8. add component or stage tests;
+9. update the API and UI documentation.
+
+Run the contract workflow from the repository root:
+
+```bash
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py
+npm --prefix web run openapi:generate
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py --check
+npm --prefix web run openapi:check
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/check_client_contracts.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/verify_versions.py
+```
+
+Generated TypeScript types provide compile-time alignment. They do not validate
+untrusted responses at runtime. Keep the maintained normalizers fail closed on
+missing, malformed, unknown-version, or misbound data.
 
 Preserve `null` for unknown resource values. Do not turn a missing free-memory
 measurement into total memory.
@@ -129,6 +152,7 @@ From `web/`:
 
 ```bash
 npm ci
+npm run openapi:check
 npm test
 npm run typecheck
 npm run build

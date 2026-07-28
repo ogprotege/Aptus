@@ -71,9 +71,11 @@ when its evidence, owner, or resolution changes.
 - **Resolution:** Every success route has an explicit Pydantic response model,
   the API reports contract identity `aptus.api.v1`, and
   `docs/reference/openapi.v1.json` is generated and checked byte-for-byte against
-  the running application schema. Documentation tests require the project and
-  job routes in that artifact. React and Swift client types remain maintained,
-  tested boundaries rather than falsely labeled generated SDKs.
+  the running application schema. `web/src/generated/openapi.ts` is also
+  generated and checked from that artifact. React consumes its schema and path
+  types through maintained request, normalization, domain, and presentation
+  layers. Swift decoders remain maintained source and are checked against the
+  covered OpenAPI boundary.
 - **Owner:** API and documentation maintainers
 
 ### DOC-005: Validate method-catalog overlap
@@ -92,10 +94,10 @@ when its evidence, owner, or resolution changes.
 - **Priority:** P1
 - **Status:** Open
 - **Evidence:** `SECURITY.md` directs reporters to GitHub private vulnerability
-  reporting when the repository exposes it, with an existing private maintainer
-  channel as fallback. It now publishes supported-version, response-target, and
-  coordinated-disclosure rules. The GitHub feature still needs repository-level
-  availability verification before the route can be called guaranteed.
+  reporting when available, with an existing private maintainer channel as
+  fallback. It publishes supported-version, response-target, and
+  coordinated-disclosure rules. Repository inspection on 2026-07-27 confirmed
+  that GitHub private vulnerability reporting is disabled.
 - **Required result:** Add a maintained private reporting method, expected
   response window, supported-version table, and disclosure process.
 - **Owner:** Repository owner
@@ -150,9 +152,13 @@ when its evidence, owner, or resolution changes.
   binds a clean commit, exact runtime, public model revision, synthetic dataset,
   plans, bundles, two measured preflights, pilots, full runs, reloads, exports,
   timings, memory, and hashes. Both clean repetitions reached
-  `measured-run-pass`.
+  `measured-run-pass`. The
+  [desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
+  binds a separate 10-of-10 local build result, package hashes, timing, test
+  counts, signing state, and limitations to its exact tested commit.
 - **Required result:** Add equivalent qualifying evidence for every claimed CUDA
-  method and placement, plus the final desktop distribution evidence.
+  method and placement, plus Developer ID signed and notarized desktop evidence
+  for the exact public release commit.
 - **Blocker:** Access to approved CUDA target hosts and public notarization
   credentials for a public Mac artifact
 - **Owner:** Release maintainers
@@ -170,6 +176,19 @@ when its evidence, owner, or resolution changes.
   methods and placements, then test command order, evidence boundaries,
   platform notes, file names, and successor links.
 - **Owner:** Compiler and documentation maintainers
+
+### DOC-016: Resolve OpenAPI generator development advisories
+
+- **Priority:** P1
+- **Status:** Open
+- **Evidence:** `npm audit --omit=dev` reports zero production advisories. The
+  full audit reports four high-severity transitive advisories through
+  `openapi-typescript` and `@redocly/openapi-core`: `@redocly/openapi-core`,
+  `js-yaml`, `minimatch`, and `brace-expansion`. The generator consumes the
+  trusted checked-in OpenAPI document during development and release builds.
+- **Required result:** Upgrade or replace the generator dependency chain without
+  changing the generated contract unexpectedly, then record a clean full audit.
+- **Owner:** Web and release maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

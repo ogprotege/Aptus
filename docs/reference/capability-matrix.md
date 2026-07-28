@@ -17,7 +17,12 @@ A current `pilot-pass` can authorize explicit full-duration adapter training.
 
 Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` in the
 [2026-07-27 acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
-No real CUDA target-host pilot has been recorded. Aptus v0.2 remains unreleased.
+A separate local desktop gate passed 10 of 10 clean engineering builds at
+implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
+does not transfer to later commits. Pull-request CI rebuilds and packages the
+exact GitHub-tested merge commit and records it in `COMMIT`. No real CUDA
+target-host pilot has been recorded, and no Developer ID signed and notarized
+public Mac artifact has passed its gate. Aptus v0.2 remains unreleased.
 
 ## CUDA method and placement matrix
 
@@ -105,14 +110,24 @@ MPS or MLX.
 
 ### Training-runtime matrix
 
-| Runtime | Discovery and configuration | Current compiler | Highest reachable evidence |
+| Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
-| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass`, subject to every gate |
-| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA | `measured-run-pass`, subject to uninterrupted pilot and full-run gates |
+| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass` is reachable, but no qualifying target-host run is recorded |
+| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA | Two clean QLoRA workflows reached `measured-run-pass` for the exact recorded acceptance configuration |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
 LM Studio and oMLX are not training runtimes. They are loopback inference-only
 services for model listing and text generation.
+
+### Desktop delivery boundary
+
+| Evidence layer | Current result | Claim boundary |
+| --- | --- | --- |
+| Local desktop stability | 10 of 10 clean builds passed at `1038ecdd13103418ef1135e1ced634c10370a961` | Historical engineering evidence for that exact source commit |
+| Pull-request packaging | Workflow builds GitHub's synthetic merge commit and uploads app ZIP, DMG, checksums, and source marker | Passed only after that exact workflow commit's GitHub Actions job succeeds |
+| Default signature | Ad-hoc signing is built and verified | Local review integrity, not public distribution approval |
+| Public Mac distribution | Developer ID signing, notarization, stapling, and Gatekeeper assessment are implemented as required gates | Open until real credentials produce accepted artifacts bound to the exact release commit |
+| CUDA target-host execution | Compiler and runtime path exist | Open until qualifying target-host pilots and full runs are recorded |
 
 ## Distribution behavior
 

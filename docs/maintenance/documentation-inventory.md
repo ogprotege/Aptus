@@ -2,11 +2,11 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation present on 2026-07-22
+> **Applies to:** Repository documentation present on 2026-07-27
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-07-27
 >
-> **Next scheduled review:** 2026-10-22, or after any documentation move
+> **Next scheduled review:** 2026-10-27, or after any documentation move
 
 This inventory identifies Aptus documentation surfaces, their lifecycle, and
 their authority. It includes prose, machine-readable documentation, generated
@@ -14,15 +14,15 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-After the 2026-07-22 documentation additions, the repository contains 96 tracked
+After the 2026-07-27 evidence additions, the repository contains 98 tracked
 Markdown documents in the maintained documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 81 | Current guidance, governance, navigation, or current research with explicit limits |
+| Active | 83 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 13 | Historical research intake and legacy-audit evidence |
-| Total | 96 | Excludes ignored local and generated development artifacts |
+| Total | 98 | Excludes ignored local and generated development artifacts |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
@@ -113,6 +113,8 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-07-27 MLX-LM target-host acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+- [2026-07-27 desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
 - [State, storage, and retention](../operations/state-storage-retention.md)
 - [Reference documentation](../reference/index.md)
 - [API reference](../reference/api.md)
@@ -225,7 +227,10 @@ It also generates command help in `train.py`, `run.py`, `preflight.py`, and
 |---|---|
 | Python package metadata | `pyproject.toml`, `src/aptus/__init__.py` |
 | Installed CLI help | `src/aptus/cli.py` |
-| OpenAPI and runtime API errors | `src/aptus/api.py` |
+| HTTP request and response contracts | `src/aptus/api_contracts.py`, `src/aptus/api.py` |
+| Generated OpenAPI contract | `tools/generate_openapi.py`, `docs/reference/openapi.v1.json` |
+| Generated TypeScript contract | `web/scripts/generate-openapi-client.mjs`, `web/src/generated/openapi.ts` |
+| Maintained client boundary | `web/src/api.ts`, `web/src/types.ts`, `desktop/macos/Sources/`, `tools/check_client_contracts.py` |
 | Web metadata | `web/package.json`, `web/index.html` |
 | Workbench copy | `web/src/App.tsx`, `web/src/components/`, `web/src/stages/`, `web/src/demo.ts`, and user-facing errors under `web/src/lib/` and `web/src/api.ts` |
 | Packaged web build | `src/aptus/_web/index.html` and `src/aptus/_web/assets/` |

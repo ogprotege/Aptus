@@ -23,6 +23,7 @@ operational evidence, future work, research inputs, and historical records.
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
 | Inspect the real MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |
 | Review source research | [Research index](research/index.md) | [Retained Reference packet](../Reference/README.md) |
 
 ## Documentation status legend
@@ -114,6 +115,7 @@ Authority labels have a separate meaning:
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+- [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
 - [Apple Silicon runtime and pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 

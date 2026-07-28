@@ -122,9 +122,15 @@ All notable changes are recorded here.
 Repository tests and static checks are necessary but not sufficient for release.
 The dated Apple Silicon record under
 `docs/operations/evidence/2026-07-27-mlx-lm-acceptance/` proves two clean,
-independent MLX-LM workflows through `measured-run-pass`. No qualifying CUDA
-target-host pilot or full run has been recorded. The default Mac artifacts are
-not a notarized public distribution. Version 0.2.0 remains unreleased.
+independent MLX-LM workflows through `measured-run-pass`. The dated desktop
+record under `docs/operations/evidence/2026-07-27-desktop-release/` proves 10 of
+10 clean local engineering builds at implementation commit
+`1038ecdd13103418ef1135e1ced634c10370a961`. It does not bind a later source
+head. Pull-request CI rebuilds and packages GitHub's exact tested merge commit,
+then records that identity in `COMMIT`. No
+qualifying CUDA target-host pilot or full run has been recorded. The default Mac
+artifacts are ad-hoc signed, not a Developer ID signed and notarized public
+distribution. Version 0.2.0 remains unreleased.
 
 ## Related documentation
 

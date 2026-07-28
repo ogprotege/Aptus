@@ -6,7 +6,7 @@
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
 | Last reviewed | 2026-07-27 |
-| Next review | 2026-10-27, or sooner when `src/aptus/api.py` changes |
+| Next review | 2026-10-27, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
 started by `aptus serve`. The default origin is `http://127.0.0.1:8787`.
@@ -30,10 +30,25 @@ uv run --isolated --python 3.12 --locked --extra server --extra test \
   python tools/generate_openapi.py
 uv run --isolated --python 3.12 --locked --extra server --extra test \
   python tools/generate_openapi.py --check
+npm --prefix web run openapi:generate
+npm --prefix web run openapi:check
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/check_client_contracts.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/verify_versions.py
 ```
 
-The OpenAPI artifact is generated. The current React TypeScript types and Swift
-native decoders are maintained client boundaries with tests, not generated SDKs.
+Run the generators after changing a request or response contract. Run the check
+forms without changing files in validation and CI.
+
+The OpenAPI artifact and
+[`web/src/generated/openapi.ts`](../../web/src/generated/openapi.ts) are
+generated. The TypeScript file supplies schema and path types to the React API
+layer. It is not a complete generated SDK. Request construction, response
+normalization, UI domain types, and presentation remain maintained in
+`web/src/api.ts` and `web/src/types.ts`. Swift native decoders also remain
+maintained source. Their covered endpoints and required runtime-inventory fields
+are checked against OpenAPI by `tools/check_client_contracts.py`.
 
 ## Authentication
 

@@ -123,20 +123,30 @@ to make it appear current.
 ## API and workbench changes
 
 FastAPI request models reject unknown fields. Additions and removals must be
-reflected in `api.py`, `api_contracts.py`, API tests, `web/src/types.ts`, request
-construction and normalization in `web/src/api.ts`, Swift decoders when
-applicable, stage state, restoration logic, and the API reference. Regenerate
-and check the versioned OpenAPI artifact:
+reflected in `api.py`, `api_contracts.py`, API tests, maintained request and
+normalization code in `web/src/api.ts`, UI domain types in `web/src/types.ts`
+when needed, Swift decoders when applicable, stage state, restoration logic, and
+the API reference. Regenerate and check both derived contract artifacts:
 
 ```bash
 uv run --isolated --python 3.12 --locked --extra server --extra test \
   python tools/generate_openapi.py
+npm --prefix web run openapi:generate
 uv run --isolated --python 3.12 --locked --extra server --extra test \
   python tools/generate_openapi.py --check
+npm --prefix web run openapi:check
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/check_client_contracts.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/verify_versions.py
 ```
 
-The current TypeScript and Swift clients are hand-maintained and tested. Do not
-describe them as generated clients.
+`docs/reference/openapi.v1.json` and `web/src/generated/openapi.ts` are
+generated. The TypeScript artifact supplies schema and path types. It does not
+replace React's maintained request construction, runtime normalization, domain
+types, or presentation logic. Swift decoders are maintained and contract
+checked. Describe each boundary precisely instead of calling either client
+wholly generated or wholly hand-maintained.
 
 If a field can be unavailable, preserve `null` or an explicit unknown state.
 Do not substitute total memory for free memory or provider declarations for user
@@ -165,6 +175,9 @@ persisted state. Do not mark success from child exit alone.
 - [ ] Unknown, malformed, stale, and tampered forms fail closed.
 - [ ] Host and portable implementations agree.
 - [ ] API, CLI, and web consumers agree.
+- [ ] Generated OpenAPI JSON and TypeScript schema and path types are current.
+- [ ] Maintained React adapters and covered Swift decoders pass their contract
+      checks.
 - [ ] Positive, negative, mutation, and interruption tests pass.
 - [ ] A fresh bundle was compiled and reviewed.
 - [ ] Reference and methodology pages were updated.

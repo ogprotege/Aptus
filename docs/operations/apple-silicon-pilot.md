@@ -1,11 +1,11 @@
 # Apple Silicon runtime and pilot matrix
 
-> **Status:** Experimental | **Authority:** Proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or before any model download
+> **Status:** Active | **Authority:** Measured acceptance record and proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or before any additional model download
 
-Status: machine-specific runtime boundary and proposed next experiments for the
-measured 64 GB M5 Pro host. The MLX compiler exists. No model download, host
-measured-preflight run, `pilot-pass`, or full-duration training result is
-claimed here.
+This page records the completed small-model QLoRA acceptance and the proposed
+next experiments for the measured 64 GB M5 Pro host. The accepted result proves
+only its exact model, revision, synthetic dataset, runtime, plan, bundle, and
+actions. The larger-model and LoRA rows remain proposals.
 
 ## Measured host
 
@@ -51,10 +51,34 @@ PyTorch MPS, adapter fusion, and crash resume remain outside the current
 executable path. Aptus does support uninterrupted full-duration LoRA and QLoRA
 adapter runs after `pilot-pass`.
 
-I would test methods in this order:
+## Completed QLoRA acceptance
 
-1. QLoRA on a small quantized model to prove the complete local workflow.
-2. Unquantized LoRA on a 7B model after the small QLoRA path is measured.
+On 2026-07-27, two clean workflows reached `measured-run-pass` with:
+
+- model `mlx-community/Qwen2.5-0.5B-Instruct-4bit` at immutable revision
+  `53a32aee5e9447773fd2b85988395066aef3700a`;
+- the four-row synthetic `examples/support-sft.jsonl` dataset;
+- Python 3.12.13, `mlx==0.31.2`, and `mlx-lm==0.31.3`; and
+- generated compiler contract `mlx-lm.qlora.v1`.
+
+Each clean workflow completed dependency, model-data, measured-preflight,
+uninterrupted pilot, fresh-process adapter reload, explicitly confirmed full
+training, final export, a second fresh-process reload, and parent verification.
+The full runs completed three optimizer updates, changed 336 adapter tensors,
+and generated four tokens after reload. Their highest recorded full-run MLX peak
+was 555.1 MiB.
+
+The [immutable acceptance record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
+contains the run IDs, timing, hashes, metrics, admission evidence, and retained
+logs. This result proves runtime and artifact correctness for the recorded
+configuration. It does not establish production throughput, model quality,
+usefulness, safety, or broader Apple Silicon fit.
+
+Evidence should now progress in this order:
+
+1. Completed: QLoRA on a small quantized model proved the complete local
+   workflow.
+2. Unquantized LoRA on a 7B model.
 3. QLoRA on a 14B model after the 7B run establishes memory and throughput.
 4. A tightly bounded 70B QLoRA stress test only after the smaller runs pass.
 
@@ -62,25 +86,27 @@ I would not begin with AFLoRA, BiLoRA, or LoReFT. Each needs a custom training,
 state, and inference contract. Their supplied CUDA papers do not establish MLX
 behavior.
 
-## Proposed runs
+## Acceptance and proposed runs
 
-These are staged experiment envelopes. Every row first needs the standard
-dependency, model-data, measured-preflight, and two-update uninterrupted pilot.
-Only a passing pilot can authorize the full-duration envelope. Rank and target
-modules remain compiler-selected plan facts. The current product does not expose
-selected-layer or q/v-only MLX controls.
+Gate 0 is complete. The remaining rows are staged experiment envelopes. Every
+future row first needs the standard dependency, model-data, measured-preflight,
+and two-update uninterrupted pilot. Only a passing pilot can authorize its
+full-duration envelope. Rank and target modules remain compiler-selected plan
+facts. The current product does not expose selected-layer or q/v-only MLX
+controls.
 
-| Gate | Model | Method | Starting full-run envelope | Purpose |
-|---|---|---|---|---|
-| 0 | [`mlx-community/Llama-3.2-3B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit) | QLoRA | Batch 1, 512 tokens, one epoch | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
-| 1A | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish the real corpus baseline on an Apache-2.0 model |
-| 2 | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
-| 3 | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Batch 1, 512 tokens, pilot only before any full run | Measure bounded pilot fit only. Do not claim useful tuning or quality from this run |
+| Gate | Status | Model | Method | Starting full-run envelope or result | Purpose |
+|---|---|---|---|---|---|
+| 0 | Accepted | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
+| 1A | Proposed | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish a larger unquantized runtime baseline on an Apache-2.0 model |
+| 2 | Proposed | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
+| 3 | Proposed | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Batch 1, 512 tokens, pilot only before any full run | Measure bounded pilot fit only. Do not claim useful tuning or quality from this run |
 
-Each model must be replaced by one reviewed immutable revision before Aptus can
-compile the run. The 3B run is plumbing evidence, not a target-quality model.
-The 7B LoRA run is the first meaningful unquantized experiment. The 14B run is a
-later quality and efficiency candidate. The 70B run is intentionally last.
+Every proposed model must be replaced by one reviewed immutable revision before
+Aptus can compile the run. The accepted 0.5B run is plumbing and runtime
+evidence, not a target-quality model. The 7B LoRA run is the first larger
+unquantized experiment. The 14B run is a later quality and efficiency candidate.
+The 70B run is intentionally last.
 
 Four-bit weights for a 70B model start near 35 GB before quantization metadata,
 activations, adapter state, optimizer state, caches, temporary buffers, the
@@ -133,8 +159,8 @@ the loss applies to the reviewed assistant target rather than the prompt.
 
 ## Required pass criteria
 
-The current MLX pilot must produce all of these before the next larger run
-starts:
+The completed Gate 0 run satisfied these criteria. Every future exact bundle
+must satisfy them again before the next larger run starts:
 
 1. immutable model repository and revision;
 2. complete environment and package-version record;
@@ -167,16 +193,19 @@ answer usefulness. Human review remains necessary.
 
 ## Authorization boundary
 
-No model or package download and no fine-tuning run is claimed by this document.
-Model downloads range from several gigabytes to tens of gigabytes, and training
-creates new artifacts. Start only after the immutable model revision, corpus
-revision, method, disk budget, output directory, and compatible external MLX
-Python are explicitly chosen. LM Studio and oMLX are loopback inference
-integrations only and cannot supply that training environment.
+This document records only the completed acceptance configuration linked above.
+It does not authorize another model or package download or another fine-tuning
+run. Future model downloads range from several gigabytes to tens of gigabytes,
+and training creates new artifacts. Start a future run only after the immutable
+model revision, corpus revision, method, disk budget, output directory, and
+compatible external MLX Python are explicitly chosen. LM Studio and oMLX are
+loopback inference integrations only and cannot supply that training
+environment.
 
 ## Related documentation
 
 - [Current capabilities](../product/current-capabilities.md)
+- [2026-07-27 MLX-LM acceptance evidence](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [Method selection guide](../guides/choose-a-method.md)
 - [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)
 - [Release evidence template](release-evidence-template.md)

@@ -100,6 +100,14 @@ environment.
 | Uninterrupted pilot and reload | 6.01 s | 6.00 s |
 | Confirmed full train and reload | 4.73 s | 5.06 s |
 
+The five recorded actions totaled 18.65 seconds in clean run 1 and 17.47
+seconds in clean run 2, for an 18.06-second mean. The highest measured MLX
+peak was 582,055,054 bytes, or about 555.1 MiB. The full action completed three
+optimizer updates, final export, and fresh-process reload in 4.73 and 5.06
+seconds. These are acceptance timings for a four-row synthetic dataset and a
+revision-pinned 0.5B four-bit model on this exact host. They are not throughput,
+scale, quality, or production-duration projections.
+
 Full-train admission saw 35,438,772,224 bytes available in run 1 and
 35,154,788,352 bytes in run 2. Both exceeded the 13,047,862,262-byte required
 threshold, which includes an 8,589,934,592-byte reserve. The Aptus upper

@@ -29,10 +29,15 @@ applicable gate. Passing repository tests is not target-runtime evidence.
   validation, and Gatekeeper assessment.
 - Generated bundles install from `requirements.txt` in clean environments.
 - Resolved transitive distributions are captured in the environment binding.
-- `tools/generate_openapi.py --check` proves the checked API schema is current,
-  and `tools/verify_versions.py` proves `aptus.__version__`, the web package and
-  lock, `Info.plist`, and OpenAPI report the same version. The desktop build runs
-  both commands inside its isolated Python gate.
+- `tools/generate_openapi.py --check` proves the checked API schema is current.
+  `npm run openapi:check` proves the generated TypeScript schema and path map is
+  current. `tools/check_client_contracts.py` checks the maintained Swift and
+  covered client boundary against OpenAPI. `tools/verify_versions.py` proves
+  `aptus.__version__`, the web package and lock, `Info.plist`, and OpenAPI report
+  the same version. The desktop build runs every check.
+- `npm audit --omit=dev` has no production advisory. Any development-tool
+  advisory is recorded with its transitive path, exposure, available fix, and
+  release disposition rather than hidden by the production result.
 
 Run the repeated desktop gate only from a clean checkout:
 
@@ -262,13 +267,24 @@ Partially passed. The
 [2026-07-27 Apple Silicon record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 proves two clean, independent MLX-LM workflows through measured preflight,
 pilot, fresh-process adapter reload, confirmed full training, final export, and
-`measured-run-pass`. No real CUDA pilot or full training evidence has completed
-on an external CUDA host. A default ad-hoc Mac build is not public notarization
-evidence. Aptus v0.2 remains unreleased until every claimed release gate passes.
+`measured-run-pass`. The
+[2026-07-27 desktop record](evidence/2026-07-27-desktop-release/README.md) proves
+10 of 10 clean local engineering builds at implementation commit
+`1038ecdd13103418ef1135e1ced634c10370a961`, including 327 Python, 61 web, and 78
+native tests per iteration, packaged launch, signature checks, and DMG
+verification. That historical record does not bind a later source head. The
+submitted pull request must pass the repeated local gate after its documentation
+commit and the GitHub packaging workflow for the exact synthetic merge commit.
+
+No real CUDA pilot or full training evidence has completed on an external CUDA
+host. The local Mac packages are ad-hoc signed, not Developer ID signed and
+notarized public artifacts. Aptus v0.2 remains unreleased until every claimed
+release gate passes.
 
 ## Related documentation
 
 - [Release evidence template](release-evidence-template.md)
+- [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Operator checklist](operator-checklist.md)
 - [Documentation health](../maintenance/documentation-health.md)

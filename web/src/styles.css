@@ -15,6 +15,8 @@
   --font-display: "Familjen Grotesk", sans-serif;
   --font-body: "Atkinson Hyperlegible", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
+  --motion-fast: 150ms;
+  --motion-ease: cubic-bezier(0.22, 0.75, 0.2, 1);
   color-scheme: light dark;
   color: var(--graphite);
   font-family: var(--font-body);
@@ -53,6 +55,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--cloud);
   color: var(--graphite);
   font-size: 16px;
@@ -79,6 +82,29 @@ input:disabled,
 select:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.button,
+.stage-button,
+.dismiss-button,
+.revision-list button,
+.segmented-control span,
+.run-mode-grid label > span,
+.field input,
+.field select,
+.project-name-field input {
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
+}
+
+.button:active:not(:disabled),
+.stage-button:active {
+  transform: translateY(1px);
 }
 
 a,
@@ -182,6 +208,7 @@ code {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr) 320px;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app-shell.is-desktop-host .brand-lockup {
@@ -195,6 +222,7 @@ code {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   padding: 22px 16px 18px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
@@ -217,10 +245,6 @@ code {
 
 .aptus-mark-accent {
   stroke: var(--circuit-teal);
-}
-
-.aptus-mark-point {
-  fill: var(--circuit-teal);
 }
 
 .brand-lockup strong,
@@ -1689,6 +1713,7 @@ code {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   min-width: 0;
   padding: 22px 18px;
   overflow-y: auto;

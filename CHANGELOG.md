@@ -90,6 +90,13 @@ All notable changes are recorded here.
 
 ### Changed
 
+- The workflow rail announces completed and failed-run stage states to
+  assistive technology, with dedicated accessibility tests.
+- Workbench micro-interactions use shared 150 ms motion tokens on buttons,
+  inputs, and selectable controls, neutralized under `prefers-reduced-motion`.
+- The Aptus mark is now a single graphite letterform whose crossbar is the
+  teal fit line, in the web workbench, the desktop resource, and the
+  build-rendered Dock icon.
 - Generated dependencies are now in `requirements.txt` as exact direct pins.
   This file is not described as a transitive lock.
 - Model-data validation transforms and checks every canonical training row.

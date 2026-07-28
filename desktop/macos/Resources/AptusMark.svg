@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">Aptus calibrated A mark</title>
-  <desc id="desc">A precise letter A drawn from a graphite datum and a teal measurement path.</desc>
-  <path d="M218 806 447 232c17-43 78-43 96 0l26 65" fill="none" stroke="#20343B" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M566 297 785 806" fill="none" stroke="#0C6E77" stroke-width="82" stroke-linecap="round"/>
-  <path d="M345 625h322" fill="none" stroke="#20343B" stroke-width="58" stroke-linecap="round"/>
-  <path d="M667 625h82V510h76" fill="none" stroke="#0C6E77" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="825" cy="510" r="35" fill="#0C6E77"/>
+  <desc id="desc">A single graphite letter A whose crossbar is the teal fit line.</desc>
+  <path d="M218 806 447 232c17-43 78-43 96 0L772 806" fill="none" stroke="#20343B" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M245 625H745" fill="none" stroke="#0C6E77" stroke-width="58" stroke-linecap="round"/>
 </svg>

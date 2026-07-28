@@ -84,6 +84,11 @@ export function WorkflowRail({
                     <strong>{stage.label}</strong>
                     <small>{stage.description}</small>
                   </span>
+                  {isComplete ? (
+                    <span className="sr-only">Complete.</span>
+                  ) : isTerminalRun ? (
+                    <span className="sr-only">Needs attention.</span>
+                  ) : null}
                 </button>
               </li>
             );

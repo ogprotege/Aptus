@@ -244,6 +244,8 @@ export interface EvidenceRecord {
 export interface TrainingPlan {
   schema_version?: string;
   plan_id?: string;
+  project_id?: string;
+  project_revision_id?: string;
   recommended: CandidatePlan | null;
   candidates: CandidatePlan[];
   warnings: string[];
@@ -261,6 +263,8 @@ export interface TrainingPlan {
 }
 
 export interface PlanRequest {
+  project_id?: string;
+  project_name: string;
   model: {
     model_id: string;
     revision: string;
@@ -301,6 +305,62 @@ export interface PlanRequest {
   };
   dataset_path: string;
   sample_limit?: number;
+}
+
+export interface ProjectRevisionSummary {
+  revision_id: string;
+  ordinal: number;
+  created_at: string;
+  reason: string;
+  plan_id?: string | null;
+  selected_candidate_id?: string | null;
+  bundle_dir?: string | null;
+  validation_state?: string | null;
+  job_count: number;
+}
+
+export interface ProjectRevision {
+  schema_version: string;
+  revision_id: string;
+  project_id: string;
+  parent_revision_id?: string | null;
+  ordinal: number;
+  created_at: string;
+  reason: string;
+  plan_id?: string | null;
+  selected_candidate_id?: string | null;
+  facts?: Record<string, unknown> | null;
+  plan_snapshot?: TrainingPlan | null;
+  bundle?: CompileResponse | Record<string, unknown> | null;
+  validation?: Record<string, unknown> | null;
+  job_ids: string[];
+  training_authorization: {
+    current: false;
+    reason: string;
+  };
+  content_sha256: string;
+}
+
+export interface ProjectSummary {
+  schema_version: string;
+  project_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  latest_revision_id?: string | null;
+  revision_count: number;
+  latest?: ProjectRevisionSummary | null;
+}
+
+export interface ProjectDetail extends ProjectSummary {
+  latest_revision?: ProjectRevision | null;
+}
+
+export interface ProjectRecoveryResponse {
+  status: "recovered";
+  project_id: string;
+  revision: ProjectRevision;
+  training_authorization_current: false;
 }
 
 export interface ValidationFinding {
@@ -440,6 +500,8 @@ export interface ValidationReport {
   } | null;
   authorization_current?: boolean;
   authorization_error?: string | null;
+  project_id?: string;
+  project_revision_id?: string;
   prelaunch_capacity_check?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
@@ -454,6 +516,8 @@ export interface BundleFile {
 export interface CompileRequest {
   plan_id: string;
   output_dir: string;
+  project_id: string;
+  expected_project_revision_id: string;
 }
 
 export interface CompileResponse {
@@ -462,17 +526,23 @@ export interface CompileResponse {
   files: Array<string | BundleFile>;
   runtime_contract?: CandidatePlan["runtime_contract"];
   report?: ValidationReport | null;
+  project_id?: string;
+  project_revision_id?: string;
   [key: string]: unknown;
 }
 
 export interface ValidateRequest {
   bundle_dir: string;
+  project_id: string;
+  expected_project_revision_id: string;
   level: "contract" | "static" | "dependency" | "model-data" | "measured-preflight" | "pilot";
   run: boolean;
 }
 
 export interface JobRequest {
   bundle_dir: string;
+  project_id: string;
+  expected_project_revision_id: string;
   action: "dependency" | "model-data" | "preflight" | "pilot" | "train";
   confirm_full_train: boolean;
 }
@@ -487,6 +557,8 @@ export interface Job {
   return_code: number | null;
   validation_report?: ValidationReport;
   validation_report_error?: string;
+  project_id?: string;
+  project_revision_id?: string;
   error?: string | null;
   log_path?: string;
   created_at?: string | null;
@@ -518,6 +590,7 @@ export interface Job {
 }
 
 export interface BootstrapResponse {
+  api_contract_version: "aptus.api.v1";
   service?: { name?: string; version?: string; status?: string };
   version?: string;
   defaults?: Partial<FactDraft> & {
@@ -536,6 +609,9 @@ export interface BootstrapResponse {
   plan?: TrainingPlan | null;
   bundle?: CompileResponse | null;
   job?: Job | null;
+  projects: ProjectSummary[];
+  project?: ProjectDetail | null;
+  project_history: ProjectRevisionSummary[];
   [key: string]: unknown;
 }
 
@@ -592,10 +668,12 @@ export interface ApplePlatformResponse {
 }
 
 export interface RuntimeInventory {
-  schema_version: "aptus.runtime-inventory.v1" | string;
+  schema_version: "aptus.runtime-inventory.v1";
   interpreters: Array<Record<string, unknown>>;
   available: Record<string, string[]>;
+  compatible: Record<string, string[]>;
   configuration: Record<string, string>;
+  selected: Record<string, string>;
 }
 
 export interface InferenceServiceRequest {

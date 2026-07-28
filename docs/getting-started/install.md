@@ -1,6 +1,6 @@
 # Install Aptus
 
-> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when packaging changes
+> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when packaging changes
 
 ## Requirements
 
@@ -32,7 +32,10 @@ the app, and creates these local artifacts:
 
 ```text
 desktop/macos/dist/Aptus.app
+desktop/macos/dist/Aptus.app.zip
 desktop/macos/dist/Aptus-macOS-arm64.dmg
+desktop/macos/dist/SHA256SUMS
+desktop/macos/dist/COMMIT
 ```
 
 Launch the app with Finder or:
@@ -41,11 +44,26 @@ Launch the app with Finder or:
 open desktop/macos/dist/Aptus.app
 ```
 
-The development artifact is locally signed but not notarized for public
+The default development artifact is ad-hoc signed but not notarized for public
 distribution. The app uses an ephemeral loopback port and a random private
 session cookie. It does not expose the desktop API to the ordinary browser.
 Application state lives under `~/Library/Application Support/Aptus`, and the
 backend log lives under `~/Library/Logs/Aptus`.
+
+For public signing and notarization, configure a Developer ID Application
+identity and a stored `notarytool` keychain profile:
+
+```bash
+APTUS_REQUIRE_CLEAN_CHECKOUT=1 \
+APTUS_REQUIRE_NOTARIZATION=1 \
+APTUS_CODESIGN_IDENTITY='Developer ID Application: Example (TEAMID)' \
+APTUS_NOTARY_PROFILE='aptus-notary' \
+desktop/macos/build.sh
+```
+
+The build submits and staples both the app and DMG, validates their tickets,
+and runs Gatekeeper assessment. Do not claim public readiness unless those
+commands succeed with real Apple credentials.
 
 The Mac app runs supported local MLX-LM gates and shows an explicit target-host
 handoff for CUDA bundles. It does not run CUDA on macOS.
@@ -63,8 +81,15 @@ python3 -m venv /path/to/aptus-mlx-env
 
 Open **Models** in Aptus for Mac, choose **Choose MLX Python**, and select
 `/path/to/aptus-mlx-env/bin/python`. Aptus probes that exact executable before
-persisting its canonical path. Finder-launched applications do not inherit your
+persisting its absolute command path. It does not resolve away the virtual-
+environment symlink. Finder-launched applications do not inherit your
 shell environment, so this selection is the authoritative desktop path.
+
+The Models environment doctor lists likely interpreters with their Python
+version, import-probe result, and failure reason. A passing **Use this Python**
+action still goes through the backend's pinned validation. If none pass, the
+doctor displays the same external-environment commands above. It does not
+install or modify packages.
 
 The environment makes MLX-LM dependency and runtime checks possible. It does
 not itself authorize training. The exact bundle must pass model-data, measured
@@ -85,6 +110,8 @@ Confirm the CLI and server imports:
 ```bash
 aptus --help
 aptus serve --help
+aptus doctor --help
+aptus diagnostics --help
 ```
 
 ## Rebuild the web application

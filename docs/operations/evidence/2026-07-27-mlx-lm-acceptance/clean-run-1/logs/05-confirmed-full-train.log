@@ -1,0 +1,19 @@
+Loading configuration file /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/config/mlx-lm.yaml
+Loading pretrained model
+Loading datasets
+Training
+Trainable parameters: 0.890% (4.399M/494.033M)
+Starting training..., iters: 3
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 29.16it/s]
+Iter 1: Val loss 4.899, Val took 0.042s
+Iter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 8.899, Tokens/sec 293.669, Trained Tokens 33, Peak mem 0.516 GB
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 49.41it/s]
+Iter 2: Val loss 3.819, Val took 0.022s
+Iter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 10.262, Tokens/sec 256.542, Trained Tokens 58, Peak mem 0.525 GB
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 48.68it/s]
+Iter 3: Val loss 3.560, Val took 0.022s
+Iter 3: Train loss 4.095, Learning Rate 2.000e-04, It/sec 8.899, Tokens/sec 266.963, Trained Tokens 88, Peak mem 0.582 GB
+Saved final weights to /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/runs/run_5ef5bc73bdff4a0abf428ca472be2789/final/adapters.safetensors.
+MLX-LM full training completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/runs/run_5ef5bc73bdff4a0abf428ca472be2789/training-metrics.json
+Fresh-process MLX adapter reload passed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/runs/run_5ef5bc73bdff4a0abf428ca472be2789/reload-evidence.json
+Aptus MLX-LM full completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/runs/run_5ef5bc73bdff4a0abf428ca472be2789

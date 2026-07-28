@@ -25,54 +25,37 @@ enum DesktopVisualGeneration: Equatable {
 
 enum DesktopDestination: String, CaseIterable, Hashable, Identifiable {
     case home
+    case workbench
     case machine
     case models
-    case data
-    case plans
-    case runs
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .home: "Home"
+        case .workbench: "Workbench"
         case .machine: "Machine"
         case .models: "Models"
-        case .data: "Data"
-        case .plans: "Plans"
-        case .runs: "Runs"
         }
     }
 
     var systemImage: String {
         switch self {
         case .home: "house"
+        case .workbench: "slider.horizontal.3"
         case .machine: "desktopcomputer"
         case .models: "cube"
-        case .data: "doc.text"
-        case .plans: "list.bullet.clipboard"
-        case .runs: "waveform.path.ecg"
         }
     }
 
     var accessibilitySummary: String {
         switch self {
         case .home: "Machine summary and recommended next action"
+        case .workbench: "Plan, compile, validate, and run a fine-tuning project"
         case .machine: "Detected Apple Silicon capabilities"
         case .models: "Model runtime integrations"
-        case .data: "Local dataset preparation"
-        case .plans: "Training plan construction"
-        case .runs: "Run validation and artifacts"
         }
-    }
-}
-
-enum DesktopLaunchPolicy {
-    static func presentsWorkbenchImmediately(environment: [String: String]) -> Bool {
-        guard let path = environment["APTUS_DESKTOP_LAUNCH_PROBE_FILE"] else {
-            return false
-        }
-        return !path.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

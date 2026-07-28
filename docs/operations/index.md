@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -14,15 +14,17 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-07-27 MLX-LM target-host acceptance](evidence/2026-07-27-mlx-lm-acceptance/README.md)
+- [2026-07-27 desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Changelog](../../CHANGELOG.md)
 
 ## Experimental host work
 
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
 
-That matrix is proposed target-host work. Aptus 0.2 implements conditional
-single-device MLX-LM LoRA and QLoRA execution, but the matrix records no passed
-host run by itself.
+That matrix combines one completed small-model QLoRA acceptance with proposed
+larger-model and LoRA target-host work. Read the linked immutable evidence
+record before treating a row as passed.
 
 ## Related documentation
 

@@ -23,15 +23,19 @@
 <summary>Project status</summary>
 
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
-**Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the support contract changes
+**Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when the support contract changes
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
-gates. The MLX-LM path now supports bounded measured preflight, an uninterrupted
-exact-model pilot, and explicitly confirmed full-duration adapter training from
-the pinned base model. It does not support crash resume. The Mac build is
-locally signed and not notarized. No real CUDA or Apple Silicon pilot has
-completed the release gates yet.
+gates. Two clean, independent Apple Silicon workflows reached
+`measured-run-pass` against a revision-pinned public model. Crash resume remains
+unsupported. Ten consecutive clean local desktop engineering builds also passed
+at implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That
+record is historical evidence for that exact commit. Pull-request CI rebuilds
+and packages GitHub's exact tested merge commit. The artifact records that
+commit in `COMMIT`. The default Mac build is ad-hoc signed.
+Public distribution still requires a Developer ID identity and notarization.
+No real CUDA target-host pilot has completed the release gates.
 
 </details>
 
@@ -58,6 +62,12 @@ It is not a quality prediction or a guarantee that unmeasured hardware will fit.
 | **Validate** | Check contracts, identities, generated source, paths, hashes, and direct dependency pins. |
 | **Run / handoff** | Run the selected local Apple gates or transfer a CUDA bundle to its intended host. |
 
+The native Mac window presents one product surface. Its sidebar owns Home,
+Workbench, Machine, and Models. The React workbench stays inline and owns the
+single Facts, Compare, Compile, Validate, and Run workflow. Named projects keep
+immutable revisions for plans, bundles, validation, and jobs. Recovering an old
+revision creates a new revision and never restores training authorization.
+
 ---
 
 ### A concrete example
@@ -76,6 +86,26 @@ ran the real planner. Under its quality policy, Aptus reports:
 The dataset profile and planning decision are real. The model and hardware facts
 are declared examples. Target-host model loading, measurement, and pilot gates
 can still reject the plan.
+
+The same synthetic dataset later exercised the complete MLX-LM QLoRA runtime
+against a revision-pinned public model. Two clean workflows reached
+`measured-run-pass`. That result proves the recorded runtime and artifact
+contracts. It is not a model-quality benchmark. See the
+[MLX-LM acceptance record](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
+
+### Recorded acceptance snapshot
+
+| Exact recorded gate | Observed result |
+| --- | ---: |
+| MLX-LM five-action workflow | 18.65 s and 17.47 s, 18.06 s mean |
+| Confirmed full train, export, and fresh reload | 4.73 s and 5.06 s |
+| Highest full-run MLX peak | 555.1 MiB |
+| Ten clean desktop builds at `1038ecdd13103418ef1135e1ced634c10370a961` | 58.1 s mean, 55 to 63 s range |
+
+The MLX figures are acceptance telemetry for the recorded M5 Pro host, 0.5B
+four-bit model, and four-row synthetic dataset. They are not production
+throughput, scalability, or model-quality measurements. The desktop timing is
+historical evidence for its exact implementation commit.
 
 ---
 
@@ -97,7 +127,10 @@ The build runs the Python, React, and native test gates before creating:
 
 ```text
 desktop/macos/dist/Aptus.app
+desktop/macos/dist/Aptus.app.zip
 desktop/macos/dist/Aptus-macOS-arm64.dmg
+desktop/macos/dist/SHA256SUMS
+desktop/macos/dist/COMMIT
 ```
 
 Every pull request and push to `main` also runs the native build on GitHub's
@@ -106,6 +139,13 @@ ZIP, the DMG, their `SHA256SUMS`, and a `COMMIT` source marker under an
 `aptus-macos-arm64-<commit>` artifact. These CI artifacts use an ad-hoc
 signature for review and testing. A public distribution still requires a
 Developer ID signature and notarization.
+
+The first local ten-build stability gate passed 10 of 10 clean builds at
+implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. Its
+[desktop engineering evidence](docs/operations/evidence/2026-07-27-desktop-release/README.md)
+does not claim that later commits have the same binaries. Pull-request CI is the
+merge-candidate package check. It records the workflow commit rather than
+mislabeling it as the branch head.
 
 See [installation details](docs/getting-started/install.md#build-aptus-for-mac)
 for prerequisites, signing options, persistent paths, and the browser-based
@@ -122,10 +162,11 @@ development path.
 | Compare runtime-specific estimates | Run a bounded adapter smoke with MLX memory telemetry | Run synthetic preflight, two-phase pilot, and admitted training |
 | Compile, validate, and reveal artifacts | Run an uninterrupted pilot, reload its adapter in a fresh process, then admit confirmed full-duration adapter training | Produce and verify the selected export |
 
-Choose the exact Python interpreter in the Mac Models screen. Aptus probes it,
-persists the canonical path privately, and never treats the bundled backend or
-an inference server as a training environment. CUDA profiles still describe a
-CUDA host. They do not enable CUDA work on the Mac.
+Choose the exact Python interpreter in the Mac Models screen. Its environment
+doctor shows every likely interpreter, Python version, import result, and exact
+pin-compatibility result. Aptus installs nothing. Only an interpreter matching
+the reviewed MLX pins can be selected or reported ready. CUDA profiles describe
+a CUDA host. They do not enable CUDA work on the Mac.
 
 ---
 
@@ -151,6 +192,12 @@ CUDA host. They do not enable CUDA work on the Mac.
 - Conditional LoRA FSDP plans that still require a real multi-rank pilot.
 - Explicit memory components, decision traces, evidence records, and artifact
   manifests.
+- Named local projects with immutable, content-hashed revisions and recovery
+  that always requires fresh validation and training confirmation.
+- Typed API responses under `aptus.api.v1`, plus a checked OpenAPI artifact at
+  `docs/reference/openapi.v1.json`.
+- Read-only runtime diagnosis through `aptus doctor` and privacy-bounded support
+  archives through `aptus diagnostics`.
 
 Not yet supported: crash resume for MLX-LM or CUDA full runs, full-parameter or
 DoRA training through MLX-LM, PyTorch MPS compilation, ROCm or CPU training,
@@ -188,6 +235,8 @@ before using private or governed data.
 | Create a first plan without a GPU | [First-plan tutorial](docs/getting-started/first-plan.md) |
 | Prepare real training data | [Dataset guide](docs/guides/prepare-a-dataset.md) |
 | Operate an Apple or CUDA bundle | [Operator checklist](docs/operations/operator-checklist.md) |
+| Review the real Apple acceptance | [MLX-LM acceptance evidence](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) |
+| Review desktop engineering stability | [Desktop release evidence](docs/operations/evidence/2026-07-27-desktop-release/README.md) |
 | Understand the system | [Architecture](docs/architecture/system.md) |
 | Integrate with Aptus | [CLI](docs/reference/cli.md) and [API](docs/reference/api.md) |
 | Change the project | [Contributing](CONTRIBUTING.md) |

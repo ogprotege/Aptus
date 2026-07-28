@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -489,9 +490,9 @@ class ExecutionJobTests(unittest.TestCase):
                 )
 
         self.assertEqual(command[0], "/managed/mlx-python")
-        self.assertEqual(command[1], str(bundle / "run.py"))
+        self.assertEqual(command[1], "run.py")
         self.assertEqual(command[2:4], ["--confirm-full-train", "--output-dir"])
-        self.assertEqual(command[4], str(bundle / "runs" / "run_test"))
+        self.assertEqual(command[4], str(Path("runs") / "run_test"))
 
     def test_mlx_runtime_metrics_reject_tampered_and_stale_bindings(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1115,14 +1116,71 @@ class ExecutionJobTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "resume_from"):
                 service.submit(bundle, action="pilot", resume_from="checkpoint-1")
 
-    def test_corrupt_job_record_fails_closed(self) -> None:
+    def test_corrupt_job_record_is_quarantined_and_other_jobs_remain_available(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             jobs = Path(temporary) / "jobs"
             jobs.mkdir()
             job_id = "job_" + "f" * 32
             (jobs / f"{job_id}.json").write_text("{", encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "Unreadable Aptus job record"):
-                JobService(jobs)
+            service = JobService(jobs)
+            quarantined = list((jobs / "quarantine").glob(f"*{job_id}.json"))
+            self.assertEqual(service.list(), [])
+            self.assertEqual(len(quarantined), 1)
+
+    def test_job_corrupted_after_startup_does_not_hide_healthy_records(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            jobs = Path(temporary) / "jobs"
+            jobs.mkdir()
+            healthy_id = "job_" + "a" * 32
+            corrupt_id = "job_" + "b" * 32
+            record = {
+                "schema_version": "aptus.job-record.v1",
+                "id": healthy_id,
+                "job_id": healthy_id,
+                "state": "completed",
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "action": "preflight",
+                "bundle_dir": "/tmp/bundle",
+            }
+            (jobs / f"{healthy_id}.json").write_text(
+                json.dumps(record), encoding="utf-8"
+            )
+            service = JobService(jobs)
+            corrupt = jobs / f"{corrupt_id}.json"
+            corrupt.write_text("{", encoding="utf-8")
+
+            listed = service.list()
+
+            self.assertEqual([item["id"] for item in listed], [healthy_id])
+            receipts = list((jobs / "quarantine").glob(f"*{corrupt_id}*.reason.json"))
+            self.assertEqual(len(receipts), 1)
+
+    def test_legacy_job_record_is_migrated_to_the_versioned_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            jobs = Path(temporary) / "jobs"
+            jobs.mkdir()
+            job_id = "job_" + "e" * 32
+            path = jobs / f"{job_id}.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "id": job_id,
+                        "job_id": job_id,
+                        "state": "completed",
+                        "created_at": "2026-01-01T00:00:00+00:00",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            record = JobService(jobs).get(job_id, include_validation_report=False)
+            persisted = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(record["schema_version"], "aptus.job-record.v1")
+        self.assertEqual(persisted["schema_version"], "aptus.job-record.v1")
+        self.assertEqual(
+            persisted["persistence_migrated_from"], "aptus.job-record.legacy"
+        )
 
     def test_job_record_and_log_are_persisted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1139,6 +1197,163 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertEqual(reloaded["state"], "completed")
         self.assertEqual([item["id"] for item in listed], [submitted["id"]])
         self.assertIn("validation job passed", reloaded["log_tail"])
+
+    def test_pre_start_persistence_failure_never_starts_worker_or_process(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+
+            def fail_persistence(_record: object) -> None:
+                raise RuntimeError("project revision write failed")
+
+            with (
+                patch.object(service, "_run") as run_worker,
+                patch("aptus.execution.threading.Thread.start") as start_worker,
+                self.assertRaisesRegex(RuntimeError, "project revision write failed"),
+            ):
+                service.submit(
+                    fake_bundle(root),
+                    action="preflight",
+                    before_start=fail_persistence,
+                )
+
+            records = service.list()
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["state"], "failed")
+            self.assertIn("Job pre-start persistence failed", records[0]["error"])
+            self.assertFalse(service._lease_path.exists())
+            start_worker.assert_not_called()
+            run_worker.assert_not_called()
+
+    def test_admission_binding_failure_creates_no_job_record_or_lease(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+
+            def reject_binding() -> None:
+                raise RuntimeError("project artifact binding changed")
+
+            with (
+                patch("aptus.execution.threading.Thread.start") as start_worker,
+                self.assertRaisesRegex(RuntimeError, "artifact binding changed"),
+            ):
+                service.submit(
+                    fake_bundle(root),
+                    action="preflight",
+                    admission_check=reject_binding,
+                )
+
+            self.assertEqual(service.list(), [])
+            self.assertFalse(service._lease_path.exists())
+            start_worker.assert_not_called()
+
+    def test_worker_rechecks_project_fingerprint_immediately_before_launch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            launch_marker = bundle / "worker-launched.txt"
+            (bundle / "validate.py").write_text(
+                "from pathlib import Path\n"
+                "Path('worker-launched.txt').write_text('launched', encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            initial_manifest_path = bundle / "bundle-manifest.json"
+            initial_manifest = json.loads(
+                initial_manifest_path.read_text(encoding="utf-8")
+            )
+            validate_entry = next(
+                item
+                for item in initial_manifest["files"]
+                if item["path"] == "validate.py"
+            )
+            validate_entry["sha256"] = sha256_file(bundle / "validate.py")
+            validate_entry["size_bytes"] = (bundle / "validate.py").stat().st_size
+            initial_manifest_path.write_text(
+                json.dumps(initial_manifest), encoding="utf-8"
+            )
+            expected_fingerprint = sha256_file(bundle / "bundle-manifest.json")
+            service = JobService(root / "jobs")
+
+            def replace_with_self_consistent_bundle() -> None:
+                replacement = bundle / "replacement.txt"
+                replacement.write_text("substituted\n", encoding="utf-8")
+                manifest_path = bundle / "bundle-manifest.json"
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                manifest["files"].append(
+                    {
+                        "path": "replacement.txt",
+                        "sha256": sha256_file(replacement),
+                        "size_bytes": replacement.stat().st_size,
+                    }
+                )
+                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            submitted = service.submit(
+                bundle,
+                action="preflight",
+                admission_check=replace_with_self_consistent_bundle,
+                expected_artifact_fingerprint=expected_fingerprint,
+            )
+            finished = wait_for(service, submitted["id"])
+
+            self.assertEqual(finished["state"], "failed")
+            self.assertIn("project-bound artifact", finished["error"])
+            self.assertFalse(launch_marker.exists())
+
+    def test_same_path_swap_after_launcher_spawn_never_receives_a_permit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            expected_fingerprint = sha256_file(bundle / "bundle-manifest.json")
+            replacement_root = root / "replacement-root"
+            replacement_root.mkdir()
+            replacement = fake_bundle(replacement_root)
+            replacement_marker = root / "replacement-executed.txt"
+            (replacement / "validate.py").write_text(
+                "from pathlib import Path\n"
+                f"Path({str(replacement_marker)!r}).write_text('executed', encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            replacement_manifest_path = replacement / "bundle-manifest.json"
+            replacement_manifest = json.loads(
+                replacement_manifest_path.read_text(encoding="utf-8")
+            )
+            replacement_validate = next(
+                item
+                for item in replacement_manifest["files"]
+                if item["path"] == "validate.py"
+            )
+            replacement_validate["sha256"] = sha256_file(replacement / "validate.py")
+            replacement_validate["size_bytes"] = (
+                (replacement / "validate.py").stat().st_size
+            )
+            replacement_manifest_path.write_text(
+                json.dumps(replacement_manifest), encoding="utf-8"
+            )
+            service = JobService(root / "jobs")
+            original_bundle = root / "original-bundle-moved"
+
+            def swap_after_spawn(*_arguments: object) -> None:
+                bundle.rename(original_bundle)
+                shutil.copytree(replacement, bundle)
+
+            with patch.object(
+                service,
+                "_bind_global_lease_to_process",
+                side_effect=swap_after_spawn,
+            ):
+                submitted = service.submit(
+                    bundle,
+                    action="preflight",
+                    expected_artifact_fingerprint=expected_fingerprint,
+                )
+                finished = wait_for(service, submitted["id"])
+
+            self.assertEqual(finished["state"], "failed")
+            self.assertIn("project-bound artifact", finished["error"])
+            self.assertFalse(replacement_marker.exists())
 
     def test_managed_child_inherits_the_matching_global_lease_token(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

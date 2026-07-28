@@ -1,10 +1,10 @@
 # Data and Identity Flow
 
-> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22
+> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27
 
 Aptus binds decisions and runtime evidence to exact content. It uses separate
-identities for source data, candidates, plans, bundles, environments, hardware,
-splits, trainable parameters, jobs, runs, and exports. No single digest stands
+identities for projects, revisions, source data, candidates, plans, bundles,
+environments, hardware, splits, trainable parameters, jobs, runs, and exports. No single digest stands
 in for all of them.
 
 ## End-to-end flow
@@ -85,6 +85,38 @@ normalized facts, the ordered candidate IDs, and the recommended candidate ID.
 IDs are content identities, not editable labels. Changing a bound semantic fact
 without recomputing identity makes validation fail.
 
+## Project and revision identities
+
+A named project uses schema `aptus.project.v1` and keeps an ordered list of
+immutable revision IDs. Each `aptus.project-revision.v1` record contains its
+project and parent identities, ordinal, reason, available fact and plan
+snapshots, selected candidate, bundle reference, durable validation summary,
+and job IDs. `content_sha256` binds the revision payload.
+
+Project reads and writes share an in-process lock and an operating-system file
+lock. Revision publication uses a durable transaction receipt, then writes the
+content-hashed revision, advances the manifest, updates the selected-project
+pointer, and removes the receipt. Each write uses atomic replacement and a
+directory sync. After interruption, Aptus can finish a receipt-bound revision
+or adopt a unique orphan chain that extends the indexed parent and ordinal. It
+rejects and quarantines corrupt, ambiguous, or previously rejected orphans.
+They never become history merely because a revision-shaped file exists.
+
+The current-project pointer records selection intent separately from project
+recency. Recovery may advance the selected project's revision, but it cannot
+replace a later explicit selection of another project with an older interrupted
+transaction. This ordering prevents crash repair from changing which project
+the operator chose after that transaction began.
+
+Recovery does not restore a snapshot in place. It validates any referenced plan
+or bundle, then appends a new revision whose reason identifies the source. Both
+ordinary persistence and recovery store `training_authorization.current` as
+false. Current capacity and deep authorization remain train-submission facts.
+
+At first startup after this change, Aptus imports legacy plans, the current
+bundle pointer, and matching jobs into named project history. The import receipt
+is versioned and idempotent. Source records remain in place.
+
 ## Bundle integrity
 
 `bundle-manifest.json` uses schema `aptus.bundle.v2`. It binds the plan digest,
@@ -95,6 +127,14 @@ relative path, size, and SHA-256.
 The bundle fingerprint is the SHA-256 of that manifest when it exists. Bundle
 validation rejects symlink roots, symlink entries, unsafe paths, missing files,
 changed files, duplicate entries, and unexpected unmanifested inputs.
+
+A compiled project revision stores that manifest fingerprint as a first-class
+artifact identity. If a ZIP exists, the revision also stores its SHA-256 and
+exact byte size. Recovery verifies the saved plan snapshot, selected candidate,
+bundle path, manifest fingerprint, and ZIP identity before it appends a new
+revision. Validation, job submission, and bootstrap require the current
+revision's exact plan, candidate, bundle path, and manifest fingerprint. A
+matching path or matching plan ID alone is insufficient.
 
 These mutable paths are intentionally outside the compiler file list:
 
@@ -168,6 +208,10 @@ positive updates, trainable scope, data evidence, and immutable safetensors.
 CUDA also binds distribution ranks and its split contract. MLX also binds fresh
 adapter generation and `resume_supported: false`. Only then does the parent
 promote the report to `measured-run-pass`.
+
+Persisted jobs carry `aptus.job-record.v1`. A record without a schema version
+migrates to that shape, with authorization cleared. Unsupported, malformed, or
+symlinked records are quarantined instead of silently accepted.
 
 This attests the exact run and structural file tree. It does not establish
 quality, safety, inference parity, or deployment fitness.

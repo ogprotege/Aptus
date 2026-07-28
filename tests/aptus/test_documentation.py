@@ -8,9 +8,10 @@ from collections import deque
 from pathlib import Path
 from urllib.parse import unquote
 
-from aptus.cli import _parser
 from aptus.domain import Method
+from aptus.cli import _parser
 from aptus.methods.registry import method_descriptors
+from tools.generate_openapi import render_openapi
 
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -117,6 +118,35 @@ def cli_surface() -> tuple[set[str], set[str]]:
 
 
 class DocumentationTests(unittest.TestCase):
+    def test_checked_openapi_contract_matches_the_application(self) -> None:
+        artifact = REPOSITORY / "docs/reference/openapi.v1.json"
+        self.assertTrue(artifact.is_file())
+        rendered = render_openapi()
+        self.assertEqual(artifact.read_text(encoding="utf-8"), rendered)
+        schema = json.loads(rendered)
+        self.assertEqual(schema["info"]["x-aptus-contract-version"], "aptus.api.v1")
+        for path in (
+            "/api/v1/bootstrap",
+            "/api/v1/plan",
+            "/api/v1/projects",
+            "/api/v1/projects/{project_id}/recover",
+            "/api/v1/jobs/{job_id}",
+        ):
+            self.assertIn(path, schema["paths"])
+        for name in (
+            "ProfileResponse",
+            "ModelInspectionResponse",
+            "InferenceModelsResponse",
+            "InferenceGenerateResponse",
+        ):
+            self.assertFalse(
+                schema["components"]["schemas"][name]["additionalProperties"]
+            )
+        for name in ("CompileRequest", "ValidateRequest", "JobRequest"):
+            required = set(schema["components"]["schemas"][name]["required"])
+            self.assertIn("project_id", required)
+            self.assertIn("expected_project_revision_id", required)
+
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []
         anchor_cache: dict[Path, set[str]] = {}

@@ -51,6 +51,25 @@ final class PackagingContractTests: XCTestCase {
         XCTAssertTrue(contents.contains("uv run --isolated --python 3.12 --locked"))
     }
 
+    func testReleaseBuildRechecksCleanTreeBeforePublishingChecksums() throws {
+        let script = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("build.sh")
+        let contents = try String(contentsOf: script, encoding: .utf8)
+        let marker = #"if [[ "$REQUIRE_CLEAN_CHECKOUT" == "1" ]]"#
+        let first = try XCTUnwrap(contents.range(of: marker))
+        let second = try XCTUnwrap(
+            contents.range(of: marker, range: first.upperBound ..< contents.endIndex)
+        )
+        let checksum = try XCTUnwrap(
+            contents.range(of: #"shasum -a 256 "Aptus.app.zip""#)
+        )
+        XCTAssertLessThan(second.lowerBound, checksum.lowerBound)
+        let finalGate = contents[second.lowerBound ..< checksum.lowerBound]
+        XCTAssertTrue(finalGate.contains("exit 1"))
+    }
+
     func testDefaultSidecarBuildUsesTheTrackedPythonLock() throws {
         let directory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

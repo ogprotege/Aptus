@@ -1,16 +1,89 @@
 import Darwin
 import Foundation
 
+enum BackendShutdownResult: Equatable {
+    case success
+    case failure(BackendShutdownFailure)
+}
+
+struct BackendShutdownFailure: LocalizedError, Equatable {
+    let rootPID: pid_t
+    let activeProcesses: [BackendProcessObservation]
+    let rootProcessRunning: Bool
+    let signalAttempts: [BackendSignalAttempt]
+    let terminationHandlerObserved: Bool
+
+    var errorDescription: String? {
+        var pids = Set(activeProcesses.map { $0.identity.pid })
+        if rootProcessRunning {
+            pids.insert(rootPID)
+        }
+        let identifiers = pids.sorted().map(String.init).joined(separator: ", ")
+        return "The local planning service did not stop after forced termination (processes: \(identifiers))."
+    }
+}
+
+protocol BackendShutdownPolling: AnyObject {
+    func cancel()
+}
+
+private final class DispatchBackendShutdownPolling: BackendShutdownPolling {
+    private let timer: DispatchSourceTimer
+
+    init(handler: @escaping () -> Void) {
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(
+            deadline: .now(),
+            repeating: .milliseconds(25),
+            leeway: .milliseconds(5)
+        )
+        timer.setEventHandler(handler: handler)
+        self.timer = timer
+        timer.resume()
+    }
+
+    func cancel() {
+        timer.cancel()
+    }
+}
+
+struct BackendShutdownEnvironment {
+    let now: () -> DispatchTime
+    let identities: (pid_t) -> Set<BackendProcessIdentity>
+    let expanding: (Set<BackendProcessIdentity>) -> Set<BackendProcessIdentity>
+    let activeObservations: (Set<BackendProcessIdentity>) -> [BackendProcessObservation]
+    let suspend: (Set<BackendProcessIdentity>) -> [BackendSignalAttempt]
+    let forceTerminate: (Set<BackendProcessIdentity>) -> [BackendSignalAttempt]
+    let forceTerminateRoot: (pid_t) -> BackendSignalAttempt
+    let identity: (pid_t) -> BackendProcessIdentity?
+    let schedulePolling: (@escaping () -> Void) -> BackendShutdownPolling
+
+    static let live = BackendShutdownEnvironment(
+        now: DispatchTime.now,
+        identities: BackendProcessTree.identities,
+        expanding: BackendProcessTree.expanding,
+        activeObservations: BackendProcessTree.activeObservations,
+        suspend: BackendProcessTree.suspend,
+        forceTerminate: BackendProcessTree.forceTerminate,
+        forceTerminateRoot: BackendProcessTree.forceTerminate,
+        identity: BackendProcessTree.identity,
+        schedulePolling: { DispatchBackendShutdownPolling(handler: $0) }
+    )
+}
+
 final class BackendController {
     typealias StateObserver = (BackendState) -> Void
 
     private struct ShutdownContext {
         var targets: Set<BackendProcessIdentity>
         let rootPID: pid_t
-        let gracefulDeadline: DispatchTime
-        let forcedDeadline: DispatchTime
+        var gracefulDeadline: DispatchTime
+        var forcedDeadline: DispatchTime
         let preserveFailure: Bool
         var forced = false
+        var timeoutReported = false
+        var terminationHandlerObserved = false
+        var signalAttempts: [BackendSignalAttempt] = []
     }
 
     private(set) var state: BackendState = .stopped {
@@ -25,6 +98,7 @@ final class BackendController {
     private let expectedVersion: String
     private let shutdownGraceInterval: TimeInterval
     private let shutdownForceInterval: TimeInterval
+    private let shutdownEnvironment: BackendShutdownEnvironment
     private var process: Process?
     private var paths: ApplicationPaths?
     private var token: String?
@@ -33,9 +107,11 @@ final class BackendController {
     private var healthCheckInFlight = false
     private var logHandle: FileHandle?
     private var intentionalStop = false
-    private var stopCompletions: [() -> Void] = []
+    private var stopCompletions: [(BackendShutdownResult) -> Void] = []
+    private var ownedProcessIdentities: Set<BackendProcessIdentity> = []
+    private var ownershipPolling: BackendShutdownPolling?
     private var shutdownContext: ShutdownContext?
-    private var shutdownTimer: DispatchSourceTimer?
+    private var shutdownPolling: BackendShutdownPolling?
 
     init(
         pathsFactory: @escaping () throws -> ApplicationPaths = { try ApplicationPaths() },
@@ -45,7 +121,8 @@ final class BackendController {
             forInfoDictionaryKey: "CFBundleShortVersionString"
         ) as? String ?? "",
         shutdownGraceInterval: TimeInterval = 1.5,
-        shutdownForceInterval: TimeInterval = 1.0
+        shutdownForceInterval: TimeInterval = 1.0,
+        shutdownEnvironment: BackendShutdownEnvironment = .live
     ) {
         precondition(shutdownGraceInterval > 0)
         precondition(shutdownForceInterval > 0)
@@ -55,6 +132,7 @@ final class BackendController {
         self.expectedVersion = expectedVersion
         self.shutdownGraceInterval = shutdownGraceInterval
         self.shutdownForceInterval = shutdownForceInterval
+        self.shutdownEnvironment = shutdownEnvironment
     }
 
     func start() {
@@ -102,6 +180,7 @@ final class BackendController {
             self.process = process
             self.logHandle = logHandle
             try process.run()
+            beginOwnershipTracking(process)
             beginReadinessPolling()
         } catch {
             fail(error)
@@ -113,12 +192,13 @@ final class BackendController {
             DispatchQueue.main.async { [weak self] in self?.restart() }
             return
         }
-        stop {
-            self.start()
+        stop { [weak self] result in
+            guard result == .success else { return }
+            self?.start()
         }
     }
 
-    func stop(completion: (() -> Void)? = nil) {
+    func stop(completion: ((BackendShutdownResult) -> Void)? = nil) {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in self?.stop(completion: completion) }
             return
@@ -126,9 +206,12 @@ final class BackendController {
         startupTimer?.cancel()
         startupTimer = nil
         intentionalStop = true
-        paths?.removeEphemeralSession()
         if let completion {
             stopCompletions.append(completion)
+        }
+        if shutdownContext?.timeoutReported == true {
+            retryTimedOutShutdown()
+            return
         }
         if shutdownContext != nil {
             return
@@ -136,16 +219,50 @@ final class BackendController {
         guard let process else {
             cleanup()
             state = .stopped
-            completeStopRequests()
+            completeStopRequests(with: .success)
             return
         }
         if process.isRunning {
             beginShutdown(process, preserveFailure: false)
         } else {
-            cleanup()
-            state = .stopped
-            completeStopRequests()
+            captureOwnedProcesses(rootPID: process.processIdentifier)
+            if shutdownEnvironment.activeObservations(ownedProcessIdentities).isEmpty {
+                cleanup()
+                state = .stopped
+                completeStopRequests(with: .success)
+            } else {
+                beginShutdown(
+                    process,
+                    preserveFailure: false,
+                    rootTerminationObserved: true
+                )
+            }
         }
+    }
+
+    private func beginOwnershipTracking(_ process: Process) {
+        ownershipPolling?.cancel()
+        ownershipPolling = nil
+        ownedProcessIdentities = shutdownEnvironment.identities(process.processIdentifier)
+        ownershipPolling = shutdownEnvironment.schedulePolling { [weak self] in
+            self?.captureOwnedProcesses()
+        }
+    }
+
+    private func captureOwnedProcesses(rootPID: pid_t? = nil) {
+        guard shutdownContext == nil else { return }
+        let observedRootPID = rootPID ?? process?.processIdentifier
+        if let observedRootPID {
+            ownedProcessIdentities.formUnion(
+                shutdownEnvironment.identities(observedRootPID)
+            )
+        }
+        ownedProcessIdentities = shutdownEnvironment.expanding(ownedProcessIdentities)
+    }
+
+    private func stopOwnershipTracking() {
+        ownershipPolling?.cancel()
+        ownershipPolling = nil
     }
 
     private func beginReadinessPolling() {
@@ -218,7 +335,9 @@ final class BackendController {
         startupTimer?.cancel()
         startupTimer = nil
         if intentionalStop {
-            if shutdownContext != nil {
+            if var shutdown = shutdownContext {
+                shutdown.terminationHandlerObserved = true
+                shutdownContext = shutdown
                 evaluateShutdown()
                 return
             }
@@ -228,12 +347,17 @@ final class BackendController {
             } else {
                 state = .stopped
             }
-            completeStopRequests()
+            completeStopRequests(with: .success)
         } else {
             let message = BackendError.serviceExited(terminatedProcess.terminationStatus).errorDescription
                 ?? "The local planning service exited unexpectedly."
-            cleanup()
             state = .failed(message)
+            captureOwnedProcesses(rootPID: terminatedProcess.processIdentifier)
+            beginShutdown(
+                terminatedProcess,
+                preserveFailure: true,
+                rootTerminationObserved: true
+            )
         }
     }
 
@@ -245,81 +369,136 @@ final class BackendController {
         if let process, process.isRunning {
             intentionalStop = true
             beginShutdown(process, preserveFailure: true)
+        } else if let process {
+            captureOwnedProcesses(rootPID: process.processIdentifier)
+            if shutdownEnvironment.activeObservations(ownedProcessIdentities).isEmpty {
+                cleanup()
+            } else {
+                beginShutdown(
+                    process,
+                    preserveFailure: true,
+                    rootTerminationObserved: true
+                )
+            }
         } else {
             cleanup()
         }
     }
 
-    private func beginShutdown(_ process: Process, preserveFailure: Bool) {
+    private func beginShutdown(
+        _ process: Process,
+        preserveFailure: Bool,
+        rootTerminationObserved: Bool = false
+    ) {
         guard shutdownContext == nil else { return }
         intentionalStop = true
-        let now = DispatchTime.now()
+        let now = shutdownEnvironment.now()
         let rootPID = process.processIdentifier
+        captureOwnedProcesses(rootPID: rootPID)
+        stopOwnershipTracking()
         shutdownContext = ShutdownContext(
-            targets: BackendProcessTree.identities(rootedAt: rootPID),
+            targets: ownedProcessIdentities,
             rootPID: rootPID,
             gracefulDeadline: now + dispatchInterval(shutdownGraceInterval),
             forcedDeadline: now + dispatchInterval(
                 shutdownGraceInterval + shutdownForceInterval
             ),
-            preserveFailure: preserveFailure
+            preserveFailure: preserveFailure,
+            terminationHandlerObserved: rootTerminationObserved
         )
         if !preserveFailure {
             state = .stopping
         }
+        startShutdownPolling()
+        if process.isRunning {
+            process.terminate()
+        } else {
+            evaluateShutdown()
+        }
+    }
 
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(25), leeway: .milliseconds(5))
-        timer.setEventHandler { [weak self] in self?.evaluateShutdown() }
-        shutdownTimer = timer
-        timer.resume()
-        process.terminate()
+    private func retryTimedOutShutdown() {
+        guard var shutdown = shutdownContext, shutdown.timeoutReported else { return }
+        let now = shutdownEnvironment.now()
+        shutdown.timeoutReported = false
+        shutdown.forced = true
+        shutdown.gracefulDeadline = now
+        shutdown.forcedDeadline = now + dispatchInterval(shutdownForceInterval)
+        let active = shutdownEnvironment.activeObservations(shutdown.targets)
+        shutdown.signalAttempts.append(contentsOf: shutdownEnvironment.forceTerminate(
+            Set(active.map(\.identity))
+        ))
+        shutdownContext = shutdown
+        if !shutdown.preserveFailure {
+            state = .stopping
+        }
+        startShutdownPolling()
+        evaluateShutdown()
+    }
+
+    private func startShutdownPolling() {
+        guard shutdownPolling == nil else { return }
+        shutdownPolling = shutdownEnvironment.schedulePolling { [weak self] in
+            self?.evaluateShutdown()
+        }
     }
 
     private func evaluateShutdown() {
         guard var shutdown = shutdownContext else { return }
 
-        shutdown.targets = BackendProcessTree.expanding(shutdown.targets)
-        var living = BackendProcessTree.living(shutdown.targets)
-        if living.isEmpty, process?.isRunning != true {
+        shutdown.targets = shutdownEnvironment.expanding(shutdown.targets)
+        var active = shutdownEnvironment.activeObservations(shutdown.targets)
+        if active.isEmpty, process?.isRunning != true {
             finishShutdown(preserveFailure: shutdown.preserveFailure)
             return
         }
+        guard !shutdown.timeoutReported else {
+            shutdownContext = shutdown
+            return
+        }
 
-        let now = DispatchTime.now()
+        let now = shutdownEnvironment.now()
         if !shutdown.forced,
            now.uptimeNanoseconds >= shutdown.gracefulDeadline.uptimeNanoseconds {
             shutdown.forced = true
             // Freeze the captured tree before the final snapshot so no process can
             // fork between discovery and forced termination.
-            BackendProcessTree.suspend(living)
+            shutdown.signalAttempts.append(contentsOf: shutdownEnvironment.suspend(
+                Set(active.map(\.identity))
+            ))
             for _ in 0 ..< 8 {
-                let discovered = BackendProcessTree.expanding(shutdown.targets)
+                let discovered = shutdownEnvironment.expanding(shutdown.targets)
                     .subtracting(shutdown.targets)
                 guard !discovered.isEmpty else { break }
                 shutdown.targets.formUnion(discovered)
-                BackendProcessTree.suspend(discovered)
+                shutdown.signalAttempts.append(contentsOf: shutdownEnvironment.suspend(discovered))
             }
-            living = BackendProcessTree.living(shutdown.targets)
-            BackendProcessTree.forceTerminate(living)
+            active = shutdownEnvironment.activeObservations(shutdown.targets)
+            shutdown.signalAttempts.append(contentsOf: shutdownEnvironment.forceTerminate(
+                Set(active.map(\.identity))
+            ))
             if let process, process.isRunning,
-               BackendProcessTree.identity(for: shutdown.rootPID) == nil {
-                _ = Darwin.kill(shutdown.rootPID, SIGKILL)
+               shutdownEnvironment.identity(shutdown.rootPID) == nil {
+                shutdown.signalAttempts.append(
+                    shutdownEnvironment.forceTerminateRoot(shutdown.rootPID)
+                )
             }
-            living = BackendProcessTree.living(shutdown.targets)
-        } else if shutdown.forced, !living.isEmpty {
-            BackendProcessTree.forceTerminate(living)
+            active = shutdownEnvironment.activeObservations(shutdown.targets)
+        } else if shutdown.forced, !active.isEmpty {
+            shutdown.signalAttempts.append(contentsOf: shutdownEnvironment.forceTerminate(
+                Set(active.map(\.identity))
+            ))
         }
 
         if now.uptimeNanoseconds >= shutdown.forcedDeadline.uptimeNanoseconds {
-            living = BackendProcessTree.living(shutdown.targets)
-            if living.isEmpty, process?.isRunning != true {
+            active = shutdownEnvironment.activeObservations(shutdown.targets)
+            if active.isEmpty, process?.isRunning != true {
                 finishShutdown(preserveFailure: shutdown.preserveFailure)
             } else {
-                let pids = living.map(\.pid).sorted()
-                finishShutdown(
-                    preserveFailure: shutdown.preserveFailure,
-                    failure: BackendError.shutdownTimedOut(pids)
+                reportShutdownTimeout(
+                    shutdown: shutdown,
+                    activeProcesses: active,
+                    rootProcessRunning: process?.isRunning == true
                 )
             }
             return
@@ -331,27 +510,60 @@ final class BackendController {
         .nanoseconds(Int(interval * 1_000_000_000))
     }
 
-    private func finishShutdown(preserveFailure: Bool, failure: Error? = nil) {
-        shutdownTimer?.cancel()
-        shutdownTimer = nil
+    private func reportShutdownTimeout(
+        shutdown original: ShutdownContext,
+        activeProcesses: [BackendProcessObservation],
+        rootProcessRunning: Bool
+    ) {
+        var shutdown = original
+        shutdown.timeoutReported = true
+        shutdownContext = shutdown
+        shutdownPolling?.cancel()
+        shutdownPolling = nil
+        let failure = BackendShutdownFailure(
+            rootPID: shutdown.rootPID,
+            activeProcesses: activeProcesses,
+            rootProcessRunning: rootProcessRunning,
+            signalAttempts: shutdown.signalAttempts,
+            terminationHandlerObserved: shutdown.terminationHandlerObserved
+        )
+        recordShutdownFailure(failure)
+        if !shutdown.preserveFailure {
+            state = .failed(failure.errorDescription ?? "The local planning service did not stop.")
+        }
+        completeStopRequests(with: .failure(failure))
+    }
+
+    private func recordShutdownFailure(_ failure: BackendShutdownFailure) {
+        let processes = failure.activeProcesses.map { observation in
+            let identity = observation.identity
+            return "pid=\(identity.pid),parent=\(observation.parentPID),start=\(identity.startSeconds).\(identity.startMicroseconds),state=\(observation.state)"
+        }.joined(separator: ";")
+        let attempts = failure.signalAttempts.map { attempt in
+            "pid=\(attempt.pid),signal=\(attempt.signal),result=\(attempt.disposition)"
+        }.joined(separator: ";")
+        let message = "[aptus-shutdown-timeout] root=\(failure.rootPID) rootRunning=\(failure.rootProcessRunning) terminationHandlerObserved=\(failure.terminationHandlerObserved) processes=[\(processes)] signals=[\(attempts)]\n"
+        guard let data = message.data(using: .utf8) else { return }
+        try? logHandle?.write(contentsOf: data)
+    }
+
+    private func finishShutdown(preserveFailure: Bool) {
+        shutdownPolling?.cancel()
+        shutdownPolling = nil
         shutdownContext = nil
         cleanup()
         if !preserveFailure {
-            if let failure {
-                state = .failed(
-                    (failure as? LocalizedError)?.errorDescription ?? failure.localizedDescription
-                )
-            } else {
-                state = .stopped
-            }
+            state = .stopped
         }
-        completeStopRequests()
+        completeStopRequests(with: .success)
     }
 
     private func cleanup() {
-        shutdownTimer?.cancel()
-        shutdownTimer = nil
+        stopOwnershipTracking()
+        shutdownPolling?.cancel()
+        shutdownPolling = nil
         shutdownContext = nil
+        ownedProcessIdentities.removeAll()
         try? logHandle?.close()
         logHandle = nil
         paths?.removeEphemeralSession()
@@ -362,12 +574,12 @@ final class BackendController {
         startupDeadline = nil
     }
 
-    private func completeStopRequests() {
+    private func completeStopRequests(with result: BackendShutdownResult) {
         let completions = stopCompletions
         stopCompletions.removeAll()
         guard !completions.isEmpty else { return }
         DispatchQueue.main.async {
-            completions.forEach { $0() }
+            completions.forEach { $0(result) }
         }
     }
 }

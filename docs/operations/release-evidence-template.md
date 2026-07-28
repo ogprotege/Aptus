@@ -1,6 +1,6 @@
 # Release Evidence Template
 
-> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 Copy this template into a new, dated evidence record for each release candidate.
 Do not edit the template into a claim that work passed. Fill every applicable
@@ -45,8 +45,14 @@ State what it does not support:
 | Python compile check | `[fill]` | `[fill]` | `[fill]` |
 | Ruff lint and format | `[fill]` | `[fill]` | `[fill]` |
 | Web tests | `[fill]` | `[fill]` | `[fill]` |
+| Generated TypeScript contract | `npm run openapi:check` | `[fill]` | `[fill]` |
 | Web type check | `[fill]` | `[fill]` | `[fill]` |
 | Web production build | `[fill]` | `[fill]` | `[fill]` |
+| Generated OpenAPI contract | `python tools/generate_openapi.py --check` | `[fill]` | `[fill]` |
+| Maintained client boundary | `python tools/check_client_contracts.py` | `[fill]` | `[fill]` |
+| Version parity | `python tools/verify_versions.py` | `[fill]` | `[fill]` |
+| Production dependency audit | `npm audit --omit=dev` | `[fill]` | `[fill]` |
+| Full development dependency audit | `npm audit` | `[fill]` | `[fill advisories and disposition]` |
 | Wheel build | `[fill]` | `[fill]` | `[fill]` |
 | Installed-wheel CLI/API/asset smoke | `[fill]` | `[fill]` | `[fill]` |
 | Documentation checks | `[fill]` | `[fill]` | `[fill]` |
@@ -59,6 +65,32 @@ Record built artifacts:
 | Wheel | `[fill]` | `[fill]` | `[fill]` |
 | Source distribution, if published | `[fill]` | `[fill]` | `[fill]` |
 | Packaged workbench index | `[fill]` | `[fill]` | `[fill]` |
+| `Aptus.app` ZIP | `[fill]` | `[fill]` | `[fill]` |
+| `Aptus-macOS-arm64.dmg` | `[fill]` | `[fill]` | `[fill]` |
+| `COMMIT` source marker | `[fill]` | `[fill]` | `[fill]` |
+| `SHA256SUMS` | `[fill]` | `[fill]` | `[fill]` |
+| Repeated-gate ledger | `[fill]` | `[fill]` | `[fill]` |
+| Repeated-gate log archive | `[fill]` | `[fill]` | `[fill]` |
+
+### Desktop distribution evidence
+
+| Gate | Required evidence | Result |
+| --- | --- | --- |
+| Source identity | `COMMIT` equals the tested clean checkout | `[fill]` |
+| Ten-build stability | Ten consecutive complete builds, durations, artifact hashes, and full logs | `[fill]` |
+| Product tests per build | Python, generated contracts, React, typecheck, production web build, and native tests | `[fill]` |
+| Packaged launch | Authenticated backend readiness, React readiness, and clean session shutdown | `[fill]` |
+| Architecture and identity | arm64 app and backend, bundle ID, version, and build | `[fill]` |
+| Application ZIP | Archive integrity, permission preservation, extraction, and strict signature verification | `[fill]` |
+| DMG | Creation, `hdiutil verify`, install, and launch result | `[fill]` |
+| Developer ID | Identity, Team ID, hardened runtime, timestamp, and nested signatures | `[fill or Not run]` |
+| Notarization | App and DMG submissions, request IDs, accepted status, and logs | `[fill or Not run]` |
+| Stapling and Gatekeeper | App and DMG staple validation plus `spctl` assessment | `[fill or Not run]` |
+| Exact-head CI | Immutable workflow URL, commit marker, artifact name, checksums, and retention | `[fill]` |
+
+Ad-hoc signing can satisfy local engineering review only. A public distribution
+row passes only with Developer ID signing, accepted notarization, stapling, and
+Gatekeeper assessment for the exact release artifacts.
 
 ## Planner and compiler matrix
 

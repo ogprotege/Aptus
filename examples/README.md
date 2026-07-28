@@ -1,6 +1,6 @@
 # Aptus Examples
 
-> **Status:** Active | **Authority:** Example guide | **Applies to:** Aptus 0.2 | **Audience:** New users and test authors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when example data changes
+> **Status:** Active | **Authority:** Example guide | **Applies to:** Aptus 0.2 | **Audience:** New users and test authors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when example data changes
 
 `support-sft.jsonl` is a small prompt-completion dataset for exercising Aptus
 planning, compilation, and static validation. It is synthetic example data. It
@@ -17,8 +17,23 @@ aptus profile \
 
 The example supports contract and static product checks without downloading a
 model. Runtime validation and training still require a real immutable model
-revision, training rights, compatible dependencies, and supported CUDA
-hardware.
+revision, training rights, compatible dependencies, and either a supported
+external MLX-LM environment on Apple Silicon or a supported CUDA target host.
+
+## Recorded MLX-LM use
+
+The [2026-07-27 MLX-LM acceptance](../docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+used `support-sft.jsonl` with the immutable revision
+`mlx-community/Qwen2.5-0.5B-Instruct-4bit@53a32aee5e9447773fd2b85988395066aef3700a`.
+Two clean, independent QLoRA workflows completed dependency, model-data,
+measured-preflight, uninterrupted pilot, fresh-process adapter reload, confirmed
+full training, final export, and parent verification. Both reached
+`measured-run-pass`.
+
+That result proves the recorded Aptus runtime and artifact contracts on the
+recorded host. The four synthetic rows remain unsuitable for model-quality,
+safety, or usefulness claims. CUDA target-host acceptance remains separate and
+open.
 
 `reviewed-sft.jsonl` demonstrates the governed-feedback shape described in the
 [reviewed corpus contract](../docs/reference/reviewed-corpus-contract.md). Its
@@ -31,3 +46,4 @@ boundary.
 - [First planning-only run](../docs/getting-started/first-plan.md)
 - [Dataset schemas](../docs/reference/dataset-schemas.md)
 - [Prepare a dataset](../docs/guides/prepare-a-dataset.md)
+- [MLX-LM acceptance evidence](../docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)

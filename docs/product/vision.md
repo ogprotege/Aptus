@@ -1,6 +1,6 @@
 # Product Vision
 
-> **Status:** Active | **Authority:** Product direction | **Applies to:** Aptus 0.2 and later | **Audience:** All readers | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when product scope changes
+> **Status:** Active | **Authority:** Product direction | **Applies to:** Aptus 0.2 and later | **Audience:** All readers | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when product scope changes
 
 Fine-tuning setup consumes time because model, data, hardware, objective,
 precision, quantization, memory, distribution, dependencies, and artifacts must
@@ -23,6 +23,8 @@ host.
 - Full runs never overwrite earlier output.
 - A child process cannot certify its own successful completion.
 - Quality requires an explicit evaluation contract.
+- Project history is append-only. Recovery creates a new revision.
+- Training authorization is current evidence, never durable project state.
 
 ## End state
 
@@ -38,8 +40,10 @@ additional execution backends, cloud runners, provider integrations, and
 controlled automation interfaces. Each addition must enter through an explicit
 contract and its own evidence gate.
 
-V0.2 is the local CUDA core. It does not yet implement those later integrations
-and has not completed release CUDA evidence.
+V0.2 now contains separate local MLX-LM and external CUDA runtime contracts.
+The dated Apple Silicon acceptance completed two real MLX-LM workflows through
+`measured-run-pass`. CUDA target-host evidence and the later integrations above
+remain open.
 
 ## Related documentation
 

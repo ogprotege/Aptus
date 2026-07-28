@@ -106,6 +106,13 @@ permit-file launcher in a new process group where supported, records process
 identity, changes the job to `running`, binds the global lease to the child, and
 only then releases the launch permit.
 
+The launcher uses the verified bundle as its working directory and resolves
+manifest entries only as relative children of that directory. After the permit
+appears, it rereads the manifest, compares its SHA-256 with the project-bound
+artifact fingerprint, rejects escapes and symlinks, and rehashes each manifested
+file before replacing itself with the job command. The parent also rechecks the
+same binding immediately before it writes the permit.
+
 This sequence narrows the interval in which a child could start without a
 durable identity. Worker-start or lease-persistence failure records `failed` and
 releases the lease where possible.

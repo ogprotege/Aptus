@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -32,6 +32,11 @@ compatible. Decide the semantic effect before editing code.
 | MLX artifact manifest | `aptus.mlx-artifact-manifest.v1` | generated MLX action owner and parent verifier |
 | GPU lease | `aptus.gpu-lease.v1` | host and portable lease implementations |
 | Validator behavior | `aptus-validator-v2` | `validation.py` |
+| HTTP API | `aptus.api.v1` | `api_contracts.py`, `api.py`, and generated OpenAPI |
+| Job record | `aptus.job-record.v1` | `execution.py` |
+| Project | `aptus.project.v1` | `projects.py` |
+| Project revision | `aptus.project-revision.v1` | `projects.py` |
+| Diagnostic report | `aptus.diagnostics.v1` | `diagnostics.py` |
 
 The documentation methodology names additional rule-set versions for candidate
 enumeration, precision, ranking, and preflight. Keep those labels aligned with
@@ -79,8 +84,9 @@ creates an unbound setting.
 
 ## Keep host and portable implementations aligned
 
-The bundle copies `plan_contract.py` and `runtime_lease.py`. It also embeds
-trainer, runner, preflight, and validator programs from `generation.py`.
+The bundle copies `plan_contract.py` and `runtime_lease.py`. It emits trainer,
+runner, preflight, validator, and MLX reload programs from package resources
+under `src/aptus/_bundle_programs/`.
 Host-side validation and `JobService` independently verify related evidence.
 
 A contract change may therefore touch:
@@ -117,9 +123,30 @@ to make it appear current.
 ## API and workbench changes
 
 FastAPI request models reject unknown fields. Additions and removals must be
-reflected in `api.py`, API tests, `web/src/types.ts`, request construction and
-normalization in `web/src/api.ts`, stage state, restoration logic, and the API
-reference.
+reflected in `api.py`, `api_contracts.py`, API tests, maintained request and
+normalization code in `web/src/api.ts`, UI domain types in `web/src/types.ts`
+when needed, Swift decoders when applicable, stage state, restoration logic, and
+the API reference. Regenerate and check both derived contract artifacts:
+
+```bash
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py
+npm --prefix web run openapi:generate
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py --check
+npm --prefix web run openapi:check
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/check_client_contracts.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/verify_versions.py
+```
+
+`docs/reference/openapi.v1.json` and `web/src/generated/openapi.ts` are
+generated. The TypeScript artifact supplies schema and path types. It does not
+replace React's maintained request construction, runtime normalization, domain
+types, or presentation logic. Swift decoders are maintained and contract
+checked. Describe each boundary precisely instead of calling either client
+wholly generated or wholly hand-maintained.
 
 If a field can be unavailable, preserve `null` or an explicit unknown state.
 Do not substitute total memory for free memory or provider declarations for user
@@ -148,10 +175,15 @@ persisted state. Do not mark success from child exit alone.
 - [ ] Unknown, malformed, stale, and tampered forms fail closed.
 - [ ] Host and portable implementations agree.
 - [ ] API, CLI, and web consumers agree.
+- [ ] Generated OpenAPI JSON and TypeScript schema and path types are current.
+- [ ] Maintained React adapters and covered Swift decoders pass their contract
+      checks.
 - [ ] Positive, negative, mutation, and interruption tests pass.
 - [ ] A fresh bundle was compiled and reviewed.
 - [ ] Reference and methodology pages were updated.
 - [ ] Target-host evidence was refreshed when runtime meaning changed.
+- [ ] `python tools/verify_versions.py` confirms package, web, desktop, and
+      OpenAPI version parity.
 
 ## Related documentation
 

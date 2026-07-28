@@ -1,5 +1,6 @@
 import importlib.util
 import ast
+import hashlib
 import json
 import math
 import os
@@ -14,7 +15,9 @@ from unittest.mock import patch
 
 from aptus.domain import Backend, ValidationState
 from aptus.generation import (
+    _BUNDLE_PROGRAMS,
     _accelerate_config,
+    _bundle_program_bytes,
     create_bundle_archive,
     generate_bundle,
 )
@@ -523,6 +526,30 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertTrue(
             all(row["messages"][-1]["role"] == "assistant" for row in compiled_rows)
         )
+
+    def test_packaged_program_resources_match_generated_files_and_manifest(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundles = {
+                "cuda": self._bundle(root),
+                "mlx": self._mlx_bundle(root),
+            }
+            for runtime, output in bundles.items():
+                manifest = json.loads(
+                    (output / "bundle-manifest.json").read_text(encoding="utf-8")
+                )
+                manifest_files = {entry["path"]: entry for entry in manifest["files"]}
+                for name in _BUNDLE_PROGRAMS[runtime]:
+                    resource = _bundle_program_bytes(runtime, name)
+                    generated = (output / name).read_bytes()
+                    self.assertEqual(generated, resource)
+                    self.assertEqual(
+                        manifest_files[name]["sha256"],
+                        hashlib.sha256(resource).hexdigest(),
+                    )
+                    self.assertEqual(manifest_files[name]["size_bytes"], len(resource))
 
     def test_generated_mlx_binding_proves_every_planned_lora_pair(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1575,8 +1602,17 @@ class BundleGenerationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             output = root / "bundle"
+
+            def program_with_broken_run(runtime: str, name: str) -> bytes:
+                if runtime == "cuda" and name == "run.py":
+                    return b"def broken(:\n"
+                return _bundle_program_bytes(runtime, name)
+
             with (
-                patch("aptus.generation.RUN_SCRIPT", "def broken(:\n"),
+                patch(
+                    "aptus.generation._bundle_program_bytes",
+                    side_effect=program_with_broken_run,
+                ),
                 self.assertRaisesRegex(ValueError, "failed static validation"),
             ):
                 generate_bundle(make_plan(root), output)

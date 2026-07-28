@@ -1,0 +1,86 @@
+{
+  "action": "model-data",
+  "bundle_dir": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle",
+  "cancellable": false,
+  "cancellation_note": null,
+  "command": [
+    "/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/runtime-env/bin/python",
+    "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/validate.py",
+    "--level",
+    "model-data"
+  ],
+  "completion_verification_started_at": "2026-07-27T23:25:30.349093+00:00",
+  "created_at": "2026-07-27T23:25:29.346081+00:00",
+  "error": null,
+  "finished_at": "2026-07-27T23:25:30.349506+00:00",
+  "id": "job_beabb82a70554cd59b514d4525ba39ce",
+  "job_id": "job_beabb82a70554cd59b514d4525ba39ce",
+  "launch_protocol": "permit-file-v1",
+  "log": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/state/jobs/job_beabb82a70554cd59b514d4525ba39ce.log",
+  "log_tail": "MLX-LM dependencies and Apple silicon platform are present.\nPilot and full runs are uninterrupted from scratch; crash-resume remains unsupported.\nAptus MLX-LM model-data validation passed.\n",
+  "owner_pid": 16305,
+  "owner_process_identity": "darwin-started:Mon Jul 27 19:25:28 2026",
+  "owner_status": "terminal",
+  "phase": "completed",
+  "prelaunch_capacity_check": null,
+  "process_group_id": 16319,
+  "process_identity": "darwin-started:Mon Jul 27 19:25:29 2026",
+  "process_pid": 16319,
+  "resume_from": null,
+  "return_code": 0,
+  "run_id": null,
+  "run_output_dir": null,
+  "started_at": "2026-07-27T23:25:29.354776+00:00",
+  "state": "completed",
+  "validation_report": {
+    "artifact_fingerprint": "9cf730c5e2c4044bc297742b1d0f4832ff992cbf4f0d1b6f63af6e2456680bbd",
+    "bindings": {
+      "bundle": "9cf730c5e2c4044bc297742b1d0f4832ff992cbf4f0d1b6f63af6e2456680bbd",
+      "candidate_id": "cand_f222b24ca5b139b67436",
+      "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "plan_id": "plan_df3b75050e6ea520a9c0"
+    },
+    "checked_files": [
+      "bundle-manifest.json",
+      "plan.json",
+      "requirements.txt"
+    ],
+    "final_export": null,
+    "findings": [],
+    "latest_recheck": null,
+    "measured_run": null,
+    "measured_run_completed_at": null,
+    "pilot_metrics": null,
+    "preflight_metrics": null,
+    "runtime_evidence": [
+      "Observed MLX-LM validation state: model-data-pass.",
+      "No model-fit or quality guarantee is implied."
+    ],
+    "smoke_command": null,
+    "state": "model-data-pass",
+    "validated_at": "2026-07-27T23:25:30.310137+00:00",
+    "validation_level": "model-data",
+    "validator_version": "aptus-validator-mlx-v1"
+  }
+}
+real 1.84
+user 1.20
+sys 0.48
+           273088512  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               39699  page reclaims
+                  47  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  16  voluntary context switches
+               12545  involuntary context switches
+           601149993  instructions retired
+           232888497  cycles elapsed
+            18694600  peak memory footprint

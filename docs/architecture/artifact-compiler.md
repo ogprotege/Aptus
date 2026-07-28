@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -34,6 +34,21 @@ directory and deterministic ZIP. It does not train a model.
 Any failure removes the temporary directory. The compiler does not merge into or
 replace a populated output.
 
+## Project publication and conflict cleanup
+
+The API publishes the compiled bundle to project history with a
+compare-and-swap against the revision that authorized compilation. The new
+revision records the bundle-manifest SHA-256 as `artifact_fingerprint`. It also
+records the ZIP SHA-256 and exact byte size.
+
+Another writer can advance the project while compilation is running. In that
+case, Aptus returns `project_revision_conflict` and removes only outputs it can
+still prove are the files and directory created by that compile attempt. The
+cleanup compares directory or file identity plus the recorded manifest or ZIP
+digest and size. If another process replaces either path, Aptus preserves that
+replacement. An initially empty caller-created directory is recreated with its
+original mode only when the Aptus-created directory still owns the path.
+
 ## Generated execution material
 
 - `requirements.txt`: exact direct method pins, not a transitive lock.
@@ -58,6 +73,14 @@ replace a populated output.
 Generated code reads semantic values from `plan.json`. It validates plan and
 candidate identities before runtime use. Distributed launch uses the active
 Python interpreter's Accelerate module rather than an unbound shell executable.
+
+The canonical program bytes live under
+`src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through
+`importlib.resources`; it does not keep parallel Python string copies. The wheel
+declares both resource trees as package data. The PyInstaller specification
+collects them into the frozen sidecar. Parity tests compare each emitted file
+and manifest digest with its resource bytes across source, wheel, and frozen
+layouts.
 
 ## Dataset outputs
 

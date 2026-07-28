@@ -47,7 +47,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         backend.start()
     }
 
-    func stopBackend(completion: (() -> Void)? = nil) {
+    func stopBackend(completion: ((BackendShutdownResult) -> Void)? = nil) {
         backend.stop(completion: completion)
     }
 
@@ -71,9 +71,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
             }
             let backendClient = DesktopBackendClient(session: session)
             let model = DesktopShellModel(
-                presentsWorkbenchImmediately: DesktopLaunchPolicy.presentsWorkbenchImmediately(
-                    environment: ProcessInfo.processInfo.environment
-                ),
                 retryWorkbench: { [weak controller] in controller?.retryLoad() },
                 runtimeConfigurator: backendClient,
                 runtimeInventoryLoader: backendClient,

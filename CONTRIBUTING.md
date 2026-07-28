@@ -1,6 +1,6 @@
 # Contributing
 
-> **Status:** Active | **Authority:** Normative contribution policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the quality gate changes
+> **Status:** Active | **Authority:** Normative contribution policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when the quality gate changes
 
 ## Scope
 
@@ -25,9 +25,27 @@ cd web && npm ci
 PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
   .venv/bin/python -m unittest discover -s tests -t . -v
 PYTHONPATH=src .venv/bin/python -m compileall -q src tests tools
+.venv/bin/python tools/generate_openapi.py --check
+.venv/bin/python tools/check_client_contracts.py
+.venv/bin/python tools/verify_versions.py
 git diff --check
-cd web && npm test && npm run typecheck && npm run build
+cd web && npm run openapi:check && npm test && npm run typecheck && npm run build
 ```
+
+When the HTTP contract changes, regenerate both derived contract artifacts from
+the repository root before running those checks:
+
+```bash
+.venv/bin/python tools/generate_openapi.py
+npm --prefix web run openapi:generate
+```
+
+`docs/reference/openapi.v1.json` is the generated server contract.
+`web/src/generated/openapi.ts` is the generated TypeScript schema and path map.
+React still uses a maintained request, normalization, and presentation layer in
+`web/src/api.ts` and `web/src/types.ts`. Swift response decoders are also
+maintained source. `tools/check_client_contracts.py` checks their covered
+endpoint and runtime-inventory boundary against OpenAPI.
 
 Run the wheel build and installed-wheel smoke test for packaging changes. Run a
 real pilot on every affected target runtime for changes that alter generation,
@@ -77,7 +95,8 @@ evidence.
 
 Update user, API, bundle, validation, and capability documentation in the same
 change as behavior. Preserve archived legacy-audit evidence. Add new findings as
-new documents rather than rewriting historical audit records.
+new documents rather than rewriting historical audit records. Never edit the
+generated OpenAPI JSON or TypeScript map by hand.
 
 ## Pull requests
 

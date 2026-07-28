@@ -1,0 +1,416 @@
+{
+  "action": "pilot",
+  "bundle_dir": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle",
+  "cancellable": false,
+  "cancellation_note": null,
+  "command": [
+    "/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/runtime-env/bin/python",
+    "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/validate.py",
+    "--level",
+    "pilot"
+  ],
+  "completion_verification_started_at": "2026-07-27T23:26:08.215427+00:00",
+  "created_at": "2026-07-27T23:26:03.157273+00:00",
+  "error": null,
+  "finished_at": "2026-07-27T23:26:08.215850+00:00",
+  "id": "job_e79e14e6af31463589d4c601ec7334fb",
+  "job_id": "job_e79e14e6af31463589d4c601ec7334fb",
+  "launch_protocol": "permit-file-v1",
+  "log": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/state/jobs/job_e79e14e6af31463589d4c601ec7334fb.log",
+  "log_tail": "MLX-LM dependencies and Apple silicon platform are present.\nPilot and full runs are uninterrupted from scratch; crash-resume remains unsupported.\nLoading configuration file /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/config/mlx-lm.yaml\nLoading pretrained model\nLoading datasets\nTraining\nTrainable parameters: 0.890% (4.399M/494.033M)\nStarting training..., iters: 2\n\rCalculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]\rCalculating loss...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 30.27it/s]\nIter 1: Val loss 4.899, Val took 0.040s\nIter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 8.406, Tokens/sec 277.385, Trained Tokens 33, Peak mem 0.516 GB\n\rCalculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]\rCalculating loss...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 45.58it/s]\nIter 2: Val loss 3.819, Val took 0.024s\nIter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 9.615, Tokens/sec 240.377, Trained Tokens 58, Peak mem 0.524 GB\nSaved final weights to /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/bounded-smoke_4b6a4755b4644d989543acdfa288e38e/adapters/adapters.safetensors.\nMLX-LM bounded-smoke training completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/bounded-smoke_4b6a4755b4644d989543acdfa288e38e/training-metrics.json\nAptus MLX-LM bounded-smoke completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/bounded-smoke_4b6a4755b4644d989543acdfa288e38e\nLoading configuration file /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/config/mlx-lm.yaml\nLoading pretrained model\nLoading datasets\nTraining\nTrainable parameters: 0.890% (4.399M/494.033M)\nStarting training..., iters: 2\n\rCalculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]\rCalculating loss...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 30.50it/s]\nIter 1: Val loss 4.899, Val took 0.041s\nIter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 8.660, Tokens/sec 285.783, Trained Tokens 33, Peak mem 0.516 GB\n\rCalculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]\rCalculating loss...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 49.06it/s]\nIter 2: Val loss 3.819, Val took 0.022s\nIter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 10.081, Tokens/sec 252.025, Trained Tokens 58, Peak mem 0.524 GB\nSaved final weights to /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088/adapters/adapters.safetensors.\nMLX-LM pilot training completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088/training-metrics.json\nFresh-process MLX adapter reload passed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088/reload-evidence.json\nAptus MLX-LM pilot completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088\nAptus MLX-LM pilot validation passed.\n",
+  "owner_pid": 16595,
+  "owner_process_identity": "darwin-started:Mon Jul 27 19:26:02 2026",
+  "owner_status": "terminal",
+  "phase": "completed",
+  "prelaunch_capacity_check": null,
+  "process_group_id": 16600,
+  "process_identity": "darwin-started:Mon Jul 27 19:26:03 2026",
+  "process_pid": 16600,
+  "resume_from": null,
+  "return_code": 0,
+  "run_id": null,
+  "run_output_dir": null,
+  "started_at": "2026-07-27T23:26:03.166883+00:00",
+  "state": "completed",
+  "validation_report": {
+    "artifact_fingerprint": "9cf730c5e2c4044bc297742b1d0f4832ff992cbf4f0d1b6f63af6e2456680bbd",
+    "authorization_current": false,
+    "authorization_error": "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Polling does not rehash large pilot artifacts.",
+    "bindings": {
+      "bundle": "9cf730c5e2c4044bc297742b1d0f4832ff992cbf4f0d1b6f63af6e2456680bbd",
+      "candidate_id": "cand_f222b24ca5b139b67436",
+      "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "pilot_metrics": "a83a6ef6e3a6873c3fba39741647f6e7711dddec33216c9ad13d0d6cf644bb61",
+      "plan_id": "plan_df3b75050e6ea520a9c0",
+      "preflight_metrics": "6ccffb09464460a58f995f14f77f7fd8af9cd1d4c8a27e0d2bc6b1135b9ec5ae"
+    },
+    "checked_files": [
+      "bundle-manifest.json",
+      "plan.json",
+      "requirements.txt"
+    ],
+    "final_export": null,
+    "findings": [],
+    "latest_recheck": null,
+    "measured_run": null,
+    "measured_run_completed_at": null,
+    "pilot_metrics": {
+      "action": "pilot",
+      "active_memory_bytes": 84404344,
+      "actual_world_size": 1,
+      "adapter_delta_l1": 3773.8726009726524,
+      "adapter_manifest": [
+        {
+          "path": "adapter_config.json",
+          "sha256": "fa998c08ec79ce5831e035ad5450fd572c8ca393af8792d856a4e2bbb56f657f",
+          "size_bytes": 1578
+        },
+        {
+          "path": "adapters.safetensors",
+          "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+          "size_bytes": 17632042
+        }
+      ],
+      "adapter_path": "pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088/adapters",
+      "artifact_manifest": {
+        "action": "pilot",
+        "candidate_id": "cand_f222b24ca5b139b67436",
+        "execution_semantics": "uninterrupted",
+        "files": [
+          {
+            "path": ".aptus-run.json",
+            "sha256": "8c8b772876adf79c67ece259d695c4bd93429021ac2d2f187a19b52553a94276",
+            "size_bytes": 489
+          },
+          {
+            "path": "adapters/adapter_config.json",
+            "sha256": "fa998c08ec79ce5831e035ad5450fd572c8ca393af8792d856a4e2bbb56f657f",
+            "size_bytes": 1578
+          },
+          {
+            "path": "adapters/adapters.safetensors",
+            "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+            "size_bytes": 17632042
+          },
+          {
+            "path": "reload-evidence.json",
+            "sha256": "f0c80d53aa6862aff45070d49d9357301c1e999a8da8b683b73ba43c57829c5f",
+            "size_bytes": 1176
+          },
+          {
+            "path": "training-metrics.json",
+            "sha256": "fd152f79f35b9634fe59efe81c3426aefd4c65fd3f457c418aafe2538c979cdb",
+            "size_bytes": 3351
+          }
+        ],
+        "plan_id": "plan_df3b75050e6ea520a9c0",
+        "resume_supported": false,
+        "schema_version": "aptus.mlx-artifact-manifest.v1",
+        "total_bytes": 17638636
+      },
+      "artifact_manifest_sha256": "3e4c2b3e47e6260807e63e783fb105a10c49e8bd5fdb499f788b0f684996a691",
+      "cache_memory_bytes": 284849556,
+      "candidate_id": "cand_f222b24ca5b139b67436",
+      "changed_adapter_tensor_count": 336,
+      "compiler_id": "mlx-lm.qlora.v1",
+      "completed_at": "2026-07-27T23:26:06.966258+00:00",
+      "completed_optimizer_updates": 2,
+      "compute_backend": "mps",
+      "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "distribution": "single",
+      "execution_semantics": "uninterrupted",
+      "final_export": null,
+      "finite_train_loss": true,
+      "finite_validation_loss": true,
+      "global_step": 2,
+      "gradient_accumulation_steps": 1,
+      "max_epochs": 1,
+      "measured_peak_bytes": 524353588,
+      "memory_metric_backend": "mlx",
+      "method": "qlora",
+      "micro_iterations": 2,
+      "model_load_binding": {
+        "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "resolved_local_snapshot": true,
+        "schema_version": "aptus.mlx-model-load-binding.v1",
+        "trust_remote_code": false
+      },
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "optimizer_update_observed": true,
+      "optimizer_update_opportunities": 2,
+      "output_dir": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/pilot_1c328dda0c9f42669b6d87d3d4ff1088",
+      "plan_id": "plan_df3b75050e6ea520a9c0",
+      "reload_evidence": {
+        "adapter_manifest_sha256": "85560016808c25a9cc26c4a03ec3396ae7e6471b482d10c2847b763670141081",
+        "candidate_id": "cand_f222b24ca5b139b67436",
+        "compute_backend": "mps",
+        "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+        "execution_semantics": "uninterrupted",
+        "fresh_process_observed": true,
+        "generation_max_tokens": 4,
+        "generation_text_sha256": "ad57366865126e55649ecb23ae1d48887544976efea46a48eb5d85a6eeb4d306",
+        "generation_tokens": 4,
+        "measured_peak_bytes": 312377106,
+        "method": "qlora",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "parent_pid": 16613,
+        "plan_id": "plan_df3b75050e6ea520a9c0",
+        "resume_supported": false,
+        "schema_version": "aptus.mlx-reload-evidence.v1",
+        "training_runtime": "mlx-lm",
+        "unified_memory_admission": {
+          "available_unified_memory_bytes": 35131179008,
+          "point_estimate_bytes": 2372989999,
+          "required_available_bytes": 13047862262,
+          "reserve_bytes": 8589934592,
+          "schema_version": "aptus.mlx-unified-memory-admission.v1",
+          "upper_estimate_bytes": 4457927670
+        },
+        "verified_at": "2026-07-27T23:26:08.070443+00:00",
+        "verifier_pid": 16620
+      },
+      "reload_evidence_sha256": "f0c80d53aa6862aff45070d49d9357301c1e999a8da8b683b73ba43c57829c5f",
+      "resume_supported": false,
+      "run_completed": true,
+      "run_id": "pilot_1c328dda0c9f42669b6d87d3d4ff1088",
+      "run_marker_sha256": "8c8b772876adf79c67ece259d695c4bd93429021ac2d2f187a19b52553a94276",
+      "schema_version": "aptus.runtime-metrics.v1",
+      "scope": "uninterrupted-pilot",
+      "source_train_examples": 3,
+      "source_validation_examples": 1,
+      "train_examples": 3,
+      "train_loss_observations": [
+        3.8527462482452393,
+        3.1543750762939453
+      ],
+      "trainable_target_binding": {
+        "adapter_target_instance_count": 168,
+        "descriptor_sha256": "543f7bc313af564b696dfec1b9bfb7c4e2f50e5d6112259e5e6f94c581b6e98a",
+        "expected_adapter_target_instance_count": 168,
+        "planned_target_modules": [
+          "q_proj",
+          "k_proj",
+          "v_proj",
+          "o_proj",
+          "gate_proj",
+          "up_proj",
+          "down_proj"
+        ],
+        "resolved_layer_keys": [
+          "self_attn.q_proj",
+          "self_attn.k_proj",
+          "self_attn.v_proj",
+          "self_attn.o_proj",
+          "mlp.gate_proj",
+          "mlp.up_proj",
+          "mlp.down_proj"
+        ],
+        "schema_version": "aptus.mlx-trainable-target-binding.v1",
+        "target_instance_counts": {
+          "down_proj": 24,
+          "gate_proj": 24,
+          "k_proj": 24,
+          "o_proj": 24,
+          "q_proj": 24,
+          "up_proj": 24,
+          "v_proj": 24
+        },
+        "trainable_tensor_count": 336,
+        "transformer_layer_count": 24
+      },
+      "training_runtime": "mlx-lm",
+      "unified_memory_admission": {
+        "available_unified_memory_bytes": 35153444864,
+        "point_estimate_bytes": 2372989999,
+        "required_available_bytes": 13047862262,
+        "reserve_bytes": 8589934592,
+        "schema_version": "aptus.mlx-unified-memory-admission.v1",
+        "upper_estimate_bytes": 4457927670
+      },
+      "validation_examples": 1,
+      "validation_loss_observations": [
+        4.8986897468566895,
+        3.818800449371338
+      ]
+    },
+    "preflight_metrics": {
+      "action": "bounded-smoke",
+      "active_memory_bytes": 16,
+      "actual_world_size": 1,
+      "adapter_delta_l1": 3773.8726009726524,
+      "adapter_manifest": [
+        {
+          "path": "adapter_config.json",
+          "sha256": "f4431befab067785e2c9113e06ec9219abf802051fbde8f5582c96a0310f1e89",
+          "size_bytes": 1586
+        },
+        {
+          "path": "adapters.safetensors",
+          "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+          "size_bytes": 17632042
+        }
+      ],
+      "adapter_path": "pilot-output/bounded-smoke_4b6a4755b4644d989543acdfa288e38e/adapters",
+      "artifact_manifest": {
+        "action": "bounded-smoke",
+        "candidate_id": "cand_f222b24ca5b139b67436",
+        "execution_semantics": "uninterrupted",
+        "files": [
+          {
+            "path": ".aptus-run.json",
+            "sha256": "ba480493964f8aa1773b7f470ef719e3061b1788e06a6cc4fca5bfcb5668cad4",
+            "size_bytes": 505
+          },
+          {
+            "path": "adapters/adapter_config.json",
+            "sha256": "f4431befab067785e2c9113e06ec9219abf802051fbde8f5582c96a0310f1e89",
+            "size_bytes": 1586
+          },
+          {
+            "path": "adapters/adapters.safetensors",
+            "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+            "size_bytes": 17632042
+          },
+          {
+            "path": "training-metrics.json",
+            "sha256": "fab0efab5251e2c59df4cac56a3f2ce6c6033c7d2a3814f8ba655515a45f2b7f",
+            "size_bytes": 3383
+          }
+        ],
+        "plan_id": "plan_df3b75050e6ea520a9c0",
+        "resume_supported": false,
+        "schema_version": "aptus.mlx-artifact-manifest.v1",
+        "total_bytes": 17637516
+      },
+      "artifact_manifest_sha256": "638703d5ffa0d806104e6902d05fe848dfe5583aa071336088a432b5a29f0bee",
+      "cache_memory_bytes": 368690336,
+      "candidate_id": "cand_f222b24ca5b139b67436",
+      "changed_adapter_tensor_count": 336,
+      "compiler_id": "mlx-lm.qlora.v1",
+      "completed_at": "2026-07-27T23:26:05.545366+00:00",
+      "completed_optimizer_updates": 2,
+      "compute_backend": "mps",
+      "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "distribution": "single",
+      "execution_semantics": "uninterrupted",
+      "final_export": null,
+      "finite_train_loss": true,
+      "finite_validation_loss": true,
+      "global_step": 2,
+      "gradient_accumulation_steps": 1,
+      "max_epochs": 1,
+      "measured_peak_bytes": 524491768,
+      "memory_metric_backend": "mlx",
+      "method": "qlora",
+      "micro_iterations": 2,
+      "model_load_binding": {
+        "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "resolved_local_snapshot": true,
+        "schema_version": "aptus.mlx-model-load-binding.v1",
+        "trust_remote_code": false
+      },
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "optimizer_update_observed": true,
+      "optimizer_update_opportunities": 2,
+      "output_dir": "/private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-2/bundle/pilot-output/bounded-smoke_4b6a4755b4644d989543acdfa288e38e",
+      "plan_id": "plan_df3b75050e6ea520a9c0",
+      "reload_evidence": null,
+      "reload_evidence_sha256": null,
+      "resume_supported": false,
+      "run_completed": true,
+      "run_id": "bounded-smoke_4b6a4755b4644d989543acdfa288e38e",
+      "run_marker_sha256": "ba480493964f8aa1773b7f470ef719e3061b1788e06a6cc4fca5bfcb5668cad4",
+      "schema_version": "aptus.runtime-metrics.v1",
+      "scope": "bounded-compiler-smoke-not-pilot-evidence",
+      "source_train_examples": 3,
+      "source_validation_examples": 1,
+      "train_examples": 3,
+      "train_loss_observations": [
+        3.8527462482452393,
+        3.1543750762939453
+      ],
+      "trainable_target_binding": {
+        "adapter_target_instance_count": 168,
+        "descriptor_sha256": "543f7bc313af564b696dfec1b9bfb7c4e2f50e5d6112259e5e6f94c581b6e98a",
+        "expected_adapter_target_instance_count": 168,
+        "planned_target_modules": [
+          "q_proj",
+          "k_proj",
+          "v_proj",
+          "o_proj",
+          "gate_proj",
+          "up_proj",
+          "down_proj"
+        ],
+        "resolved_layer_keys": [
+          "self_attn.q_proj",
+          "self_attn.k_proj",
+          "self_attn.v_proj",
+          "self_attn.o_proj",
+          "mlp.gate_proj",
+          "mlp.up_proj",
+          "mlp.down_proj"
+        ],
+        "schema_version": "aptus.mlx-trainable-target-binding.v1",
+        "target_instance_counts": {
+          "down_proj": 24,
+          "gate_proj": 24,
+          "k_proj": 24,
+          "o_proj": 24,
+          "q_proj": 24,
+          "up_proj": 24,
+          "v_proj": 24
+        },
+        "trainable_tensor_count": 336,
+        "transformer_layer_count": 24
+      },
+      "training_runtime": "mlx-lm",
+      "unified_memory_admission": {
+        "available_unified_memory_bytes": 35062185984,
+        "point_estimate_bytes": 2372989999,
+        "required_available_bytes": 13047862262,
+        "reserve_bytes": 8589934592,
+        "schema_version": "aptus.mlx-unified-memory-admission.v1",
+        "upper_estimate_bytes": 4457927670
+      },
+      "validation_examples": 1,
+      "validation_loss_observations": [
+        4.8986897468566895,
+        3.818800449371338
+      ]
+    },
+    "prelaunch_capacity_check": null,
+    "runtime_evidence": [
+      "Observed MLX-LM validation state: pilot-pass.",
+      "No model-fit or quality guarantee is implied."
+    ],
+    "smoke_command": null,
+    "state": "pilot-pass",
+    "validated_at": "2026-07-27T23:26:08.155195+00:00",
+    "validation_level": "pilot",
+    "validator_version": "aptus-validator-mlx-v1"
+  }
+}
+real 6.00
+user 3.83
+sys 1.54
+           579010560  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              201348  page reclaims
+                  55  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  43  voluntary context switches
+               39447  involuntary context switches
+           657873536  instructions retired
+           285878134  cycles elapsed
+            18661832  peak memory footprint

@@ -1,0 +1,176 @@
+{
+  "candidate_id": "cand_f222b24ca5b139b67436",
+  "compiler": {
+    "name": "aptus",
+    "version": "0.2.0"
+  },
+  "entrypoints": {
+    "preflight": "preflight.py",
+    "reload": "reload.py",
+    "run": "run.py",
+    "train": "train.py",
+    "validate": "validate.py"
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "3d434d8e08a79fb8a1b1f4a885b16b6766d6ec7b711dadce4b0c2a6dd75f63af",
+      "size_bytes": 1415
+    },
+    {
+      "path": "accelerate_config.yaml",
+      "sha256": "bfa48f3ca543aa34133aee835e8c64a2d0b4aec0ca059231de049b68242c51b3",
+      "size_bytes": 161
+    },
+    {
+      "path": "candidates.json",
+      "sha256": "0a48b9291fe94e78ad42586a332588319723a2c867d07357196ba80f424d8acf",
+      "size_bytes": 68875
+    },
+    {
+      "path": "config/accelerate.yaml",
+      "sha256": "bfa48f3ca543aa34133aee835e8c64a2d0b4aec0ca059231de049b68242c51b3",
+      "size_bytes": 161
+    },
+    {
+      "path": "config/mlx-lm.yaml",
+      "sha256": "0d13abeb0de166e56217b427662eb7e0f45548773a377ddc7c85119896a58509",
+      "size_bytes": 418
+    },
+    {
+      "path": "config/trainer.json",
+      "sha256": "8c61712f6533c1effc0e08e3d45449a1335cb3e4cde533dd167f2d3eee1ef039",
+      "size_bytes": 1186
+    },
+    {
+      "path": "data/dataset.jsonl",
+      "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "size_bytes": 925
+    },
+    {
+      "path": "data/mlx/split-contract.json",
+      "sha256": "6b6e50825bffc8ace1141e817cb1442fe82da072ef34d98f0179b606b0ddb852",
+      "size_bytes": 326
+    },
+    {
+      "path": "data/mlx/train.jsonl",
+      "sha256": "e270ad1364fb5af5ea49fae1b591227b44a44927f7d8bfcc5de5fa52f5ac190b",
+      "size_bytes": 837
+    },
+    {
+      "path": "data/mlx/valid.jsonl",
+      "sha256": "246e05efc342c972834382bf67ed818a97a8ad96cc05b0c58e2e565ebb04648d",
+      "size_bytes": 312
+    },
+    {
+      "path": "data/pilot-sample.jsonl",
+      "sha256": "600b792ed47ca51ce79a45a03cee8cb2c9b8d23c9b2ce20700e33df1a3aa7d8b",
+      "size_bytes": 7496
+    },
+    {
+      "path": "data/training.jsonl",
+      "sha256": "c72fa81979cc562d1d1240d11ae804f05abec3e70428b873721595388e0d0806",
+      "size_bytes": 937
+    },
+    {
+      "path": "decision-report.md",
+      "sha256": "28289bbc7cefaae0ff11e5e44455f07f25ea78b8765d425254c17b679d09af3a",
+      "size_bytes": 5476
+    },
+    {
+      "path": "evidence.jsonl",
+      "sha256": "4b0b1778bf26496f998010caafee19e3e5620d9445b83ca5549ba1518fe1831a",
+      "size_bytes": 1676
+    },
+    {
+      "path": "plan.json",
+      "sha256": "51009929e92c46110c8de600c42eccb52d384c5a3bd6e0207a146de0b25cb700",
+      "size_bytes": 83442
+    },
+    {
+      "path": "plan_contract.py",
+      "sha256": "ce82ad2d882cd6a7ed2b25a2e6b663e99c518e6894582a99842f757aa954b052",
+      "size_bytes": 44355
+    },
+    {
+      "path": "preflight.py",
+      "sha256": "86cb122f355fae3e7aba0afb77e47c1154eb7fd796bf03f6f4e31e56e77d8561",
+      "size_bytes": 797
+    },
+    {
+      "path": "profiles/dataset.json",
+      "sha256": "28af5240e293ef47cd63a1f89775052864b95ec648c96d818bbe8718e7110b35",
+      "size_bytes": 1100
+    },
+    {
+      "path": "profiles/hardware.json",
+      "sha256": "282bc39c458ee893079ee738b5bf6cebb6ebdb59a065e3484613dfc88981fa4e",
+      "size_bytes": 821
+    },
+    {
+      "path": "profiles/model.json",
+      "sha256": "4a8589834d31917e56ed582824869f4c60b0be1bb10d37e2d153db9a3f83c263",
+      "size_bytes": 548
+    },
+    {
+      "path": "reload.py",
+      "sha256": "1a99576f3fc9769445f6e1c5658215fbffffc8c69fa4a8a54b086090bed96c5a",
+      "size_bytes": 5785
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "51f045a299cc3d16ed74e028f16acf60664f6955f1e087c792a7659b080e4fa0",
+      "size_bytes": 27
+    },
+    {
+      "path": "run.py",
+      "sha256": "080f50842e162362d827bdf5fb313d8208142b686c0721bb983daf324632b631",
+      "size_bytes": 22026
+    },
+    {
+      "path": "runbook.md",
+      "sha256": "4fb8e8f805ba421094a9aa08819b4fe333a587d94e732b225f98667bbbd26678",
+      "size_bytes": 2137
+    },
+    {
+      "path": "runtime_lease.py",
+      "sha256": "a021fcb8b6da10fa5b443a14edea59280fd4041b3df4020fe07a44aee88bb6ad",
+      "size_bytes": 15669
+    },
+    {
+      "path": "train.py",
+      "sha256": "b0c0c3486189cba8120896b7385adbb5fb65fb2da270557e6ceef55a78756565",
+      "size_bytes": 28140
+    },
+    {
+      "path": "validate.py",
+      "sha256": "33b27e60acbd22239651effa556da647efd913f47b8643b93d51bc1144120a0e",
+      "size_bytes": 38568
+    }
+  ],
+  "formula_version": "aptus-memory-v2",
+  "plan_id": "plan_df3b75050e6ea520a9c0",
+  "plan_sha256": "51009929e92c46110c8de600c42eccb52d384c5a3bd6e0207a146de0b25cb700",
+  "schema_version": "aptus.bundle.v2",
+  "stack_versions": {
+    "accelerate": "1.14.0",
+    "bitsandbytes": "0.49.2",
+    "mlx": "0.31.2",
+    "mlx-lm": "0.31.3",
+    "peft": "0.19.1",
+    "safetensors": "0.8.0",
+    "torch": "2.13.0",
+    "transformers": "5.14.1"
+  },
+  "validation": {
+    "levels": [
+      "contract",
+      "static",
+      "dependency",
+      "model-data",
+      "measured-preflight",
+      "pilot"
+    ],
+    "required_before_full_training": "pilot-pass"
+  }
+}

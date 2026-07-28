@@ -323,6 +323,34 @@ def _parser() -> argparse.ArgumentParser:
     )
     jobs.add_argument("--id", help="Return one reconciled job instead of the job list.")
 
+    doctor = commands.add_parser(
+        "doctor", help="Inspect local training-runtime readiness without changing it."
+    )
+    doctor.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Local state root to summarize (default: .aptus-state).",
+    )
+    doctor.add_argument(
+        "--output",
+        type=Path,
+        help="Write JSON to this path instead of standard output.",
+    )
+
+    diagnostics = commands.add_parser(
+        "diagnostics", help="Create a privacy-bounded support archive."
+    )
+    diagnostics.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Local state root to summarize (default: .aptus-state).",
+    )
+    diagnostics.add_argument(
+        "--output", required=True, type=Path, help="New diagnostic ZIP path."
+    )
+
     serve = commands.add_parser(
         "serve", help="Serve the local API and built React app from one origin."
     )
@@ -540,6 +568,18 @@ def _run(arguments: argparse.Namespace) -> int:
 
         service = JobService(arguments.state_dir / "jobs")
         _write_json(service.get(arguments.id) if arguments.id else service.list(), None)
+        return 0
+    if arguments.command == "doctor":
+        from .diagnostics import build_doctor_report
+
+        report = build_doctor_report(arguments.state_dir)
+        _write_json(report, arguments.output)
+        return 0 if report["status"] == "ready" else 2
+    if arguments.command == "diagnostics":
+        from .diagnostics import create_diagnostic_archive
+
+        archive = create_diagnostic_archive(arguments.state_dir, arguments.output)
+        _write_json({"archive_path": str(archive)}, None)
         return 0
     if arguments.command == "serve":
         if arguments.host not in {"127.0.0.1", "localhost", "::1"}:

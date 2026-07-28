@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-22 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-27 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -8,24 +8,65 @@ target-host evidence all agree.
 
 ## v0.2 stabilization
 
+Completed evidence:
+
+- Two clean, independent MLX-LM QLoRA workflows reached
+  `measured-run-pass` with the exact recorded model, revision, dataset, host,
+  runtime, plan, and generated bundle.
+- Every MLX resume argument fails closed. Pilot and full-run evidence explicitly
+  records uninterrupted execution and no resume support.
+- The local desktop stability gate completed 10 of 10 clean engineering builds
+  at implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`.
+  This is historical evidence for that commit, not later source heads.
+- The pull-request workflow rebuilds, verifies, and uploads the ad-hoc-signed
+  Aptus.app ZIP and DMG with checksums and a source marker for the exact pushed
+  commit on `main` or GitHub's exact synthetic merge commit for a pull request.
+  Its result becomes evidence only after that workflow run passes.
+- Browser accessibility checks cover the packaged React workbench. Native tests
+  cover lifecycle, session, shutdown, navigation, and packaging contracts.
+
+Remaining release work:
+
 - Complete a real CUDA run for every claimed executable method and placement.
-- Complete MLX-LM dependency, model-data, measured-preflight, uninterrupted
-  pilot, and full-duration adapter-run evidence on representative Apple Silicon
-  systems.
-- Prove that every MLX resume argument fails closed and that interruption leaves
-  preserved evidence without creating a resumable-training claim.
-- Record clean-environment dependency installation on each supported path.
+- Extend MLX-LM acceptance beyond the exact recorded M5 Pro, Qwen QLoRA, and
+  synthetic-dataset configuration before making broader Apple Silicon claims.
+- Record clean-environment dependency installation on every claimed CUDA path.
 - Prove managed cancellation, stale-owner recovery, global-lease behavior, and
-  crash-safe completion promotion on the target operating systems.
+  crash-safe completion promotion on every claimed target operating system.
 - Extend semantic export checks beyond the MLX pilot and full-run fresh-process
   adapter reload with bounded generation.
-- Run browser accessibility and responsive checks against the packaged web app.
 - Run native accessibility and appearance checks on macOS 26 and the macOS 15
   fallback.
-- Publish a reproducible release evidence record.
+- Obtain a Developer ID Application identity, notarize and staple the app and
+  DMG, and pass Gatekeeper assessment before public distribution.
+- Publish a release evidence record for the exact released commit and artifacts.
 
 Full-parameter FSDP remains unsupported during v0.2. LoRA FSDP remains
 conditional until its runtime gate is complete.
+
+## Near-term milestone: MoE model support
+
+Mixture-of-Experts models are not currently supported. Aptus does not silently
+map an MoE, multimodal, prefix-matched, or unknown architecture onto a dense
+family contract. MoE support requires all of these gates:
+
+1. an exact architecture and revision allowlist with explicit rejection for
+   unknown or unreviewed variants;
+2. separate total-parameter and active-parameter facts, with expert count,
+   experts selected per token, router structure, and shared-expert facts;
+3. an expert, router, and adapter-target census that proves the intended
+   trainable set and rejects accidental dense or zero-parameter selection;
+4. a sparse memory, storage, communication, and throughput estimator that does
+   not substitute active parameters for resident weights;
+5. runtime-specific compile, train, artifact, export, and fresh-process reload
+   contracts for each supported method and placement;
+6. dense-versus-MoE evaluation on the same immutable data, metrics, thresholds,
+   and compute envelope; and
+7. real target-host acceptance for every claimed runtime and placement.
+
+Planning visibility may precede execution only as an explicit unsupported or
+research state. No MoE row becomes selectable before every executable contract
+and evidence gate agrees.
 
 ## Planner depth
 

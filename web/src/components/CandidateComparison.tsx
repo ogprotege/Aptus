@@ -12,8 +12,8 @@ import { StatusBadge } from "./StatusBadge";
 interface CandidateComparisonProps {
   candidates: CandidatePlan[];
   recommended: CandidatePlan | null;
-  selected: CandidatePlan | null;
-  onSelect: (candidate: CandidatePlan) => void;
+  inspected: CandidatePlan | null;
+  onInspect: (candidate: CandidatePlan) => void;
 }
 
 function candidateKey(candidate: CandidatePlan, index: number): string {
@@ -29,8 +29,8 @@ function isSameCandidate(left: CandidatePlan | null, right: CandidatePlan): bool
 export function CandidateComparison({
   candidates,
   recommended,
-  selected,
-  onSelect,
+  inspected,
+  onInspect,
 }: CandidateComparisonProps) {
   return (
     <section className="comparison-section" aria-labelledby="candidate-title">
@@ -39,7 +39,7 @@ export function CandidateComparison({
           <p className="eyebrow">Feasibility before preference</p>
           <h2 id="candidate-title">Candidate comparison</h2>
         </div>
-        <p>Select a strategy to inspect its memory ledger.</p>
+        <p>Inspect a strategy to review its evidence. Compilation still uses the recommendation.</p>
       </div>
 
       <div className="candidate-table-wrap">
@@ -64,18 +64,22 @@ export function CandidateComparison({
             {candidates.map((candidate, index) => {
               const batches = candidateBatches(candidate);
               const isRecommended = isSameCandidate(recommended, candidate);
-              const isSelected = isSameCandidate(selected, candidate);
+              const isInspected = isSameCandidate(inspected, candidate);
               return (
-                <tr key={candidateKey(candidate, index)} className={isSelected ? "is-selected" : undefined}>
+                <tr key={candidateKey(candidate, index)} className={isInspected ? "is-inspected" : undefined}>
                   <th scope="row">
                     <button
                       type="button"
                       className="candidate-select"
-                      aria-pressed={isSelected}
-                      onClick={() => onSelect(candidate)}
+                      aria-label={`Inspect ${formatMethod(candidate.method)} candidate evidence`}
+                      aria-pressed={isInspected}
+                      onClick={() => onInspect(candidate)}
                     >
                       <span>{formatMethod(candidate.method)}</span>
                       {isRecommended ? <small>Recommended</small> : null}
+                      <small className="candidate-inspect-label">
+                        {isInspected ? "Inspecting" : "Inspect"}
+                      </small>
                     </button>
                   </th>
                   <td><StatusBadge state={candidateStatus(candidate)} /></td>
@@ -103,14 +107,15 @@ export function CandidateComparison({
         {candidates.map((candidate, index) => {
           const batches = candidateBatches(candidate);
           const isRecommended = isSameCandidate(recommended, candidate);
-          const isSelected = isSameCandidate(selected, candidate);
+          const isInspected = isSameCandidate(inspected, candidate);
           return (
             <button
               type="button"
               key={`${candidateKey(candidate, index)}-card`}
-              className={`candidate-card${isSelected ? " is-selected" : ""}`}
-              aria-pressed={isSelected}
-              onClick={() => onSelect(candidate)}
+              className={`candidate-card${isInspected ? " is-inspected" : ""}`}
+              aria-label={`Inspect ${formatMethod(candidate.method)} candidate evidence`}
+              aria-pressed={isInspected}
+              onClick={() => onInspect(candidate)}
             >
               <span className="candidate-card-title">
                 <strong>{formatMethod(candidate.method)}</strong>
@@ -126,6 +131,9 @@ export function CandidateComparison({
                 <div><dt>Quantization</dt><dd>{candidate.quantization ?? "None"}</dd></div>
                 <div><dt>Batch</dt><dd>{batches.micro_batch_size ?? "?"} × {batches.gradient_accumulation_steps ?? "?"}</dd></div>
               </dl>
+              <span className="candidate-card-action">
+                {isInspected ? "Inspecting evidence" : "Inspect evidence"}
+              </span>
             </button>
           );
         })}

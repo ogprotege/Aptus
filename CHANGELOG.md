@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-22 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-27 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -60,6 +60,21 @@ All notable changes are recorded here.
 - Native arm64 macOS 26 CI packaging that uploads the verified Aptus DMG,
   permissions-preserving application ZIP, and SHA-256 checksums for every pull
   request and push to `main`.
+- Named local projects with immutable, content-hashed revisions for facts,
+  plans, compiled bundles, validations, and jobs. Recovery creates a new
+  revision and never restores training authorization.
+- Versioned private job and project storage, legacy-state import, recoverable
+  quarantine for corrupt or unsupported records, and atomic mode-0600 JSON
+  writes under mode-0700 directories.
+- Explicit Pydantic response contracts, API contract identity `aptus.api.v1`,
+  and a checked generated OpenAPI artifact.
+- Read-only `aptus doctor` runtime readiness reports and privacy-bounded
+  `aptus diagnostics` support archives.
+- A native MLX environment doctor that reports exact interpreter evidence and
+  never installs or changes packages.
+- Developer ID and notarization support in the Mac build, including app and DMG
+  submission, stapling, assessment, source markers, and checksums when the
+  required identity and keychain profile are supplied.
 
 ### Changed
 
@@ -80,6 +95,15 @@ All notable changes are recorded here.
 - Installed CLI help and generated bundle reports now explain defaults,
   side effects, evidence boundaries, ordered validation, external environment
   setup, and the fail-closed recovery contract.
+- The native and web interfaces now form one product surface. Native navigation
+  owns Home, Workbench, Machine, and Models. The inline React workbench owns the
+  Facts, Compare, Compile, Validate, and Run workflow plus project history.
+- Generated CUDA and MLX runtime programs moved from large string constants to
+  packaged resources. Source, wheel, and frozen builds emit the same bytes and
+  manifest identities.
+- Native backend shutdown now retains ownership after a timeout, blocks restart
+  and application termination while descendants survive, rejects PID reuse, and
+  permits an explicit cleanup retry.
 
 ### Removed
 
@@ -96,8 +120,17 @@ All notable changes are recorded here.
 ### Evidence status
 
 Repository tests and static checks are necessary but not sufficient for release.
-No qualifying CUDA or MLX target-host pilot and full-run release evidence has
-been recorded. Version 0.2.0 remains unreleased.
+The dated Apple Silicon record under
+`docs/operations/evidence/2026-07-27-mlx-lm-acceptance/` proves two clean,
+independent MLX-LM workflows through `measured-run-pass`. The dated desktop
+record under `docs/operations/evidence/2026-07-27-desktop-release/` proves 10 of
+10 clean local engineering builds at implementation commit
+`1038ecdd13103418ef1135e1ced634c10370a961`. It does not bind a later source
+head. Pull-request CI rebuilds and packages GitHub's exact tested merge commit,
+then records that identity in `COMMIT`. No
+qualifying CUDA target-host pilot or full run has been recorded. The default Mac
+artifacts are ad-hoc signed, not a Developer ID signed and notarized public
+distribution. Version 0.2.0 remains unreleased.
 
 ## Related documentation
 

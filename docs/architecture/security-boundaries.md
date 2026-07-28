@@ -1,6 +1,6 @@
 # Security Boundaries
 
-> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Authenticated local service boundary
 
@@ -75,6 +75,17 @@ The selected runtime path is stored in `runtime-config.json` with mode 0600.
 The state loader rejects a symlink or non-regular configuration file. Protect
 the referenced environment from replacement by other users or processes.
 
+State roots, plans, project manifests, immutable revisions, current pointers,
+runtime configuration, job records, and quarantine receipts use mode-0700
+directories and mode-0600 JSON files on POSIX systems. Loaders reject symlinks.
+Corrupt and unsupported project or job state is moved aside with a private
+reason receipt. Quarantine is recoverable containment, not deletion.
+
+Diagnostic archives are privacy bounded. They include host and runtime facts,
+disk capacity, and state counts. They exclude logs, source data, model content,
+project names, environment values, and unredacted home paths. The output is
+no-clobber and mode 0600.
+
 ## Model-provider boundary
 
 Model inspection is a bounded metadata fetch from a declared repository and
@@ -139,8 +150,8 @@ benchmark quality, safety, or deployment fitness.
 
 V0.2 has no secure multi-user service, cloud credential broker, provider
 provisioner, MCP authorization policy, full-run resume contract, PyTorch MPS
-compiler, MLX-LM full-train authorization, or evaluation policy engine. Those
-are future designs, not hidden current features.
+compiler, or evaluation policy engine. MLX-LM train authorization exists only
+as a fresh, lease-held admission transaction. It is never durable project state.
 
 ## Related documentation
 

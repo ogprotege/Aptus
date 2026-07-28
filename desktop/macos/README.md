@@ -2,9 +2,9 @@
 
 Aptus for Mac is a native Apple Silicon application shell. AppKit owns the
 application lifecycle, private backend session, shutdown, native file dialogs,
-and Finder integration. SwiftUI owns the Home, Machine, Models, Data, Plans,
-and Runs experience. The authenticated React workbench remains available as a
-contained transitional surface instead of replacing the application window.
+and Finder integration. SwiftUI owns Home, Workbench, Machine, and Models. The
+authenticated React workbench is inline in Workbench and owns the single Facts,
+Compare, Compile, Validate, and Run workflow with project history.
 Python remains the source of truth for planning, compilation, validation, and
 job rules.
 
@@ -25,8 +25,16 @@ turn installed memory or a detected runtime into a model-fit guarantee.
 The Models view loads the authenticated runtime inventory without delaying the
 native window. Its `selected` mapping restores a persisted MLX-LM interpreter
 after relaunch. The native state distinguishes no selection, a measured
-available selection, a persisted but unavailable interpreter, an invalid
+exact-pin-compatible selection, a persisted but unavailable or incompatible interpreter, an invalid
 persisted path, and an inventory request that could not be verified.
+
+The same inventory drives a read-only MLX environment doctor. It shows every
+likely interpreter's path, discovery source, Python version, MLX-LM import
+result, and exact-pin compatibility result. Only compatible rows offer **Use
+this Python**. Selection still calls the backend's pinned runtime validator.
+When none pass, the view
+shows commands for an external environment with `mlx==0.31.2` and
+`mlx-lm==0.31.3`. It installs nothing.
 
 macOS 26 receives the current system glass treatment through guarded
 availability checks. macOS 15 uses a semantic material fallback. Both paths use
@@ -61,7 +69,10 @@ the authenticated bootstrap request succeeds.
 
 ```text
 desktop/macos/dist/Aptus.app
+desktop/macos/dist/Aptus.app.zip
 desktop/macos/dist/Aptus-macOS-arm64.dmg
+desktop/macos/dist/SHA256SUMS
+desktop/macos/dist/COMMIT
 ```
 
 The `Aptus desktop artifacts` GitHub Actions workflow performs this complete
@@ -86,6 +97,25 @@ signed distribution build. The same identity is passed into PyInstaller so its
 embedded extension binaries share the hardened-runtime signing identity. The
 default ad-hoc signature is suitable only for local development. Developer ID
 signing and notarization still require the corresponding local Apple credentials.
+
+Set `APTUS_REQUIRE_CLEAN_CHECKOUT=1` to reject a dirty release checkout. Set
+`APTUS_NOTARY_PROFILE` to a stored `notarytool` keychain profile to submit,
+staple, validate, and assess the app and DMG. Set
+`APTUS_REQUIRE_NOTARIZATION=1` to require both the Developer ID identity and
+profile. Without those values the artifacts remain ad-hoc signed review builds.
+
+After committing the exact release candidate, run the ten-build stability gate:
+
+```bash
+tools/repeat_desktop_release_gate.zsh
+```
+
+It refuses a dirty checkout. Each complete build runs with
+`APTUS_REQUIRE_CLEAN_CHECKOUT=1`, captures its log, verifies the app signature
+and DMG, and records the app ZIP and DMG hashes. A pass writes
+`RELEASE-GATE.tsv` and `release-gate-logs.zip` into `desktop/macos/dist/` and
+adds their hashes to `SHA256SUMS`. A positive argument changes the count for
+diagnosis. Only the default ten consecutive runs satisfy this release gate.
 
 The desktop build lock is intentionally separate from generated training-bundle
 dependencies. Its exact input pins live in `requirements-build.in`, while the
@@ -140,6 +170,14 @@ log can grow during the current session and is bounded on the next launch.
 Readiness files live under `~/Library/Caches/Aptus/sessions/` and are removed
 when the native host stops.
 
+Quit and restart complete only after typed process-tree shutdown success. The
+controller binds observations to PID plus process-start identity, expands late
+descendants, ignores zombies, and rejects PID reuse. If forced termination
+still leaves a survivor, it retains the process, paths, token, and session
+directory. It blocks a replacement backend and refuses application termination
+until a later explicit stop retry succeeds. The backend log records survivor
+state and signal attempts.
+
 The authenticated loopback API exposes three separate Apple integration
 contracts for native follow-on work:
 
@@ -151,8 +189,9 @@ GET /api/v1/inference/services
 
 `platform` contains Apple host facts. `runtimes` contains external MLX-LM,
 PyTorch MPS, and CUDA interpreter probes plus the persisted `selected` mapping.
-The native shell compares the selected MLX-LM path with the measured available
-set before describing it as configured. `inference/services` contains
+The native shell compares the selected MLX-LM path with the measured exact-pin
+compatible set before describing it as configured. Import availability alone is
+insufficient. `inference/services` contains
 inference-only LM Studio and oMLX probes. Native callers must keep these
 contracts separate and use the same exact-origin session boundary as WebKit.
 

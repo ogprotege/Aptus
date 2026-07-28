@@ -13,6 +13,8 @@ from urllib.request import (
     build_opener,
 )
 
+from . import __version__
+
 
 Transport = Callable[..., Any]
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
@@ -245,7 +247,7 @@ class LocalInferenceClient:
         url = f"{self.endpoint}{path}"
         headers = {
             "Accept": "application/json",
-            "User-Agent": "aptus/0.2.0",
+            "User-Agent": f"aptus/{__version__}",
         }
         body: bytes | None = None
         if payload is not None:

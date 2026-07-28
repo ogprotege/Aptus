@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Operators, API clients, automation authors, and compiler maintainers |
 | Authority | Normative v0.2 reference for declared defaults, planner priors, and emitted runtime settings |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when CLI, API, planning, catalog, or generation code changes |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when CLI, API, planning, catalog, or generation code changes |
 
 Aptus has three kinds of configuration value:
 
@@ -323,7 +323,7 @@ a separate bounded-generation process. Every resume argument remains rejected.
 ## Local runtime and inference defaults
 
 The desktop runtime configuration has no guessed training interpreter. A user
-selects an exact compatible Python, and Aptus persists its canonical path in the
+selects an exact compatible Python, and Aptus persists that absolute command path in the
 private state directory. LM Studio defaults to `http://127.0.0.1:1234` and oMLX
 defaults to `http://127.0.0.1:8000` when their integrations are requested.
 Origins must remain explicit loopback hosts with ports. Both services are

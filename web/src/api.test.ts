@@ -7,12 +7,52 @@ afterEach(() => {
 });
 
 describe("typed API client", () => {
+  it("accepts the supported API contract and rejects a future one before hydration", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            api_contract_version: "aptus.api.v1",
+            service: { name: "aptus", version: "0.2.0" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            api_contract_version: "aptus.api.v2",
+            service: { name: "aptus", version: "9.0.0" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ service: { name: "aptus", version: "0.2.0" } }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.bootstrap()).resolves.toMatchObject({
+      api_contract_version: "aptus.api.v1",
+    });
+    await expect(api.bootstrap()).rejects.toThrow(
+      /unsupported Aptus API contract.*aptus\.api\.v2.*requires aptus\.api\.v1/i,
+    );
+    await expect(api.bootstrap()).rejects.toThrow(
+      /missing or unsupported Aptus API contract.*requires aptus\.api\.v1/i,
+    );
+  });
+
   it("normalizes restored plan and job payloads during bootstrap", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
+            api_contract_version: "aptus.api.v1",
             plan: {
               plan_id: "plan_restored",
               hardware: { reserve_per_device_bytes: 0, devices: [] },
@@ -47,6 +87,7 @@ describe("typed API client", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
+            api_contract_version: "aptus.api.v1",
             capabilities: {
               method_catalog: [
                 {
@@ -78,7 +119,7 @@ describe("typed API client", () => {
     await expect(api.bootstrap()).rejects.toThrow(/violates its API contract/i);
   });
 
-  it("translates the UI fact draft into the strict v0.2 plan request", async () => {
+  it("translates the UI fact draft and retained project into the strict plan request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -94,12 +135,15 @@ describe("typed API client", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await api.plan(EXAMPLE_DRAFT);
+    const projectId = `project_${"a".repeat(32)}`;
+    await api.plan(EXAMPLE_DRAFT, projectId);
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(String(init.body));
     expect(url).toBe("/api/v1/plan");
     expect(body).not.toHaveProperty("facts");
+    expect(body.project_id).toBe(projectId);
+    expect(body.project_name).toBe(EXAMPLE_DRAFT.project_name);
     expect(body.model.model_id).toBe(EXAMPLE_DRAFT.model.model_id);
     expect(body.hardware.gpu_count).toBe(1);
     expect(body.hardware.discovery).toBe("manual");
@@ -109,6 +153,140 @@ describe("typed API client", () => {
     expect(body.target.task).toBe("sft");
     expect(body.target.evaluation_fraction).toBe(0.1);
     expect(body.dataset_path).toBe(EXAMPLE_DRAFT.dataset.source_path);
+  });
+
+  it("binds compile and validation mutations to the exact project revision", async () => {
+    const projectId = `project_${"a".repeat(32)}`;
+    const planRevisionId = `revision_${"b".repeat(32)}`;
+    const bundleRevisionId = `revision_${"c".repeat(32)}`;
+    const validationRevisionId = `revision_${"d".repeat(32)}`;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        bundle_dir: "/tmp/bundle",
+        archive_path: "/tmp/bundle.zip",
+        files: [],
+        runtime_contract: null,
+        report: { state: "static-pass" },
+        project_id: projectId,
+        project_revision_id: bundleRevisionId,
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        state: "static-pass",
+        project_id: projectId,
+        project_revision_id: validationRevisionId,
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+    const plan = {
+      schema_version: "aptus.training-plan.v2",
+      plan_id: "plan_exact",
+      project_id: projectId,
+      project_revision_id: planRevisionId,
+      recommended: null,
+      candidates: [],
+      warnings: [],
+      rationale: [],
+    };
+
+    const bundle = await api.compileBundle(plan, "/tmp/bundle");
+    await api.validate(
+      bundle.bundle_dir,
+      "static",
+      false,
+      bundle.project_id,
+      bundle.project_revision_id,
+    );
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      plan_id: "plan_exact",
+      project_id: projectId,
+      expected_project_revision_id: planRevisionId,
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toMatchObject({
+      bundle_dir: "/tmp/bundle",
+      project_id: projectId,
+      expected_project_revision_id: bundleRevisionId,
+    });
+  });
+
+  it("refuses compilation when a plan has no project revision identity", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.compileBundle({
+      schema_version: "aptus.training-plan.v2",
+      plan_id: "plan_unbound",
+      recommended: null,
+      candidates: [],
+      warnings: [],
+      rationale: [],
+    }, "/tmp/bundle")).rejects.toThrow(/exact project and project revision/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses typed project history, revision detail, and recovery endpoints", async () => {
+    const projectId = `project_${"b".repeat(32)}`;
+    const revisionId = `revision_${"c".repeat(32)}`;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        schema_version: "aptus.project-revision.v1",
+        project_id: projectId,
+        revision_id: revisionId,
+        ordinal: 1,
+        created_at: "2026-07-27T12:00:00Z",
+        reason: "plan-created",
+        job_ids: [],
+        training_authorization: { current: false, reason: "Never durable." },
+        content_sha256: "d".repeat(64),
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        status: "recovered",
+        project_id: projectId,
+        revision: {
+          schema_version: "aptus.project-revision.v1",
+          project_id: projectId,
+          revision_id: `revision_${"e".repeat(32)}`,
+          ordinal: 2,
+          created_at: "2026-07-27T12:01:00Z",
+          reason: `recovered-from:${revisionId}`,
+          job_ids: [],
+          training_authorization: { current: false, reason: "Never durable." },
+          content_sha256: "f".repeat(64),
+        },
+        training_authorization_current: false,
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.projectHistory(projectId);
+    const revision = await api.projectRevision(projectId, revisionId);
+    const recovery = await api.recoverProjectRevision(projectId, revisionId);
+
+    expect(revision.training_authorization.current).toBe(false);
+    expect(recovery.training_authorization_current).toBe(false);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`/api/v1/projects/${projectId}/revisions`);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(`/api/v1/projects/${projectId}/revisions/${revisionId}`);
+    expect(fetchMock.mock.calls[2]).toEqual([
+      `/api/v1/projects/${projectId}/recover`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ revision_id: revisionId }),
+      }),
+    ]);
   });
 
   it("normalizes the persisted job record without replacing the log tail with its path", async () => {
@@ -132,6 +310,8 @@ describe("typed API client", () => {
     );
     const job = await api.createJob({
       bundle_dir: "/tmp/bundle",
+      project_id: `project_${"a".repeat(32)}`,
+      expected_project_revision_id: `revision_${"b".repeat(32)}`,
       action: "pilot",
       confirm_full_train: false,
     });
@@ -142,6 +322,11 @@ describe("typed API client", () => {
     expect(job.created_at).toBe("2026-07-21T12:00:00Z");
     expect(job.started_at).toBe("2026-07-21T12:00:01Z");
     expect(job.finished_at).toBe("2026-07-21T12:00:02Z");
+    const fetchMock = vi.mocked(fetch);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      project_id: `project_${"a".repeat(32)}`,
+      expected_project_revision_id: `revision_${"b".repeat(32)}`,
+    });
   });
 
   it("requests provider model facts without sending user permission or parameter claims", async () => {

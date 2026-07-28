@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -9,19 +9,31 @@ evidence state, and blocked actions visible.
 ## Native Mac shell
 
 AppKit owns application lifecycle and the main window. SwiftUI owns the Home,
-Machine, Models, Data, Plans, and Runs destinations. The shell uses system
+Workbench, Machine, and Models destinations. The shell uses system
 typography and adaptive colors, with macOS 26 as the primary visual design and
 macOS 15 as the deployment fallback.
 
 The Machine destination reports measured Apple facts without promising model
 fit. The Models destination keeps training runtimes separate from inference
 services. Its `Choose MLX Python` action validates one exact executable through
-the authenticated local API and displays the persisted canonical path.
+the authenticated local API and displays the persisted absolute command path.
 
-The complete React workbench appears in a contained, authenticated WebKit
-sheet. It is transitional, not the application window or the native product
-architecture. Its complete bridge provides dataset selection, output selection,
-Finder reveal, and readiness reporting. Partial bridges are ignored.
+The complete React workbench appears inline inside the Workbench destination.
+It owns one Facts, Compare, Compile, Validate, and Run workflow. Its complete
+bridge provides dataset selection, output selection, Finder reveal, and
+readiness reporting. Partial bridges are ignored.
+
+Project history is part of this workflow. It lists immutable revisions, loads
+revision detail on demand, and recovers an older state only by creating a new
+revision. The interface must state that recovery does not restore training
+authorization and must require fresh validation and confirmation.
+
+The Models destination includes a read-only MLX environment doctor. Each likely
+interpreter shows path, discovery source, Python version, import-probe status,
+and exact-pin compatibility. Only a compatible row can invoke **Use this
+Python**, and the backend rechecks the contract before persistence. When
+none pass, the interface shows the exact external virtual-environment recipe.
+No doctor action installs or changes packages.
 
 ## Five stages
 
@@ -37,7 +49,7 @@ The run stage contains five distinct actions:
 1. Install and verify dependencies.
 2. Resolve model and validate every canonical data row.
 3. Run the runtime-specific measured preflight.
-4. Run the two-phase real-model and data pilot.
+4. Run the runtime-specific real-model and data pilot.
 5. Confirm and start full training.
 
 The UI must not present these as one unreviewed automatic action.

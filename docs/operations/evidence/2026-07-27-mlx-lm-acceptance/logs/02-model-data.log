@@ -1,0 +1,3 @@
+MLX-LM dependencies and Apple silicon platform are present.
+Pilot and full runs are uninterrupted from scratch; crash-resume remains unsupported.
+Aptus MLX-LM model-data validation passed.

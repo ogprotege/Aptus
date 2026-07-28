@@ -1,0 +1,168 @@
+diff --git a/src/aptus/runtime_env.py b/src/aptus/runtime_env.py
+index 52fccc4..f8819be 100644
+--- a/src/aptus/runtime_env.py
++++ b/src/aptus/runtime_env.py
+@@ -171,19 +171,24 @@ def _candidate_interpreters(
+     result: list[tuple[Path, str]] = []
+     seen: set[Path] = set()
+     for raw, source in candidates:
+-        path = Path(raw).expanduser()
++        path = Path(os.path.abspath(Path(raw).expanduser()))
+         try:
+-            resolved = path.resolve(strict=True)
++            exists = path.exists()
+         except OSError:
+             continue
+         if (
+-            resolved in seen
+-            or not resolved.is_file()
+-            or not os.access(resolved, os.X_OK)
++            not exists
++            or path in seen
++            or not path.is_file()
++            or not os.access(path, os.X_OK)
+         ):
+             continue
+-        seen.add(resolved)
+-        result.append((resolved, source))
++        # Keep the selected command path. A virtual environment commonly exposes
++        # ``bin/python`` as a symlink to its base interpreter. Resolving that
++        # symlink discards the virtual environment's package context when the
++        # recorded path is launched later.
++        seen.add(path)
++        result.append((path, source))
+     return tuple(result)
+ 
+ 
+@@ -193,12 +198,16 @@ def probe_runtime_interpreter(
+     source: str,
+     timeout: float = 8.0,
+ ) -> RuntimeInterpreter:
+-    resolved = path.expanduser().resolve(strict=True)
+-    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+-        raise ValueError(f"Runtime interpreter is not executable: {resolved}")
++    selected = Path(os.path.abspath(path.expanduser()))
++    if (
++        not selected.exists()
++        or not selected.is_file()
++        or not os.access(selected, os.X_OK)
++    ):
++        raise ValueError(f"Runtime interpreter is not executable: {selected}")
+     try:
+         completed = subprocess.run(
+-            [str(resolved), "-c", _PROBE_PROGRAM],
++            [str(selected), "-c", _PROBE_PROGRAM],
+             check=False,
+             capture_output=True,
+             text=True,
+@@ -207,7 +216,7 @@ def probe_runtime_interpreter(
+         )
+     except (OSError, subprocess.TimeoutExpired) as error:
+         return RuntimeInterpreter(
+-            path=str(resolved),
++            path=str(selected),
+             source=source,
+             python_version=None,
+             runtimes={},
+@@ -216,7 +225,7 @@ def probe_runtime_interpreter(
+     if completed.returncode != 0:
+         detail = completed.stderr.strip() or completed.stdout.strip() or "unknown error"
+         return RuntimeInterpreter(
+-            path=str(resolved),
++            path=str(selected),
+             source=source,
+             python_version=None,
+             runtimes={},
+@@ -226,7 +235,7 @@ def probe_runtime_interpreter(
+         payload = json.loads(completed.stdout)
+     except json.JSONDecodeError:
+         return RuntimeInterpreter(
+-            path=str(resolved),
++            path=str(selected),
+             source=source,
+             python_version=None,
+             runtimes={},
+@@ -235,7 +244,7 @@ def probe_runtime_interpreter(
+     runtimes = payload.get("runtimes") if isinstance(payload, dict) else None
+     if not isinstance(runtimes, dict):
+         return RuntimeInterpreter(
+-            path=str(resolved),
++            path=str(selected),
+             source=source,
+             python_version=None,
+             runtimes={},
+@@ -247,7 +256,7 @@ def probe_runtime_interpreter(
+         if runtime_id in TRAINING_RUNTIMES and isinstance(details, dict)
+     }
+     return RuntimeInterpreter(
+-        path=str(resolved),
++        path=str(selected),
+         source=source,
+         python_version=(
+             payload.get("python_version")
+@@ -289,7 +298,9 @@ def resolve_runtime_interpreter(
+     configured = active_environment.get(key, "").strip()
+     if configured:
+         try:
+-            configured_path = Path(configured).expanduser().resolve(strict=True)
++            configured_path = Path(os.path.abspath(Path(configured).expanduser()))
++            if not configured_path.exists():
++                raise FileNotFoundError(configured_path)
+         except OSError as error:
+             raise RuntimeError(
+                 f"{key} does not resolve to an interpreter: {error}"
+diff --git a/tests/aptus/test_runtime_env.py b/tests/aptus/test_runtime_env.py
+index 4f75403..16bd475 100644
+--- a/tests/aptus/test_runtime_env.py
++++ b/tests/aptus/test_runtime_env.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import json
++import os
+ import subprocess
+ import tempfile
+ import unittest
+@@ -17,6 +18,33 @@ from aptus.runtime_env import (
+ 
+ 
+ class RuntimeEnvironmentTests(unittest.TestCase):
++    @unittest.skipIf(
++        os.name == "nt", "POSIX virtual environments use symlinked interpreters."
++    )
++    def test_probe_preserves_virtual_environment_interpreter_symlink(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary:
++            environment = Path(temporary) / "runtime-env"
++            (environment / "bin").mkdir(parents=True)
++            base_interpreter = Path(temporary) / "base-python"
++            base_interpreter.write_text("", encoding="utf-8")
++            base_interpreter.chmod(0o700)
++            interpreter = environment / "bin" / "python"
++            interpreter.symlink_to(base_interpreter)
++
++            completed = subprocess.CompletedProcess(
++                args=[],
++                returncode=0,
++                stdout=json.dumps({"python_version": "3.12.9", "runtimes": {}}),
++                stderr="",
++            )
++            with patch(
++                "aptus.runtime_env.subprocess.run", return_value=completed
++            ) as runner:
++                result = probe_runtime_interpreter(interpreter, source="test", timeout=1)
++
++        self.assertEqual(result.path, str(interpreter))
++        self.assertEqual(runner.call_args.args[0][0], str(interpreter))
++
+     def test_probe_normalizes_the_supported_runtime_contract(self) -> None:
+         with tempfile.TemporaryDirectory() as temporary:
+             interpreter = Path(temporary) / "python"
+@@ -47,7 +75,7 @@ class RuntimeEnvironmentTests(unittest.TestCase):
+             path.write_text("", encoding="utf-8")
+             path.chmod(0o700)
+             probe = RuntimeInterpreter(
+-                path=str(path.resolve()),
++                path=str(Path(os.path.abspath(path))),
+                 source="environment:APTUS_MLX_PYTHON:mlx-lm",
+                 python_version="3.12.9",
+                 runtimes={"mlx-lm": {"available": False, "reason": "missing"}},

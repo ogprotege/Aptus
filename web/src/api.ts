@@ -14,12 +14,76 @@ import type {
   MethodDescriptor,
   ModelInspectionResponse,
   PlanRequest,
+  ProjectDetail,
+  ProjectRecoveryResponse,
+  ProjectRevision,
+  ProjectRevisionSummary,
+  ProjectSummary,
   ProfileRequest,
   ProfileResponse,
   TrainingPlan,
   ValidateRequest,
   ValidationReport,
 } from "./types";
+import type { components, paths } from "./generated/openapi";
+
+export type OpenApiBootstrapResponse = components["schemas"]["BootstrapResponse"];
+export type OpenApiCompileResponse = components["schemas"]["CompileResponse"];
+export type OpenApiHardwareProbeResponse = components["schemas"]["HardwareProbeResponse"];
+export type OpenApiInferenceGenerateResponse = components["schemas"]["InferenceGenerateResponse"];
+export type OpenApiInferenceModelsResponse = components["schemas"]["InferenceModelsResponse"];
+export type OpenApiInferenceServicesResponse = components["schemas"]["InferenceServicesResponse"];
+export type OpenApiJobResponse = components["schemas"]["JobResponse"];
+export type OpenApiModelInspectionResponse = components["schemas"]["ModelInspectionResponse"];
+export type OpenApiPlatformResponse = components["schemas"]["PlatformResponse"];
+export type OpenApiProfileResponse = components["schemas"]["ProfileResponse"];
+export type OpenApiProjectResponse = components["schemas"]["ProjectResponse"];
+export type OpenApiProjectRecoveryResponse = components["schemas"]["ProjectRecoveryResponse"];
+export type OpenApiProjectRevisionResponse = components["schemas"]["ProjectRevisionResponse"];
+export type OpenApiProjectRevisionSummary = components["schemas"]["ProjectRevisionSummary"];
+export type OpenApiProjectSummaryResponse = components["schemas"]["ProjectSummaryResponse"];
+export type OpenApiRuntimeInventoryResponse = components["schemas"]["RuntimeInventoryResponse"];
+export type OpenApiTrainingPlanResponse = components["schemas"]["TrainingPlanResponse"];
+export type OpenApiValidationResponse = components["schemas"]["ValidationResponse"];
+
+type OpenApiPath = keyof paths;
+
+export const API_PATHS = {
+  bootstrap: "/api/v1/bootstrap",
+  compile: "/api/v1/compile",
+  hardware: "/api/v1/hardware",
+  inferenceGenerate: "/api/v1/inference/generate",
+  inferenceModels: "/api/v1/inference/models",
+  inferenceServices: "/api/v1/inference/services",
+  job: "/api/v1/jobs/{job_id}",
+  jobCancel: "/api/v1/jobs/{job_id}/cancel",
+  jobs: "/api/v1/jobs",
+  modelInspect: "/api/v1/models/inspect",
+  plan: "/api/v1/plan",
+  platform: "/api/v1/platform",
+  profile: "/api/v1/profile",
+  project: "/api/v1/projects/{project_id}",
+  projectRecover: "/api/v1/projects/{project_id}/recover",
+  projectRevision: "/api/v1/projects/{project_id}/revisions/{revision_id}",
+  projectRevisions: "/api/v1/projects/{project_id}/revisions",
+  projects: "/api/v1/projects",
+  runtimes: "/api/v1/runtimes",
+  validate: "/api/v1/validate",
+} as const satisfies Record<string, OpenApiPath>;
+
+function bindApiPath(
+  template: OpenApiPath,
+  parameters: Record<string, string>,
+): string {
+  let result: string = template;
+  for (const [name, value] of Object.entries(parameters)) {
+    result = result.replace(`{${name}}`, encodeURIComponent(value));
+  }
+  if (result.includes("{")) {
+    throw new Error(`Aptus API path ${template} is missing a path parameter.`);
+  }
+  return result;
+}
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const METHOD_LIFECYCLES = new Set([
@@ -94,10 +158,12 @@ function requiredNumber(value: number | null, label: string): number {
   return value;
 }
 
-function planRequest(facts: FactDraft): PlanRequest {
+function planRequest(facts: FactDraft, projectId?: string | null): PlanRequest {
   const device = facts.hardware.devices[0];
   if (!device) throw new Error("At least one hardware device is required before planning.");
   return {
+    ...(projectId ? { project_id: projectId } : {}),
+    project_name: facts.project_name.trim() || "Untitled project",
     model: {
       model_id: facts.model.model_id,
       revision: facts.model.revision,
@@ -329,6 +395,18 @@ export class ApiError extends Error {
   }
 }
 
+export const SUPPORTED_API_CONTRACT_VERSION = "aptus.api.v1" as const;
+
+function assertSupportedApiContract(payload: Record<string, unknown>): void {
+  const contractVersion = payload.api_contract_version;
+  if (contractVersion !== SUPPORTED_API_CONTRACT_VERSION) {
+    throw new Error(
+      `Missing or unsupported Aptus API contract ${JSON.stringify(contractVersion)}. ` +
+      `This workbench requires ${SUPPORTED_API_CONTRACT_VERSION}.`,
+    );
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
@@ -369,7 +447,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   async bootstrap(signal?: AbortSignal) {
-    const payload = await request<Record<string, unknown>>("/api/v1/bootstrap", { signal });
+    const response = await request<OpenApiBootstrapResponse>(API_PATHS.bootstrap, { signal });
+    const payload = response as unknown as Record<string, unknown>;
+    assertSupportedApiContract(payload);
     const capabilities = isRecord(payload.capabilities)
       ? { ...payload.capabilities }
       : undefined;
@@ -393,6 +473,16 @@ export const api = {
           ? payload.bundle as CompileResponse
           : null,
       job,
+      projects: Array.isArray(payload.projects)
+        ? payload.projects as ProjectSummary[]
+        : [],
+      project:
+        typeof payload.project === "object" && payload.project !== null
+          ? payload.project as ProjectDetail
+          : null,
+      project_history: Array.isArray(payload.project_history)
+        ? payload.project_history as ProjectRevisionSummary[]
+        : [],
     } as BootstrapResponse;
   },
 
@@ -402,28 +492,28 @@ export const api = {
       ...(facts.dataset.sample_limit ? { sample_limit: facts.dataset.sample_limit } : {}),
       ...(facts.target.sequence_length ? { sequence_length: facts.target.sequence_length } : {}),
     };
-    const payload = await request<Record<string, unknown>>("/api/v1/profile", {
+    const response = await request<OpenApiProfileResponse>(API_PATHS.profile, {
       method: "POST",
       body: JSON.stringify(body),
     });
-    return normalizeProfile(payload);
+    return normalizeProfile(response as unknown as Record<string, unknown>);
   },
 
   inspectModel(modelId: string, revision: string) {
-    return request<ModelInspectionResponse>("/api/v1/models/inspect", {
+    return request<OpenApiModelInspectionResponse>(API_PATHS.modelInspect, {
       method: "POST",
       body: JSON.stringify({ model_id: modelId, revision }),
-    });
+    }) as Promise<ModelInspectionResponse>;
   },
 
-  async plan(facts: FactDraft) {
-    const body = planRequest(facts);
+  async plan(facts: FactDraft, projectId?: string | null) {
+    const body = planRequest(facts, projectId);
     try {
-      const payload = await request<Record<string, unknown>>("/api/v1/plan", {
+      const response = await request<OpenApiTrainingPlanResponse>(API_PATHS.plan, {
         method: "POST",
         body: JSON.stringify(body),
       });
-      return normalizePlan(payload);
+      return normalizePlan(response as unknown as Record<string, unknown>);
     } catch (error) {
       const detail = error instanceof ApiError && typeof error.detail === "object" && error.detail !== null
         ? error.detail as Record<string, unknown>
@@ -450,16 +540,24 @@ export const api = {
 
   async compileBundle(plan: TrainingPlan, outputDir: string) {
     if (!plan.plan_id) throw new Error("The plan id is required before compilation.");
-    const body: CompileRequest = { plan_id: plan.plan_id, output_dir: outputDir };
-    const payload = await request<CompileResponse | ValidationReport>("/api/v1/compile", {
+    if (!plan.project_id || !plan.project_revision_id) {
+      throw new Error(
+        "Compilation requires the plan's exact project and project revision identity.",
+      );
+    }
+    const body: CompileRequest = {
+      plan_id: plan.plan_id,
+      output_dir: outputDir,
+      project_id: plan.project_id,
+      expected_project_revision_id: plan.project_revision_id,
+    };
+    const payload = await request<OpenApiCompileResponse>(API_PATHS.compile, {
       method: "POST",
       body: JSON.stringify(body),
     });
-    if ("bundle_dir" in payload) return payload as CompileResponse;
-    return {
-      bundle_dir: outputDir,
-      files: payload.checked_files ?? [],
-      report: payload,
+    return payload as unknown as CompileResponse & {
+      project_id: string;
+      project_revision_id: string;
     };
   },
 
@@ -467,40 +565,86 @@ export const api = {
     bundleDir: string,
     level: ValidateRequest["level"],
     run: boolean,
+    projectId: string,
+    expectedProjectRevisionId: string,
   ) {
-    const body: ValidateRequest = { bundle_dir: bundleDir, level, run };
-    return request<ValidationReport>("/api/v1/validate", {
+    const body: ValidateRequest = {
+      bundle_dir: bundleDir,
+      project_id: projectId,
+      expected_project_revision_id: expectedProjectRevisionId,
+      level,
+      run,
+    };
+    return request<OpenApiValidationResponse>(API_PATHS.validate, {
       method: "POST",
       body: JSON.stringify(body),
-    });
+    }) as Promise<ValidationReport & {
+      project_id: string;
+      project_revision_id: string;
+    }>;
   },
 
   async createJob(body: JobRequest) {
-    const payload = await request<Record<string, unknown>>("/api/v1/jobs", {
+    const payload = await request<OpenApiJobResponse>(API_PATHS.jobs, {
       method: "POST",
       body: JSON.stringify(body),
     });
-    return normalizeJob(payload);
+    return normalizeJob(payload as unknown as Record<string, unknown>);
   },
 
   async getJob(id: string, signal?: AbortSignal) {
-    const payload = await request<Record<string, unknown>>(
-      `/api/v1/jobs/${encodeURIComponent(id)}`,
+    const payload = await request<OpenApiJobResponse>(
+      bindApiPath(API_PATHS.job, { job_id: id }),
       { signal },
     );
-    return normalizeJob(payload);
+    return normalizeJob(payload as unknown as Record<string, unknown>);
   },
 
   async cancelJob(id: string) {
-    const payload = await request<Record<string, unknown>>(
-      `/api/v1/jobs/${encodeURIComponent(id)}/cancel`,
+    const payload = await request<OpenApiJobResponse>(
+      bindApiPath(API_PATHS.jobCancel, { job_id: id }),
       { method: "POST" },
     );
-    return normalizeJob(payload);
+    return normalizeJob(payload as unknown as Record<string, unknown>);
+  },
+
+  listProjects() {
+    return request<OpenApiProjectSummaryResponse[]>(API_PATHS.projects) as Promise<ProjectSummary[]>;
+  },
+
+  getProject(projectId: string) {
+    return request<OpenApiProjectResponse>(
+      bindApiPath(API_PATHS.project, { project_id: projectId }),
+    ) as Promise<ProjectDetail>;
+  },
+
+  projectHistory(projectId: string) {
+    return request<OpenApiProjectRevisionSummary[]>(
+      bindApiPath(API_PATHS.projectRevisions, { project_id: projectId }),
+    ) as Promise<ProjectRevisionSummary[]>;
+  },
+
+  projectRevision(projectId: string, revisionId: string) {
+    return request<OpenApiProjectRevisionResponse>(
+      bindApiPath(API_PATHS.projectRevision, {
+        project_id: projectId,
+        revision_id: revisionId,
+      }),
+    ) as unknown as Promise<ProjectRevision>;
+  },
+
+  recoverProjectRevision(projectId: string, revisionId: string) {
+    return request<OpenApiProjectRecoveryResponse>(
+      bindApiPath(API_PATHS.projectRecover, { project_id: projectId }),
+      {
+        method: "POST",
+        body: JSON.stringify({ revision_id: revisionId }),
+      },
+    ) as unknown as Promise<ProjectRecoveryResponse>;
   },
 
   async hardware() {
-    const envelope = await request<HardwareProbeResponse>("/api/v1/hardware");
+    const envelope = await request<OpenApiHardwareProbeResponse>(API_PATHS.hardware);
     if (envelope.status === "unavailable" || !envelope.hardware) {
       throw new Error(envelope.error ?? "Hardware inspection is unavailable on this Aptus host.");
     }
@@ -508,26 +652,26 @@ export const api = {
   },
 
   platform() {
-    return request<ApplePlatformResponse>("/api/v1/platform");
+    return request<OpenApiPlatformResponse>(API_PATHS.platform) as Promise<ApplePlatformResponse>;
   },
 
   runtimes() {
-    return request<RuntimeInventory>("/api/v1/runtimes");
+    return request<OpenApiRuntimeInventoryResponse>(API_PATHS.runtimes) as Promise<RuntimeInventory>;
   },
 
   inferenceServices() {
-    return request<Record<string, unknown>>("/api/v1/inference/services");
+    return request<OpenApiInferenceServicesResponse>(API_PATHS.inferenceServices);
   },
 
   inferenceModels(body: InferenceServiceRequest) {
-    return request<Record<string, unknown>>("/api/v1/inference/models", {
+    return request<OpenApiInferenceModelsResponse>(API_PATHS.inferenceModels, {
       method: "POST",
       body: JSON.stringify(body),
     });
   },
 
   inferenceGenerate(body: InferenceGenerateRequest) {
-    return request<Record<string, unknown>>("/api/v1/inference/generate", {
+    return request<OpenApiInferenceGenerateResponse>(API_PATHS.inferenceGenerate, {
       method: "POST",
       body: JSON.stringify(body),
     });

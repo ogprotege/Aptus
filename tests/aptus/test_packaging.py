@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+import tomllib
+import unittest
+from pathlib import Path
+
+
+REPOSITORY = Path(__file__).resolve().parents[2]
+
+
+class BundleProgramPackagingTests(unittest.TestCase):
+    def test_wheel_declares_every_bundle_program_resource_directory(self) -> None:
+        project = tomllib.loads(
+            (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
+        )
+        package_data = set(project["tool"]["setuptools"]["package-data"]["aptus"])
+        self.assertTrue(
+            {
+                "_bundle_programs/cuda/*.py",
+                "_bundle_programs/mlx/*.py",
+            }
+            <= package_data
+        )
+
+    def test_frozen_sidecar_collects_bundle_programs_as_data(self) -> None:
+        specification = (
+            REPOSITORY / "desktop" / "macos" / "AptusBackend.spec"
+        ).read_text(encoding="utf-8")
+        self.assertIn('APTUS_SOURCE / "aptus" / "_bundle_programs"', specification)
+        self.assertIn('bundle_program_root.rglob("*.py")', specification)
+        self.assertIn('"aptus/_bundle_programs/"', specification)
+        self.assertIn('("plan_contract.py", "runtime_lease.py")', specification)
+
+    def test_release_build_rechecks_clean_checkout_before_publishing(self) -> None:
+        script = (REPOSITORY / "desktop" / "macos" / "build.sh").read_text(
+            encoding="utf-8"
+        )
+        first_check = script.index("Aptus release evidence requires a clean checkout")
+        final_check = script.index("Aptus release gates changed tracked files")
+        checksum_publication = script.index('shasum -a 256 "Aptus.app.zip"')
+        self.assertLess(first_check, final_check)
+        self.assertLess(final_check, checksum_publication)
+        self.assertGreaterEqual(script.count('REQUIRE_CLEAN_CHECKOUT" == "1'), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

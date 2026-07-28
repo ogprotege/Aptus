@@ -6,6 +6,7 @@ import {
   getDesktopBridge,
 } from "./desktopBridge";
 import { FitLedger } from "./components/FitLedger";
+import { ProjectHistory } from "./components/ProjectHistory";
 import { summarizeHardwareProbe } from "./lib/hardware";
 import { applyProviderModelInspection } from "./lib/modelInspection";
 import {
@@ -36,6 +37,9 @@ import type {
   Job,
   MethodDescriptor,
   ModelInspectionResponse,
+  ProjectDetail,
+  ProjectRevisionSummary,
+  ProjectSummary,
   TrainingPlan,
   ValidationReport,
   ValidateRequest,
@@ -67,7 +71,11 @@ function numberValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function restoredDraft(plan: TrainingPlan, bundle: CompileResponse): FactDraft {
+function restoredDraft(
+  plan: TrainingPlan,
+  bundle: CompileResponse | null,
+  projectName?: string,
+): FactDraft {
   const model = plan.model ?? {};
   const dataset = plan.dataset ?? {};
   const hardware = plan.hardware ?? {};
@@ -82,7 +90,7 @@ function restoredDraft(plan: TrainingPlan, bundle: CompileResponse): FactDraft {
     return numeric === null ? null : numeric / 1024 ** 3;
   };
   const source = typeof dataset.source_path === "string" ? dataset.source_path : "";
-  const sourcePath = source && !source.startsWith("/")
+  const sourcePath = source && !source.startsWith("/") && bundle
     ? `${bundle.bundle_dir.replace(/\/$/, "")}/${source}`
     : source;
   const finiteMinimum = (values: Array<number | null>) => {
@@ -107,7 +115,8 @@ function restoredDraft(plan: TrainingPlan, bundle: CompileResponse): FactDraft {
       }
     : null;
   return {
-    project_name: typeof plan.plan_id === "string" ? plan.plan_id : "Restored plan",
+    project_name: projectName
+      ?? (typeof plan.plan_id === "string" ? plan.plan_id : "Restored plan"),
     model: {
       model_id: String(model.model_id ?? ""),
       revision: String(model.revision ?? ""),
@@ -230,6 +239,7 @@ function outputSlug(value: string): string {
 }
 
 export default function App() {
+  const embeddedInDesktop = getDesktopBridge() !== null;
   const [stage, setStage] = useState<WorkflowStage>("facts");
   const [draft, setDraft] = useState<FactDraft>(freshDraft);
   const [profile, setProfile] = useState<InputProfile | null>(null);
@@ -250,6 +260,9 @@ export default function App() {
   const [methodCatalog, setMethodCatalog] = useState<MethodDescriptor[]>([]);
   const [outputDir, setOutputDir] = useState("");
   const [validationLevel, setValidationLevel] = useState<ValidateRequest["level"]>("static");
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [currentProject, setCurrentProject] = useState<ProjectDetail | null>(null);
+  const [projectHistory, setProjectHistory] = useState<ProjectRevisionSummary[]>([]);
   const bundleRef = useRef<CompileResponse | null>(null);
   const draftVersionRef = useRef(0);
   const workbenchReadyReportedRef = useRef(false);
@@ -266,19 +279,26 @@ export default function App() {
       && nextJob.bundle_dir
       && currentBundle.bundle_dir === nextJob.bundle_dir,
     );
-    if (nextJob.validation_report && reportMatchesBundle) {
-      setReport(nextJob.validation_report);
-      setBundle((current) =>
-        current ? { ...current, report: nextJob.validation_report } : current,
-      );
+    if (!currentBundle || !reportMatchesBundle) return;
+    let nextBundle = currentBundle;
+    if (nextJob.project_id && nextJob.project_revision_id) {
+      nextBundle = {
+        ...nextBundle,
+        project_id: nextJob.project_id,
+        project_revision_id: nextJob.project_revision_id,
+      };
     }
-    if (nextJob.validation_report_error && reportMatchesBundle) {
+    if (nextJob.validation_report) {
+      setReport(nextJob.validation_report);
+      nextBundle = { ...nextBundle, report: nextJob.validation_report };
+    }
+    if (nextJob.validation_report_error) {
       setReport(null);
-      setBundle((current) =>
-        current ? { ...current, report: undefined } : current,
-      );
+      nextBundle = { ...nextBundle, report: undefined };
       setError(nextJob.validation_report_error);
     }
+    bundleRef.current = nextBundle;
+    setBundle(nextBundle);
   };
 
   useEffect(() => {
@@ -291,6 +311,9 @@ export default function App() {
         if (Array.isArray(bootstrap.capabilities?.method_catalog)) {
           setMethodCatalog(bootstrap.capabilities.method_catalog);
         }
+        setProjects(bootstrap.projects ?? []);
+        setCurrentProject(bootstrap.project ?? null);
+        setProjectHistory(bootstrap.project_history ?? []);
         const restoreWorkspace = draftVersionRef.current === bootstrapDraftVersion;
         if (bootstrap.defaults && restoreWorkspace) {
           const defaults = bootstrap.defaults;
@@ -327,11 +350,19 @@ export default function App() {
           setBundle(bootstrap.bundle);
           setReport(bootstrap.bundle.report ?? null);
         }
-        if (bootstrap.plan && bootstrap.bundle && restoreWorkspace) {
-          setDraft(restoredDraft(bootstrap.plan, bootstrap.bundle));
+        if (bootstrap.plan && restoreWorkspace) {
+          setDraft(restoredDraft(
+            bootstrap.plan,
+            bootstrap.bundle ?? null,
+            bootstrap.project?.name,
+          ));
           setProfile(restoredProfile(bootstrap.plan));
           setHardwareScanned(restoredHardwareWasMeasured(bootstrap.plan));
-          setNotice("Restored the latest validated local artifact and its bound facts.");
+          setNotice(
+            bootstrap.bundle
+              ? "Restored the latest validated local artifact and its bound facts."
+              : "Restored the latest local project revision. Training authorization was not restored.",
+          );
         }
         if (bootstrap.job) {
           applyJobUpdate(bootstrap.job);
@@ -410,6 +441,14 @@ export default function App() {
   const currentStageLabel = WORKFLOW_STAGES.find((item) => item.id === stage)?.label ?? "Facts";
   const activeJob = isActiveJob(job);
 
+  const selectStage = (nextStage: WorkflowStage) => {
+    if (nextStage === stage) {
+      document.querySelector<HTMLElement>("#stage-heading")?.focus();
+      return;
+    }
+    setStage(nextStage);
+  };
+
   const blockMutationDuringRun = (action: string): boolean => {
     if (!activeJob) return false;
     setError(`Job ${job.id} is ${job.phase ?? job.state}. ${action} is blocked until the local GPU job reaches a terminal state.`);
@@ -444,6 +483,17 @@ export default function App() {
   };
 
   const finishAction = () => setBusy(null);
+
+  const refreshProjectSurface = async (projectId: string) => {
+    const [nextProjects, nextProject, nextHistory] = await Promise.all([
+      api.listProjects(),
+      api.getProject(projectId),
+      api.projectHistory(projectId),
+    ]);
+    setProjects(nextProjects);
+    setCurrentProject(nextProject);
+    setProjectHistory(nextHistory);
+  };
 
   const handleProfile = async () => {
     if (demoMode) {
@@ -528,7 +578,10 @@ export default function App() {
     beginAction("plan");
     const requestDraftVersion = draftVersionRef.current;
     try {
-      const nextPlan = await api.plan(draft);
+      const nextPlan = await api.plan(
+        draft,
+        currentProject?.project_id ?? plan?.project_id ?? null,
+      );
       if (draftVersionRef.current !== requestDraftVersion) {
         setNotice("Facts changed while planning. Aptus discarded the older response; compare the current facts again.");
         return;
@@ -543,6 +596,13 @@ export default function App() {
       setNotice("Feasibility comparison complete.");
       setOutputDir((current) => current || `./aptus-output/${outputSlug(draft.project_name)}`);
       setStage("compare");
+      if (nextPlan.project_id) {
+        try {
+          await refreshProjectSurface(nextPlan.project_id);
+        } catch {
+          setNotice("Feasibility comparison complete. Project history will refresh the next time Aptus opens.");
+        }
+      }
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -562,12 +622,17 @@ export default function App() {
     try {
       if (!outputDir.trim()) throw new Error("Choose a bundle output directory before compilation.");
       const nextBundle = await api.compileBundle(plan, outputDir.trim());
+      bundleRef.current = nextBundle;
       setBundle(nextBundle);
       setReport(nextBundle.report ?? null);
       setJob(null);
       setDemoMode(false);
       setConnection("connected");
       setNotice(`Bundle compiled with ${nextBundle.files.length} artifacts.`);
+      const projectId = nextBundle.project_id ?? currentProject?.project_id;
+      if (projectId) {
+        try { await refreshProjectSurface(projectId); } catch { /* Primary compile result remains valid. */ }
+      }
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -585,7 +650,26 @@ export default function App() {
     setStage("validate");
     beginAction("validate");
     try {
-      const nextReport = await api.validate(bundle.bundle_dir, validationLevel, false);
+      if (!bundle.project_id || !bundle.project_revision_id) {
+        throw new Error(
+          "Validation requires the bundle's exact project and project revision identity.",
+        );
+      }
+      const nextReport = await api.validate(
+        bundle.bundle_dir,
+        validationLevel,
+        false,
+        bundle.project_id,
+        bundle.project_revision_id,
+      );
+      const nextBundle = {
+        ...bundle,
+        report: nextReport,
+        project_id: nextReport.project_id,
+        project_revision_id: nextReport.project_revision_id,
+      };
+      bundleRef.current = nextBundle;
+      setBundle(nextBundle);
       setReport(nextReport);
       setDemoMode(false);
       setConnection("connected");
@@ -593,6 +677,10 @@ export default function App() {
         setError("Validation failed. Review the findings before continuing.");
       } else {
         setNotice(`Validation finished with state ${nextReport.state ?? "unknown"}.`);
+      }
+      const projectId = nextReport.project_id ?? currentProject?.project_id;
+      if (projectId) {
+        try { await refreshProjectSurface(projectId); } catch { /* Primary validation result remains valid. */ }
       }
     } catch (caught) {
       setError(errorMessage(caught));
@@ -608,8 +696,15 @@ export default function App() {
     if (blockMutationDuringRun("Starting another job")) return;
     beginAction("job");
     try {
+      if (!bundle.project_id || !bundle.project_revision_id) {
+        throw new Error(
+          "Job creation requires the bundle's exact project and project revision identity.",
+        );
+      }
       const nextJob = await api.createJob({
         bundle_dir: bundle.bundle_dir,
+        project_id: bundle.project_id,
+        expected_project_revision_id: bundle.project_revision_id,
         action: mode,
         confirm_full_train: mode === "train",
       });
@@ -617,6 +712,10 @@ export default function App() {
       setDemoMode(false);
       setConnection("connected");
       setNotice(`Job ${nextJob.id} entered state ${nextJob.state}.`);
+      const projectId = nextJob.project_id ?? currentProject?.project_id;
+      if (projectId) {
+        try { await refreshProjectSurface(projectId); } catch { /* Primary job result remains valid. */ }
+      }
     } catch (caught) {
       if (mode === "train") {
         setReport((current) => current ? {
@@ -696,6 +795,63 @@ export default function App() {
     }
   };
 
+  const handleRecoverProject = async (projectId: string, revisionId: string) => {
+    if (blockMutationDuringRun("Recovering a project revision")) return;
+    if (demoMode) {
+      setError("Clear the labeled example before recovering a real project revision.");
+      return;
+    }
+    beginAction("recover-project");
+    try {
+      const recovered = await api.recoverProjectRevision(projectId, revisionId);
+      if (recovered.training_authorization_current !== false) {
+        throw new Error("Aptus rejected the recovery because its authorization boundary was unclear.");
+      }
+      const bootstrap = await api.bootstrap();
+      setProjects(bootstrap.projects ?? []);
+      setCurrentProject(bootstrap.project ?? null);
+      setProjectHistory(bootstrap.project_history ?? []);
+      setConnection("connected");
+      setDemoMode(false);
+      setModelInspection(null);
+      setPlan(bootstrap.plan ?? null);
+      setSelectedCandidate(
+        bootstrap.plan?.recommended ?? bootstrap.plan?.candidates[0] ?? null,
+      );
+      bundleRef.current = bootstrap.bundle ?? null;
+      setBundle(bootstrap.bundle ?? null);
+      setReport(bootstrap.bundle?.report ?? null);
+      setJob(bootstrap.job ?? null);
+      if (bootstrap.plan) {
+        draftVersionRef.current += 1;
+        setDraft(restoredDraft(
+          bootstrap.plan,
+          bootstrap.bundle ?? null,
+          bootstrap.project?.name,
+        ));
+        setProfile(restoredProfile(bootstrap.plan));
+        setHardwareScanned(restoredHardwareWasMeasured(bootstrap.plan));
+      }
+      setStage(
+        bootstrap.job && ACTIVE_JOB_STATES.has(bootstrap.job.state)
+          ? "run"
+          : bootstrap.bundle
+            ? "validate"
+            : bootstrap.plan
+              ? "compare"
+              : "facts",
+      );
+      setNotice(
+        `Recovered revision ${recovered.revision.ordinal} as a new immutable revision. Training authorization was not restored. Revalidate current evidence and confirm training again.`,
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+      throw caught;
+    } finally {
+      finishAction();
+    }
+  };
+
   const loadExample = () => {
     if (blockMutationDuringRun("Loading example data")) return;
     if (busy !== null) {
@@ -742,8 +898,31 @@ export default function App() {
     setStage("facts");
   };
 
+  const handleNewProject = () => {
+    if (blockMutationDuringRun("Starting a new project")) return;
+    if (busy !== null || !bootstrapReady) return;
+    draftVersionRef.current += 1;
+    setCurrentProject(null);
+    setProjectHistory([]);
+    setDraft((current) => ({ ...current, project_name: "" }));
+    setProfile(null);
+    setPlan(null);
+    setSelectedCandidate(null);
+    bundleRef.current = null;
+    setBundle(null);
+    setReport(null);
+    setJob(null);
+    setDemoMode(false);
+    setHardwareScanned(false);
+    setModelInspection(null);
+    setOutputDir("");
+    setError(null);
+    setNotice("New project started. Review or edit the facts before creating its first plan.");
+    setStage("facts");
+  };
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell${embeddedInDesktop ? " is-desktop-host" : ""}`}>
       <WorkflowRail
         current={stage}
         completed={completed}
@@ -751,7 +930,12 @@ export default function App() {
         connection={connection}
         serviceVersion={serviceVersion}
         runState={job?.phase ?? job?.state}
-        onSelect={setStage}
+        projects={projects}
+        currentProject={currentProject}
+        projectHistory={projectHistory}
+        projectActionsDisabled={busy !== null || activeJob || demoMode}
+        onRecoverProject={handleRecoverProject}
+        onSelect={selectStage}
       />
 
       <main
@@ -760,12 +944,30 @@ export default function App() {
         aria-busy={busy !== null}
         data-aptus-workbench-ready={bootstrapReady ? DESKTOP_WORKBENCH_READY_MARKER : undefined}
       >
-        <MobileStageBar current={stage} completed={completed} runState={job?.phase ?? job?.state} onSelect={setStage} />
+        <MobileStageBar current={stage} completed={completed} runState={job?.phase ?? job?.state} onSelect={selectStage} />
+
+        <div className="compact-project-history">
+          <ProjectHistory
+            projects={projects}
+            currentProject={currentProject}
+            currentHistory={projectHistory}
+            disabled={busy !== null || activeJob || demoMode}
+            onRecover={handleRecoverProject}
+          />
+        </div>
 
         <div className="workbench-topline">
           <span>{currentStageLabel}</span>
           <span>{draft.project_name || "Untitled plan"}</span>
           {demoMode ? <strong>Example workspace</strong> : null}
+          <button
+            type="button"
+            className="button button-quiet new-project-action"
+            disabled={!bootstrapReady || busy !== null || activeJob}
+            onClick={handleNewProject}
+          >
+            New Project
+          </button>
         </div>
 
         {demoMode ? (
@@ -833,7 +1035,7 @@ export default function App() {
               selected={selected}
               busy={busy}
               demoMode={demoMode}
-              onSelectCandidate={setSelectedCandidate}
+              onInspectCandidate={setSelectedCandidate}
               onCompile={handleCompile}
               onReturnToFacts={() => setStage("facts")}
             />

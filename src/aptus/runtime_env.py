@@ -25,6 +25,33 @@ _RUNTIME_ENVIRONMENT_KEYS = {
 }
 
 
+def runtime_compatibility(
+    runtime_id: str,
+    details: Mapping[str, object],
+) -> tuple[bool, str | None]:
+    """Return whether an imported runtime satisfies Aptus' executable contract."""
+
+    if details.get("available") is not True:
+        reason = details.get("reason")
+        return False, str(reason) if isinstance(reason, str) and reason else None
+    if runtime_id != "mlx-lm":
+        return True, None
+    versions = details.get("versions")
+    expected = {package: STACK_VERSIONS[package] for package in ("mlx", "mlx-lm")}
+    found = (
+        {package: versions.get(package) for package in expected}
+        if isinstance(versions, Mapping)
+        else {package: None for package in expected}
+    )
+    if found == expected:
+        return True, None
+    return (
+        False,
+        "The MLX-LM imports passed, but the dependency contract is incompatible: "
+        f"expected {expected}, found {found}.",
+    )
+
+
 def runtime_environment_key(runtime_id: str) -> str:
     try:
         return _RUNTIME_ENVIRONMENT_KEYS[runtime_id]
@@ -50,22 +77,12 @@ def validate_runtime_configuration(
         raise RuntimeError(
             f"The selected interpreter is not ready for {runtime_id}: {reason}"
         )
-    if runtime_id == "mlx-lm":
-        versions = details.get("versions")
-        expected = {package: STACK_VERSIONS[package] for package in ("mlx", "mlx-lm")}
-        if not isinstance(versions, Mapping) or any(
-            versions.get(package) != version for package, version in expected.items()
-        ):
-            found = {
-                package: versions.get(package)
-                if isinstance(versions, Mapping)
-                else None
-                for package in expected
-            }
-            raise RuntimeError(
-                "The selected MLX interpreter has incompatible dependency versions: "
-                f"expected {expected}, found {found}."
-            )
+    compatible, compatibility_reason = runtime_compatibility(runtime_id, details)
+    if not compatible:
+        raise RuntimeError(
+            "The selected interpreter has an incompatible runtime contract: "
+            f"{compatibility_reason or 'the exact dependency requirements did not pass.'}"
+        )
     return probe
 
 
@@ -171,19 +188,24 @@ def _candidate_interpreters(
     result: list[tuple[Path, str]] = []
     seen: set[Path] = set()
     for raw, source in candidates:
-        path = Path(raw).expanduser()
+        path = Path(os.path.abspath(Path(raw).expanduser()))
         try:
-            resolved = path.resolve(strict=True)
+            exists = path.exists()
         except OSError:
             continue
         if (
-            resolved in seen
-            or not resolved.is_file()
-            or not os.access(resolved, os.X_OK)
+            not exists
+            or path in seen
+            or not path.is_file()
+            or not os.access(path, os.X_OK)
         ):
             continue
-        seen.add(resolved)
-        result.append((resolved, source))
+        # Keep the selected command path. A virtual environment commonly exposes
+        # ``bin/python`` as a symlink to its base interpreter. Resolving that
+        # symlink discards the virtual environment's package context when the
+        # recorded path is launched later.
+        seen.add(path)
+        result.append((path, source))
     return tuple(result)
 
 
@@ -193,12 +215,16 @@ def probe_runtime_interpreter(
     source: str,
     timeout: float = 8.0,
 ) -> RuntimeInterpreter:
-    resolved = path.expanduser().resolve(strict=True)
-    if not resolved.is_file() or not os.access(resolved, os.X_OK):
-        raise ValueError(f"Runtime interpreter is not executable: {resolved}")
+    selected = Path(os.path.abspath(path.expanduser()))
+    if (
+        not selected.exists()
+        or not selected.is_file()
+        or not os.access(selected, os.X_OK)
+    ):
+        raise ValueError(f"Runtime interpreter is not executable: {selected}")
     try:
         completed = subprocess.run(
-            [str(resolved), "-c", _PROBE_PROGRAM],
+            [str(selected), "-c", _PROBE_PROGRAM],
             check=False,
             capture_output=True,
             text=True,
@@ -207,7 +233,7 @@ def probe_runtime_interpreter(
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         return RuntimeInterpreter(
-            path=str(resolved),
+            path=str(selected),
             source=source,
             python_version=None,
             runtimes={},
@@ -216,7 +242,7 @@ def probe_runtime_interpreter(
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip() or "unknown error"
         return RuntimeInterpreter(
-            path=str(resolved),
+            path=str(selected),
             source=source,
             python_version=None,
             runtimes={},
@@ -226,7 +252,7 @@ def probe_runtime_interpreter(
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError:
         return RuntimeInterpreter(
-            path=str(resolved),
+            path=str(selected),
             source=source,
             python_version=None,
             runtimes={},
@@ -235,7 +261,7 @@ def probe_runtime_interpreter(
     runtimes = payload.get("runtimes") if isinstance(payload, dict) else None
     if not isinstance(runtimes, dict):
         return RuntimeInterpreter(
-            path=str(resolved),
+            path=str(selected),
             source=source,
             python_version=None,
             runtimes={},
@@ -247,7 +273,7 @@ def probe_runtime_interpreter(
         if runtime_id in TRAINING_RUNTIMES and isinstance(details, dict)
     }
     return RuntimeInterpreter(
-        path=str(resolved),
+        path=str(selected),
         source=source,
         python_version=(
             payload.get("python_version")
@@ -289,7 +315,9 @@ def resolve_runtime_interpreter(
     configured = active_environment.get(key, "").strip()
     if configured:
         try:
-            configured_path = Path(configured).expanduser().resolve(strict=True)
+            configured_path = Path(os.path.abspath(Path(configured).expanduser()))
+            if not configured_path.exists():
+                raise FileNotFoundError(configured_path)
         except OSError as error:
             raise RuntimeError(
                 f"{key} does not resolve to an interpreter: {error}"
@@ -300,6 +328,13 @@ def resolve_runtime_interpreter(
         )
         if configured_probe is None:
             raise RuntimeError(f"{key} was configured but could not be probed.")
+        details = configured_probe.runtimes.get(runtime_id, {})
+        compatible, reason = runtime_compatibility(runtime_id, details)
+        if configured_probe.error is not None or not compatible:
+            raise RuntimeError(
+                f"{key} is not compatible with the current Aptus runtime contract: "
+                f"{configured_probe.error or reason or 'runtime probe did not pass'}"
+            )
         return configured_probe
 
     available = next(
@@ -307,7 +342,7 @@ def resolve_runtime_interpreter(
             item
             for item in values
             if item.error is None
-            and item.runtimes.get(runtime_id, {}).get("available") is True
+            and runtime_compatibility(runtime_id, item.runtimes.get(runtime_id, {}))[0]
         ),
         None,
     )
@@ -332,13 +367,39 @@ def runtime_inventory(
     available: dict[str, list[str]] = {
         runtime_id: [] for runtime_id in TRAINING_RUNTIMES
     }
+    compatible: dict[str, list[str]] = {
+        runtime_id: [] for runtime_id in TRAINING_RUNTIMES
+    }
+    serialized_interpreters: list[dict[str, object]] = []
     for interpreter in values:
+        serialized = interpreter.to_dict()
+        serialized_runtimes: dict[str, dict[str, object]] = {}
         for runtime_id in TRAINING_RUNTIMES:
-            if interpreter.runtimes.get(runtime_id, {}).get("available") is True:
+            raw_details = interpreter.runtimes.get(runtime_id)
+            if raw_details is None:
+                continue
+            details = dict(raw_details)
+            is_compatible, compatibility_reason = runtime_compatibility(
+                runtime_id, details
+            )
+            details["compatible"] = is_compatible
+            if runtime_id == "mlx-lm":
+                details["expected_versions"] = {
+                    package: STACK_VERSIONS[package] for package in ("mlx", "mlx-lm")
+                }
+            if compatibility_reason is not None:
+                details["compatibility_reason"] = compatibility_reason
+            serialized_runtimes[runtime_id] = details
+            if details.get("available") is True:
                 available[runtime_id].append(interpreter.path)
+            if is_compatible:
+                compatible[runtime_id].append(interpreter.path)
+        serialized["runtimes"] = serialized_runtimes
+        serialized_interpreters.append(serialized)
     return {
         "schema_version": "aptus.runtime-inventory.v1",
-        "interpreters": [item.to_dict() for item in values],
+        "interpreters": serialized_interpreters,
         "available": available,
+        "compatible": compatible,
         "configuration": dict(_RUNTIME_ENVIRONMENT_KEYS),
     }

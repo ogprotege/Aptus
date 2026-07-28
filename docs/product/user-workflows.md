@@ -1,6 +1,6 @@
 # User Workflows
 
-> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a workflow changes
+> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a workflow changes
 
 ## Plan for a known host
 
@@ -43,7 +43,10 @@ interrupted, preserve its unique output and start a new run after correction.
 
 In Aptus for Mac, open Models and choose the exact external Python executable
 that imports the pinned MLX and MLX-LM versions. Aptus probes and persists that
-canonical path. Finder-launched apps do not inherit your shell environment.
+absolute command path without resolving away a virtual-environment symlink.
+Finder-launched apps do not inherit your shell environment.
+The environment doctor shows probe evidence before selection and gives the exact
+external-environment recipe when no interpreter passes. It changes no package.
 
 LM Studio and oMLX are separate loopback inference services. Their model lists
 and generated text cannot satisfy a training runtime or evidence gate. PyTorch
@@ -82,6 +85,15 @@ that training can resume.
 Preserve the unique failed run directory. Full-run resume is unsupported. Fix
 the cause, refresh any invalidated validation action, and submit a new train job
 with a new run ID.
+
+## Recover a project revision
+
+Project history is different from runtime resume. Aptus records an immutable
+revision after planning, compilation, validation, and job submission. Inspect an
+older revision, then choose **Recover as new revision**. Aptus verifies any
+referenced local plan or bundle and creates a new head revision. It does not
+rewrite history and always records training authorization as false. Revalidate
+current evidence and confirm training again.
 
 ## Interpret completion
 

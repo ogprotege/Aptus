@@ -40,16 +40,16 @@ private final class PlatformSnapshotLoaderStub: PlatformSnapshotLoading {
 
 private final class RuntimeInventoryLoaderStub: RuntimeInventoryLoading {
     private(set) var loadCount = 0
-    private var completion: ((Result<PersistedMLXRuntimeSelection, Error>) -> Void)?
+    private var completion: ((Result<MLXRuntimeInventory, Error>) -> Void)?
 
-    func loadPersistedMLXRuntime(
-        completion: @escaping (Result<PersistedMLXRuntimeSelection, Error>) -> Void
+    func loadMLXRuntimeInventory(
+        completion: @escaping (Result<MLXRuntimeInventory, Error>) -> Void
     ) {
         loadCount += 1
         self.completion = completion
     }
 
-    func resolve(_ result: Result<PersistedMLXRuntimeSelection, Error>) {
+    func resolve(_ result: Result<MLXRuntimeInventory, Error>) {
         completion?(result)
     }
 }
@@ -163,10 +163,128 @@ final class DesktopBackendClientTests: XCTestCase {
             "schema_version": "aptus.runtime-inventory.v1",
             "selected": ["mlx-lm": path],
             "available": ["mlx-lm": [path]],
+            "compatible": ["mlx-lm": [path]],
             "interpreters": [],
         ])
 
         XCTAssertEqual(selection, .configured(path: path))
+    }
+
+    func testRuntimeInventoryHydratesEveryMLXProbeWithBoundedEvidence() throws {
+        let readyPath = "/opt/aptus/mlx/bin/python"
+        let missingPath = "/usr/bin/python3"
+        let inventory = try DesktopBackendClient.mlxRuntimeInventory(from: [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": ["mlx-lm": readyPath],
+            "available": ["mlx-lm": [readyPath]],
+            "compatible": ["mlx-lm": [readyPath]],
+            "interpreters": [
+                [
+                    "path": readyPath,
+                    "source": "configured:APTUS_MLX_PYTHON",
+                    "python_version": "3.12.9",
+                    "error": NSNull(),
+                    "runtimes": [
+                        "mlx-lm": [
+                            "available": true,
+                            "compatible": true,
+                            "versions": ["mlx": "0.31.2", "mlx-lm": "0.31.3"],
+                        ],
+                    ],
+                ],
+                [
+                    "path": missingPath,
+                    "source": "known-path:system",
+                    "python_version": "3.9.6",
+                    "error": NSNull(),
+                    "runtimes": [
+                        "mlx-lm": [
+                            "available": false,
+                            "compatible": false,
+                            "reason": "ModuleNotFoundError: No module named 'mlx_lm'",
+                        ],
+                    ],
+                ],
+            ],
+        ])
+
+        XCTAssertEqual(inventory.selection, .configured(path: readyPath))
+        XCTAssertEqual(inventory.candidates.count, 2)
+        XCTAssertEqual(inventory.candidates[0], MLXInterpreterCandidate(
+            path: readyPath,
+            source: "configured:APTUS_MLX_PYTHON",
+            pythonVersion: "3.12.9",
+            probePassed: true,
+            compatible: true,
+            reason: "MLX 0.31.2 and MLX-LM 0.31.3 passed the exact Aptus runtime contract. Selection revalidates the contract before saving.",
+            packageVersions: ["mlx": "0.31.2", "mlx-lm": "0.31.3"]
+        ))
+        XCTAssertFalse(inventory.candidates[1].probePassed)
+        XCTAssertEqual(
+            inventory.candidates[1].reason,
+            "ModuleNotFoundError: No module named 'mlx_lm'"
+        )
+    }
+
+    func testRuntimeInventoryRejectsMalformedInterpreterProbe() {
+        XCTAssertThrowsError(try DesktopBackendClient.mlxRuntimeInventory(from: [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": [:],
+            "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
+            "interpreters": [[
+                "path": "/usr/bin/python3",
+                "source": "known-path:system",
+                "runtimes": ["mlx-lm": ["available": 1]],
+            ]],
+        ]))
+    }
+
+    func testRuntimeInventoryRejectsCompatibleListThatContradictsProbeEvidence() {
+        let path = "/opt/aptus/mlx/bin/python"
+        XCTAssertThrowsError(try DesktopBackendClient.mlxRuntimeInventory(from: [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": ["mlx-lm": path],
+            "available": ["mlx-lm": [path]],
+            "compatible": ["mlx-lm": [path]],
+            "interpreters": [[
+                "path": path,
+                "source": "configured:APTUS_MLX_PYTHON",
+                "python_version": "3.12.9",
+                "error": NSNull(),
+                "runtimes": [
+                    "mlx-lm": [
+                        "available": true,
+                        "compatible": false,
+                        "versions": ["mlx": "0.31.1", "mlx-lm": "0.31.3"],
+                        "compatibility_reason": "The exact dependency contract did not pass.",
+                    ],
+                ],
+            ]],
+        ]))
+    }
+
+    func testRuntimeInventoryRejectsCompatibleProbeWithoutSuccessfulImport() {
+        let path = "/opt/aptus/mlx/bin/python"
+        XCTAssertThrowsError(try DesktopBackendClient.mlxRuntimeInventory(from: [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": ["mlx-lm": path],
+            "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": [path]],
+            "interpreters": [[
+                "path": path,
+                "source": "configured:APTUS_MLX_PYTHON",
+                "python_version": "3.12.9",
+                "error": NSNull(),
+                "runtimes": [
+                    "mlx-lm": [
+                        "available": false,
+                        "compatible": true,
+                        "reason": "MLX-LM import failed.",
+                    ],
+                ],
+            ]],
+        ]))
     }
 
     func testRuntimeInventorySeparatesUnconfiguredUnavailableAndInvalidSelections() throws {
@@ -175,6 +293,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "schema_version": "aptus.runtime-inventory.v1",
             "selected": [:],
             "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
             "interpreters": [],
         ])
         XCTAssertEqual(notConfigured, .notConfigured)
@@ -183,11 +302,13 @@ final class DesktopBackendClientTests: XCTestCase {
             "schema_version": "aptus.runtime-inventory.v1",
             "selected": ["mlx-lm": path],
             "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
             "interpreters": [[
                 "path": path,
                 "runtimes": [
                     "mlx-lm": [
                         "available": false,
+                        "compatible": false,
                         "reason": "MLX-LM import failed.",
                     ],
                 ],
@@ -202,6 +323,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "schema_version": "aptus.runtime-inventory.v1",
             "selected": ["mlx-lm": "relative/python"],
             "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
             "interpreters": [],
         ])
         XCTAssertEqual(
@@ -213,11 +335,11 @@ final class DesktopBackendClientTests: XCTestCase {
         )
     }
 
-    func testRuntimeInventoryRejectsMalformedAvailableContract() {
+    func testRuntimeInventoryRejectsMalformedCompatibleContract() {
         XCTAssertThrowsError(try DesktopBackendClient.persistedMLXRuntimeSelection(from: [
             "schema_version": "aptus.runtime-inventory.v1",
             "selected": [:],
-            "available": ["mlx-lm": "not-an-array"],
+            "compatible": ["mlx-lm": "not-an-array"],
         ]))
     }
 
@@ -291,13 +413,26 @@ final class DesktopBackendClientTests: XCTestCase {
         XCTAssertEqual(model.mlxRuntimeConfiguration, .loading)
         XCTAssertEqual(model.platformMemorySnapshotState, .loading)
 
-        loader.resolve(.success(.configured(path: "/managed/mlx/python")))
+        let candidate = MLXInterpreterCandidate(
+            path: "/managed/mlx/python",
+            source: "configured:APTUS_MLX_PYTHON",
+            pythonVersion: "3.12.9",
+            probePassed: true,
+            compatible: true,
+            reason: "MLX-LM imported successfully.",
+            packageVersions: [:]
+        )
+        loader.resolve(.success(MLXRuntimeInventory(
+            selection: .configured(path: "/managed/mlx/python"),
+            candidates: [candidate]
+        )))
 
         XCTAssertEqual(
             model.mlxRuntimeConfiguration,
             .configured(path: "/managed/mlx/python")
         )
         XCTAssertNil(model.mlxRuntimeConfigurationErrorMessage)
+        XCTAssertEqual(model.mlxInterpreterCandidates, [candidate])
     }
 
     func testShellPreservesUnavailableAndInvalidPersistedRuntimeStates() {
@@ -306,9 +441,12 @@ final class DesktopBackendClientTests: XCTestCase {
             machine: testMachine,
             runtimeInventoryLoader: unavailableLoader
         )
-        unavailableLoader.resolve(.success(.unavailable(
-            path: "/missing/mlx/python",
-            reason: "The persisted interpreter is not present."
+        unavailableLoader.resolve(.success(MLXRuntimeInventory(
+            selection: .unavailable(
+                path: "/missing/mlx/python",
+                reason: "The persisted interpreter is not present."
+            ),
+            candidates: []
         )))
         XCTAssertEqual(
             unavailableModel.mlxRuntimeConfiguration,
@@ -323,9 +461,12 @@ final class DesktopBackendClientTests: XCTestCase {
             machine: testMachine,
             runtimeInventoryLoader: invalidLoader
         )
-        invalidLoader.resolve(.success(.invalid(
-            path: "relative/python",
-            reason: "The persisted path is invalid."
+        invalidLoader.resolve(.success(MLXRuntimeInventory(
+            selection: .invalid(
+                path: "relative/python",
+                reason: "The persisted path is invalid."
+            ),
+            candidates: []
         )))
         XCTAssertEqual(
             invalidModel.mlxRuntimeConfiguration,
@@ -421,7 +562,10 @@ final class DesktopBackendClientTests: XCTestCase {
             runtimeConfigurator: configurator,
             runtimeInventoryLoader: loader
         )
-        loader.resolve(.success(.configured(path: "/persisted/mlx/python")))
+        loader.resolve(.success(MLXRuntimeInventory(
+            selection: .configured(path: "/persisted/mlx/python"),
+            candidates: []
+        )))
 
         model.configureMLXInterpreter(at: python)
 
@@ -444,9 +588,15 @@ final class DesktopBackendClientTests: XCTestCase {
         XCTAssertTrue(contents.contains("panel.showsHiddenFiles = true"))
         XCTAssertTrue(contents.contains("\"Change MLX Python…\""))
         XCTAssertTrue(contents.contains("\"Replace MLX Python…\""))
-        XCTAssertTrue(contents.contains("Persisted MLX-LM interpreter unavailable"))
+        XCTAssertTrue(contents.contains("Persisted MLX-LM interpreter not ready"))
+        XCTAssertFalse(contents.contains("Persisted MLX-LM interpreter unavailable"))
         XCTAssertTrue(contents.contains("Persisted MLX-LM selection invalid"))
         XCTAssertTrue(contents.contains("runtimeID: \"mlx-lm\""))
+        XCTAssertTrue(contents.contains("MLX environment doctor"))
+        XCTAssertTrue(contents.contains("Use this Python"))
+        XCTAssertTrue(contents.contains("It did not install, upgrade, or change any package."))
+        XCTAssertTrue(contents.contains("python3 -m venv /path/to/aptus-mlx-env"))
+        XCTAssertTrue(contents.contains("'mlx==0.31.2' 'mlx-lm==0.31.3'"))
     }
 
     private var testMachine: MachineProfile {

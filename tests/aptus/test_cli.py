@@ -338,6 +338,45 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("Non-loopback serving is blocked", stderr.getvalue())
 
+    def test_doctor_and_diagnostics_commands_use_bounded_support_contracts(
+        self,
+    ) -> None:
+        ready = {
+            "status": "ready",
+            "schema_version": "aptus.environment-doctor.v1",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stdout = io.StringIO()
+            with (
+                patch("aptus.diagnostics.build_doctor_report", return_value=ready),
+                contextlib.redirect_stdout(stdout),
+            ):
+                self.assertEqual(main(["doctor", "--state-dir", str(root)]), 0)
+            self.assertEqual(json.loads(stdout.getvalue()), ready)
+
+            archive = root / "support.zip"
+            with (
+                patch(
+                    "aptus.diagnostics.create_diagnostic_archive",
+                    return_value=archive,
+                ) as create,
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(
+                    main(
+                        [
+                            "diagnostics",
+                            "--state-dir",
+                            str(root),
+                            "--output",
+                            str(archive),
+                        ]
+                    ),
+                    0,
+                )
+            create.assert_called_once_with(root, archive)
+
     def test_serve_generates_and_hands_off_an_authenticated_session(self) -> None:
         token = "generated-session-token-that-is-long-enough-123"
         application = object()

@@ -1,5 +1,11 @@
-import type { WorkflowStage } from "../types";
+import type {
+  ProjectDetail,
+  ProjectRevisionSummary,
+  ProjectSummary,
+  WorkflowStage,
+} from "../types";
 import { AptusMark } from "./AptusMark";
+import { ProjectHistory } from "./ProjectHistory";
 
 export const WORKFLOW_STAGES: Array<{
   id: WorkflowStage;
@@ -20,6 +26,11 @@ interface WorkflowRailProps {
   connection: "connecting" | "connected" | "unavailable";
   serviceVersion?: string;
   runState?: string;
+  projects: ProjectSummary[];
+  currentProject: ProjectDetail | null;
+  projectHistory: ProjectRevisionSummary[];
+  projectActionsDisabled?: boolean;
+  onRecoverProject: (projectId: string, revisionId: string) => Promise<void>;
   onSelect: (stage: WorkflowStage) => void;
 }
 
@@ -30,6 +41,11 @@ export function WorkflowRail({
   connection,
   serviceVersion,
   runState,
+  projects,
+  currentProject,
+  projectHistory,
+  projectActionsDisabled,
+  onRecoverProject,
   onSelect,
 }: WorkflowRailProps) {
   return (
@@ -74,6 +90,16 @@ export function WorkflowRail({
           })}
         </ol>
       </nav>
+
+      <div className="rail-project-history">
+        <ProjectHistory
+          projects={projects}
+          currentProject={currentProject}
+          currentHistory={projectHistory}
+          disabled={projectActionsDisabled}
+          onRecover={onRecoverProject}
+        />
+      </div>
 
       <div className="rail-connection" data-state={connection}>
         <span className="connection-light" aria-hidden="true" />

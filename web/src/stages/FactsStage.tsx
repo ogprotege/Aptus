@@ -3,9 +3,11 @@ import type {
   FactDraft,
   InputProfile,
   MethodDescriptor,
+  ModelCompatibility,
   ModelInspectionResponse,
 } from "../types";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
+import { ExpertTopologyRail } from "../components/ExpertTopologyRail";
 import { StageHeader } from "../components/StageHeader";
 import { getDesktopBridge } from "../desktopBridge";
 
@@ -24,6 +26,7 @@ interface FactsStageProps {
   onHardwareScan: () => Promise<void>;
   hardwareScanned: boolean;
   modelInspection: ModelInspectionResponse | null;
+  moeCompatibility?: ModelCompatibility | null;
   methodCatalog: MethodDescriptor[];
 }
 
@@ -46,6 +49,7 @@ export function FactsStage({
   onHardwareScan,
   hardwareScanned,
   modelInspection,
+  moeCompatibility,
   methodCatalog,
 }: FactsStageProps) {
   const desktopBridge = getDesktopBridge();
@@ -55,12 +59,30 @@ export function FactsStage({
     key: K,
     value: FactDraft["model"][K],
   ) => {
-    if (key !== "parameters_b" && key !== "training_allowed") {
+    const preservesInspection = key === "parameters_b" || key === "training_allowed";
+    if (!preservesInspection) {
       onInvalidateModelInspection();
     }
     setDraft((current) => ({
       ...current,
-      model: { ...current.model, [key]: value },
+      model: preservesInspection
+        ? {
+            ...current.model,
+            [key]: value,
+            active_parameters_b: null,
+            sparse_layer_count: null,
+          }
+        : {
+            ...current.model,
+            [key]: value,
+            model_type: null,
+            architecture: null,
+            quantization_bits: null,
+            quantization_layout: null,
+            moe: null,
+            active_parameters_b: null,
+            sparse_layer_count: null,
+          },
     }));
   };
 
@@ -133,6 +155,8 @@ export function FactsStage({
   };
 
   const profileFacts = profile?.facts ?? [];
+  const inspectedQuantizationLayout = modelInspection?.facts?.quantization_layout;
+  const inspectedOverrideCount = inspectedQuantizationLayout?.module_overrides.length ?? 0;
   const inspectedModelFacts = modelInspection?.status === "ok" && modelInspection.facts
     ? [
         { key: "family", label: "Aptus catalog family", value: modelInspection.facts.family },
@@ -149,6 +173,17 @@ export function FactsStage({
         { key: "layers", label: "Layers", value: modelInspection.facts.layers },
         { key: "context_length", label: "Context", value: modelInspection.facts.context_length },
         { key: "license_name", label: "License label", value: modelInspection.facts.license_name },
+        {
+          key: "quantization_layout",
+          label: "Provider quantization layout",
+          value: inspectedQuantizationLayout
+            ? [
+                `${inspectedQuantizationLayout.default_bits}-bit`,
+                `group ${inspectedQuantizationLayout.default_group_size};`,
+                `${inspectedOverrideCount} ${inspectedOverrideCount === 1 ? "override" : "overrides"}`,
+              ].join(" ")
+            : null,
+        },
       ].filter((fact) => fact.value !== null && fact.value !== undefined)
     : [];
   const selectableMethods = methodCatalog.filter((method) => method.selectable);
@@ -262,18 +297,32 @@ export function FactsStage({
                     {modelInspection.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
                   </ul>
                 ) : null}
-                <p className="inspection-boundary">Parameter count and training permission never come from this inspection. Enter and confirm both yourself.</p>
+                <p className="inspection-boundary">Total parameter count and training permission never come from this inspection. Enter and confirm both yourself.</p>
               </section>
+            ) : null}
+            {draft.model.moe ? (
+              <ExpertTopologyRail
+                topology={draft.model.moe}
+                totalParametersB={draft.model.parameters_b}
+                activeParametersB={draft.model.active_parameters_b}
+                sparseLayerCount={draft.model.sparse_layer_count}
+                quantizationBits={draft.model.quantization_bits}
+                compatibility={moeCompatibility === undefined
+                  ? modelInspection?.compatibility
+                  : moeCompatibility}
+                selectedRuntime={draft.target.runtime}
+              />
             ) : null}
             <div className="field-row">
               <div className="field">
                 <label htmlFor="family">Architecture family</label>
                 <input id="family" required value={draft.model.family} onChange={(event) => updateModel("family", event.target.value)} placeholder="llama" />
-                <small>Catalog families: llama, mistral, gemma, and qwen.</small>
+                <small>Catalog families: llama, mistral, gemma, qwen, and exact inspected qwen3_moe checkpoints.</small>
               </div>
               <div className="field">
-                <label htmlFor="parameters">Parameters</label>
+                <label htmlFor="parameters">Total resident parameters</label>
                 <div className="unit-input"><input id="parameters" type="number" required min="0.01" step="0.01" value={draft.model.parameters_b ?? ""} onChange={(event) => updateModel("parameters_b", numberValue(event.target.value))} /><span>B</span></div>
+                <small>MoE checkpoints keep all weights resident. Active parameters do not replace this total.</small>
               </div>
             </div>
             <div className="field-row three-fields">

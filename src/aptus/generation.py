@@ -190,6 +190,13 @@ def _mlx_config(plan: TrainingPlan) -> str:
         },
     }
     lines: list[str] = []
+    if plan.model.moe is not None:
+        lines.extend(
+            (
+                "# Aptus Qwen3 MoE policy: attention projections only.",
+                "# Expert and router weights remain frozen in this executable profile.",
+            )
+        )
     for key, value in values.items():
         if isinstance(value, dict):
             lines.append(f"{key}:")
@@ -289,6 +296,11 @@ def _decision_report(plan: TrainingPlan) -> str:
     warnings = "\n".join(f"- {item}" for item in plan.warnings)
     assumptions = "\n".join(f"- {item}" for item in plan.recommended.assumptions)
     target_modules = ", ".join(plan.recommended.target_modules) or "full model"
+    moe_policy = (
+        "\n- MoE adapter policy: attention-only QLoRA; expert and router weights remain frozen; all base weights remain resident in unified memory"
+        if plan.model.moe is not None
+        else ""
+    )
     return f"""# Aptus decision report
 
 Selected candidate: `{plan.recommended.candidate_id}`.
@@ -314,7 +326,7 @@ Formula: `{plan.formula_version}`. Point estimates sum named point components. U
 - Learning rate: `{plan.recommended.learning_rate:g}`
 - Optimizer policy: `{optimizer_policy}`
 - Truncation policy: completion first, then keep the prompt suffix that fits; refuse rows with no supervised tokens
-- Target modules: `{target_modules}`
+- Target modules: `{target_modules}`{moe_policy}
 - Per-device micro-batch and accumulation: `{plan.recommended.micro_batch_size}`, `{plan.recommended.gradient_accumulation_steps}`
 - Required host RAM: `{plan.recommended.required_host_ram_bytes}` bytes
 - Required staging and output disk: `{plan.recommended.required_disk_bytes}` bytes
@@ -344,6 +356,11 @@ def _readme(plan: TrainingPlan) -> str:
         plan.recommended.runtime_contract
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
     ):
+        moe_policy = (
+            "\nFor this Qwen3 MoE plan, Aptus adapts only `q_proj`, `k_proj`, `v_proj`, and `o_proj`. Expert and router weights remain frozen. The full quantized base still resides in unified memory. Active-parameter counts describe per-token routing, not model residency. Model-data validation records the exact architecture, expert topology, logical total parameters, and logical active parameters before adapter conversion.\n"
+            if plan.model.moe is not None
+            else ""
+        )
         return f"""# Aptus MLX-LM training bundle
 
 This portable bundle contains candidate `{plan.recommended.candidate_id}` from
@@ -353,6 +370,7 @@ The candidate is conditional and pilot-required. The generated wrapper runs a
 bounded compiler smoke, an uninterrupted pilot, or a confirmed uninterrupted
 full train from the pinned base revision. Each action rechecks live Apple
 unified-memory headroom before loading the model.
+{moe_policy}
 
 ```bash
 python validate.py --level static
@@ -422,7 +440,12 @@ def _runbook(plan: TrainingPlan) -> str:
         plan.recommended.runtime_contract
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
     ):
-        return """# MLX-LM runbook
+        moe_policy = (
+            "\nFor this Qwen3 MoE profile, Aptus uses attention-only QLoRA. Only `q_proj`, `k_proj`, `v_proj`, and `o_proj` receive adapters. Expert and router weights remain frozen. The full quantized base remains resident in unified memory even though each token activates only part of the expert graph. The model-data gate verifies the pinned architecture, all sparse layers, expert count, experts per token, logical total parameters, and logical active parameters before training.\n"
+            if plan.model.moe is not None
+            else ""
+        )
+        return f"""# MLX-LM runbook
 
 ## 1. Create an external environment
 
@@ -452,6 +475,7 @@ runtime-neutral MLX memory metrics in the validation report.
 For QLoRA, the pinned model must contain explicit four-bit MLX quantization
 metadata. Aptus never substitutes bitsandbytes and never quantizes an unbound
 model during training.
+{moe_policy}
 
 ## 4. Pilot gate
 

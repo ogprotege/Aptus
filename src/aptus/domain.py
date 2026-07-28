@@ -8,12 +8,25 @@ import re
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "aptus.training-plan.v2"
-FACTS_SCHEMA_VERSION = "aptus.facts.v2"
+SCHEMA_VERSION = "aptus.training-plan.v3"
+FACTS_SCHEMA_VERSION = "aptus.facts.v3"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 PROVIDER_MODEL_ID = re.compile(
     r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*/)?[A-Za-z0-9][A-Za-z0-9._-]*$"
 )
+
+
+class UnsupportedPlanSchemaError(ValueError):
+    """A persisted plan must be replanned instead of reinterpreted."""
+
+    def __init__(self, found_schema: Any) -> None:
+        self.found_schema = found_schema
+        self.required_schema = SCHEMA_VERSION
+        found = found_schema if isinstance(found_schema, str) else "missing"
+        super().__init__(
+            f"Replan required: persisted plan schema {found!r} cannot be "
+            f"rehydrated as {SCHEMA_VERSION}. The source plan was not changed."
+        )
 
 
 def gibibytes(value: int | float) -> int:
@@ -233,6 +246,117 @@ class HardwareSpec:
 
 
 @dataclass(frozen=True)
+class MoETopology:
+    """Exact provider configuration facts for one sparse expert architecture."""
+
+    expert_count: int
+    experts_per_token: int
+    expert_intermediate_size: int
+    decoder_sparse_step: int
+    mlp_only_layers: tuple[int, ...] = ()
+    shared_expert_intermediate_size: int | None = None
+
+    def __post_init__(self) -> None:
+        positive = {
+            "expert_count": self.expert_count,
+            "experts_per_token": self.experts_per_token,
+            "expert_intermediate_size": self.expert_intermediate_size,
+            "decoder_sparse_step": self.decoder_sparse_step,
+        }
+        invalid = [
+            name
+            for name, value in positive.items()
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0
+        ]
+        if invalid:
+            raise ValueError(
+                "MoE topology facts must be positive: " + ", ".join(invalid) + "."
+            )
+        if self.experts_per_token > self.expert_count:
+            raise ValueError("experts_per_token cannot exceed expert_count.")
+        if self.shared_expert_intermediate_size is not None and (
+            self.shared_expert_intermediate_size <= 0
+        ):
+            raise ValueError(
+                "shared_expert_intermediate_size must be positive when supplied."
+            )
+        if any(
+            not isinstance(index, int) or isinstance(index, bool) or index < 0
+            for index in self.mlp_only_layers
+        ):
+            raise ValueError("mlp_only_layers must contain non-negative integers.")
+        if tuple(sorted(set(self.mlp_only_layers))) != self.mlp_only_layers:
+            raise ValueError("mlp_only_layers must be sorted and unique.")
+
+
+@dataclass(frozen=True)
+class QuantizationOverride:
+    """One provider-declared module exception to the default quantization."""
+
+    module_path: str
+    bits: int
+    group_size: int
+
+    def __post_init__(self) -> None:
+        if (
+            not self.module_path
+            or len(self.module_path) > 256
+            or not re.fullmatch(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*", self.module_path)
+        ):
+            raise ValueError(
+                "quantization override module_path must be a dotted module identifier."
+            )
+        if (
+            not isinstance(self.bits, int)
+            or isinstance(self.bits, bool)
+            or not 1 <= self.bits <= 16
+        ):
+            raise ValueError("quantization override bits must be between 1 and 16.")
+        if (
+            not isinstance(self.group_size, int)
+            or isinstance(self.group_size, bool)
+            or self.group_size <= 0
+        ):
+            raise ValueError("quantization override group_size must be positive.")
+
+
+@dataclass(frozen=True)
+class QuantizationLayout:
+    """Canonical MLX groupwise quantization defaults and module overrides."""
+
+    default_bits: int
+    default_group_size: int
+    module_overrides: tuple[QuantizationOverride, ...] = ()
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.default_bits, int)
+            or isinstance(self.default_bits, bool)
+            or not 1 <= self.default_bits <= 16
+        ):
+            raise ValueError(
+                "quantization layout default_bits must be between 1 and 16."
+            )
+        if (
+            not isinstance(self.default_group_size, int)
+            or isinstance(self.default_group_size, bool)
+            or self.default_group_size <= 0
+        ):
+            raise ValueError("quantization layout default_group_size must be positive.")
+        if any(
+            not isinstance(item, QuantizationOverride) for item in self.module_overrides
+        ):
+            raise ValueError(
+                "quantization layout module_overrides must contain override facts."
+            )
+        paths = tuple(item.module_path for item in self.module_overrides)
+        if paths != tuple(sorted(set(paths))):
+            raise ValueError(
+                "quantization layout module_overrides must be sorted and unique."
+            )
+
+
+@dataclass(frozen=True)
 class ModelSpec:
     model_id: str
     revision: str
@@ -245,6 +369,10 @@ class ModelSpec:
     training_allowed: bool
     intermediate_size: int | None = None
     architecture: str = "causal-lm"
+    model_type: str | None = None
+    quantization_bits: int | None = None
+    quantization_layout: QuantizationLayout | None = None
+    moe: MoETopology | None = None
     tokenizer_id: str | None = None
     provenance: Mapping[str, Provenance] = field(default_factory=dict)
 
@@ -270,6 +398,24 @@ class ModelSpec:
             )
         if not self.family.strip():
             raise ValueError("family is required.")
+        if not self.architecture.strip():
+            raise ValueError("architecture is required.")
+        if self.model_type is not None and not self.model_type.strip():
+            raise ValueError("model_type must be non-empty when supplied.")
+        if self.quantization_bits is not None and (
+            not isinstance(self.quantization_bits, int)
+            or isinstance(self.quantization_bits, bool)
+            or not 1 <= self.quantization_bits <= 16
+        ):
+            raise ValueError(
+                "quantization_bits must be between 1 and 16 when supplied."
+            )
+        if self.quantization_layout is not None and (
+            self.quantization_bits != self.quantization_layout.default_bits
+        ):
+            raise ValueError(
+                "quantization_bits must equal quantization_layout default_bits."
+            )
         structural = {
             "parameters": self.parameters,
             "hidden_size": self.hidden_size,
@@ -287,6 +433,43 @@ class ModelSpec:
             raise ValueError("license_name is required.")
         if not self.training_allowed:
             raise ValueError("Model training permission must be explicitly allowed.")
+        if self.moe is not None and any(
+            index >= self.layers for index in self.moe.mlp_only_layers
+        ):
+            raise ValueError("mlp_only_layers cannot reference a missing model layer.")
+        if self.moe is not None and self.sparse_layer_count <= 0:
+            raise ValueError("MoE topology must contain at least one sparse layer.")
+        if self.active_parameters <= 0 or self.active_parameters > self.parameters:
+            raise ValueError(
+                "Derived active_parameters must be positive and no greater than total parameters."
+            )
+
+    @property
+    def sparse_layer_count(self) -> int:
+        if self.moe is None:
+            return 0
+        dense_layers = set(self.moe.mlp_only_layers)
+        return sum(
+            1
+            for index in range(self.layers)
+            if (index + 1) % self.moe.decoder_sparse_step == 0
+            and index not in dense_layers
+        )
+
+    @property
+    def active_parameters(self) -> int:
+        """Logical parameters used per token; residency still uses ``parameters``."""
+
+        if self.moe is None:
+            return self.parameters
+        inactive_expert_parameters = (
+            self.sparse_layer_count
+            * (self.moe.expert_count - self.moe.experts_per_token)
+            * 3
+            * self.hidden_size
+            * self.moe.expert_intermediate_size
+        )
+        return self.parameters - inactive_expert_parameters
 
 
 @dataclass(frozen=True)
@@ -509,6 +692,9 @@ def to_primitive(value: Any) -> Any:
         result = {
             item.name: to_primitive(getattr(value, item.name)) for item in fields(value)
         }
+        if isinstance(value, ModelSpec):
+            result["sparse_layer_count"] = value.sparse_layer_count
+            result["active_parameters"] = value.active_parameters
         if isinstance(value, MemoryBreakdown):
             result["point_estimate_bytes"] = value.point_estimate_bytes
             result["estimated_peak_bytes"] = value.estimated_peak_bytes
@@ -535,12 +721,45 @@ def _provenance_from(value: Any) -> Provenance | None:
 
 
 def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
-    """Rehydrate the persisted v2 JSON contract without accepting executable values."""
+    """Rehydrate the persisted v3 JSON contract without accepting executable values."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError("Persisted plan must be an object.")
+    if value.get("schema_version") != SCHEMA_VERSION:
+        raise UnsupportedPlanSchemaError(value.get("schema_version"))
 
     model_value = value["model"]
     hardware_value = value["hardware"]
     dataset_value = value["dataset"]
     target_value = value["target"]
+    moe_value = model_value.get("moe")
+    moe = None
+    if isinstance(moe_value, Mapping):
+        moe = MoETopology(
+            expert_count=moe_value["expert_count"],
+            experts_per_token=moe_value["experts_per_token"],
+            expert_intermediate_size=moe_value["expert_intermediate_size"],
+            decoder_sparse_step=moe_value["decoder_sparse_step"],
+            mlp_only_layers=tuple(moe_value.get("mlp_only_layers", ())),
+            shared_expert_intermediate_size=moe_value.get(
+                "shared_expert_intermediate_size"
+            ),
+        )
+    quantization_layout_value = model_value.get("quantization_layout")
+    quantization_layout = None
+    if isinstance(quantization_layout_value, Mapping):
+        quantization_layout = QuantizationLayout(
+            default_bits=quantization_layout_value["default_bits"],
+            default_group_size=quantization_layout_value["default_group_size"],
+            module_overrides=tuple(
+                QuantizationOverride(
+                    module_path=item["module_path"],
+                    bits=item["bits"],
+                    group_size=item["group_size"],
+                )
+                for item in quantization_layout_value.get("module_overrides", ())
+            ),
+        )
     model = ModelSpec(
         **{
             **{
@@ -559,6 +778,10 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             },
             "intermediate_size": model_value.get("intermediate_size"),
             "architecture": model_value.get("architecture", "causal-lm"),
+            "model_type": model_value.get("model_type"),
+            "quantization_bits": model_value.get("quantization_bits"),
+            "quantization_layout": quantization_layout,
+            "moe": moe,
             "tokenizer_id": model_value.get("tokenizer_id"),
             "provenance": {
                 str(key): provenance

@@ -4,20 +4,24 @@
 | --- | --- |
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
-| Authority | Normative field reference for `aptus.training-plan.v2` |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when domain or plan-contract code changes |
+| Authority | Normative field reference for `aptus.training-plan.v3` |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
-The current schema identifier is `aptus.training-plan.v2`. Numbers must be
+The current schema identifier is `aptus.training-plan.v3`. Numbers must be
 finite JSON values. The self-contained bundle validator recomputes candidate and
-plan identities and rejects semantic mutation.
+plan identities and rejects semantic mutation. Plans with
+`aptus.training-plan.v2` or no schema identifier do not contain every fact
+required by v3. Aptus preserves those saved bytes, but it does not reinterpret,
+compile, or recover them. Create a deterministic v3 plan from the preserved
+source facts. Do not relabel the old plan.
 
 ## Top-level object
 
 ```json
 {
-  "schema_version": "aptus.training-plan.v2",
+  "schema_version": "aptus.training-plan.v3",
   "plan_id": "plan_0123456789abcdef0123",
   "formula_version": "aptus-memory-v2",
   "model": {},
@@ -53,20 +57,60 @@ plan identities and rejects semantic mutation.
 | --- | --- | --- |
 | `model_id` | string | Provider repository ID, not a local path |
 | `revision` | string | Immutable 40 to 64 character hexadecimal commit |
-| `family` | string | Planner family, currently one of `gemma`, `llama`, `mistral`, `qwen` for adapter paths |
-| `parameters` | integer | Positive exact user-attested parameter count |
+| `family` | string | Planner family. Dense adapter paths use `gemma`, `llama`, `mistral`, or `qwen`; the exact sparse row uses `qwen3_moe` |
+| `parameters` | integer | Positive exact user-attested total parameter count. This is the resident-weight basis |
+| `active_parameters` | integer | Backend-derived logical parameters used per token. This never replaces `parameters` in resident memory estimates |
 | `hidden_size` | integer | Positive hidden width |
 | `intermediate_size` | integer or null | Optional positive MLP width |
 | `layers` | integer | Positive layer count |
 | `context_length` | integer | Positive model context limit |
 | `license_name` | string | Non-empty user-supplied license label |
 | `training_allowed` | boolean | Must be true |
-| `architecture` | string | Defaults to `causal-lm` in the domain contract |
+| `architecture` | string | Exact provider architecture when inspected; otherwise defaults to `causal-lm` |
+| `model_type` | string or null | Exact provider model type when inspected |
+| `quantization_bits` | integer or null | Pinned checkpoint precision from 1 through 16 bits |
+| `quantization_layout` | object or null | Canonical MLX groupwise defaults and module overrides; required by the exact Qwen3 MoE row |
+| `moe` | object or null | Exact routed-expert topology when present |
+| `sparse_layer_count` | integer | Backend-derived sparse decoder-layer count; zero for dense models |
 | `tokenizer_id` | string or null | Optional tokenizer override; current builders leave it null |
 | `provenance` | object | Field name to provenance object mapping |
 
-Provider inspection can supply architecture facts, but it cannot supply
-`parameters` or set `training_allowed`.
+Provider inspection can supply identity, quantization, and MoE topology facts,
+but it cannot supply `parameters` or set `training_allowed`.
+
+When `quantization_layout` is present, it contains:
+
+| Field | Type | Contract |
+| --- | --- | --- |
+| `default_bits` | integer | Default checkpoint precision from 1 through 16 bits; must equal `quantization_bits` |
+| `default_group_size` | integer | Positive default MLX quantization group size |
+| `module_overrides` | array | Canonical module exceptions, sorted by unique `module_path` |
+
+Each module override contains a dotted `module_path`, `bits` from 1 through 16,
+and a positive `group_size`. The exact Qwen3 MoE row requires
+`default_bits: 4` and `default_group_size: 64`. It also requires exactly one
+override for every model layer, and no others. The override for layer `N` is
+`model.layers.N.mlp.gate` with `bits: 8` and `group_size: 64`. The array uses
+canonical module-path order. Its complete content participates in candidate and
+plan identity. Compilation also records the canonical layout SHA-256 and checks
+the generated MLX configuration against it.
+
+When `moe` is present, it contains:
+
+| Field | Type | Contract |
+| --- | --- | --- |
+| `expert_count` | integer | Positive total routed-expert count |
+| `experts_per_token` | integer | Positive routed experts selected per token, no greater than `expert_count` |
+| `expert_intermediate_size` | integer | Positive intermediate width for each routed expert |
+| `decoder_sparse_step` | integer | Positive sparse-block cadence |
+| `mlp_only_layers` | integer array | Sorted, unique, zero-based dense-only layer indices within the model |
+| `shared_expert_intermediate_size` | integer or null | Positive shared-expert width when declared |
+
+The initial executable sparse row requires `model_type: qwen3_moe`,
+`architecture: Qwen3MoeForCausalLM`, the exact mixed quantization layout above,
+a complete topology, and no shared expert. It permits only single-device
+MLX-LM QLoRA. A different override count, module path, precision, group size,
+or ordering is unsupported even when the checkpoint is otherwise four-bit.
 
 ## Dataset object
 
@@ -191,7 +235,7 @@ the recommendation, but unresolved reasons remain binding warnings.
 | `rank` | integer | Zero for full training; adapter prior otherwise |
 | `alpha` | integer | Zero for full training; `2 * rank` for adapters |
 | `learning_rate` | number | Method-class prior |
-| `target_modules` | string array | Empty for full; family catalog modules for adapters |
+| `target_modules` | string array | Empty for full; family catalog modules for adapters. The exact Qwen3 MoE row uses only attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
 
 ### Resource and decision fields
 
@@ -219,7 +263,7 @@ Every current candidate contains an `aptus.runtime-contract.v1` object:
 | `compute_backend` | string | `cuda` for Transformers/PEFT or `mps` for Apple runtimes |
 | `training_runtime` | string | `transformers-peft-cuda`, `mlx-lm`, or `pytorch-mps` |
 | `compiler_id` | string or null | Exact compiler identity; null means implementation is required |
-| `estimator_id` | string | `aptus-memory-v2`, `aptus-memory-mlx-v1`, or `unavailable` |
+| `estimator_id` | string | `aptus-memory-v2`, `aptus-memory-mlx-v2`, or `unavailable` |
 | `evidence_requirement` | string | `pilot-required` or `implementation-required` |
 | `export_kind` | string or null | Runtime-specific artifact contract; null when no compiler exists |
 
@@ -252,10 +296,12 @@ Stored point components are:
 
 The object also stores `component_upper_bounds`, `safety_margin_bytes`,
 `formula_version`, and `assumptions`. CUDA candidates use `aptus-memory-v2`.
-MLX-LM LoRA and QLoRA candidates use `aptus-memory-mlx-v1`. Serialization adds
-calculated `point_estimate_bytes`, compatibility alias `estimated_peak_bytes`,
-`upper_estimate_bytes`, and `uncertainty_bytes`. The user reserve is not a
-memory-use component.
+MLX-LM LoRA and QLoRA candidates use `aptus-memory-mlx-v2`. For MoE models,
+base weights use the total resident parameter count while activation terms can
+use backend-derived routed activity where the formula states it. Serialization
+adds calculated `point_estimate_bytes`, compatibility alias
+`estimated_peak_bytes`, `upper_estimate_bytes`, and `uncertainty_bytes`. The
+user reserve is not a memory-use component.
 
 ## Provenance object
 

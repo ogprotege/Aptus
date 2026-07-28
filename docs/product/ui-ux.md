@@ -28,6 +28,13 @@ revision detail on demand, and recovers an older state only by creating a new
 revision. The interface must state that recovery does not restore training
 authorization and must require fresh validation and confirmation.
 
+Saved v2 plans and plans with no schema identifier remain historical records,
+not executable workspaces. Bootstrap exposes `replan_required` and the source
+identity. The workbench shows that message, restores no old plan or bundle, and
+does not offer compile or revision recovery for it. The operator creates a new
+deterministic v3 plan from the preserved facts. The UI must never imply that
+changing the old schema label is a migration.
+
 The Models destination includes a read-only MLX environment doctor. Each likely
 interpreter shows path, discovery source, Python version, import-probe status,
 and exact-pin compatibility. Only a compatible row can invoke **Use this
@@ -69,6 +76,18 @@ minimum reserve for local planning. CUDA previews explain that
 single-device rows bind the strongest method-compatible visible GPU, while
 distributed rows use limiting VRAM and capabilities shared by every
 participating GPU.
+
+When inspection returns MoE topology, the Facts stage shows a static expert
+routing rail from token to router to the selected expert bank. It displays
+experts selected per token, total experts, optional shared-expert presence,
+sparse-layer count, expert width, checkpoint precision, total resident
+parameters, and backend-derived active parameters. It also displays the exact
+runtime, method, placement, and pilot boundary from the compatibility result.
+Changing any inspection-derived model identity or shape fact clears the topology
+until the operator inspects again. Changing total parameters or training
+permission does not erase inspection because those facts remain user-attested.
+Changing total parameters clears any previously derived active-parameter value
+until the backend creates a new plan.
 
 The method preference is populated from the API's selectable registry entries.
 The readiness board uses a separate status lane for gated executable,

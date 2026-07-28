@@ -441,6 +441,7 @@ export interface components {
             project_history: components["schemas"]["ProjectRevisionSummary"][];
             /** Projects */
             projects: components["schemas"]["ProjectSummaryResponse"][];
+            replan_required?: components["schemas"]["ReplanRequiredResponse"] | null;
             service: components["schemas"]["ServiceIdentity"];
             /** Stack Versions */
             stack_versions: {
@@ -728,6 +729,39 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** InspectedMoETopologyResponse */
+        InspectedMoETopologyResponse: {
+            /** Decoder Sparse Step */
+            decoder_sparse_step?: number | null;
+            /** Expert Count */
+            expert_count?: number | null;
+            /** Expert Intermediate Size */
+            expert_intermediate_size?: number | null;
+            /** Experts Per Token */
+            experts_per_token?: number | null;
+            /** Mlp Only Layers */
+            mlp_only_layers?: number[] | null;
+            /** Shared Expert Intermediate Size */
+            shared_expert_intermediate_size?: number | null;
+        };
+        /** InspectedQuantizationLayoutResponse */
+        InspectedQuantizationLayoutResponse: {
+            /** Default Bits */
+            default_bits: number;
+            /** Default Group Size */
+            default_group_size: number;
+            /** Module Overrides */
+            module_overrides: components["schemas"]["InspectedQuantizationOverrideResponse"][];
+        };
+        /** InspectedQuantizationOverrideResponse */
+        InspectedQuantizationOverrideResponse: {
+            /** Bits */
+            bits: number;
+            /** Group Size */
+            group_size: number;
+            /** Module Path */
+            module_path: string;
+        };
         /** JobRequest */
         JobRequest: {
             /**
@@ -779,8 +813,35 @@ export interface components {
          * @enum {string}
          */
         Method: "full" | "lora" | "int8-lora" | "qlora";
+        /** ModelCompatibilityResponse */
+        ModelCompatibilityResponse: {
+            /** Adapter Scope */
+            adapter_scope?: string | null;
+            /** Distribution */
+            distribution?: string | null;
+            /**
+             * Evidence Requirement
+             * @enum {string}
+             */
+            evidence_requirement: "pilot-required" | "implementation-required";
+            /** Family */
+            family?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "conditional" | "recognized" | "unsupported";
+            /** Supported Methods */
+            supported_methods: string[];
+            /** Supported Runtime */
+            supported_runtime?: string | null;
+        };
         /** ModelFactsRequest */
         ModelFactsRequest: {
+            /** Architecture */
+            architecture?: string | null;
             /** Context Length */
             context_length: number;
             /** Family */
@@ -795,23 +856,62 @@ export interface components {
             license_name: string;
             /** Model Id */
             model_id: string;
+            /** Model Type */
+            model_type?: string | null;
+            moe?: components["schemas"]["MoETopologyRequest"] | null;
             /** Parameters B */
             parameters_b: number;
+            /** Quantization Bits */
+            quantization_bits?: number | null;
+            quantization_layout?: components["schemas"]["QuantizationLayoutRequest"] | null;
             /** Revision */
             revision: string;
             /** Training Allowed */
             training_allowed: boolean;
         };
+        /** ModelInspectionFactsResponse */
+        ModelInspectionFactsResponse: {
+            /** Architecture */
+            architecture?: string | null;
+            /** Architectures */
+            architectures?: string[] | null;
+            /** Attention Heads */
+            attention_heads?: number | null;
+            /** Context Length */
+            context_length?: number | null;
+            /** Family */
+            family?: string | null;
+            /** Hidden Size */
+            hidden_size?: number | null;
+            /** Intermediate Size */
+            intermediate_size?: number | null;
+            /** Key Value Heads */
+            key_value_heads?: number | null;
+            /** Layers */
+            layers?: number | null;
+            /** License Name */
+            license_name?: string | null;
+            /** Model Type */
+            model_type?: string | null;
+            moe?: components["schemas"]["InspectedMoETopologyResponse"] | null;
+            /** Parameters */
+            parameters?: null;
+            /** Quantization Bits */
+            quantization_bits?: number | null;
+            quantization_layout?: components["schemas"]["InspectedQuantizationLayoutResponse"] | null;
+            /** Training Allowed */
+            training_allowed?: null;
+            /** Vocab Size */
+            vocab_size?: number | null;
+        };
         /** ModelInspectionResponse */
         ModelInspectionResponse: {
+            compatibility?: components["schemas"]["ModelCompatibilityResponse"] | null;
             /** Error */
             error?: string | null;
             /** Explicit User Facts Required */
             explicit_user_facts_required?: string[] | null;
-            /** Facts */
-            facts?: {
-                [key: string]: unknown;
-            } | null;
+            facts?: components["schemas"]["ModelInspectionFactsResponse"] | null;
             /** Model Id */
             model_id: string;
             /** Provenance */
@@ -845,6 +945,21 @@ export interface components {
              * @default 10
              */
             timeout_seconds: number;
+        };
+        /** MoETopologyRequest */
+        MoETopologyRequest: {
+            /** Decoder Sparse Step */
+            decoder_sparse_step: number;
+            /** Expert Count */
+            expert_count: number;
+            /** Expert Intermediate Size */
+            expert_intermediate_size: number;
+            /** Experts Per Token */
+            experts_per_token: number;
+            /** Mlp Only Layers */
+            mlp_only_layers?: number[];
+            /** Shared Expert Intermediate Size */
+            shared_expert_intermediate_size?: number | null;
         };
         /**
          * Objective
@@ -1113,6 +1228,52 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** QuantizationLayoutRequest */
+        QuantizationLayoutRequest: {
+            /** Default Bits */
+            default_bits: number;
+            /** Default Group Size */
+            default_group_size: number;
+            /** Module Overrides */
+            module_overrides?: components["schemas"]["QuantizationOverrideRequest"][];
+        };
+        /** QuantizationOverrideRequest */
+        QuantizationOverrideRequest: {
+            /** Bits */
+            bits: number;
+            /** Group Size */
+            group_size: number;
+            /** Module Path */
+            module_path: string;
+        };
+        /** ReplanRequiredResponse */
+        ReplanRequiredResponse: {
+            /** Found Schema */
+            found_schema?: string | null;
+            /** Message */
+            message: string;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Project Revision Id */
+            project_revision_id?: string | null;
+            /**
+             * Required Schema
+             * @constant
+             */
+            required_schema: "aptus.training-plan.v3";
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "project-revision" | "compiled-bundle";
+            /**
+             * Status
+             * @constant
+             */
+            status: "replan_required";
+        };
         /** RuntimeConfiguredResponse */
         RuntimeConfiguredResponse: {
             /** Interpreter */
@@ -1220,8 +1381,7 @@ export interface components {
              * @default sft
              */
             task: string;
-            /** Training Runtime */
-            training_runtime?: ("transformers-peft-cuda" | "mlx-lm" | "pytorch-mps") | null;
+            training_runtime?: components["schemas"]["TrainingRuntime"] | null;
         };
         /** TrainingPlanResponse */
         TrainingPlanResponse: {
@@ -1246,6 +1406,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * TrainingRuntime
+         * @enum {string}
+         */
+        TrainingRuntime: "transformers-peft-cuda" | "mlx-lm" | "pytorch-mps";
         /** ValidateRequest */
         ValidateRequest: {
             /** Bundle Dir */

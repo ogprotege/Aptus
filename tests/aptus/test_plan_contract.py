@@ -14,6 +14,9 @@ from aptus.methods import selectable_method_descriptors
 from aptus.plan_contract import (
     RUNTIME_BINDING_IDENTITIES,
     candidate_id_for_payload,
+    expected_model_architecture_contract,
+    plan_id_for_payload,
+    validate_model_config_against_plan,
     validate_plan_payload,
 )
 from aptus.planning import plan_training
@@ -23,7 +26,11 @@ from aptus.profiling import (
     profile_dataset,
 )
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import (
+    make_plan,
+    make_qwen3_moe_plan,
+    qwen3_moe_quantization_config,
+)
 
 
 class PlanContractTests(unittest.TestCase):
@@ -35,8 +42,9 @@ class PlanContractTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_real_v2_plan_is_valid(self) -> None:
+    def test_real_v3_plan_is_valid(self) -> None:
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
+        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v3")
 
     def test_embedded_runtime_identities_match_the_registered_bindings(self) -> None:
         registered = {
@@ -145,6 +153,20 @@ class PlanContractTests(unittest.TestCase):
             value["recommended"] = copy.deepcopy(candidate)
         errors = validate_plan_payload(value, verify_dataset=False)
         self.assertTrue(any("component upper bounds" in item for item in errors))
+
+    def test_rejects_boolean_memory_components(self) -> None:
+        value = copy.deepcopy(self.payload)
+        value["candidates"][0]["memory"]["communication_bytes"] = False
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any(
+                "memory components must be non-negative integers" in item
+                for item in errors
+            ),
+            errors,
+        )
 
     def test_rejects_dataset_hash_mismatch(self) -> None:
         self.payload["dataset"]["source_sha256"] = "0" * 64
@@ -302,6 +324,151 @@ class PlanContractTests(unittest.TestCase):
             any("exceeds usable per-device memory" in item for item in errors),
             errors,
         )
+
+    def test_qwen3_moe_topology_is_identity_bound_and_policy_checked(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+
+        topology_tamper = copy.deepcopy(value)
+        topology_tamper["model"]["moe"]["experts_per_token"] = 7
+        errors = validate_plan_payload(topology_tamper, verify_dataset=False)
+        self.assertTrue(any("active_parameters" in item for item in errors), errors)
+        self.assertTrue(any("normalized execution contract" in item for item in errors))
+
+        target_tamper = copy.deepcopy(value)
+        candidate = next(
+            item
+            for item in target_tamper["candidates"]
+            if item["method"] == "qlora" and item["distribution"] == "single"
+        )
+        candidate["target_modules"].append("gate_proj")
+        target_tamper["recommended"] = copy.deepcopy(candidate)
+        errors = validate_plan_payload(target_tamper, verify_dataset=False)
+        self.assertTrue(any("model-family policy" in item for item in errors), errors)
+
+        status_tamper = copy.deepcopy(value)
+        status_tamper["recommended"]["status"] = "feasible"
+        recommended_id = status_tamper["recommended"]["candidate_id"]
+        next(
+            item
+            for item in status_tamper["candidates"]
+            if item["candidate_id"] == recommended_id
+        )["status"] = "feasible"
+        errors = validate_plan_payload(status_tamper, verify_dataset=False)
+        self.assertTrue(
+            any("must remain conditional" in item for item in errors), errors
+        )
+
+    def test_qwen3_moe_memory_is_recomputed_after_consistent_id_tampering(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        candidate = next(
+            item
+            for item in value["candidates"]
+            if item["method"] == "qlora" and item["distribution"] == "single"
+        )
+        memory = candidate["memory"]
+        point_delta = memory["activations_bytes"]
+        upper_delta = memory["component_upper_bounds"]["activations_bytes"]
+        memory["activations_bytes"] = 0
+        memory["point_estimate_bytes"] -= point_delta
+        memory["estimated_peak_bytes"] -= point_delta
+        memory["component_upper_bounds"]["activations_bytes"] = 0
+        memory["upper_estimate_bytes"] -= upper_delta
+        candidate["candidate_id"] = candidate_id_for_payload(
+            candidate,
+            model=value["model"],
+            dataset=value["dataset"],
+            hardware=value["hardware"],
+            target=value["target"],
+        )
+        value["recommended"] = copy.deepcopy(candidate)
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any("deterministic recomputation" in item for item in errors), errors
+        )
+        self.assertFalse(
+            any("immutable candidate ID" in item for item in errors), errors
+        )
+        self.assertFalse(any("immutable ID" in item for item in errors), errors)
+
+    def test_qwen3_moe_architecture_contract_matches_pinned_config(self) -> None:
+        model = to_primitive(make_qwen3_moe_plan(self.root))["model"]
+        config = {
+            "model_type": "qwen3_moe",
+            "architectures": ["Qwen3MoeForCausalLM"],
+            "hidden_size": 2048,
+            "intermediate_size": 6144,
+            "num_hidden_layers": 48,
+            "max_position_embeddings": 262144,
+            "num_experts": 128,
+            "num_experts_per_tok": 8,
+            "moe_intermediate_size": 768,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": [],
+            "quantization": qwen3_moe_quantization_config(),
+        }
+
+        expected = expected_model_architecture_contract(model)
+        self.assertEqual(validate_model_config_against_plan(model, config), expected)
+        self.assertEqual(
+            expected["schema_version"], "aptus.model-architecture-contract.v1"
+        )
+        self.assertEqual(len(expected["contract_sha256"]), 64)
+
+        config["num_experts_per_tok"] = 4
+        with self.assertRaisesRegex(ValueError, "topology"):
+            validate_model_config_against_plan(model, config)
+
+    def test_qwen3_moe_architecture_contract_rejects_quantization_layout_drift(
+        self,
+    ) -> None:
+        model = to_primitive(make_qwen3_moe_plan(self.root))["model"]
+        base_config = {
+            "model_type": "qwen3_moe",
+            "architectures": ["Qwen3MoeForCausalLM"],
+            "hidden_size": 2048,
+            "intermediate_size": 6144,
+            "num_hidden_layers": 48,
+            "max_position_embeddings": 262144,
+            "num_experts": 128,
+            "num_experts_per_tok": 8,
+            "moe_intermediate_size": 768,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": [],
+        }
+        cases = {
+            "missing override": lambda value: value.pop("model.layers.47.mlp.gate"),
+            "wrong override bits": lambda value: value[
+                "model.layers.0.mlp.gate"
+            ].update(bits=4),
+            "extra override": lambda value: value.update(
+                {
+                    "model.layers.0.self_attn.q_proj": {
+                        "bits": 8,
+                        "group_size": 64,
+                    }
+                }
+            ),
+            "wrong default group": lambda value: value.update(group_size=32),
+        }
+        for name, mutate in cases.items():
+            with self.subTest(name=name):
+                quantization = qwen3_moe_quantization_config()
+                mutate(quantization)
+                with self.assertRaisesRegex(ValueError, "quantization layout"):
+                    validate_model_config_against_plan(
+                        model,
+                        {**base_config, "quantization": quantization},
+                    )
+
+    def test_v2_plan_cannot_smuggle_moe_fields(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        value["schema_version"] = "aptus.training-plan.v2"
+        errors = validate_plan_payload(value, verify_dataset=False)
+        self.assertTrue(any("v2 plan cannot contain v3" in item for item in errors))
 
 
 if __name__ == "__main__":

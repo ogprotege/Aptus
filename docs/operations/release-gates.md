@@ -88,9 +88,16 @@ do not prove public notarization.
   compatibility record and never presents it as dedicated VRAM. Live available
   host memory constrains MLX planning separately from that record.
 - MLX-LM single-device LoRA and QLoRA candidates bind
-  `aptus.runtime-contract.v1`, compile with `aptus-memory-mlx-v1`, and remain
+  `aptus.runtime-contract.v1`, compile with `aptus-memory-mlx-v2`, and remain
   conditional. MLX QLoRA eligibility comes from pinned-model four-bit metadata,
   not a CUDA capability flag.
+- The first MoE row accepts only `qwen3_moe`, `Qwen3MoeForCausalLM`, four-bit
+  group-64 defaults, exactly one eight-bit group-64 router-gate override per
+  layer, a complete no-shared-expert topology, MLX-LM, QLoRA, `single`, and
+  attention-only adapters. Every near match stays unsupported.
+- The plan and portable validator recompute sparse-layer count and active
+  parameters. Base-weight, metadata, staging, and disk terms use the total
+  resident parameter count.
 - PyTorch MPS has no compiler and produces no executable candidate.
 
 ## 3. Runtime sequence by training runtime
@@ -145,6 +152,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
 - Every MLX action reports uninterrupted semantics and
   `resume_supported: false`. Resume arguments fail, and periodic MLX files are
   called weight snapshots rather than resumable checkpoints.
+- A claimed Qwen3 MoE path additionally proves exact provider type,
+  architecture, canonical quantization layout and digest, complete expert
+  topology, derived sparse facts, and attention-only trainable targets at
+  model-data, preflight, pilot, reload, and completion boundaries.
 
 ## 4. Full-run transaction
 
@@ -217,6 +228,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
   completion attestation, and artifact integrity.
 - The method preference control cannot select experimental or research-only
   descriptors. The readiness board displays their blocker and required proof.
+- An inspected MoE topology renders experts selected per token, total experts,
+  sparse layers, checkpoint precision, total resident parameters, active
+  parameters, runtime scope, and pilot status. Editing an inspection-derived
+  model fact clears stale topology.
 - Keyboard, focus, live-region, contrast, and narrow-viewport checks pass against
   the packaged build.
 - Example mode is visibly non-executed on every stage.
@@ -276,6 +291,11 @@ verification. That historical record does not bind a later source head. The
 submitted pull request must pass the repeated local gate after its documentation
 commit and the GitHub packaging workflow for the exact synthetic merge commit.
 
+The [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
+passed static and dependency gates, then blocked before model loading because
+live unified memory was 18.932 GiB below the exact packed-checkpoint-adjusted
+requirement. It is safe refusal evidence, not MoE acceptance.
+
 No real CUDA pilot or full training evidence has completed on an external CUDA
 host. The local Mac packages are ad-hoc signed, not Developer ID signed and
 notarized public artifacts. Aptus v0.2 remains unreleased until every claimed
@@ -285,6 +305,7 @@ release gate passes.
 
 - [Release evidence template](release-evidence-template.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
+- [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Operator checklist](operator-checklist.md)
 - [Documentation health](../maintenance/documentation-health.md)

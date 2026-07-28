@@ -95,7 +95,7 @@ class CliIntegrationTests(unittest.TestCase):
             self.assertTrue(profile_path.is_file())
             self.assertEqual(
                 json.loads(plan_path.read_text())["schema_version"],
-                "aptus.training-plan.v2",
+                "aptus.training-plan.v3",
             )
             self.assertIsNone(
                 json.loads(plan_path.read_text())["target"]["training_runtime"]
@@ -106,6 +106,134 @@ class CliIntegrationTests(unittest.TestCase):
                 ]
             )
             self.assertTrue((bundle / "bundle-manifest.json").is_file())
+
+    def test_compile_rejects_legacy_plan_without_rewriting_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "legacy-plan.json"
+            bundle = root / "bundle"
+            self.assertEqual(
+                main(
+                    ["spec-plan", *fact_arguments(dataset), "--output", str(plan_path)]
+                ),
+                0,
+            )
+            payload = json.loads(plan_path.read_text(encoding="utf-8"))
+            payload["schema_version"] = "aptus.training-plan.v2"
+            plan_path.write_text(
+                json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            before = plan_path.read_bytes()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stderr(stderr):
+                result = main(
+                    ["compile", "--plan", str(plan_path), "--output", str(bundle)]
+                )
+
+            self.assertEqual(result, 2)
+            self.assertIn("Replan required", stderr.getvalue())
+            self.assertEqual(plan_path.read_bytes(), before)
+            self.assertFalse(bundle.exists())
+
+    def test_exact_qwen3_moe_flags_persist_derived_sparse_facts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "moe-plan.json"
+            arguments = fact_arguments(dataset)
+            replacements = {
+                "--model-id": "Qwen/Qwen3-30B-A3B-MLX-4bit",
+                "--family": "qwen3_moe",
+                "--parameters-b": "30.5",
+                "--hidden-size": "2048",
+                "--intermediate-size": "6144",
+                "--layers": "48",
+                "--context-length": "40960",
+                "--vram-gib": "64",
+                "--host-ram-gib": "64",
+                "--prefer-method": "qlora",
+            }
+            for flag, value in replacements.items():
+                if flag in arguments:
+                    arguments[arguments.index(flag) + 1] = value
+                else:
+                    arguments.extend((flag, value))
+            arguments.extend(
+                (
+                    "--model-type",
+                    "qwen3_moe",
+                    "--architecture",
+                    "Qwen3MoeForCausalLM",
+                    "--quantization-bits",
+                    "4",
+                    "--quantization-layout-profile",
+                    "qwen3-moe-4bit-group64-router-gates-8bit",
+                    "--moe-expert-count",
+                    "128",
+                    "--moe-experts-per-token",
+                    "8",
+                    "--moe-expert-intermediate-size",
+                    "768",
+                    "--moe-decoder-sparse-step",
+                    "1",
+                    "--backend",
+                    "mps",
+                    "--training-runtime",
+                    "mlx-lm",
+                )
+            )
+
+            self.assertEqual(
+                main(["spec-plan", *arguments, "--output", str(plan_path)]),
+                0,
+            )
+
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(plan["schema_version"], "aptus.training-plan.v3")
+            self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
+            self.assertEqual(plan["model"]["architecture"], "Qwen3MoeForCausalLM")
+            self.assertEqual(plan["model"]["quantization_bits"], 4)
+            self.assertEqual(
+                len(plan["model"]["quantization_layout"]["module_overrides"]), 48
+            )
+            self.assertEqual(plan["model"]["moe"]["expert_count"], 128)
+            self.assertEqual(plan["model"]["sparse_layer_count"], 48)
+            self.assertLess(
+                plan["model"]["active_parameters"], plan["model"]["parameters"]
+            )
+            self.assertEqual(plan["recommended"]["method"], "qlora")
+            self.assertEqual(
+                plan["recommended"]["runtime_contract"]["training_runtime"],
+                "mlx-lm",
+            )
+
+    def test_partial_moe_topology_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stderr(stderr):
+                code = main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--moe-expert-count",
+                        "128",
+                        "--output",
+                        str(root / "plan.json"),
+                    ]
+                )
+
+            self.assertEqual(code, 2)
+            self.assertIn("--moe-experts-per-token", stderr.getvalue())
+            self.assertIn("--moe-expert-intermediate-size", stderr.getvalue())
+            self.assertIn("--moe-decoder-sparse-step", stderr.getvalue())
 
     def test_explicit_mlx_runtime_is_persisted_for_mps_planning(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

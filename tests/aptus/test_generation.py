@@ -1,5 +1,6 @@
 import importlib.util
 import ast
+import copy
 import hashlib
 import json
 import math
@@ -22,10 +23,121 @@ from aptus.generation import (
     generate_bundle,
 )
 from aptus.planning import plan_training
+from aptus.plan_contract import (
+    expected_model_architecture_contract,
+    mlx_quantized_storage_bytes_for_contract,
+)
 from aptus.profiling import build_hardware_spec, profile_dataset
 from aptus.validation import validate_bundle
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import (
+    make_plan,
+    make_qwen3_moe_plan,
+    qwen3_moe_quantization_config,
+)
+
+
+def _mlx_model_load_binding(plan: dict) -> dict:
+    model = plan["model"]
+    total = model["parameters"]
+    active = model.get("active_parameters", total)
+    sparse = model.get("sparse_layer_count", 0)
+    moe = model.get("moe")
+    if moe is None:
+        routed = active_routed = inactive = 0
+        method = "mlx-lm.get_total_parameters.v1"
+    else:
+        routed = (
+            sparse
+            * moe["expert_count"]
+            * 3
+            * model["hidden_size"]
+            * moe["expert_intermediate_size"]
+        )
+        active_routed = routed * moe["experts_per_token"] // moe["expert_count"]
+        inactive = routed - active_routed
+        method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+    census = {
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "census_method": method,
+        "declared_total_parameters": total,
+        "observed_total_parameters": total,
+        "total_parameter_delta": 0,
+        "total_parameter_tolerance": max(1_000_000, round(total * 0.02)),
+        "declared_active_parameters": active,
+        "observed_active_parameters": active,
+        "sparse_layer_count": sparse,
+        "routed_expert_parameters": routed,
+        "active_routed_expert_parameters": active_routed,
+        "inactive_expert_parameters": inactive,
+    }
+    census["descriptor_sha256"] = hashlib.sha256(
+        json.dumps(census, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    if plan["recommended"]["method"] == "qlora":
+        expected_weight_bytes, expected_metadata_bytes = (
+            mlx_quantized_storage_bytes_for_contract(model, logical_parameters=total)
+        )
+    else:
+        expected_weight_bytes = round(total * 2.0)
+        expected_metadata_bytes = 0
+    expected_packed_bytes = expected_weight_bytes + expected_metadata_bytes
+    observed_safetensors_bytes = expected_packed_bytes + 4096
+    packed = {
+        "schema_version": "aptus.mlx-packed-checkpoint.v1",
+        "observed_safetensors_bytes": observed_safetensors_bytes,
+        "observed_logical_parameters": total,
+        "expected_weight_bytes": expected_weight_bytes,
+        "expected_quantization_metadata_bytes": expected_metadata_bytes,
+        "expected_packed_tensor_bytes": expected_packed_bytes,
+        "container_overhead_bytes": 4096,
+        "container_overhead_limit_bytes": max(
+            1024**2, round(expected_packed_bytes * 0.0001)
+        ),
+    }
+    packed["descriptor_sha256"] = hashlib.sha256(
+        json.dumps(packed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    binding = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": model["model_id"],
+        "model_revision": model["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": expected_model_architecture_contract(model),
+        "parameter_census": census,
+        "packed_checkpoint_binding": packed,
+    }
+    binding["descriptor_sha256"] = hashlib.sha256(
+        json.dumps(binding, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return binding
+
+
+def _mlx_unified_memory_admission(plan: dict) -> dict:
+    memory = plan["recommended"]["memory"]
+    planned_resident = (
+        memory["base_weights_bytes"] + memory["quantization_metadata_bytes"]
+    )
+    observed = _mlx_model_load_binding(plan)["packed_checkpoint_binding"][
+        "observed_safetensors_bytes"
+    ]
+    adjustment = max(0, observed - planned_resident)
+    point = memory["point_estimate_bytes"] + adjustment
+    upper = memory["upper_estimate_bytes"] + adjustment
+    reserve = max(plan["hardware"].get("reserve_per_device_bytes", 0), 8 * 1024**3)
+    required = max(point, upper) + reserve
+    return {
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
+        "available_unified_memory_bytes": required + 1,
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": observed,
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": point,
+        "adjusted_upper_estimate_bytes": upper,
+        "reserve_bytes": reserve,
+        "required_available_bytes": required,
+    }
 
 
 class FakeTokenizer:
@@ -527,6 +639,103 @@ class BundleGenerationTests(unittest.TestCase):
             all(row["messages"][-1]["role"] == "assistant" for row in compiled_rows)
         )
 
+    def test_qwen3_moe_bundle_documents_attention_only_resident_base_policy(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "qwen3-moe-bundle"
+            report = generate_bundle(make_qwen3_moe_plan(root), output)
+            config = (output / "config" / "mlx-lm.yaml").read_text(encoding="utf-8")
+            readme = (output / "README.md").read_text(encoding="utf-8")
+            runbook = (output / "runbook.md").read_text(encoding="utf-8")
+            decision = (output / "decision-report.md").read_text(encoding="utf-8")
+
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertIn("attention projections only", config)
+        self.assertIn('keys: ["q_proj", "k_proj", "v_proj", "o_proj"]', config)
+        self.assertIn("Expert and router weights remain frozen", config)
+        self.assertIn("full quantized base still resides", readme)
+        self.assertIn("logical active parameters", runbook)
+        self.assertIn("MoE adapter policy: attention-only QLoRA", decision)
+
+    def test_generated_plan_contract_recomputes_qwen3_moe_memory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "qwen3-moe-bundle"
+            generate_bundle(make_qwen3_moe_plan(root), output)
+            module = self._load_generated_path(
+                output, "plan_contract.py", "aptus_generated_plan_contract"
+            )
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+
+        candidate = next(
+            item
+            for item in plan["candidates"]
+            if item["method"] == "qlora" and item["distribution"] == "single"
+        )
+        memory = candidate["memory"]
+        point_delta = memory["activations_bytes"]
+        upper_delta = memory["component_upper_bounds"]["activations_bytes"]
+        memory["activations_bytes"] = 0
+        memory["point_estimate_bytes"] -= point_delta
+        memory["estimated_peak_bytes"] -= point_delta
+        memory["component_upper_bounds"]["activations_bytes"] = 0
+        memory["upper_estimate_bytes"] -= upper_delta
+        candidate["candidate_id"] = module.candidate_id_for_payload(
+            candidate,
+            model=plan["model"],
+            dataset=plan["dataset"],
+            hardware=plan["hardware"],
+            target=plan["target"],
+        )
+        plan["recommended"] = copy.deepcopy(candidate)
+        plan["plan_id"] = module.plan_id_for_payload(plan)
+
+        errors = module.validate_plan_payload(plan, verify_dataset=False)
+
+        self.assertTrue(
+            any("deterministic recomputation" in item for item in errors), errors
+        )
+
+    def test_generated_mlx_binds_exact_qwen3_moe_quantization_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "qwen3-moe-bundle"
+            generate_bundle(make_qwen3_moe_plan(root), output)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_quantization_layout"
+            )
+            plan, candidate = module.load_contract()
+            model_path = root / "model"
+            model_path.mkdir()
+            config = {
+                "model_type": "qwen3_moe",
+                "architectures": ["Qwen3MoeForCausalLM"],
+                "hidden_size": 2048,
+                "intermediate_size": 6144,
+                "num_hidden_layers": 48,
+                "max_position_embeddings": 262144,
+                "num_experts": 128,
+                "num_experts_per_tok": 8,
+                "moe_intermediate_size": 768,
+                "decoder_sparse_step": 1,
+                "mlp_only_layers": [],
+                "quantization": qwen3_moe_quantization_config(),
+            }
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+
+            module.require_method_model(plan, candidate, model_path)
+            config["quantization"]["model.layers.0.mlp.gate"]["bits"] = 4
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                module.require_method_model(plan, candidate, model_path)
+
     def test_packaged_program_resources_match_generated_files_and_manifest(
         self,
     ) -> None:
@@ -645,19 +854,44 @@ class BundleGenerationTests(unittest.TestCase):
             output = self._mlx_bundle(Path(temporary))
             module = self._load_generated(output, "aptus_generated_mlx_safe_model_load")
             plan = module.load_contract()[0]
+            if plan["recommended"]["method"] == "qlora":
+                plan = json.loads(json.dumps(plan))
+                plan["model"]["quantization_bits"] = 4
             model_path = Path(temporary) / "pinned-model"
             model_path.mkdir()
+            model_config = {
+                "hidden_size": plan["model"]["hidden_size"],
+                "num_hidden_layers": plan["model"]["layers"],
+                "max_position_embeddings": plan["model"]["context_length"],
+            }
+            if plan["model"].get("intermediate_size") is not None:
+                model_config["intermediate_size"] = plan["model"]["intermediate_size"]
+            if plan["model"].get("quantization_bits") is not None:
+                model_config["quantization_config"] = {
+                    "bits": plan["model"]["quantization_bits"]
+                }
+            (model_path / "config.json").write_text(
+                json.dumps(model_config), encoding="utf-8"
+            )
             calls = []
+            observed_safetensors_bytes = _mlx_model_load_binding(plan)[
+                "packed_checkpoint_binding"
+            ]["observed_safetensors_bytes"]
+            loaded_model = types.SimpleNamespace(
+                layers=[object() for _ in range(plan["model"]["layers"])]
+            )
 
             def loader(*args, **kwargs):
                 calls.append((args, kwargs))
-                return object(), object()
+                return loaded_model, object()
 
             loaded, binding = module.load_pinned_local_model(
                 loader,
                 str(model_path),
                 model_path=model_path,
                 plan=plan,
+                observed_safetensors_bytes=observed_safetensors_bytes,
+                parameter_counter=lambda _model: plan["model"]["parameters"],
                 tokenizer_config={"trust_remote_code": True},
             )
             self.assertEqual(len(loaded), 2)
@@ -681,6 +915,7 @@ class BundleGenerationTests(unittest.TestCase):
                     str(other_path),
                     model_path=model_path,
                     plan=plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
                     tokenizer_config={"trust_remote_code": True},
                 )
             with self.assertRaisesRegex(RuntimeError, "unbound loader arguments"):
@@ -689,6 +924,7 @@ class BundleGenerationTests(unittest.TestCase):
                     str(model_path),
                     model_path=model_path,
                     plan=plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
                     tokenizer_config={"trust_remote_code": True},
                     lazy=True,
                 )
@@ -698,36 +934,194 @@ class BundleGenerationTests(unittest.TestCase):
                     str(model_path),
                     model_path=model_path,
                     plan=plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
                     tokenizer_config={"trust_remote_code": False},
+                )
+
+    def test_generated_mlx_census_proves_moe_topology_and_rejects_tampering(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_mlx_moe_census")
+            hidden_size = 4
+            expert_count = 4
+            experts_per_token = 2
+            expert_intermediate_size = 3
+            layer_count = 2
+            per_layer = expert_count * 3 * hidden_size * expert_intermediate_size
+            total = 10_000_000
+            inactive = per_layer * layer_count // 2
+            model_contract = {
+                "model_id": "mlx-community/Qwen3-MoE-fixture-4bit",
+                "revision": "a" * 40,
+                "family": "qwen3_moe",
+                "parameters": total,
+                "hidden_size": hidden_size,
+                "intermediate_size": 12,
+                "layers": layer_count,
+                "context_length": 128,
+                "architecture": "Qwen3MoeForCausalLM",
+                "model_type": "qwen3_moe",
+                "quantization_bits": 4,
+                "quantization_layout": {
+                    "default_bits": 4,
+                    "default_group_size": 64,
+                    "module_overrides": [
+                        {
+                            "module_path": f"model.layers.{index}.mlp.gate",
+                            "bits": 8,
+                            "group_size": 64,
+                        }
+                        for index in range(layer_count)
+                    ],
+                },
+                "moe": {
+                    "expert_count": expert_count,
+                    "experts_per_token": experts_per_token,
+                    "expert_intermediate_size": expert_intermediate_size,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                    "shared_expert_intermediate_size": None,
+                },
+                "sparse_layer_count": layer_count,
+                "active_parameters": total - inactive,
+            }
+            switches = [object() for _ in range(layer_count)]
+            layers = [
+                types.SimpleNamespace(
+                    mlp=types.SimpleNamespace(
+                        num_experts=expert_count,
+                        top_k=experts_per_token,
+                        switch_mlp=switch,
+                    )
+                )
+                for switch in switches
+            ]
+            loaded_model = types.SimpleNamespace(layers=layers)
+
+            def count_parameters(value):
+                return total if value is loaded_model else per_layer
+
+            plan = {"model": model_contract, "recommended": {"method": "qlora"}}
+            expected_weight_bytes, expected_metadata_bytes = (
+                mlx_quantized_storage_bytes_for_contract(model_contract)
+            )
+            observed_safetensors_bytes = (
+                expected_weight_bytes + expected_metadata_bytes + 4096
+            )
+            binding = module.build_mlx_model_load_binding(
+                loaded_model,
+                plan,
+                observed_safetensors_bytes=observed_safetensors_bytes,
+                parameter_counter=count_parameters,
+            )
+            census = binding["parameter_census"]
+            self.assertEqual(
+                binding["schema_version"], "aptus.mlx-model-load-binding.v3"
+            )
+            self.assertEqual(census["observed_active_parameters"], total - inactive)
+            self.assertEqual(census["routed_expert_parameters"], per_layer * 2)
+            self.assertEqual(
+                binding["packed_checkpoint_binding"]["observed_safetensors_bytes"],
+                observed_safetensors_bytes,
+            )
+            self.assertIs(module.require_mlx_model_load_binding(plan, binding), binding)
+
+            forged_packed = json.loads(json.dumps(binding))
+            packed = forged_packed["packed_checkpoint_binding"]
+            packed["expected_weight_bytes"] += 1
+            packed["expected_packed_tensor_bytes"] += 1
+            packed["container_overhead_bytes"] -= 1
+            packed["descriptor_sha256"] = module._descriptor_sha256(
+                {
+                    key: value
+                    for key, value in packed.items()
+                    if key != "descriptor_sha256"
+                }
+            )
+            forged_packed["descriptor_sha256"] = module._descriptor_sha256(
+                {
+                    key: value
+                    for key, value in forged_packed.items()
+                    if key != "descriptor_sha256"
+                }
+            )
+            with self.assertRaisesRegex(RuntimeError, "logical parameter census"):
+                module.require_mlx_model_load_binding(plan, forged_packed)
+
+            tampered = json.loads(json.dumps(binding))
+            tampered["parameter_census"]["observed_active_parameters"] += 1
+            tampered["parameter_census"]["descriptor_sha256"] = (
+                module._descriptor_sha256(
+                    {
+                        key: value
+                        for key, value in tampered["parameter_census"].items()
+                        if key != "descriptor_sha256"
+                    }
+                )
+            )
+            tampered["descriptor_sha256"] = module._descriptor_sha256(
+                {
+                    key: value
+                    for key, value in tampered.items()
+                    if key != "descriptor_sha256"
+                }
+            )
+            with self.assertRaisesRegex(RuntimeError, "does not match"):
+                module.require_mlx_model_load_binding(plan, tampered)
+
+            with self.assertRaisesRegex(RuntimeError, "two-percent"):
+                module.build_mlx_model_load_binding(
+                    loaded_model,
+                    plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
+                    parameter_counter=lambda value: (
+                        total + 1_000_001 if value is loaded_model else per_layer
+                    ),
                 )
 
     def test_generated_mlx_rejects_method_model_quantization_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = self._mlx_bundle(Path(temporary))
             module = self._load_generated(output, "aptus_generated_mlx_method_model")
+            plan = module.load_contract()[0]
+            quantized_plan = json.loads(json.dumps(plan))
+            quantized_plan["model"]["quantization_bits"] = 4
             unquantized = Path(temporary) / "unquantized"
             quantized = Path(temporary) / "quantized"
             custom_model = Path(temporary) / "custom-model"
             unquantized.mkdir()
             quantized.mkdir()
             custom_model.mkdir()
-            (unquantized / "config.json").write_text("{}", encoding="utf-8")
+            base_config = {
+                "hidden_size": plan["model"]["hidden_size"],
+                "intermediate_size": plan["model"]["intermediate_size"],
+                "num_hidden_layers": plan["model"]["layers"],
+                "max_position_embeddings": plan["model"]["context_length"],
+            }
+            (unquantized / "config.json").write_text(
+                json.dumps(base_config), encoding="utf-8"
+            )
             (quantized / "config.json").write_text(
-                json.dumps({"quantization_config": {"bits": 4}}),
+                json.dumps({**base_config, "quantization_config": {"bits": 4}}),
                 encoding="utf-8",
             )
             (custom_model / "config.json").write_text(
-                json.dumps({"model_file": "model.py"}), encoding="utf-8"
+                json.dumps({**base_config, "model_file": "model.py"}),
+                encoding="utf-8",
             )
 
-            module.require_method_model({"method": "lora"}, unquantized)
-            module.require_method_model({"method": "qlora"}, quantized)
+            module.require_method_model(plan, {"method": "lora"}, unquantized)
+            module.require_method_model(quantized_plan, {"method": "qlora"}, quantized)
             with self.assertRaisesRegex(RuntimeError, "unquantized pinned base"):
-                module.require_method_model({"method": "lora"}, quantized)
+                module.require_method_model(
+                    quantized_plan, {"method": "lora"}, quantized
+                )
             with self.assertRaisesRegex(RuntimeError, "four-bit"):
-                module.require_method_model({"method": "qlora"}, unquantized)
+                module.require_method_model(plan, {"method": "qlora"}, unquantized)
             with self.assertRaisesRegex(RuntimeError, "custom model_file"):
-                module.require_method_model({"method": "lora"}, custom_model)
+                module.require_method_model(plan, {"method": "lora"}, custom_model)
 
     def test_generated_mlx_resume_arguments_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -801,14 +1195,6 @@ class BundleGenerationTests(unittest.TestCase):
             candidate = plan["recommended"]
             layers = plan["model"]["layers"]
             targets = candidate["target_modules"]
-            reserve = max(plan["hardware"]["reserve_per_device_bytes"], 8 * 1024**3)
-            required = (
-                max(
-                    candidate["memory"]["point_estimate_bytes"],
-                    candidate["memory"]["upper_estimate_bytes"],
-                )
-                + reserve
-            )
             split_contract = json.loads(
                 (output / "data" / "mlx" / "split-contract.json").read_text(
                     encoding="utf-8"
@@ -851,13 +1237,7 @@ class BundleGenerationTests(unittest.TestCase):
                 "active_memory_bytes": 2048,
                 "cache_memory_bytes": 1024,
                 "memory_metric_backend": "mlx",
-                "model_load_binding": {
-                    "schema_version": "aptus.mlx-model-load-binding.v1",
-                    "model_id": plan["model"]["model_id"],
-                    "model_revision": plan["model"]["revision"],
-                    "resolved_local_snapshot": True,
-                    "trust_remote_code": False,
-                },
+                "model_load_binding": _mlx_model_load_binding(plan),
                 "finite_train_loss": True,
                 "train_loss_observations": [1.25, 1.0],
                 "optimizer_update_opportunities": 1,
@@ -883,14 +1263,7 @@ class BundleGenerationTests(unittest.TestCase):
                 "trainable_target_binding": binding,
                 "adapter_delta_l1": 0.5,
                 "changed_adapter_tensor_count": 7,
-                "unified_memory_admission": {
-                    "schema_version": "aptus.mlx-unified-memory-admission.v1",
-                    "available_unified_memory_bytes": required + 1,
-                    "point_estimate_bytes": candidate["memory"]["point_estimate_bytes"],
-                    "upper_estimate_bytes": candidate["memory"]["upper_estimate_bytes"],
-                    "reserve_bytes": reserve,
-                    "required_available_bytes": required,
-                },
+                "unified_memory_admission": _mlx_unified_memory_admission(plan),
             }
             self.assertIs(module.require_runtime_metrics(plan, metrics), metrics)
             for name, value, message in (
@@ -912,6 +1285,9 @@ class BundleGenerationTests(unittest.TestCase):
                 output, "aptus_generated_mlx_memory_admission"
             )
             plan = module.load_contract()[0]
+            model_path = Path(temporary) / "pinned-admission-model"
+            model_path.mkdir()
+            (model_path / "model.safetensors").write_bytes(b"x")
             vm_stat = (
                 "Mach Virtual Memory Statistics: (page size of 4096 bytes)\n"
                 "Pages free:                               5000000.\n"
@@ -922,13 +1298,41 @@ class BundleGenerationTests(unittest.TestCase):
                 ["/usr/bin/vm_stat"], 0, stdout=vm_stat, stderr=""
             )
             with patch.object(module.subprocess, "run", return_value=completed):
-                admission = module.require_unified_memory_admission(plan)
+                admission = module.require_unified_memory_admission(plan, model_path)
             self.assertGreaterEqual(
                 admission["available_unified_memory_bytes"],
                 admission["required_available_bytes"],
             )
             self.assertEqual(admission["reserve_bytes"], 8 * 1024**3)
+            self.assertEqual(admission["observed_safetensors_bytes"], 1)
+            self.assertEqual(admission["resident_adjustment_bytes"], 0)
             self.assertNotIn("free_vram_bytes", admission)
+
+            memory = plan["recommended"]["memory"]
+            planned_resident = (
+                memory["base_weights_bytes"] + memory["quantization_metadata_bytes"]
+            )
+            observed = planned_resident + 12_345
+            adjusted_required = (
+                max(
+                    memory["point_estimate_bytes"] + 12_345,
+                    memory["upper_estimate_bytes"] + 12_345,
+                )
+                + 8 * 1024**3
+            )
+            with (
+                patch.object(
+                    module, "snapshot_safetensors_bytes", return_value=observed
+                ),
+                patch.object(
+                    module,
+                    "current_available_unified_memory_bytes",
+                    return_value=adjusted_required,
+                ),
+            ):
+                adjusted = module.require_unified_memory_admission(plan, model_path)
+            self.assertEqual(adjusted["resident_adjustment_bytes"], 12_345)
+            self.assertEqual(adjusted["required_available_bytes"], adjusted_required)
 
             low_vm_stat = vm_stat.replace("5000000", "1")
             failed = subprocess.CompletedProcess(
@@ -936,9 +1340,16 @@ class BundleGenerationTests(unittest.TestCase):
             )
             with (
                 patch.object(module.subprocess, "run", return_value=failed),
-                self.assertRaisesRegex(RuntimeError, "8 GiB Aptus reserve"),
+                self.assertRaisesRegex(RuntimeError, "8 GiB Aptus reserve") as raised,
             ):
-                module.require_unified_memory_admission(plan)
+                module.require_unified_memory_admission(plan, model_path)
+            required = (
+                max(memory["point_estimate_bytes"], memory["upper_estimate_bytes"])
+                + 8 * 1024**3
+            )
+            self.assertIn(f"required={required} bytes", str(raised.exception))
+            self.assertIn("available=4096 bytes", str(raised.exception))
+            self.assertIn(f"shortfall={required - 4096} bytes", str(raised.exception))
 
     def test_generated_mlx_model_data_refuses_right_truncation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -947,6 +1358,7 @@ class BundleGenerationTests(unittest.TestCase):
                 output, "validate.py", "aptus_generated_mlx_dataset_contract"
             )
             plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            plan["model"]["quantization_bits"] = 4
             observed = {}
 
             class FakeDataset:
@@ -984,20 +1396,31 @@ class BundleGenerationTests(unittest.TestCase):
             fake_datasets = types.ModuleType("mlx_lm.tuner.datasets")
             fake_datasets.load_dataset = load_dataset
             fake_utils = types.ModuleType("mlx_lm.utils")
+            fake_model = types.SimpleNamespace(
+                layers=[object() for _ in range(plan["model"]["layers"])]
+            )
+            provider_config = {
+                "hidden_size": plan["model"]["hidden_size"],
+                "intermediate_size": plan["model"]["intermediate_size"],
+                "num_hidden_layers": plan["model"]["layers"],
+                "max_position_embeddings": plan["model"]["context_length"],
+                "quantization_config": {"bits": 4},
+            }
 
             def safe_load(*_args, **kwargs):
                 observed["tokenizer_config"] = kwargs.get("tokenizer_config")
                 return (
+                    fake_model,
                     object(),
-                    object(),
-                    {"quantization_config": {"bits": 4}},
+                    provider_config,
                 )
 
             fake_utils.load = safe_load
+            fake_utils.get_total_parameters = lambda _model: plan["model"]["parameters"]
             pinned_model = Path(temporary) / "pinned-model-data"
             pinned_model.mkdir()
             (pinned_model / "config.json").write_text(
-                json.dumps({"quantization_config": {"bits": 4}}),
+                json.dumps(provider_config),
                 encoding="utf-8",
             )
             fake_huggingface = types.ModuleType("huggingface_hub")
@@ -1013,7 +1436,11 @@ class BundleGenerationTests(unittest.TestCase):
                         "mlx_lm.utils": fake_utils,
                     },
                 ),
-                patch.object(module, "require_unified_memory_admission"),
+                patch.object(
+                    module,
+                    "require_unified_memory_admission",
+                    return_value=_mlx_unified_memory_admission(plan),
+                ),
                 self.assertRaisesRegex(RuntimeError, "right-truncates"),
             ):
                 module.require_model_data(plan)

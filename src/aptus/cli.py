@@ -8,9 +8,14 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+from .catalog import (
+    QWEN3_MOE_QUANTIZATION_PROFILE,
+    reviewed_qwen3_moe_quantization_layout,
+)
 from .domain import (
     Backend,
     Method,
+    MoETopology,
     Objective,
     TrainingRuntime,
     TrainingTarget,
@@ -58,7 +63,30 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         "--parameters-b",
         required=True,
         type=float,
-        help="Model parameter count in billions.",
+        help="Total resident model parameter count in billions.",
+    )
+    parser.add_argument(
+        "--model-type",
+        help="Exact provider model_type. Required by allowlisted MoE contracts.",
+    )
+    parser.add_argument(
+        "--architecture",
+        help="Exact provider architecture class. Required by allowlisted MoE contracts.",
+    )
+    parser.add_argument(
+        "--quantization-bits",
+        type=int,
+        choices=range(1, 17),
+        metavar="BITS",
+        help="Pinned checkpoint weight precision from 1 through 16 bits.",
+    )
+    parser.add_argument(
+        "--quantization-layout-profile",
+        choices=(QWEN3_MOE_QUANTIZATION_PROFILE,),
+        help=(
+            "Exact reviewed provider quantization map. The Qwen3 MoE profile "
+            "binds four-bit group-64 defaults and one eight-bit router gate per layer."
+        ),
     )
     parser.add_argument(
         "--hidden-size", required=True, type=int, help="Model hidden width."
@@ -67,6 +95,38 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         "--intermediate-size",
         type=int,
         help="Optional MLP intermediate width; planner fallback is 4x hidden size.",
+    )
+    parser.add_argument(
+        "--moe-expert-count",
+        type=int,
+        help="Total routed experts in an exact MoE topology.",
+    )
+    parser.add_argument(
+        "--moe-experts-per-token",
+        type=int,
+        help="Routed experts selected for each token.",
+    )
+    parser.add_argument(
+        "--moe-expert-intermediate-size",
+        type=int,
+        help="Intermediate width of each routed expert.",
+    )
+    parser.add_argument(
+        "--moe-decoder-sparse-step",
+        type=int,
+        help="Layer cadence for sparse expert blocks.",
+    )
+    parser.add_argument(
+        "--moe-mlp-only-layer",
+        action="append",
+        default=[],
+        type=int,
+        help="Dense MLP-only layer index. Repeat for each declared layer.",
+    )
+    parser.add_argument(
+        "--moe-shared-expert-intermediate-size",
+        type=int,
+        help="Optional intermediate width of the shared expert path.",
     )
     parser.add_argument("--layers", required=True, type=int, help="Model layer count.")
     parser.add_argument(
@@ -230,7 +290,7 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     for name, help_text in (
-        ("spec-plan", "Write a persisted v2 plan JSON without compiling."),
+        ("spec-plan", "Write a persisted v3 plan JSON without compiling."),
         ("plan", "Compatibility flow: plan, compile, validate, and archive."),
         ("build", "Plan, compile, validate, and archive."),
     ):
@@ -253,7 +313,7 @@ def _parser() -> argparse.ArgumentParser:
         "compile", help="Compile a persisted plan JSON into a portable bundle."
     )
     compile_command.add_argument(
-        "--plan", required=True, type=Path, help="Persisted Aptus v2 plan JSON."
+        "--plan", required=True, type=Path, help="Persisted Aptus v3 plan JSON."
     )
     compile_command.add_argument(
         "--output", required=True, type=Path, help="New or empty bundle directory."
@@ -425,17 +485,63 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         sample_limit=arguments.sample_limit,
         sequence_length=arguments.sequence_length,
     )
+    moe_required = {
+        "--moe-expert-count": arguments.moe_expert_count,
+        "--moe-experts-per-token": arguments.moe_experts_per_token,
+        "--moe-expert-intermediate-size": arguments.moe_expert_intermediate_size,
+        "--moe-decoder-sparse-step": arguments.moe_decoder_sparse_step,
+    }
+    moe_requested = any(
+        value is not None
+        for value in (
+            *moe_required.values(),
+            arguments.moe_shared_expert_intermediate_size,
+            *arguments.moe_mlp_only_layer,
+        )
+    )
+    missing_moe = [name for name, value in moe_required.items() if value is None]
+    if moe_requested and missing_moe:
+        raise ValueError("MoE topology requires " + ", ".join(missing_moe) + ".")
+    moe = (
+        MoETopology(
+            expert_count=arguments.moe_expert_count,
+            experts_per_token=arguments.moe_experts_per_token,
+            expert_intermediate_size=arguments.moe_expert_intermediate_size,
+            decoder_sparse_step=arguments.moe_decoder_sparse_step,
+            mlp_only_layers=tuple(arguments.moe_mlp_only_layer),
+            shared_expert_intermediate_size=(
+                arguments.moe_shared_expert_intermediate_size
+            ),
+        )
+        if moe_requested
+        else None
+    )
+    model_arguments: dict[str, Any] = {
+        "model_id": arguments.model_id,
+        "revision": arguments.revision,
+        "family": arguments.family,
+        "parameters_b": arguments.parameters_b,
+        "hidden_size": arguments.hidden_size,
+        "intermediate_size": arguments.intermediate_size,
+        "layers": arguments.layers,
+        "context_length": arguments.context_length,
+        "license_name": arguments.license,
+        "training_allowed": True,
+    }
+    if arguments.model_type is not None:
+        model_arguments["model_type"] = arguments.model_type
+    if arguments.architecture is not None:
+        model_arguments["architecture"] = arguments.architecture
+    if arguments.quantization_bits is not None:
+        model_arguments["quantization_bits"] = arguments.quantization_bits
+    if arguments.quantization_layout_profile is not None:
+        layout = reviewed_qwen3_moe_quantization_layout(arguments.layers)
+        model_arguments.setdefault("quantization_bits", layout.default_bits)
+        model_arguments["quantization_layout"] = layout
+    if moe is not None:
+        model_arguments["moe"] = moe
     model = build_model_spec(
-        model_id=arguments.model_id,
-        revision=arguments.revision,
-        family=arguments.family,
-        parameters_b=arguments.parameters_b,
-        hidden_size=arguments.hidden_size,
-        intermediate_size=arguments.intermediate_size,
-        layers=arguments.layers,
-        context_length=arguments.context_length,
-        license_name=arguments.license,
-        training_allowed=True,
+        **model_arguments,
     )
     reserve_gib = arguments.reserve_gib
     if backend == Backend.MPS:

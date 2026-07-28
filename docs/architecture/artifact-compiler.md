@@ -7,7 +7,7 @@ directory and deterministic ZIP. It does not train a model.
 
 ## Inputs
 
-- Valid `aptus.training-plan.v2` payload.
+- Valid `aptus.training-plan.v3` payload.
 - Recommended candidate embedded in that plan.
 - Source dataset whose content still matches the profiled digest.
 - Empty or absent output directory.

@@ -2,7 +2,7 @@
 
 > **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when fact provenance changes
 
-Fact contract version: `aptus.facts.v2`.
+Fact contract version: `aptus.facts.v3`.
 
 V0.2 accepts explicit facts and preserves the provenance that the current
 profilers can support. It does not inspect every model or runtime fact.
@@ -35,6 +35,13 @@ V0.2 requires explicit:
 - license identifier;
 - affirmative training-permission attestation.
 
+V3 can also bind exact provider `model_type`, architecture, checkpoint
+precision, and a complete MoE topology. The topology contains expert count,
+experts selected per token, expert width, sparse cadence, dense-only layer
+indices, and optional shared-expert width. Aptus derives active parameters and
+sparse-layer count from the complete model contract. The total parameter count
+remains user-attested and remains the resident-weight basis.
+
 These values are contract-checked but not independently inspected during
 planning. The model-data gate resolves the pinned config and tokenizer, loads
 the exact model weights, checks the parameter count and plan-driving structural
@@ -50,6 +57,9 @@ pilot phases must agree. MLX metrics instead bind every planned target instance
 to one LoRA A/B pair, reject other trainables, and record a descriptor digest.
 Its pilot applies the selected method to compiled real data in one uninterrupted
 run, then verifies adapter reload in a fresh process without resuming training.
+The exact Qwen3 MoE row also requires the pinned config to reproduce every
+identity, quantization, and topology fact in the plan. Its compiler scope binds
+attention adapters only.
 
 ## Dataset profile
 

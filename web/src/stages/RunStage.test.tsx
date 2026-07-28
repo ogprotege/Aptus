@@ -19,7 +19,7 @@ const mlxBundle: CompileResponse = {
     compute_backend: "mps",
     training_runtime: "mlx-lm",
     compiler_id: "mlx-lm.lora.v1",
-    estimator_id: "aptus-memory-mlx-v1",
+    estimator_id: "aptus-memory-mlx-v2",
     evidence_requirement: "pilot-required",
     export_kind: "mlx-lm-adapter",
   },

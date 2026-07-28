@@ -50,7 +50,7 @@ def _revision_worker(
 class ProjectRepositoryTests(unittest.TestCase):
     def _saved_plan(self, state: Path, plan_id: str) -> dict[str, Any]:
         plan = {
-            "schema_version": "aptus.training-plan.v2",
+            "schema_version": "aptus.training-plan.v3",
             "plan_id": plan_id,
             "recommended": {"candidate_id": "candidate_a"},
         }
@@ -800,8 +800,9 @@ class ProjectRepositoryTests(unittest.TestCase):
             payload_entry["sha256"] = _sha256(payload_path)
             payload_entry["size_bytes"] = payload_path.stat().st_size
             atomic_write_json(manifest_path, manifest, mode=0o600)
-            with self.assertRaisesRegex(ValueError, "artifact fingerprint"):
+            with self.assertRaisesRegex(ValueError, "Replan required"):
                 repository.recover(imported["project_id"], imported["revision_id"])
+            revision_count = repository.get(imported["project_id"])["revision_count"]
 
         self.assertIsNotNone(imported)
         self.assertIsNone(repeated)
@@ -809,6 +810,7 @@ class ProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(imported["plan_snapshot"], plan)
         self.assertEqual(imported["bundle"]["artifact_fingerprint"], bundle_fingerprint)
         self.assertTrue(receipt_written)
+        self.assertEqual(revision_count, 1)
 
 
 if __name__ == "__main__":

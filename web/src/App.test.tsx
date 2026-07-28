@@ -47,7 +47,146 @@ vi.mock("./api", async () => {
 });
 
 import App from "./App";
-import { EXAMPLE_PLAN } from "./demo";
+import { EXAMPLE_DRAFT, EXAMPLE_PLAN } from "./demo";
+import type { FactDraft, TrainingPlan } from "./types";
+
+const QWEN3_REVISION = "d".repeat(40);
+const REVIEWED_QWEN3_LAYOUT = {
+  default_bits: 4,
+  default_group_size: 64,
+  module_overrides: Array.from({ length: 48 }, (_, index) => ({
+    module_path: `model.layers.${index}.mlp.gate`,
+    bits: 8,
+    group_size: 64,
+  })).sort((left, right) => left.module_path.localeCompare(right.module_path)),
+};
+
+function exactQwen3MoEDraft(): FactDraft {
+  const draft = structuredClone(EXAMPLE_DRAFT);
+  draft.project_name = "Qwen3 MoE pilot";
+  draft.model = {
+    ...draft.model,
+    model_id: "Qwen/Qwen3-30B-A3B",
+    revision: QWEN3_REVISION,
+    family: "qwen3_moe",
+    parameters_b: 30.5,
+    hidden_size: 2048,
+    layers: 48,
+    context_length: 32768,
+    intermediate_size: 768,
+    model_type: "qwen3_moe",
+    architecture: "Qwen3MoeForCausalLM",
+    quantization_bits: 4,
+    quantization_layout: structuredClone(REVIEWED_QWEN3_LAYOUT),
+    active_parameters_b: null,
+    sparse_layer_count: null,
+    moe: {
+      expert_count: 128,
+      experts_per_token: 8,
+      expert_intermediate_size: 768,
+      decoder_sparse_step: 1,
+      mlp_only_layers: [],
+      shared_expert_intermediate_size: null,
+    },
+  };
+  draft.hardware.devices[0] = {
+    ...draft.hardware.devices[0],
+    name: "Apple M5 Pro (shared unified memory)",
+    backend: "mps",
+    total_vram_gib: 64,
+    free_vram_gib: 40,
+  };
+  draft.target.runtime = "mlx-lm";
+  draft.target.method_preference = "qlora";
+  return draft;
+}
+
+function exactQwen3MoEPlan(): TrainingPlan {
+  const recommended = {
+    candidate_id: "qlora-single",
+    method: "qlora",
+    distribution: "single",
+    status: "conditional",
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
+    runtime_contract: {
+      schema_version: "aptus.runtime-contract.v1",
+      compute_backend: "mps",
+      training_runtime: "mlx-lm",
+      compiler_id: "mlx-lm.qlora.v1",
+      estimator_id: "aptus-memory-mlx-v2",
+      evidence_requirement: "pilot-required",
+      export_kind: "mlx-lm-adapter",
+    },
+  };
+  return {
+    schema_version: "aptus.training-plan.v3",
+    plan_id: "plan_qwen3_moe",
+    model: {
+      model_id: "Qwen/Qwen3-30B-A3B",
+      revision: QWEN3_REVISION,
+      family: "qwen3_moe",
+      parameters: 30_500_000_000,
+      hidden_size: 2048,
+      layers: 48,
+      context_length: 32768,
+      intermediate_size: 768,
+      license_name: "apache-2.0",
+      training_allowed: true,
+      tokenizer_id: "Qwen/Qwen3-30B-A3B",
+      model_type: "qwen3_moe",
+      architecture: "Qwen3MoeForCausalLM",
+      quantization_bits: 4,
+      quantization_layout: REVIEWED_QWEN3_LAYOUT,
+      active_parameters: 3_300_000_000,
+      sparse_layer_count: 48,
+      moe: {
+        expert_count: 128,
+        experts_per_token: 8,
+        expert_intermediate_size: 768,
+        decoder_sparse_step: 1,
+        mlp_only_layers: [],
+        shared_expert_intermediate_size: null,
+      },
+    },
+    dataset: {
+      source_path: "/data/example-support.jsonl",
+      source_format: "jsonl",
+      schema_name: "text",
+      sampled_examples: 1000,
+    },
+    hardware: {
+      devices: [{
+        name: "Apple M5 Pro (shared unified memory)",
+        backend: "mps",
+        total_vram_bytes: 64 * 1024 ** 3,
+        free_vram_bytes: 40 * 1024 ** 3,
+        supports_bf16: false,
+        supports_8bit: false,
+        supports_4bit: false,
+      }],
+      host_ram_bytes: 64 * 1024 ** 3,
+      host_ram_free_bytes: 40 * 1024 ** 3,
+      reserve_per_device_bytes: 8 * 1024 ** 3,
+      disk_free_bytes: 200 * 1024 ** 3,
+    },
+    target: {
+      task: "sft",
+      objective: "memory",
+      sequence_length: 512,
+      effective_batch_size: 1,
+      max_epochs: 1,
+      method_preference: "qlora",
+      training_runtime: "mlx-lm",
+      evaluation_fraction: 0.1,
+      packing: false,
+      checkpoint_steps: 100,
+    },
+    recommended,
+    candidates: [recommended],
+    warnings: [],
+    rationale: [],
+  };
+}
 
 function installDesktopBridge(): AptusDesktopBridge {
   const bridge: AptusDesktopBridge = {
@@ -79,6 +218,85 @@ afterEach(() => {
 });
 
 describe("desktop workbench readiness", () => {
+  it("keeps plan-derived MoE facts and compatibility across planning and restore", async () => {
+    const plan = exactQwen3MoEPlan();
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      defaults: exactQwen3MoEDraft(),
+      projects: [],
+      project: null,
+      project_history: [],
+    });
+    profileMock.mockResolvedValue({ facts: [], warnings: [] });
+    planMock.mockResolvedValue(plan);
+
+    const { unmount } = render(<App />);
+
+    const profileButton = await screen.findByRole("button", { name: "Profile dataset" });
+    fireEvent.submit(profileButton.closest("form") as HTMLFormElement);
+    await waitFor(() => expect(profileMock).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Compare strategies" }));
+    await waitFor(() => expect(planMock).toHaveBeenCalledOnce());
+    fireEvent.click(await screen.findByRole("button", { name: "Edit facts" }));
+
+    expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("3.3B")).toBeInTheDocument();
+    expect(screen.getByText("48")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Total resident parameters"), {
+      target: { value: "31" },
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("3.3B")).not.toBeInTheDocument();
+      expect(screen.getAllByText("Derived during planning")).toHaveLength(2);
+    });
+
+    unmount();
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan,
+    });
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("3.3B")).toBeInTheDocument();
+    expect(screen.getByText("48")).toBeInTheDocument();
+  });
+
+  it("preserves a legacy project but requires replan before restore", async () => {
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan: null,
+      replan_required: {
+        status: "replan_required",
+        plan_id: "plan_legacy",
+        found_schema: "aptus.training-plan.v2",
+        required_schema: "aptus.training-plan.v3",
+        source: "project-revision",
+        message: "This saved plan predates the current executable contract.",
+      },
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(
+      "This saved plan predates the current executable contract.",
+    )).toBeInTheDocument();
+    expect(screen.queryByText(/Restored the latest local project revision/))
+      .not.toBeInTheDocument();
+  });
+
   it("reports ready only after authenticated bootstrap commits the stable marker", async () => {
     let resolveBootstrap: ((value: { service: { version: string } }) => void) | undefined;
     bootstrapMock.mockReturnValue(new Promise((resolve) => {
@@ -159,7 +377,7 @@ describe("desktop workbench readiness", () => {
       latest_revision: null,
     };
     const plan = {
-      schema_version: "aptus.training-plan.v2",
+      schema_version: "aptus.training-plan.v3",
       plan_id: "plan_retained",
       project_id: projectId,
       model: {},

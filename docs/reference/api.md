@@ -161,6 +161,14 @@ When restorable state exists, the response can also contain:
 - `plan`, loaded from the current project's latest valid revision or restorable bundle;
 - `bundle.bundle_dir`, `archive_path`, current file list, and report.
 
+If the current revision or restorable bundle contains a v2 plan or a plan with
+no schema identifier, bootstrap does not return it as `plan` or restore its
+bundle into the executable workspace. It returns `replan_required` with
+`status`, optional `plan_id`, optional `found_schema`, required v3 schema,
+source, project identities when known, and an operator message. The source is
+`project-revision` or `compiled-bundle`. The saved plan and source revision stay
+unchanged. Create a deterministic v3 plan from the preserved facts.
+
 A standalone project plan can be restored from the current immutable revision.
 Bootstrap returns a current-project bundle only when its resolved path, plan ID,
 selected candidate, and manifest fingerprint match that exact revision. It also
@@ -268,8 +276,19 @@ The inspector reads at most 4 MiB from each provider response. It returns
 `status: ok`, `unavailable`, or `unsupported`. An `ok` response includes the
 resolved immutable revision, provider-declared facts, provenance, warnings, and
 `explicit_user_facts_required`. Parameter count and training permission remain
-explicit user facts. Exact aliases can normalize supported dense Qwen and Gemma
-model types, but prefix matching never admits MoE or multimodal variants.
+explicit user facts. `facts` can include exact `model_type`, `architecture`,
+`quantization_bits`, `quantization_layout`, and a `moe` topology with expert
+count, experts per token, expert width, sparse cadence, dense-only layer
+indices, and optional shared expert width. The separate `compatibility` object
+returns `status`, `family`, `supported_runtime`, `supported_methods`,
+`distribution`, `evidence_requirement`, optional `adapter_scope`, and `reason`.
+
+Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
+sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a
+four-bit group-64 default layout, one eight-bit group-64 router-gate override
+per layer, a complete reviewed topology, and no shared expert. It reports
+conditional single-device MLX-LM QLoRA with attention-only adapters. Prefix
+matching never admits MoE or multimodal variants.
 
 ### `POST /api/v1/profile`
 
@@ -313,6 +332,33 @@ Top-level request:
 | `context_length` | integer | Yes | Greater than 0 |
 | `license_name` | string | Yes | Non-empty in the domain layer |
 | `training_allowed` | boolean | Yes | Must be true in the domain layer |
+| `model_type` | string or null | No | Exact provider identity; required by the sparse allowlist |
+| `architecture` | string or null | No | Exact provider class; omitted dense requests use the domain default |
+| `quantization_bits` | integer or null | No | From 1 through 16; the first sparse row requires 4 |
+| `quantization_layout` | object or null | No | Canonical MLX groupwise defaults and overrides; required by the first sparse row |
+| `moe` | object or null | No | Exact routed-expert topology |
+
+`quantization_layout` contains positive `default_bits` and
+`default_group_size`, plus a `module_overrides` array. Each override contains a
+dotted `module_path`, `bits`, and `group_size`. Override paths must be sorted and
+unique. The exact Qwen3 MoE row requires four-bit group-64 defaults and exactly
+one eight-bit group-64 `model.layers.N.mlp.gate` override per layer. The layout
+is bound into plan identity. A merely four-bit Qwen3 MoE request is not enough.
+
+`moe` fields:
+
+| Field | Type | Required | Constraint |
+| --- | --- | ---: | --- |
+| `expert_count` | integer | Yes | Greater than 0 |
+| `experts_per_token` | integer | Yes | Greater than 0 and no greater than `expert_count` |
+| `expert_intermediate_size` | integer | Yes | Greater than 0 |
+| `decoder_sparse_step` | integer | Yes | Greater than 0 |
+| `mlp_only_layers` | integer array | No | Empty by default; domain validation requires sorted, unique, in-range indices |
+| `shared_expert_intermediate_size` | integer or null | No | Greater than 0 when present; unsupported by the first sparse row |
+
+The request never accepts `active_parameters` or `sparse_layer_count`. The
+backend derives both and serializes them in the plan. `parameters_b` remains the
+user-attested total resident parameter count.
 
 `hardware` fields:
 
@@ -356,7 +402,7 @@ pinned model revision.
 | `packing` | boolean | No | False; true is rejected by planning |
 | `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
 
-Success persists and returns one full `aptus.training-plan.v2` object plus
+Success persists and returns one full `aptus.training-plan.v3` object plus
 `project_id` and `project_revision_id`. Supplying `project_id` appends to that
 project. Otherwise Aptus creates a named project, using `project_name` or a
 model-derived default. When no candidate is viable, the response is
@@ -367,7 +413,9 @@ matrix.
 
 The ID must have the exact form `plan_` plus 20 lowercase hexadecimal
 characters. Invalid or missing IDs return `404 plan_not_found`. A valid stored
-plan is rehydrated through the strict domain contract before it is returned.
+plan is rehydrated through the strict domain contract before it is returned. A
+saved v2 plan or one with no schema identifier returns `409 replan_required`
+without changing the file.
 
 ## Compilation and direct validation
 
@@ -411,6 +459,10 @@ Project attachment uses a compare-and-swap. If the project advances during
 compilation, Aptus returns `409 project_revision_conflict`. It removes only the
 unchanged bundle and ZIP created by that request. A replacement at either path
 is preserved.
+
+A persisted v2 plan or plan with no schema identifier returns
+`409 replan_required` before bundle creation. The stored plan and project
+revision remain unchanged.
 
 ### `POST /api/v1/validate`
 
@@ -543,6 +595,9 @@ one. It does not rewrite the source revision. Success returns:
 Recovery is not training resume. Revalidate current evidence and submit a new
 explicitly confirmed train action. Missing projects or revisions return the
 corresponding `project_not_found` or `project_revision_not_found` error.
+A revision whose plan snapshot uses v2 or has no schema identifier returns
+`409 replan_required`. Aptus preserves the source revision and appends no
+replacement revision. Create a new v3 plan from the source facts instead.
 
 ## Error envelopes
 
@@ -572,7 +627,7 @@ then inspect the remaining fields.
 | `400` | `invalid_request`, `filesystem_error`, `runtime_configuration_invalid`, local-inference configuration errors |
 | `403` | `path_forbidden`, `desktop_session_required` |
 | `404` | `path_not_found`, `plan_not_found`, `job_not_found`, `project_not_found`, `project_revision_not_found`, route `not_found` |
-| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
+| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable`, `replan_required`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
 | `422` | `request_validation`, `no_feasible_plan` |
 | `502`, `504` | Bounded local-inference service or timeout errors |
 

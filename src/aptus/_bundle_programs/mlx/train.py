@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import math
-import os
 import platform
 import re
 import subprocess
@@ -18,7 +17,13 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest, validate_plan_payload
+from plan_contract import (
+    expected_model_architecture_contract,
+    mlx_quantized_storage_bytes_for_contract,
+    validate_bundle_manifest,
+    validate_model_config_against_plan,
+    validate_plan_payload,
+)
 
 
 def load_contract() -> tuple[dict[str, Any], dict[str, Any]]:
@@ -36,7 +41,9 @@ def load_contract() -> tuple[dict[str, Any], dict[str, Any]]:
         or candidate.get("distribution") != "single"
         or candidate.get("method") not in {"lora", "qlora"}
     ):
-        raise RuntimeError("The selected candidate is not an executable MLX-LM contract.")
+        raise RuntimeError(
+            "The selected candidate is not an executable MLX-LM contract."
+        )
     return plan, candidate
 
 
@@ -53,7 +60,9 @@ def require_output(path: Path) -> Path:
     resolved = unresolved.resolve()
     allowed = ((ROOT / "runs").resolve(), (ROOT / "pilot-output").resolve())
     if not any(parent == resolved or parent in resolved.parents for parent in allowed):
-        raise RuntimeError("MLX adapter output must remain under runs/ or pilot-output/.")
+        raise RuntimeError(
+            "MLX adapter output must remain under runs/ or pilot-output/."
+        )
     resolved.mkdir(parents=True, exist_ok=False)
     return resolved
 
@@ -63,7 +72,9 @@ def require_data(path: Path) -> Path:
     resolved = unresolved.resolve(strict=True)
     expected = (ROOT / "data" / "mlx").resolve(strict=True)
     if resolved != expected:
-        raise RuntimeError("The MLX data argument must match the compiler-bound data/mlx directory.")
+        raise RuntimeError(
+            "The MLX data argument must match the compiler-bound data/mlx directory."
+        )
     for name in ("train.jsonl", "valid.jsonl", "split-contract.json"):
         if not (resolved / name).is_file():
             raise RuntimeError(f"MLX dataset is missing {name}.")
@@ -73,7 +84,9 @@ def require_data(path: Path) -> Path:
 def download_pinned_model(plan: dict[str, Any], requested_model: str) -> Path:
     model = plan["model"]
     if requested_model != model["model_id"]:
-        raise RuntimeError("The model argument must equal the plan-bound provider model ID.")
+        raise RuntimeError(
+            "The model argument must equal the plan-bound provider model ID."
+        )
     from huggingface_hub import snapshot_download
 
     return Path(
@@ -84,12 +97,32 @@ def download_pinned_model(plan: dict[str, Any], requested_model: str) -> Path:
     ).resolve(strict=True)
 
 
-def require_method_model(candidate: dict[str, Any], model_path: Path) -> None:
+def _descriptor_sha256(value: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _positive_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def require_method_model(
+    plan: dict[str, Any], candidate: dict[str, Any], model_path: Path
+) -> dict[str, Any]:
     config = json.loads((model_path / "config.json").read_text(encoding="utf-8"))
     if config.get("model_file"):
         raise RuntimeError(
             "MLX-LM custom model_file code is unsupported; Aptus only executes pinned built-in MLX model implementations."
         )
+    try:
+        architecture_contract = validate_model_config_against_plan(
+            plan["model"], config
+        )
+    except ValueError as error:
+        raise RuntimeError(
+            "Pinned MLX-LM model architecture does not match the Aptus plan."
+        ) from error
     quantization = config.get("quantization") or config.get("quantization_config")
     text_config = config.get("text_config")
     if not quantization and isinstance(text_config, dict):
@@ -104,6 +137,384 @@ def require_method_model(candidate: dict[str, Any], model_path: Path) -> None:
             "MLX-LM LoRA requires an unquantized pinned base model. A quantized base "
             "would execute QLoRA semantics under the wrong planned method."
         )
+    return architecture_contract
+
+
+def snapshot_safetensors_bytes(model_path: Path) -> int:
+    """Return the exact bytes occupied by the pinned snapshot tensor shards."""
+
+    files = sorted(model_path.rglob("*.safetensors"))
+    if not files:
+        raise RuntimeError("Pinned MLX-LM snapshot contains no safetensors weights.")
+    total = 0
+    for path in files:
+        if not path.is_file():
+            raise RuntimeError("Pinned MLX-LM safetensors path is not a regular file.")
+        size = path.stat().st_size
+        if size <= 0:
+            raise RuntimeError("Pinned MLX-LM safetensors shard is empty.")
+        total += size
+    if total <= 0:
+        raise RuntimeError("Pinned MLX-LM snapshot has no positive tensor bytes.")
+    return total
+
+
+def build_mlx_packed_checkpoint_binding(
+    plan: dict[str, Any],
+    parameter_census: dict[str, Any],
+    *,
+    observed_safetensors_bytes: int,
+) -> dict[str, Any]:
+    """Bind file bytes to the loaded model's logical parameter census."""
+
+    observed_total = parameter_census.get("observed_total_parameters")
+    if not _positive_int(observed_total) or not _positive_int(
+        observed_safetensors_bytes
+    ):
+        raise RuntimeError("MLX packed-checkpoint evidence requires positive counts.")
+    if plan["recommended"].get("method") == "qlora":
+        expected_weights, expected_metadata = mlx_quantized_storage_bytes_for_contract(
+            plan["model"], logical_parameters=int(observed_total)
+        )
+    else:
+        expected_weights = round(int(observed_total) * 2.0)
+        expected_metadata = 0
+    expected_packed = expected_weights + expected_metadata
+    overhead = int(observed_safetensors_bytes) - expected_packed
+    overhead_limit = max(1024**2, round(expected_packed * 0.0001))
+    if overhead < 0:
+        raise RuntimeError(
+            "Pinned MLX-LM safetensors bytes are smaller than the bound packed tensor arithmetic."
+        )
+    if overhead > overhead_limit:
+        raise RuntimeError(
+            "Pinned MLX-LM safetensors container overhead exceeds the fail-closed Aptus bound."
+        )
+    binding = {
+        "schema_version": "aptus.mlx-packed-checkpoint.v1",
+        "observed_safetensors_bytes": int(observed_safetensors_bytes),
+        "observed_logical_parameters": int(observed_total),
+        "expected_weight_bytes": expected_weights,
+        "expected_quantization_metadata_bytes": expected_metadata,
+        "expected_packed_tensor_bytes": expected_packed,
+        "container_overhead_bytes": overhead,
+        "container_overhead_limit_bytes": overhead_limit,
+    }
+    binding["descriptor_sha256"] = _descriptor_sha256(binding)
+    return binding
+
+
+def require_mlx_packed_checkpoint_binding(
+    plan: dict[str, Any], parameter_census: dict[str, Any], binding: Any
+) -> dict[str, Any]:
+    expected_keys = {
+        "schema_version",
+        "observed_safetensors_bytes",
+        "observed_logical_parameters",
+        "expected_weight_bytes",
+        "expected_quantization_metadata_bytes",
+        "expected_packed_tensor_bytes",
+        "container_overhead_bytes",
+        "container_overhead_limit_bytes",
+        "descriptor_sha256",
+    }
+    if not isinstance(binding, dict) or set(binding) != expected_keys:
+        raise RuntimeError("MLX packed-checkpoint binding has an invalid shape.")
+    if binding.get("descriptor_sha256") != _descriptor_sha256(
+        {key: value for key, value in binding.items() if key != "descriptor_sha256"}
+    ):
+        raise RuntimeError("MLX packed-checkpoint binding digest is invalid.")
+    rebuilt = build_mlx_packed_checkpoint_binding(
+        plan,
+        parameter_census,
+        observed_safetensors_bytes=binding.get("observed_safetensors_bytes"),
+    )
+    if rebuilt != binding:
+        raise RuntimeError(
+            "MLX packed-checkpoint binding does not match the logical parameter census."
+        )
+    return binding
+
+
+def build_mlx_model_parameter_census(
+    model: Any,
+    plan: dict[str, Any],
+    *,
+    parameter_counter: Any | None = None,
+) -> dict[str, Any]:
+    """Count logical MLX parameters and prove the planned routed-expert graph."""
+
+    if parameter_counter is None:
+        from mlx_lm.utils import get_total_parameters
+
+        parameter_counter = get_total_parameters
+    model_spec = plan["model"]
+    declared_total = model_spec.get("parameters")
+    declared_active = model_spec.get("active_parameters", declared_total)
+    if not _positive_int(declared_total) or not _positive_int(declared_active):
+        raise RuntimeError("The Aptus model contract has invalid parameter counts.")
+    observed_total = parameter_counter(model)
+    if not _positive_int(observed_total):
+        raise RuntimeError("MLX-LM reported no positive logical model parameter count.")
+    observed_total = int(observed_total)
+    tolerance = max(1_000_000, round(int(declared_total) * 0.02))
+    if abs(observed_total - int(declared_total)) > tolerance:
+        raise RuntimeError(
+            "MLX-LM logical model parameters differ from the declared total beyond the two-percent Aptus tolerance."
+        )
+
+    layers = tuple(getattr(model, "layers", ()))
+    expected_layer_count = model_spec.get("layers")
+    if len(layers) != expected_layer_count:
+        raise RuntimeError(
+            "Loaded MLX-LM transformer layer count does not match the Aptus plan."
+        )
+
+    moe = model_spec.get("moe")
+    sparse_layer_count = 0
+    routed_expert_parameters = 0
+    active_routed_expert_parameters = 0
+    inactive_expert_parameters = 0
+    census_method = "mlx-lm.get_total_parameters.v1"
+    if moe is not None:
+        if not isinstance(moe, dict):
+            raise RuntimeError("The Aptus MoE topology contract must be an object.")
+        expert_count = moe.get("expert_count")
+        experts_per_token = moe.get("experts_per_token")
+        expert_intermediate_size = moe.get("expert_intermediate_size")
+        decoder_sparse_step = moe.get("decoder_sparse_step")
+        mlp_only_layers = moe.get("mlp_only_layers")
+        if (
+            not all(
+                _positive_int(value)
+                for value in (
+                    expert_count,
+                    experts_per_token,
+                    expert_intermediate_size,
+                    decoder_sparse_step,
+                )
+            )
+            or not isinstance(mlp_only_layers, list)
+            or any(
+                not isinstance(index, int) or isinstance(index, bool) or index < 0
+                for index in mlp_only_layers
+            )
+        ):
+            raise RuntimeError("The Aptus MoE topology contract is invalid.")
+        assert isinstance(expert_count, int)
+        assert isinstance(experts_per_token, int)
+        assert isinstance(expert_intermediate_size, int)
+        assert isinstance(decoder_sparse_step, int)
+        expected_sparse_indices = {
+            index
+            for index in range(int(expected_layer_count))
+            if index not in set(mlp_only_layers)
+            and (index + 1) % decoder_sparse_step == 0
+        }
+        expected_per_layer = (
+            expert_count * 3 * int(model_spec["hidden_size"]) * expert_intermediate_size
+        )
+        for index, layer in enumerate(layers):
+            mlp = getattr(layer, "mlp", None)
+            if index in expected_sparse_indices:
+                switch_mlp = getattr(mlp, "switch_mlp", None)
+                if (
+                    getattr(mlp, "num_experts", None) != expert_count
+                    or getattr(mlp, "top_k", None) != experts_per_token
+                    or switch_mlp is None
+                ):
+                    raise RuntimeError(
+                        f"Loaded MLX-LM sparse layer {index} does not match the planned expert topology."
+                    )
+                observed_layer_parameters = parameter_counter(switch_mlp)
+                if observed_layer_parameters != expected_per_layer:
+                    raise RuntimeError(
+                        f"Loaded MLX-LM sparse layer {index} has an unexpected logical expert parameter count."
+                    )
+                routed_expert_parameters += int(observed_layer_parameters)
+            elif mlp is not None and (
+                hasattr(mlp, "switch_mlp") or hasattr(mlp, "num_experts")
+            ):
+                raise RuntimeError(
+                    f"Loaded MLX-LM layer {index} is sparse where the Aptus plan requires a dense MLP."
+                )
+        sparse_layer_count = len(expected_sparse_indices)
+        if sparse_layer_count != model_spec.get("sparse_layer_count"):
+            raise RuntimeError(
+                "Loaded MLX-LM sparse layer count does not match the Aptus plan."
+            )
+        if routed_expert_parameters % expert_count:
+            raise RuntimeError(
+                "Loaded MLX-LM routed expert parameters cannot be divided by the planned expert count."
+            )
+        active_routed_expert_parameters = (
+            routed_expert_parameters * experts_per_token // expert_count
+        )
+        inactive_expert_parameters = (
+            routed_expert_parameters - active_routed_expert_parameters
+        )
+        census_method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+
+    observed_active = observed_total - inactive_expert_parameters
+    if (
+        observed_active <= 0
+        or observed_active > observed_total
+        or abs(observed_active - int(declared_active)) > tolerance
+    ):
+        raise RuntimeError(
+            "MLX-LM active logical parameters differ from the Aptus model contract beyond tolerance."
+        )
+    census = {
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "census_method": census_method,
+        "declared_total_parameters": int(declared_total),
+        "observed_total_parameters": observed_total,
+        "total_parameter_delta": observed_total - int(declared_total),
+        "total_parameter_tolerance": tolerance,
+        "declared_active_parameters": int(declared_active),
+        "observed_active_parameters": observed_active,
+        "sparse_layer_count": sparse_layer_count,
+        "routed_expert_parameters": routed_expert_parameters,
+        "active_routed_expert_parameters": active_routed_expert_parameters,
+        "inactive_expert_parameters": inactive_expert_parameters,
+    }
+    census["descriptor_sha256"] = _descriptor_sha256(census)
+    return census
+
+
+def build_mlx_model_load_binding(
+    model: Any,
+    plan: dict[str, Any],
+    *,
+    observed_safetensors_bytes: int,
+    architecture_contract: dict[str, Any] | None = None,
+    parameter_counter: Any | None = None,
+) -> dict[str, Any]:
+    if architecture_contract is None:
+        architecture_contract = expected_model_architecture_contract(plan["model"])
+    parameter_census = build_mlx_model_parameter_census(
+        model, plan, parameter_counter=parameter_counter
+    )
+    binding = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": plan["model"]["model_id"],
+        "model_revision": plan["model"]["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": architecture_contract,
+        "parameter_census": parameter_census,
+        "packed_checkpoint_binding": build_mlx_packed_checkpoint_binding(
+            plan,
+            parameter_census,
+            observed_safetensors_bytes=observed_safetensors_bytes,
+        ),
+    }
+    binding["descriptor_sha256"] = _descriptor_sha256(binding)
+    return binding
+
+
+def require_mlx_model_load_binding(
+    plan: dict[str, Any], binding: Any
+) -> dict[str, Any]:
+    if not isinstance(binding, dict) or set(binding) != {
+        "schema_version",
+        "model_id",
+        "model_revision",
+        "resolved_local_snapshot",
+        "trust_remote_code",
+        "architecture_contract",
+        "parameter_census",
+        "packed_checkpoint_binding",
+        "descriptor_sha256",
+    }:
+        raise RuntimeError("MLX-LM model-load binding has an invalid shape.")
+    expected_static = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": plan["model"]["model_id"],
+        "model_revision": plan["model"]["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": expected_model_architecture_contract(plan["model"]),
+    }
+    if any(binding.get(key) != value for key, value in expected_static.items()):
+        raise RuntimeError(
+            "MLX-LM model-load binding does not match the pinned model architecture contract."
+        )
+    if binding.get("descriptor_sha256") != _descriptor_sha256(
+        {key: value for key, value in binding.items() if key != "descriptor_sha256"}
+    ):
+        raise RuntimeError("MLX-LM model-load binding digest is invalid.")
+
+    census = binding.get("parameter_census")
+    expected_census_keys = {
+        "schema_version",
+        "census_method",
+        "declared_total_parameters",
+        "observed_total_parameters",
+        "total_parameter_delta",
+        "total_parameter_tolerance",
+        "declared_active_parameters",
+        "observed_active_parameters",
+        "sparse_layer_count",
+        "routed_expert_parameters",
+        "active_routed_expert_parameters",
+        "inactive_expert_parameters",
+        "descriptor_sha256",
+    }
+    if not isinstance(census, dict) or set(census) != expected_census_keys:
+        raise RuntimeError("MLX-LM model parameter census has an invalid shape.")
+    if census.get("descriptor_sha256") != _descriptor_sha256(
+        {key: value for key, value in census.items() if key != "descriptor_sha256"}
+    ):
+        raise RuntimeError("MLX-LM model parameter census digest is invalid.")
+    model_spec = plan["model"]
+    declared_total = int(model_spec["parameters"])
+    declared_active = int(model_spec.get("active_parameters", declared_total))
+    tolerance = max(1_000_000, round(declared_total * 0.02))
+    observed_total = census.get("observed_total_parameters")
+    observed_active = census.get("observed_active_parameters")
+    moe = model_spec.get("moe")
+    sparse_layer_count = int(model_spec.get("sparse_layer_count", 0))
+    if moe is None:
+        routed = active_routed = inactive = 0
+        method = "mlx-lm.get_total_parameters.v1"
+    else:
+        routed = (
+            sparse_layer_count
+            * int(moe["expert_count"])
+            * 3
+            * int(model_spec["hidden_size"])
+            * int(moe["expert_intermediate_size"])
+        )
+        active_routed = (
+            routed * int(moe["experts_per_token"]) // int(moe["expert_count"])
+        )
+        inactive = routed - active_routed
+        method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+    if (
+        not _positive_int(observed_total)
+        or not _positive_int(observed_active)
+        or abs(int(observed_total) - declared_total) > tolerance
+        or abs(int(observed_active) - declared_active) > tolerance
+        or int(observed_active) != int(observed_total) - inactive
+        or census.get("schema_version") != "aptus.mlx-model-parameter-census.v1"
+        or census.get("census_method") != method
+        or census.get("declared_total_parameters") != declared_total
+        or census.get("total_parameter_delta") != int(observed_total) - declared_total
+        or census.get("total_parameter_tolerance") != tolerance
+        or census.get("declared_active_parameters") != declared_active
+        or census.get("sparse_layer_count") != sparse_layer_count
+        or census.get("routed_expert_parameters") != routed
+        or census.get("active_routed_expert_parameters") != active_routed
+        or census.get("inactive_expert_parameters") != inactive
+    ):
+        raise RuntimeError(
+            "MLX-LM model parameter census does not match the Aptus model contract."
+        )
+    require_mlx_packed_checkpoint_binding(
+        plan, census, binding.get("packed_checkpoint_binding")
+    )
+    return binding
 
 
 def current_available_unified_memory_bytes() -> int:
@@ -116,7 +527,9 @@ def current_available_unified_memory_bytes() -> int:
             timeout=5,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise RuntimeError("Current Apple unified-memory admission probe failed.") from error
+        raise RuntimeError(
+            "Current Apple unified-memory admission probe failed."
+        ) from error
     if completed.returncode:
         raise RuntimeError("Current Apple unified-memory admission probe failed.")
     page_match = re.search(r"page size of\s+(\d+) bytes", completed.stdout)
@@ -136,11 +549,67 @@ def current_available_unified_memory_bytes() -> int:
     return available
 
 
-def require_unified_memory_admission(plan: dict[str, Any]) -> dict[str, Any]:
+def require_unified_memory_admission_binding(
+    plan: dict[str, Any], admission: Any
+) -> dict[str, Any]:
     candidate = plan["recommended"]
     memory = candidate["memory"]
     point = int(memory["point_estimate_bytes"])
     upper = int(memory["upper_estimate_bytes"])
+    planned_resident = int(memory["base_weights_bytes"]) + int(
+        memory["quantization_metadata_bytes"]
+    )
+    reserve = max(
+        int(plan["hardware"].get("reserve_per_device_bytes", 0)),
+        8 * 1024**3,
+    )
+    if not isinstance(admission, dict):
+        raise RuntimeError("MLX unified-memory admission must be an object.")
+    observed = admission.get("observed_safetensors_bytes")
+    if not _positive_int(observed):
+        raise RuntimeError(
+            "MLX unified-memory admission requires positive safetensors bytes."
+        )
+    adjustment = max(0, int(observed) - planned_resident)
+    adjusted_point = point + adjustment
+    adjusted_upper = upper + adjustment
+    required = max(adjusted_point, adjusted_upper) + reserve
+    expected = {
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": int(observed),
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": adjusted_point,
+        "adjusted_upper_estimate_bytes": adjusted_upper,
+        "reserve_bytes": reserve,
+        "required_available_bytes": required,
+    }
+    available = admission.get("available_unified_memory_bytes")
+    if (
+        set(admission) != set(expected) | {"available_unified_memory_bytes"}
+        or any(admission.get(key) != value for key, value in expected.items())
+        or not _positive_int(available)
+        or int(available) < required
+        or "free_vram_bytes" in admission
+    ):
+        raise RuntimeError(
+            "MLX unified-memory admission does not bind a passing packed-checkpoint measurement."
+        )
+    return admission
+
+
+def require_unified_memory_admission(
+    plan: dict[str, Any], model_path: Path
+) -> dict[str, Any]:
+    candidate = plan["recommended"]
+    memory = candidate["memory"]
+    planned_resident = int(memory["base_weights_bytes"]) + int(
+        memory["quantization_metadata_bytes"]
+    )
+    observed = snapshot_safetensors_bytes(model_path)
+    adjustment = max(0, observed - planned_resident)
+    point = int(memory["point_estimate_bytes"]) + adjustment
+    upper = int(memory["upper_estimate_bytes"]) + adjustment
     reserve = max(
         int(plan["hardware"].get("reserve_per_device_bytes", 0)),
         8 * 1024**3,
@@ -149,20 +618,28 @@ def require_unified_memory_admission(plan: dict[str, Any]) -> dict[str, Any]:
     required = max(point, upper) + reserve
     if available < required:
         raise RuntimeError(
-            "Current available Apple unified memory is below the candidate upper "
-            "estimate plus the required 8 GiB Aptus reserve."
+            "Current available Apple unified memory is below the packed-checkpoint-adjusted "
+            "candidate upper estimate plus the required 8 GiB Aptus reserve. "
+            f"required={required} bytes; available={available} bytes; "
+            f"shortfall={required - available} bytes."
         )
-    return {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
+    admission = {
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
         "available_unified_memory_bytes": available,
-        "point_estimate_bytes": point,
-        "upper_estimate_bytes": upper,
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": observed,
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": point,
+        "adjusted_upper_estimate_bytes": upper,
         "reserve_bytes": reserve,
         "required_available_bytes": required,
     }
+    return require_unified_memory_admission_binding(plan, admission)
 
 
-def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+def resolve_lora_keys(
+    model: Any, candidate: dict[str, Any]
+) -> tuple[list[str], dict[str, Any]]:
     planned = candidate.get("target_modules")
     if (
         not isinstance(planned, list)
@@ -170,7 +647,9 @@ def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str],
         or any(not isinstance(target, str) or not target for target in planned)
         or len(set(planned)) != len(planned)
     ):
-        raise RuntimeError("The MLX-LM candidate requires unique planned target modules.")
+        raise RuntimeError(
+            "The MLX-LM candidate requires unique planned target modules."
+        )
     layers = tuple(getattr(model, "layers", ()))
     if not layers:
         raise RuntimeError("The loaded MLX-LM model exposes no transformer layers.")
@@ -196,7 +675,9 @@ def resolve_lora_keys(model: Any, candidate: dict[str, Any]) -> tuple[list[str],
         resolved[target] = observed[0]
     resolved_keys = [resolved[target] for target in planned]
     if len(set(resolved_keys)) != len(resolved_keys):
-        raise RuntimeError("Distinct planned MLX targets resolve to the same runtime key.")
+        raise RuntimeError(
+            "Distinct planned MLX targets resolve to the same runtime key."
+        )
     binding = {
         "schema_version": "aptus.mlx-trainable-target-binding.v1",
         "planned_target_modules": planned,
@@ -234,7 +715,9 @@ def require_trainable_binding(
             )
         pairs.setdefault(base, set()).add(suffix.removeprefix("."))
     if not pairs or any(kinds != {"lora_a", "lora_b"} for kinds in pairs.values()):
-        raise RuntimeError("Every planned MLX adapter instance requires one LoRA A/B pair.")
+        raise RuntimeError(
+            "Every planned MLX adapter instance requires one LoRA A/B pair."
+        )
     for base in pairs:
         target = next(
             target
@@ -243,9 +726,8 @@ def require_trainable_binding(
         )
         target_counts[target] += 1
     layer_count = binding["transformer_layer_count"]
-    if (
-        len(pairs) != binding["expected_adapter_target_instance_count"]
-        or any(count != layer_count for count in target_counts.values())
+    if len(pairs) != binding["expected_adapter_target_instance_count"] or any(
+        count != layer_count for count in target_counts.values()
     ):
         raise RuntimeError(
             "The MLX trainable adapter set does not cover every planned target in every layer."
@@ -287,7 +769,9 @@ def derive_iterations(
         micro_batch = int(candidate["micro_batch_size"])
         max_epochs = int(plan["target"]["max_epochs"])
         if micro_batch <= 0 or max_epochs <= 0:
-            raise RuntimeError("MLX-LM full-run batch and epoch values must be positive.")
+            raise RuntimeError(
+                "MLX-LM full-run batch and epoch values must be positive."
+            )
         if train_examples < micro_batch:
             raise RuntimeError("MLX-LM full training has no complete micro-batch.")
         batches_per_epoch = train_examples // micro_batch
@@ -302,6 +786,8 @@ def load_pinned_local_model(
     *args: Any,
     model_path: Path,
     plan: dict[str, Any],
+    observed_safetensors_bytes: int,
+    parameter_counter: Any | None = None,
     **kwargs: Any,
 ) -> tuple[Any, dict[str, Any]]:
     try:
@@ -320,14 +806,22 @@ def load_pinned_local_model(
         raise RuntimeError(
             "Pinned MLX-LM model loading changed shape; Aptus refuses unbound loader arguments."
         )
-    binding = {
-        "schema_version": "aptus.mlx-model-load-binding.v1",
-        "model_id": plan["model"]["model_id"],
-        "model_revision": plan["model"]["revision"],
-        "resolved_local_snapshot": True,
-        "trust_remote_code": False,
-    }
+    architecture_contract = require_method_model(
+        plan, plan["recommended"], expected_path
+    )
     loaded = loader(str(expected_path), tokenizer_config={"trust_remote_code": False})
+    if not isinstance(loaded, tuple) or len(loaded) < 2:
+        raise RuntimeError(
+            "Pinned MLX-LM loader returned an unsupported model payload."
+        )
+    binding = build_mlx_model_load_binding(
+        loaded[0],
+        plan,
+        observed_safetensors_bytes=observed_safetensors_bytes,
+        architecture_contract=architecture_contract,
+        parameter_counter=parameter_counter,
+    )
+    require_mlx_model_load_binding(plan, binding)
     return loaded, binding
 
 
@@ -351,7 +845,8 @@ def run_smoke(arguments: argparse.Namespace) -> int:
     data_path = require_data(arguments.data)
     adapter_path = require_output(arguments.adapter_path)
     model_path = download_pinned_model(plan, arguments.model)
-    require_method_model(candidate, model_path)
+    require_method_model(plan, candidate, model_path)
+    memory_admission = require_unified_memory_admission(plan, model_path)
 
     import mlx.core as mx
     from mlx_lm import lora
@@ -391,6 +886,7 @@ def run_smoke(arguments: argparse.Namespace) -> int:
             *args,
             model_path=model_path,
             plan=plan,
+            observed_safetensors_bytes=memory_admission["observed_safetensors_bytes"],
             **kwargs,
         )
         evidence["model_load_binding"] = binding
@@ -418,17 +914,15 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         resolved_keys, binding = resolve_lora_keys(model, candidate)
         config["keys"] = resolved_keys
         evidence["resolved_binding"] = binding
-        original_linear_to_lora_layers(
-            model, num_layers, config, use_dora=use_dora
-        )
+        original_linear_to_lora_layers(model, num_layers, config, use_dora=use_dora)
 
     def instrumented_train(*args: Any, **kwargs: Any) -> Any:
         model = kwargs.get("model")
         training_args = kwargs.get("args")
         if model is None or training_args is None:
             raise RuntimeError("Pinned MLX-LM train invocation changed shape.")
-        update_opportunities = (
-            int(training_args.iters) // int(training_args.grad_accumulation_steps)
+        update_opportunities = int(training_args.iters) // int(
+            training_args.grad_accumulation_steps
         )
         if update_opportunities < 1:
             raise RuntimeError(
@@ -448,7 +942,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         result = original_train(*args, **kwargs)
         after = dict(tree_flatten(model.trainable_parameters()))
         if set(after) != set(before):
-            raise RuntimeError("The MLX trainable parameter set changed during training.")
+            raise RuntimeError(
+                "The MLX trainable parameter set changed during training."
+            )
         mx.eval(*after.values())
         mx.eval(optimizer.step)
         completed_optimizer_updates = int(optimizer.step.item()) - optimizer_step_before
@@ -508,7 +1004,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         or train_examples % int(candidate["micro_batch_size"])
         or valid_examples % int(candidate["micro_batch_size"])
     ):
-        raise RuntimeError("Compiled MLX split counts do not match their bound contract.")
+        raise RuntimeError(
+            "Compiled MLX split counts do not match their bound contract."
+        )
     source_train_examples = split_values["train"]["source_row_count"]
     source_validation_examples = split_values["valid"]["source_row_count"]
     required_iterations = derive_iterations(
@@ -519,7 +1017,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         train_examples=train_examples,
     )
     if required_iterations <= 0:
-        raise RuntimeError("MLX-LM derived no training iterations from the compiled data.")
+        raise RuntimeError(
+            "MLX-LM derived no training iterations from the compiled data."
+        )
     sys.argv = [
         "mlx_lm.lora",
         "--config",
@@ -536,7 +1036,6 @@ def run_smoke(arguments: argparse.Namespace) -> int:
         str(required_iterations + 1),
         "--train",
     ]
-    memory_admission = require_unified_memory_admission(plan)
     try:
         lora.main()
     finally:
@@ -559,15 +1058,14 @@ def run_smoke(arguments: argparse.Namespace) -> int:
     if evidence.get("optimizer_update_observed") is not True:
         raise RuntimeError("MLX-LM did not prove a non-skipped optimizer update.")
     if action == "pilot" and evidence.get("completed_optimizer_updates", 0) < 2:
-        raise RuntimeError("MLX-LM pilot requires at least two completed optimizer updates.")
-    validation_losses = evidence.get("validation_losses")
-    if (
-        valid_examples > 0
-        and (
-            not isinstance(validation_losses, list)
-            or not validation_losses
-            or any(not math.isfinite(loss) for loss in validation_losses)
+        raise RuntimeError(
+            "MLX-LM pilot requires at least two completed optimizer updates."
         )
+    validation_losses = evidence.get("validation_losses")
+    if valid_examples > 0 and (
+        not isinstance(validation_losses, list)
+        or not validation_losses
+        or any(not math.isfinite(loss) for loss in validation_losses)
     ):
         raise RuntimeError("MLX-LM did not report finite validation loss evidence.")
     saved_parameters = mx.load(str(adapter_file))

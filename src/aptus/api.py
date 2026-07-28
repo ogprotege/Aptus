@@ -8,7 +8,7 @@ import stat
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Literal, Mapping
+from typing import Annotated, Any, Literal, Mapping
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -43,8 +43,11 @@ from .domain import (
     Backend,
     Method,
     Objective,
+    SCHEMA_VERSION,
+    TrainingRuntime,
     TrainingPlan,
     TrainingTarget,
+    UnsupportedPlanSchemaError,
     to_primitive,
     training_plan_from_primitive,
 )
@@ -78,6 +81,65 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+def _replan_required_payload(
+    plan_payload: Mapping[str, Any],
+    *,
+    source: str,
+    project_id: str | None = None,
+    project_revision_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": "replan_required",
+        "plan_id": (
+            plan_payload.get("plan_id")
+            if isinstance(plan_payload.get("plan_id"), str)
+            else None
+        ),
+        "found_schema": (
+            plan_payload.get("schema_version")
+            if isinstance(plan_payload.get("schema_version"), str)
+            else None
+        ),
+        "required_schema": SCHEMA_VERSION,
+        "source": source,
+        "project_id": project_id,
+        "project_revision_id": project_revision_id,
+        "message": (
+            "This saved plan predates the current executable contract. Create a "
+            "new plan from its preserved facts before compiling or recovering it."
+        ),
+    }
+
+
+class MoETopologyRequest(StrictModel):
+    expert_count: Annotated[int, Field(strict=True, gt=0)]
+    experts_per_token: Annotated[int, Field(strict=True, gt=0)]
+    expert_intermediate_size: Annotated[int, Field(strict=True, gt=0)]
+    decoder_sparse_step: Annotated[int, Field(strict=True, gt=0)]
+    mlp_only_layers: list[Annotated[int, Field(strict=True, ge=0)]] = Field(
+        default_factory=list
+    )
+    shared_expert_intermediate_size: Annotated[int, Field(strict=True, gt=0)] | None = (
+        None
+    )
+
+
+class QuantizationOverrideRequest(StrictModel):
+    module_path: str = Field(
+        min_length=1,
+        max_length=256,
+        pattern=r"^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$",
+    )
+    bits: Annotated[int, Field(strict=True, ge=1, le=16)]
+    group_size: Annotated[int, Field(strict=True, gt=0)]
+
+
+class QuantizationLayoutRequest(StrictModel):
+    default_bits: Annotated[int, Field(strict=True, ge=1, le=16)]
+    default_group_size: Annotated[int, Field(strict=True, gt=0)]
+    module_overrides: list[QuantizationOverrideRequest] = Field(default_factory=list)
+
+
 class ModelFactsRequest(StrictModel):
     model_id: str
     revision: str
@@ -89,6 +151,11 @@ class ModelFactsRequest(StrictModel):
     license_name: str
     training_allowed: bool
     intermediate_size: int | None = Field(default=None, gt=0)
+    model_type: str | None = None
+    architecture: str | None = None
+    quantization_bits: Annotated[int, Field(strict=True, ge=1, le=16)] | None = None
+    quantization_layout: QuantizationLayoutRequest | None = None
+    moe: MoETopologyRequest | None = None
 
 
 class HardwareFactsRequest(StrictModel):
@@ -112,9 +179,7 @@ class TargetRequest(StrictModel):
     effective_batch_size: int = Field(default=16, gt=0)
     max_epochs: int = Field(default=3, gt=0)
     method_preference: Method | None = None
-    training_runtime: (
-        Literal["transformers-peft-cuda", "mlx-lm", "pytorch-mps"] | None
-    ) = None
+    training_runtime: TrainingRuntime | None = None
     task: str = "sft"
     evaluation_fraction: float = Field(default=0.1, ge=0, lt=1)
     packing: bool = False
@@ -347,7 +412,7 @@ def _build_plan(request: PlanRequest) -> TrainingPlan:
         sample_limit=request.sample_limit,
         sequence_length=request.target.sequence_length,
     )
-    model = build_model_spec(**request.model.model_dump())
+    model = build_model_spec(**request.model.model_dump(exclude_none=True))
     reserve_gib = request.hardware.reserve_gib
     uses_unified_memory = (
         request.hardware.backend == Backend.MPS
@@ -762,6 +827,29 @@ def create_app(
             if isinstance(current_project, dict)
             else None
         )
+        current_plan_snapshot = (
+            current_revision.get("plan_snapshot")
+            if isinstance(current_revision, dict)
+            else None
+        )
+        if (
+            isinstance(current_plan_snapshot, dict)
+            and current_plan_snapshot.get("schema_version") != SCHEMA_VERSION
+        ):
+            result["replan_required"] = _replan_required_payload(
+                current_plan_snapshot,
+                source="project-revision",
+                project_id=(
+                    current_revision.get("project_id")
+                    if isinstance(current_revision.get("project_id"), str)
+                    else None
+                ),
+                project_revision_id=(
+                    current_revision.get("revision_id")
+                    if isinstance(current_revision.get("revision_id"), str)
+                    else None
+                ),
+            )
         current_revision_job_ids = (
             {
                 str(job_id)
@@ -881,6 +969,31 @@ def create_app(
             try:
                 plan_payload = json.loads(plan_path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
+                continue
+            if (
+                not isinstance(plan_payload, dict)
+                or plan_payload.get("schema_version") != SCHEMA_VERSION
+            ):
+                if isinstance(plan_payload, dict):
+                    result.setdefault(
+                        "replan_required",
+                        _replan_required_payload(
+                            plan_payload,
+                            source="compiled-bundle",
+                            project_id=(
+                                current_revision.get("project_id")
+                                if isinstance(current_revision, dict)
+                                and isinstance(current_revision.get("project_id"), str)
+                                else None
+                            ),
+                            project_revision_id=(
+                                current_revision.get("revision_id")
+                                if isinstance(current_revision, dict)
+                                and isinstance(current_revision.get("revision_id"), str)
+                                else None
+                            ),
+                        ),
+                    )
                 continue
             if validate_plan_payload(
                 plan_payload, root=bundle_dir, verify_dataset=False
@@ -1065,14 +1178,23 @@ def create_app(
                 result["job"] = matching_job
         if "plan" not in result and isinstance(current_revision, dict):
             plan_snapshot = current_revision.get("plan_snapshot")
-            if isinstance(plan_snapshot, dict) and not validate_plan_payload(
-                plan_snapshot, verify_dataset=False
-            ):
-                result["plan"] = {
-                    **plan_snapshot,
-                    "project_id": current_revision["project_id"],
-                    "project_revision_id": current_revision["revision_id"],
-                }
+            if isinstance(plan_snapshot, dict):
+                if plan_snapshot.get("schema_version") != SCHEMA_VERSION:
+                    result.setdefault(
+                        "replan_required",
+                        _replan_required_payload(
+                            plan_snapshot,
+                            source="project-revision",
+                            project_id=current_revision["project_id"],
+                            project_revision_id=current_revision["revision_id"],
+                        ),
+                    )
+                elif not validate_plan_payload(plan_snapshot, verify_dataset=False):
+                    result["plan"] = {
+                        **plan_snapshot,
+                        "project_id": current_revision["project_id"],
+                        "project_revision_id": current_revision["revision_id"],
+                    }
         return result
 
     @app.get("/api/v1/hardware", response_model=HardwareProbeResponse)
@@ -1228,7 +1350,19 @@ def create_app(
 
     @app.get("/api/v1/plans/{plan_id}", response_model=TrainingPlanResponse)
     def get_plan(plan_id: str) -> dict[str, Any]:
-        result = context.load_plan(plan_id)
+        try:
+            result = context.load_plan(plan_id)
+        except UnsupportedPlanSchemaError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "replan_required",
+                    "plan_id": plan_id,
+                    "found_schema": error.found_schema,
+                    "required_schema": error.required_schema,
+                    "message": str(error),
+                },
+            ) from error
         if result is None:
             raise HTTPException(
                 status_code=404, detail={"error": "plan_not_found", "plan_id": plan_id}
@@ -1242,7 +1376,19 @@ def create_app(
             expected_revision_id=request.expected_project_revision_id,
             plan_id=request.plan_id,
         )
-        plan_value = context.load_plan(request.plan_id)
+        try:
+            plan_value = context.load_plan(request.plan_id)
+        except UnsupportedPlanSchemaError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "replan_required",
+                    "plan_id": request.plan_id,
+                    "found_schema": error.found_schema,
+                    "required_schema": error.required_schema,
+                    "message": str(error),
+                },
+            ) from error
         if plan_value is None:
             raise HTTPException(
                 status_code=404,
@@ -1603,6 +1749,18 @@ def create_app(
     ) -> dict[str, Any]:
         try:
             revision = context.projects.recover(project_id, request.revision_id)
+        except UnsupportedPlanSchemaError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "replan_required",
+                    "project_id": project_id,
+                    "project_revision_id": request.revision_id,
+                    "found_schema": error.found_schema,
+                    "required_schema": error.required_schema,
+                    "message": str(error),
+                },
+            ) from error
         except KeyError:
             raise HTTPException(
                 status_code=404,

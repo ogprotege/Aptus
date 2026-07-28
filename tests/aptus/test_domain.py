@@ -7,13 +7,17 @@ from aptus.domain import (
     Backend,
     DeviceSpec,
     HardwareSpec,
+    MoETopology,
     ModelSpec,
+    QuantizationLayout,
+    QuantizationOverride,
+    UnsupportedPlanSchemaError,
     gibibytes,
     to_primitive,
     training_plan_from_primitive,
 )
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 
 class DomainContractTests(unittest.TestCase):
@@ -85,12 +89,107 @@ class DomainContractTests(unittest.TestCase):
         self.assertEqual(memory["uncertainty_bytes"], memory["safety_margin_bytes"])
         self.assertEqual(memory["formula_version"], "aptus-memory-v2")
 
+    def test_moe_topology_derives_sparse_and_active_parameters(self) -> None:
+        topology = MoETopology(
+            expert_count=128,
+            experts_per_token=8,
+            expert_intermediate_size=768,
+            decoder_sparse_step=2,
+            mlp_only_layers=(1,),
+        )
+        model = ModelSpec(
+            model_id="example/qwen3-moe",
+            revision="c" * 40,
+            family="qwen3_moe",
+            parameters=30_500_000_000,
+            hidden_size=2048,
+            intermediate_size=6144,
+            layers=48,
+            context_length=262144,
+            license_name="apache-2.0",
+            training_allowed=True,
+            architecture="Qwen3MoeForCausalLM",
+            model_type="qwen3_moe",
+            quantization_bits=4,
+            moe=topology,
+        )
+
+        self.assertEqual(model.sparse_layer_count, 23)
+        expected_active = 30_500_000_000 - 23 * 120 * 3 * 2048 * 768
+        self.assertEqual(model.active_parameters, expected_active)
+        primitive = to_primitive(model)
+        self.assertEqual(primitive["sparse_layer_count"], 23)
+        self.assertEqual(primitive["active_parameters"], expected_active)
+
+    def test_moe_topology_rejects_invalid_routing(self) -> None:
+        with self.assertRaisesRegex(ValueError, "cannot exceed"):
+            MoETopology(
+                expert_count=4,
+                experts_per_token=5,
+                expert_intermediate_size=128,
+                decoder_sparse_step=1,
+            )
+        with self.assertRaisesRegex(ValueError, "sorted and unique"):
+            MoETopology(
+                expert_count=4,
+                experts_per_token=2,
+                expert_intermediate_size=128,
+                decoder_sparse_step=1,
+                mlp_only_layers=(2, 1),
+            )
+
+    def test_quantization_layout_requires_canonical_unique_overrides(self) -> None:
+        with self.assertRaisesRegex(ValueError, "sorted and unique"):
+            QuantizationLayout(
+                default_bits=4,
+                default_group_size=64,
+                module_overrides=(
+                    QuantizationOverride("model.layers.1.mlp.gate", 8, 64),
+                    QuantizationOverride("model.layers.0.mlp.gate", 8, 64),
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "must equal"):
+            ModelSpec(
+                model_id="example/quantized",
+                revision="d" * 40,
+                family="qwen",
+                parameters=1_000_000_000,
+                hidden_size=1024,
+                layers=16,
+                context_length=2048,
+                license_name="apache-2.0",
+                training_allowed=True,
+                quantization_bits=8,
+                quantization_layout=QuantizationLayout(4, 64),
+            )
+
     def test_plan_round_trips_through_strict_json(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_plan(Path(temporary))
             payload = json.loads(json.dumps(to_primitive(plan), allow_nan=False))
             restored = training_plan_from_primitive(payload)
         self.assertEqual(restored, plan)
+
+    def test_moe_quantization_layout_round_trips_through_strict_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen3_moe_plan(Path(temporary))
+            payload = json.loads(json.dumps(to_primitive(plan), allow_nan=False))
+            restored = training_plan_from_primitive(payload)
+        self.assertEqual(restored, plan)
+
+    def test_legacy_plan_requires_replan_without_mutating_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = to_primitive(make_plan(Path(temporary)))
+            payload["schema_version"] = "aptus.training-plan.v2"
+            before = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+            with self.assertRaises(UnsupportedPlanSchemaError) as raised:
+                training_plan_from_primitive(payload)
+
+            after = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        self.assertEqual(raised.exception.found_schema, "aptus.training-plan.v2")
+        self.assertEqual(raised.exception.required_schema, "aptus.training-plan.v3")
+        self.assertEqual(after, before)
 
 
 if __name__ == "__main__":

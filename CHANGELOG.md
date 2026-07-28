@@ -11,7 +11,19 @@ All notable changes are recorded here.
 - Aptus for Mac, a native AppKit and WebKit application with automatic bundled
   backend lifecycle, private session authentication, native path pickers,
   Finder actions, startup recovery, app packaging, and CUDA-host handoff.
-- V2 fact, candidate, plan, bundle, validation, and job contracts.
+- V3 fact and training-plan contracts, plus the retained versioned candidate,
+  bundle, validation, and job contracts.
+- Exact Qwen3 MoE compatibility for inspected four-bit `qwen3_moe` checkpoints
+  using `Qwen3MoeForCausalLM`. The implemented conditional planner slice is
+  single-device MLX-LM QLoRA with attention-only adapters and mandatory pilot
+  evidence.
+- Provider-declared MoE topology facts, backend-derived active-parameter and
+  sparse-layer counts, strict API and CLI inputs, and a workbench expert-routing
+  rail. Resident-weight estimates always use the user-attested total parameter
+  count.
+- Exact required, available, and shortfall bytes in MLX unified-memory
+  admission failures, plus a bound Qwen3 30B-A3B admission and performance
+  evidence record. The recorded 30B attempt stopped before model loading.
 - Full, LoRA, int8-LoRA, and QLoRA candidate enumeration with explicit
   distribution feasibility.
 - A typed 11-descriptor method registry. Four gated executable methods are
@@ -104,6 +116,8 @@ All notable changes are recorded here.
 - Native backend shutdown now retains ownership after a timeout, blocks restart
   and application termination while descendants survive, rejects PID reuse, and
   permits an explicit cleanup retry.
+- MLX memory estimation now distinguishes MoE resident weights from routed
+  per-token computation under `aptus-memory-mlx-v2`.
 
 ### Removed
 

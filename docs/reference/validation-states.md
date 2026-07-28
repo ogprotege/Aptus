@@ -67,7 +67,7 @@ portable static level then parses every generated Python program.
 
 Core contract checks bind:
 
-- `aptus.training-plan.v2`, every `aptus.runtime-contract.v1`, and the selected
+- `aptus.training-plan.v3`, every `aptus.runtime-contract.v1`, and the selected
   memory estimator identity;
 - candidate and plan content IDs;
 - normalized model, dataset, hardware, and target facts;

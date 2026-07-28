@@ -50,6 +50,13 @@ Provider-declared model fields do not become permission facts. Manual hardware
 values do not become target-host measurements. An inferred model family does
 not replace the raw provider model type or architecture evidence.
 
+For a sparse model, the v3 model payload binds exact provider type,
+architecture, checkpoint precision, expert count, experts per token, expert
+width, sparse cadence, dense-only layer indices, and optional shared-expert
+width. It also binds backend-derived active parameters and sparse-layer count.
+The user-attested total parameter count remains a separate resident-weight fact.
+Changing any of these values changes candidate and plan identity.
+
 ## Source dataset identity
 
 Profiling resolves the source path and records its SHA-256, size, format,
@@ -76,6 +83,8 @@ payload includes:
 - method, distribution, precision, quantization, and device placement;
 - exact batch arithmetic;
 - adapter and target-module settings;
+- exact sparse topology, total resident parameters, and derived routed activity
+  when the model is MoE;
 - status and feasibility;
 - memory components, upper bounds, formula version, host RAM, disk, checkpoint,
   export, and reserve terms.

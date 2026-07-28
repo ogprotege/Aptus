@@ -39,15 +39,16 @@ boundaries.
 
 | Contract | Version | Purpose |
 | --- | --- | --- |
-| Facts | `aptus.facts.v2` | Explicit values and available provenance |
+| Facts | `aptus.facts.v3` | Explicit values and available provenance |
 | Method descriptor | `aptus.method-descriptor.v1` | Runtime lifecycle, selectability, compiler, export, evidence, and blocker metadata |
 | Candidates | `aptus-candidates-v2` | Finite strategy enumeration and constraint results |
 | Precision | `aptus-precision-v2` | Compute and quantization selection policy |
 | Memory | `aptus-memory-v2` | Per-device point and upper VRAM envelopes |
+| MLX memory | `aptus-memory-mlx-v2` | Apple unified-memory envelopes, including exact routed-expert activation terms |
 | Ranking | `aptus-ranking-v2` | Pareto annotation and lexicographic objective policy |
 | Preflight | `aptus-preflight-v2` | Runtime-specific bounded update evidence before the real pilot; CUDA uses a synthetic model, while MLX uses the pinned model and compiled data |
 | Bundle | `aptus.bundle.v2` | Atomic file manifest and execution contract |
-| Plan | `aptus.training-plan.v2` | Selected candidate and full decision trace |
+| Plan | `aptus.training-plan.v3` | Selected candidate and full decision trace |
 | Trainable census | `aptus.trainable-parameter-census.v1` | Method-scope tensor and parameter counts, finite state, and descriptor digest |
 | Dataset split | `aptus.dataset-split.v1` | Full-run assignment strategy, counts, canonical digest, assignment digest, and realized error |
 | MLX dataset split | `aptus.mlx-split.v1` | Disjoint compiled train and validation counts with repeat-within-split microbatch padding |

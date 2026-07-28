@@ -18,10 +18,23 @@ Supply:
 - license label;
 - explicit confirmation that training is allowed.
 
+For an inspected MoE checkpoint, also retain the exact provider model type,
+architecture, checkpoint precision, expert count, experts selected per token,
+expert intermediate width, sparse cadence, dense-only layer indices, and any
+shared-expert width. Enter the total parameter count, not the active count.
+Aptus derives active parameters and sparse-layer count. All checkpoint weights
+remain resident during the supported MLX-LM path.
+
 `aptus inspect model` can retrieve bounded provider-declared model configuration
 and repository metadata. It does not fetch tokenizer artifacts. Review the
 returned facts before copying values. Provider metadata can be wrong or
 incomplete. Inspection never decides license rights or training permission.
+
+The first sparse compatibility row is exact: `qwen3_moe`,
+`Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
+`model.layers.N.mlp.gate` override for every layer, no shared expert,
+single-device MLX-LM QLoRA, and attention-only adapters. Other MoE identities,
+quantization layouts, runtimes, methods, and placements remain unsupported.
 
 Model-data validation later resolves the pinned revision with the installed
 Transformers and PEFT stack. It requires the loaded hidden size, layer count,

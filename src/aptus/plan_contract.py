@@ -7,15 +7,50 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "aptus.training-plan.v2"
+SCHEMA_VERSION = "aptus.training-plan.v3"
 FORMULA_VERSION = "aptus-memory-v2"
-MLX_FORMULA_VERSION = "aptus-memory-mlx-v1"
+MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 CANDIDATE_STATUSES = {"feasible", "conditional", "infeasible", "unsupported"}
 METHODS = {"full", "lora", "int8-lora", "qlora"}
 DISTRIBUTIONS = {"single", "ddp", "fsdp"}
 TRAINING_RUNTIMES = {"transformers-peft-cuda", "mlx-lm", "pytorch-mps"}
 EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
+QWEN3_MOE_FAMILY = "qwen3_moe"
+QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
+QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
+DENSE_TARGET_MODULES = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
+MODEL_TARGET_MODULES = {
+    family: DENSE_TARGET_MODULES for family in ("gemma", "llama", "mistral", "qwen")
+}
+MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY] = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+]
+MOE_TOPOLOGY_FIELDS = (
+    "expert_count",
+    "experts_per_token",
+    "expert_intermediate_size",
+    "decoder_sparse_step",
+    "mlp_only_layers",
+    "shared_expert_intermediate_size",
+)
+QUANTIZATION_LAYOUT_FIELDS = (
+    "default_bits",
+    "default_group_size",
+    "module_overrides",
+)
+QUANTIZATION_OVERRIDE_FIELDS = ("module_path", "bits", "group_size")
 
 # This table is intentionally self-contained because plan_contract.py is copied
 # into every generated bundle. It mirrors the executable RuntimeBinding entries
@@ -36,7 +71,7 @@ RUNTIME_BINDING_IDENTITIES = {
     ),
     ("lora", "mlx-lm", "mps"): (
         "mlx-lm.lora.v1",
-        "aptus-memory-mlx-v1",
+        "aptus-memory-mlx-v2",
         "mlx-lm-adapter",
         "pilot-required",
     ),
@@ -54,7 +89,7 @@ RUNTIME_BINDING_IDENTITIES = {
     ),
     ("qlora", "mlx-lm", "mps"): (
         "mlx-lm.qlora.v1",
-        "aptus-memory-mlx-v1",
+        "aptus-memory-mlx-v2",
         "mlx-lm-adapter",
         "pilot-required",
     ),
@@ -154,6 +189,7 @@ def validate_bundle_manifest(root: Path) -> tuple[str, ...]:
             errors.append(f"Manifested file changed: {relative}.")
     mutable_files = {
         ".validation-report.lock",
+        "model-data-evidence.json",
         "validation-report.json",
         "preflight-metrics.json",
     }
@@ -206,13 +242,432 @@ def _mapping(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _model_config_source(config: Mapping[str, Any]) -> Mapping[str, Any]:
+    text_config = config.get("text_config")
+    return text_config if isinstance(text_config, Mapping) else config
+
+
+def _config_first(config: Mapping[str, Any], *names: str) -> Any:
+    for name in names:
+        value = config.get(name)
+        if value is not None:
+            return value
+    return None
+
+
+def _config_quantization_bits(config: Mapping[str, Any]) -> Any:
+    source = _model_config_source(config)
+    quantization = (
+        source.get("quantization")
+        or source.get("quantization_config")
+        or config.get("quantization")
+        or config.get("quantization_config")
+    )
+    return quantization.get("bits") if isinstance(quantization, Mapping) else None
+
+
+def _normalized_quantization_layout(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) != set(QUANTIZATION_LAYOUT_FIELDS):
+        raise ValueError(
+            "Model quantization_layout must contain the exact v3 layout fields."
+        )
+    default_bits = value.get("default_bits")
+    default_group_size = value.get("default_group_size")
+    if (
+        not _positive_int(default_bits)
+        or default_bits > 16
+        or not _positive_int(default_group_size)
+    ):
+        raise ValueError(
+            "Model quantization layout defaults require bits from 1 through 16 "
+            "and a positive group_size."
+        )
+    raw_overrides = value.get("module_overrides")
+    if not isinstance(raw_overrides, (list, tuple)):
+        raise ValueError("Model quantization module_overrides must be a list.")
+    overrides: list[dict[str, Any]] = []
+    for item in raw_overrides:
+        if not isinstance(item, Mapping) or set(item) != set(
+            QUANTIZATION_OVERRIDE_FIELDS
+        ):
+            raise ValueError(
+                "Each model quantization override must contain only module_path, "
+                "bits, and group_size."
+            )
+        module_path = item.get("module_path")
+        bits = item.get("bits")
+        group_size = item.get("group_size")
+        if (
+            not isinstance(module_path, str)
+            or not module_path
+            or len(module_path) > 256
+            or any(
+                not part
+                or any(
+                    character
+                    not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+                    for character in part
+                )
+                for part in module_path.split(".")
+            )
+        ):
+            raise ValueError(
+                "Model quantization override module_path must be a dotted module identifier."
+            )
+        if not _positive_int(bits) or bits > 16 or not _positive_int(group_size):
+            raise ValueError(
+                "Model quantization override bits or group_size is invalid."
+            )
+        overrides.append(
+            {
+                "module_path": module_path,
+                "bits": bits,
+                "group_size": group_size,
+            }
+        )
+    paths = [item["module_path"] for item in overrides]
+    if paths != sorted(set(paths)):
+        raise ValueError(
+            "Model quantization module_overrides must be sorted and unique."
+        )
+    return {
+        "default_bits": default_bits,
+        "default_group_size": default_group_size,
+        "module_overrides": overrides,
+    }
+
+
+def _reviewed_qwen3_moe_quantization_layout(layers: int) -> dict[str, Any]:
+    if not _positive_int(layers):
+        raise ValueError("Reviewed Qwen3 MoE quantization requires positive layers.")
+    return {
+        "default_bits": 4,
+        "default_group_size": 64,
+        "module_overrides": [
+            {
+                "module_path": f"model.layers.{index}.mlp.gate",
+                "bits": 8,
+                "group_size": 64,
+            }
+            for index in sorted(range(layers), key=lambda value: str(value))
+        ],
+    }
+
+
+def _canonical_config_quantization_layout(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    layout = {
+        "default_bits": value.get("bits"),
+        "default_group_size": value.get("group_size"),
+        "module_overrides": [
+            {
+                "module_path": key,
+                "bits": item.get("bits") if isinstance(item, Mapping) else None,
+                "group_size": (
+                    item.get("group_size") if isinstance(item, Mapping) else None
+                ),
+            }
+            for key, item in value.items()
+            if key not in {"bits", "group_size"}
+        ],
+    }
+    layout["module_overrides"].sort(key=lambda item: item["module_path"])
+    try:
+        normalized = _normalized_quantization_layout(layout)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "Pinned model quantization layout contains unsupported fields or values."
+        ) from error
+    assert normalized is not None
+    for key, item in value.items():
+        if key in {"bits", "group_size"}:
+            continue
+        if not isinstance(item, Mapping) or set(item) != {"bits", "group_size"}:
+            raise ValueError(
+                "Pinned model quantization layout contains unsupported override fields."
+            )
+    return normalized
+
+
+def _config_quantization_layout(config: Mapping[str, Any]) -> dict[str, Any] | None:
+    source = _model_config_source(config)
+    candidates: list[Mapping[str, Any]] = []
+    for container in (source, config):
+        for name in ("quantization", "quantization_config"):
+            value = container.get(name)
+            if isinstance(value, Mapping) and all(
+                value is not item for item in candidates
+            ):
+                candidates.append(value)
+    if not candidates:
+        return None
+    layouts = [_canonical_config_quantization_layout(item) for item in candidates]
+    if any(item != layouts[0] for item in layouts[1:]):
+        raise ValueError(
+            "Pinned model quantization and quantization_config layouts disagree."
+        )
+    return layouts[0]
+
+
+def _normalized_moe(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) != set(MOE_TOPOLOGY_FIELDS):
+        raise ValueError("Model moe must contain the exact v3 topology fields.")
+    positive_names = (
+        "expert_count",
+        "experts_per_token",
+        "expert_intermediate_size",
+        "decoder_sparse_step",
+    )
+    if any(not _positive_int(value.get(name)) for name in positive_names):
+        raise ValueError("Model MoE topology integer facts must be positive.")
+    if value["experts_per_token"] > value["expert_count"]:
+        raise ValueError("Model experts_per_token cannot exceed expert_count.")
+    shared = value.get("shared_expert_intermediate_size")
+    if shared is not None and not _positive_int(shared):
+        raise ValueError(
+            "Model shared_expert_intermediate_size must be positive when supplied."
+        )
+    mlp_only = value.get("mlp_only_layers")
+    if (
+        not isinstance(mlp_only, (list, tuple))
+        or any(
+            not isinstance(index, int) or isinstance(index, bool) or index < 0
+            for index in mlp_only
+        )
+        or list(mlp_only) != sorted(set(mlp_only))
+    ):
+        raise ValueError("Model mlp_only_layers must be a sorted unique integer list.")
+    return {
+        "expert_count": value["expert_count"],
+        "experts_per_token": value["experts_per_token"],
+        "expert_intermediate_size": value["expert_intermediate_size"],
+        "decoder_sparse_step": value["decoder_sparse_step"],
+        "mlp_only_layers": list(mlp_only),
+        "shared_expert_intermediate_size": shared,
+    }
+
+
+def _derived_model_topology(
+    model: Mapping[str, Any], moe: Mapping[str, Any] | None
+) -> tuple[int, int]:
+    parameters = model.get("parameters")
+    layers = model.get("layers")
+    hidden_size = model.get("hidden_size")
+    if not all(_positive_int(value) for value in (parameters, layers, hidden_size)):
+        raise ValueError("Model structural facts are incomplete.")
+    assert isinstance(parameters, int)
+    assert isinstance(layers, int)
+    assert isinstance(hidden_size, int)
+    if moe is None:
+        return 0, parameters
+    mlp_only = set(moe["mlp_only_layers"])
+    if any(index >= layers for index in mlp_only):
+        raise ValueError("Model mlp_only_layers references a missing layer.")
+    sparse_layers = sum(
+        1
+        for index in range(layers)
+        if (index + 1) % moe["decoder_sparse_step"] == 0 and index not in mlp_only
+    )
+    if sparse_layers <= 0:
+        raise ValueError("Model MoE topology must contain at least one sparse layer.")
+    inactive = (
+        sparse_layers
+        * (moe["expert_count"] - moe["experts_per_token"])
+        * 3
+        * hidden_size
+        * moe["expert_intermediate_size"]
+    )
+    active = parameters - inactive
+    if active <= 0 or active > parameters:
+        raise ValueError(
+            "Model derived active_parameters must be positive and no greater than total parameters."
+        )
+    return sparse_layers, active
+
+
+def expected_model_architecture_contract(
+    model: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the deterministic model architecture contract carried by runtime proof."""
+
+    if not isinstance(model, Mapping):
+        raise ValueError("Model architecture contract requires a model object.")
+    architecture = model.get("architecture")
+    model_type = model.get("model_type")
+    if not isinstance(architecture, str) or not architecture.strip():
+        raise ValueError("Model architecture is required.")
+    if model_type is not None and (
+        not isinstance(model_type, str) or not model_type.strip()
+    ):
+        raise ValueError("Model model_type must be non-empty when supplied.")
+    for name in ("parameters", "hidden_size", "layers", "context_length"):
+        if not _positive_int(model.get(name)):
+            raise ValueError(f"Model {name} must be positive.")
+    intermediate_size = model.get("intermediate_size")
+    if intermediate_size is not None and not _positive_int(intermediate_size):
+        raise ValueError("Model intermediate_size must be positive when supplied.")
+    quantization_bits = model.get("quantization_bits")
+    if quantization_bits is not None and (
+        not _positive_int(quantization_bits) or quantization_bits > 16
+    ):
+        raise ValueError("Model quantization_bits must be between 1 and 16.")
+    quantization_layout = _normalized_quantization_layout(
+        model.get("quantization_layout")
+    )
+    if quantization_layout is not None and (
+        quantization_bits != quantization_layout["default_bits"]
+    ):
+        raise ValueError(
+            "Model quantization_bits must equal quantization_layout default_bits."
+        )
+    moe = _normalized_moe(model.get("moe"))
+    sparse_layers, active_parameters = _derived_model_topology(model, moe)
+    if model.get("sparse_layer_count") != sparse_layers:
+        raise ValueError("Model sparse_layer_count does not match its topology.")
+    if model.get("active_parameters") != active_parameters:
+        raise ValueError("Model active_parameters does not match its topology.")
+    if moe is not None:
+        if (
+            model.get("family") != QWEN3_MOE_FAMILY
+            or model_type != QWEN3_MOE_MODEL_TYPE
+            or architecture != QWEN3_MOE_ARCHITECTURE
+        ):
+            raise ValueError(
+                "Model MoE topology requires the exact reviewed Qwen3 MoE identity."
+            )
+        if moe["shared_expert_intermediate_size"] is not None:
+            raise ValueError(
+                "The reviewed Qwen3 MoE runtime does not support a shared expert."
+            )
+        if quantization_bits != 4:
+            raise ValueError(
+                "The reviewed Qwen3 MoE runtime requires explicit four-bit metadata."
+            )
+        if quantization_layout != _reviewed_qwen3_moe_quantization_layout(
+            model["layers"]
+        ):
+            raise ValueError(
+                "The reviewed Qwen3 MoE runtime requires the exact four-bit "
+                "group-64 layout with one eight-bit group-64 router-gate override "
+                "for every layer."
+            )
+    quantization_layout_sha256 = (
+        hashlib.sha256(
+            json.dumps(
+                quantization_layout, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
+        if quantization_layout is not None
+        else None
+    )
+    payload = {
+        "schema_version": "aptus.model-architecture-contract.v1",
+        "model_type": model_type,
+        "architecture": architecture,
+        "parameters": model["parameters"],
+        "hidden_size": model["hidden_size"],
+        "intermediate_size": intermediate_size,
+        "layers": model["layers"],
+        "context_length": model["context_length"],
+        "quantization_bits": quantization_bits,
+        "quantization_layout": quantization_layout,
+        "quantization_layout_sha256": quantization_layout_sha256,
+        "moe": moe,
+        "sparse_layer_count": sparse_layers,
+        "active_parameters": active_parameters,
+    }
+    payload["contract_sha256"] = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return payload
+
+
+def validate_model_config_against_plan(
+    model: Mapping[str, Any], config: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Match a pinned provider config to the plan and return its proof payload."""
+
+    expected = expected_model_architecture_contract(model)
+    if not isinstance(config, Mapping):
+        raise ValueError("Pinned model config must be an object.")
+    source = _model_config_source(config)
+    expected_model_type = expected["model_type"]
+    observed_model_type = source.get("model_type") or config.get("model_type")
+    if expected_model_type is not None and observed_model_type != expected_model_type:
+        raise ValueError("Pinned model_type does not match the plan.")
+    raw_architectures = config.get("architectures") or source.get("architectures")
+    observed_architecture = (
+        raw_architectures[0]
+        if isinstance(raw_architectures, list)
+        and raw_architectures
+        and isinstance(raw_architectures[0], str)
+        else observed_model_type
+    )
+    if (
+        expected["architecture"] != "causal-lm"
+        and observed_architecture != expected["architecture"]
+    ):
+        raise ValueError("Pinned model architecture does not match the plan.")
+    structural_names = {
+        "hidden_size": ("hidden_size", "d_model", "n_embd"),
+        "intermediate_size": ("intermediate_size", "ffn_dim", "n_inner"),
+        "layers": ("num_hidden_layers", "n_layer", "num_layers"),
+        "context_length": (
+            "max_position_embeddings",
+            "n_positions",
+            "seq_length",
+        ),
+    }
+    for planned_name, config_names in structural_names.items():
+        planned = expected[planned_name]
+        observed = _config_first(source, *config_names)
+        if planned is not None and (
+            (expected["moe"] is not None and observed != planned)
+            or (observed is not None and observed != planned)
+        ):
+            raise ValueError(f"Pinned model {planned_name} does not match the plan.")
+    observed_bits = _config_quantization_bits(config)
+    if (
+        expected["quantization_bits"] is not None
+        and observed_bits != expected["quantization_bits"]
+    ):
+        raise ValueError("Pinned model quantization bits do not match the plan.")
+    expected_layout = expected["quantization_layout"]
+    if expected_layout is not None:
+        observed_layout = _config_quantization_layout(config)
+        if observed_layout != expected_layout:
+            raise ValueError(
+                "Pinned model quantization layout does not match the plan."
+            )
+    expected_moe = expected["moe"]
+    if expected_moe is not None:
+        observed_moe = {
+            "expert_count": source.get("num_experts"),
+            "experts_per_token": source.get("num_experts_per_tok"),
+            "expert_intermediate_size": source.get("moe_intermediate_size"),
+            "decoder_sparse_step": source.get("decoder_sparse_step"),
+            "mlp_only_layers": source.get("mlp_only_layers"),
+            "shared_expert_intermediate_size": source.get(
+                "shared_expert_intermediate_size"
+            ),
+        }
+        if observed_moe != expected_moe:
+            raise ValueError("Pinned model MoE topology does not match the plan.")
+    return expected
+
+
 def _select(value: Any, keys: tuple[str, ...]) -> dict[str, Any]:
     source = _mapping(value)
     return {key: source.get(key) for key in keys}
 
 
 def _normalized_model(value: Any) -> dict[str, Any]:
-    return _select(
+    model = _select(
         value,
         (
             "model_id",
@@ -224,11 +679,27 @@ def _normalized_model(value: Any) -> dict[str, Any]:
             "layers",
             "context_length",
             "architecture",
+            "model_type",
+            "quantization_bits",
+            "quantization_layout",
+            "sparse_layer_count",
+            "active_parameters",
             "tokenizer_id",
             "license_name",
             "training_allowed",
         ),
     )
+    moe = _mapping(value).get("moe")
+    quantization_layout = _mapping(value).get("quantization_layout")
+    model["quantization_layout"] = (
+        _normalized_quantization_layout(quantization_layout)
+        if quantization_layout is not None
+        else None
+    )
+    model["moe"] = (
+        _select(moe, MOE_TOPOLOGY_FIELDS) if isinstance(moe, Mapping) else None
+    )
+    return model
 
 
 def _normalized_dataset(value: Any) -> dict[str, Any]:
@@ -318,6 +789,238 @@ def _normalized_target(value: Any) -> dict[str, Any]:
             "training_runtime",
         ),
     )
+
+
+def _mlx_adapter_parameter_count(
+    model: Mapping[str, Any], *, rank: int, target_modules: list[str] | tuple[str, ...]
+) -> int:
+    """Return the deterministic adapter cardinality used by the MLX estimator."""
+
+    hidden_size = model.get("hidden_size")
+    layers = model.get("layers")
+    if not _positive_int(hidden_size) or not _positive_int(layers):
+        raise ValueError("MLX memory recomputation requires positive model dimensions.")
+    if not _positive_int(rank):
+        raise ValueError("MLX memory recomputation requires a positive adapter rank.")
+    intermediate_size = model.get("intermediate_size")
+    if intermediate_size is None:
+        intermediate_size = hidden_size * 4
+    if not _positive_int(intermediate_size):
+        raise ValueError(
+            "MLX memory recomputation requires a positive intermediate dimension."
+        )
+    moe = model.get("moe")
+    if moe is not None and any(
+        module in {"gate_proj", "up_proj", "down_proj"} for module in target_modules
+    ):
+        raise ValueError(
+            "MLX MoE memory recomputation refuses topology-free expert adapters."
+        )
+    per_layer = 0
+    for module in target_modules:
+        if module in {"gate_proj", "up_proj", "down_proj"}:
+            per_layer += hidden_size + intermediate_size
+        elif module in {"q_proj", "k_proj", "v_proj", "o_proj"}:
+            per_layer += hidden_size * 2
+        else:
+            raise ValueError(
+                f"MLX memory recomputation does not recognize target module {module!r}."
+            )
+    return layers * rank * per_layer
+
+
+def mlx_quantized_storage_bytes_for_contract(
+    model: Mapping[str, Any], *, logical_parameters: int | None = None
+) -> tuple[int, int]:
+    """Price the bound MLX affine layout, including reviewed router overrides."""
+
+    parameters = (
+        logical_parameters
+        if logical_parameters is not None
+        else model.get("parameters")
+    )
+    if not _positive_int(parameters):
+        raise ValueError(
+            "MLX memory recomputation requires a positive parameter count."
+        )
+    layout = model.get("quantization_layout")
+    if layout is None:
+        # Dense v3 plans predate an exact layout binding. Preserve their named
+        # analytical prior while the runtime still requires real four-bit metadata.
+        return round(parameters * 0.5), round(parameters * 0.0625)
+    if not isinstance(layout, Mapping):
+        raise ValueError("MLX quantization layout must be an object.")
+    default_bits = layout.get("default_bits")
+    default_group_size = layout.get("default_group_size")
+    overrides = layout.get("module_overrides")
+    if (
+        not _positive_int(default_bits)
+        or not _positive_int(default_group_size)
+        or not isinstance(overrides, list)
+    ):
+        raise ValueError("MLX quantization layout is incomplete.")
+
+    moe = model.get("moe")
+    hidden_size = model.get("hidden_size")
+    if not isinstance(moe, Mapping) or not _positive_int(hidden_size):
+        raise ValueError(
+            "MLX quantization overrides require a bound MoE topology and hidden size."
+        )
+    expert_count = moe.get("expert_count")
+    if not _positive_int(expert_count):
+        raise ValueError("MLX quantization overrides require a positive expert count.")
+
+    overridden_parameters = 0
+    weighted_storage_bits = 0
+    weighted_metadata_bytes = 0.0
+    seen_paths: set[str] = set()
+    for override in overrides:
+        if not isinstance(override, Mapping):
+            raise ValueError("MLX quantization overrides must be objects.")
+        module_path = override.get("module_path")
+        bits = override.get("bits")
+        group_size = override.get("group_size")
+        if (
+            not isinstance(module_path, str)
+            or not module_path
+            or module_path in seen_paths
+            or not module_path.startswith("model.layers.")
+            or not module_path.endswith(".mlp.gate")
+            or not _positive_int(bits)
+            or not _positive_int(group_size)
+        ):
+            raise ValueError("MLX quantization override is not a unique router gate.")
+        seen_paths.add(module_path)
+        parameter_count = hidden_size * expert_count
+        overridden_parameters += parameter_count
+        weighted_storage_bits += parameter_count * bits
+        # MLX affine quantization stores one half-precision scale and bias per group.
+        weighted_metadata_bytes += parameter_count * 4 / group_size
+    if overridden_parameters > parameters:
+        raise ValueError("MLX quantization overrides exceed the model parameter count.")
+    default_parameters = parameters - overridden_parameters
+    storage_bytes = round(
+        (default_parameters * default_bits + weighted_storage_bits) / 8
+    )
+    metadata_bytes = round(
+        default_parameters * 4 / default_group_size + weighted_metadata_bytes
+    )
+    return storage_bytes, metadata_bytes
+
+
+def mlx_memory_breakdown_for_contract(
+    *,
+    model: Mapping[str, Any],
+    target: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Recompute the portable MLX memory contract from normalized plan facts."""
+
+    method = candidate.get("method")
+    if method not in {"lora", "qlora"}:
+        raise ValueError("The MLX estimator supports LoRA and QLoRA only.")
+    parameters = model.get("parameters")
+    hidden_size = model.get("hidden_size")
+    layers = model.get("layers")
+    sequence_length = target.get("sequence_length")
+    micro_batch_size = candidate.get("micro_batch_size")
+    rank = candidate.get("rank")
+    target_modules = candidate.get("target_modules")
+    if not all(
+        _positive_int(value)
+        for value in (
+            parameters,
+            hidden_size,
+            layers,
+            sequence_length,
+            micro_batch_size,
+            rank,
+        )
+    ) or not isinstance(target_modules, list):
+        raise ValueError("MLX memory recomputation requires complete positive facts.")
+
+    if method == "lora":
+        base_weights = round(parameters * 2.0)
+        quantization_metadata = 0
+    else:
+        base_weights, quantization_metadata = mlx_quantized_storage_bytes_for_contract(
+            model
+        )
+    trainable = _mlx_adapter_parameter_count(
+        model, rank=rank, target_modules=target_modules
+    )
+    adapter_weights = round(trainable * 4)
+    gradients = round(trainable * 4)
+    optimizer = round(trainable * 8)
+    dense_activations = round(
+        micro_batch_size * sequence_length * hidden_size * layers * 2 * 3.0
+    )
+    routed_expert_activations = 0
+    moe = model.get("moe")
+    if isinstance(moe, Mapping):
+        sparse_layer_count = model.get("sparse_layer_count")
+        experts_per_token = moe.get("experts_per_token")
+        expert_intermediate_size = moe.get("expert_intermediate_size")
+        if not all(
+            _positive_int(value)
+            for value in (
+                sparse_layer_count,
+                experts_per_token,
+                expert_intermediate_size,
+            )
+        ):
+            raise ValueError(
+                "MLX MoE memory recomputation requires complete derived topology."
+            )
+        routed_expert_activations = round(
+            micro_batch_size
+            * sequence_length
+            * sparse_layer_count
+            * experts_per_token
+            * expert_intermediate_size
+            * 2
+            * 3.0
+        )
+    activations = dense_activations + routed_expert_activations
+    resident_bytes = base_weights + quantization_metadata
+    workspace = max(round(0.75 * 1024**3), round(resident_bytes * 0.04))
+    temporary = max(round(0.75 * 1024**3), round(resident_bytes * 0.08))
+    load_transient = round(resident_bytes * 0.30)
+    point_components = {
+        "base_weights_bytes": base_weights,
+        "quantization_metadata_bytes": quantization_metadata,
+        "adapter_weights_bytes": adapter_weights,
+        "adapter_gradients_bytes": gradients,
+        "optimizer_states_bytes": optimizer,
+        "activations_bytes": activations,
+        "communication_bytes": 0,
+        "workspace_bytes": workspace,
+        "temporary_overhead_bytes": temporary,
+        "load_transient_bytes": load_transient,
+    }
+    allocator = round(sum(point_components.values()) * 0.15)
+    point_components["allocator_bytes"] = allocator
+    point = sum(point_components.values())
+    safety = round(point * 0.25)
+    component_upper_bounds = {
+        **point_components,
+        "activations_bytes": round(activations * 1.60),
+        "workspace_bytes": round(workspace * 1.75),
+        "temporary_overhead_bytes": round(temporary * 1.75),
+        "allocator_bytes": round(allocator * 1.75),
+        "load_transient_bytes": round(load_transient * 1.50),
+        "uncertainty_bytes": safety,
+    }
+    return {
+        **point_components,
+        "safety_margin_bytes": safety,
+        "point_estimate_bytes": point,
+        "estimated_peak_bytes": point,
+        "upper_estimate_bytes": sum(component_upper_bounds.values()),
+        "uncertainty_bytes": safety,
+        "formula_version": MLX_FORMULA_VERSION,
+        "component_upper_bounds": component_upper_bounds,
+    }
 
 
 def _normalized_memory(value: Any) -> dict[str, Any]:
@@ -460,6 +1163,18 @@ def validate_plan_payload(
     plan = plan_value
     if _contains_nonfinite(plan):
         errors.append("Plan numbers must be finite JSON values.")
+    if plan.get("schema_version") == "aptus.training-plan.v2" and any(
+        key in _mapping(plan.get("model"))
+        for key in (
+            "model_type",
+            "quantization_bits",
+            "quantization_layout",
+            "moe",
+            "sparse_layer_count",
+            "active_parameters",
+        )
+    ):
+        errors.append("A v2 plan cannot contain v3 model architecture or MoE fields.")
     if plan.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"Plan schema_version must be {SCHEMA_VERSION}.")
     if plan.get("formula_version") != FORMULA_VERSION:
@@ -499,6 +1214,26 @@ def validate_plan_payload(
         model.get("intermediate_size")
     ):
         errors.append("Model intermediate_size must be positive when supplied.")
+    architecture = model.get("architecture")
+    if not isinstance(architecture, str) or not architecture.strip():
+        errors.append("Model architecture is required.")
+    model_type = model.get("model_type")
+    if model_type is not None and (
+        not isinstance(model_type, str) or not model_type.strip()
+    ):
+        errors.append("Model model_type must be non-empty when supplied.")
+    moe_identity = bool(
+        model.get("family") == QWEN3_MOE_FAMILY
+        or model_type == QWEN3_MOE_MODEL_TYPE
+        or architecture == QWEN3_MOE_ARCHITECTURE
+        or model.get("moe") is not None
+    )
+    if moe_identity and model.get("moe") is None:
+        errors.append("Qwen3 MoE plans require complete expert topology facts.")
+    try:
+        expected_model_architecture_contract(model)
+    except ValueError as error:
+        errors.append(str(error))
 
     if dataset.get("schema_name") not in {
         "text",
@@ -901,7 +1636,9 @@ def validate_plan_payload(
                 "load_transient_bytes",
             )
             if all(
-                isinstance(memory.get(key), int) and memory[key] >= 0
+                isinstance(memory.get(key), int)
+                and not isinstance(memory[key], bool)
+                and memory[key] >= 0
                 for key in component_names
             ):
                 point = sum(memory[key] for key in component_names)
@@ -916,7 +1653,10 @@ def validate_plan_payload(
                         f"{name} requires transparent component_upper_bounds."
                     )
                 elif not all(
-                    isinstance(value, int) and value >= 0 for value in bounds.values()
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and value >= 0
+                    for value in bounds.values()
                 ):
                     errors.append(
                         f"{name} upper memory components must be non-negative integers."
@@ -947,6 +1687,28 @@ def validate_plan_payload(
                     errors.append(
                         f"{name} memory formula must be {expected_memory_formula}."
                     )
+                if runtime_id == "mlx-lm" and candidate.get("method") in {
+                    "lora",
+                    "qlora",
+                }:
+                    try:
+                        recomputed_memory = mlx_memory_breakdown_for_contract(
+                            model=model,
+                            target=target,
+                            candidate=candidate,
+                        )
+                    except (TypeError, ValueError) as error:
+                        errors.append(
+                            f"{name} MLX memory could not be recomputed from bound facts: {error}"
+                        )
+                    else:
+                        observed_memory = {
+                            key: memory.get(key) for key in recomputed_memory
+                        }
+                        if observed_memory != recomputed_memory:
+                            errors.append(
+                                f"{name} MLX memory does not match deterministic recomputation from bound facts."
+                            )
                 if (
                     candidate.get("status") in {"feasible", "conditional"}
                     and runtime_estimator != expected_memory_formula
@@ -997,6 +1759,16 @@ def validate_plan_payload(
         )
         if method in METHODS and quantization != expected_quantization:
             errors.append(f"{name} quantization does not match method.")
+        expected_targets = MODEL_TARGET_MODULES.get(model.get("family"))
+        if (
+            method != "full"
+            and method in METHODS
+            and expected_targets is not None
+            and candidate.get("target_modules") != expected_targets
+        ):
+            errors.append(
+                f"{name} target modules do not match the exact model-family policy."
+            )
         if method == "full" and (
             candidate.get("rank") != 0
             or candidate.get("alpha") != 0
@@ -1015,6 +1787,30 @@ def validate_plan_payload(
             errors.append(
                 f"{name} adapter method requires rank, alpha, and target modules."
             )
+        if moe_identity:
+            reviewed_moe_runtime = (
+                method == "qlora"
+                and candidate.get("distribution") == "single"
+                and runtime_id == "mlx-lm"
+                and runtime_backend == "mps"
+                and quantization == "mlx-4bit-groupwise"
+                and model.get("quantization_bits") == 4
+                and model.get("quantization_layout")
+                == _reviewed_qwen3_moe_quantization_layout(model.get("layers"))
+                and model.get("family") == QWEN3_MOE_FAMILY
+                and model_type == QWEN3_MOE_MODEL_TYPE
+                and architecture == QWEN3_MOE_ARCHITECTURE
+                and isinstance(model.get("moe"), dict)
+                and model["moe"].get("shared_expert_intermediate_size") is None
+            )
+            if not reviewed_moe_runtime and candidate.get("status") != "unsupported":
+                errors.append(
+                    f"{name} violates the exact single-device MLX-LM QLoRA MoE policy."
+                )
+            if reviewed_moe_runtime and candidate.get("status") == "feasible":
+                errors.append(
+                    f"{name} Qwen3 MoE execution must remain conditional pending its measured pilot."
+                )
         if candidate.get("status") in {"feasible", "conditional"} and selected_devices:
             if candidate.get("precision") == "bf16" and any(
                 not item.get("supports_bf16") for item in selected_devices

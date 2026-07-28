@@ -32,7 +32,7 @@ compatibility device. MLX planning uses the lesser of live availability and the
 Metal compatibility capacity, then subtracts the reserve.
 
 The current compiler binds single-device LoRA and QLoRA to `mlx-lm` through
-`aptus.runtime-contract.v1`. It uses the `aptus-memory-mlx-v1` estimator, exact
+`aptus.runtime-contract.v1`. It uses the `aptus-memory-mlx-v2` estimator, exact
 pins `mlx==0.31.2` and `mlx-lm==0.31.3`, MLX train and validation JSONL, an
 MLX-native adapter export, and runtime-neutral metrics. These candidates are
 always conditional. PyTorch MPS has no compiler. CUDA remains an external-host
@@ -80,7 +80,8 @@ Evidence should now progress in this order:
    workflow.
 2. Unquantized LoRA on a 7B model.
 3. QLoRA on a 14B model after the 7B run establishes memory and throughput.
-4. A tightly bounded 70B QLoRA stress test only after the smaller runs pass.
+4. The exact Qwen3 MoE compatibility row on a reviewed mixed-layout checkpoint.
+5. A tightly bounded 70B QLoRA stress test only after the smaller runs pass.
 
 I would not begin with AFLoRA, BiLoRA, or LoReFT. Each needs a custom training,
 state, and inference contract. Their supplied CUDA papers do not establish MLX
@@ -100,13 +101,17 @@ controls.
 | 0 | Accepted | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
 | 1A | Proposed | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish a larger unquantized runtime baseline on an Apache-2.0 model |
 | 2 | Proposed | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
+| 2M | Proposed | Revision-pinned Qwen3 30B-A3B MoE checkpoint with four-bit group-64 defaults and eight-bit group-64 router gates | QLoRA | Batch 1, 512 tokens, pilot only before any full run | Accept the exact `qwen3_moe` compatibility row and measure routed-expert memory and throughput |
 | 3 | Proposed | [`mlx-community/Llama-3.3-70B-Instruct-4bit`](https://huggingface.co/mlx-community/Llama-3.3-70B-Instruct-4bit) | QLoRA stress test | Batch 1, 512 tokens, pilot only before any full run | Measure bounded pilot fit only. Do not claim useful tuning or quality from this run |
 
 Every proposed model must be replaced by one reviewed immutable revision before
 Aptus can compile the run. The accepted 0.5B run is plumbing and runtime
 evidence, not a target-quality model. The 7B LoRA run is the first larger
 unquantized experiment. The 14B run is a later quality and efficiency candidate.
-The 70B run is intentionally last.
+The MoE row requires one router-gate override per layer, a complete
+no-shared-expert topology, attention-only adapters, and the v3 model contract.
+Its active parameter count cannot replace
+the total resident parameter count. The 70B run is intentionally last.
 
 Four-bit weights for a 70B model start near 35 GB before quantization metadata,
 activations, adapter state, optimizer state, caches, temporary buffers, the

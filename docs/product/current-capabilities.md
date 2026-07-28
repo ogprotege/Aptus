@@ -18,6 +18,11 @@ gates remain open.
   compilation, followed by tokenizer-specific transformation in the selected
   runtime gates.
 - Bounded provider model-metadata inspection at an immutable revision.
+- Exact inspection compatibility for `qwen3_moe` checkpoints with
+  `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
+  router-gate override per layer, a complete reviewed routed-expert topology,
+  and no shared expert. Inspection returns an explicit conditional or
+  unsupported result. It never relies on a family prefix.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory
@@ -60,6 +65,11 @@ gates remain open.
 - A separate MLX-LM unified-memory estimator and compiler for single-device
   LoRA and QLoRA. MLX-LM QLoRA requires explicit four-bit capability facts and
   pinned MLX model metadata. It never substitutes bitsandbytes.
+- A narrow Qwen3 MoE MLX-LM QLoRA path. The plan records expert count, experts
+  per token, expert width, sparse cadence, dense-only layers, total resident
+  parameters, backend-derived active parameters, and sparse-layer count.
+  Its canonical mixed quantization layout is identity-bound. Adapter targets
+  are limited to attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` modules.
 - Atomic no-clobber bundle compilation and deterministic ZIP creation.
 - Portable CUDA direct pins, validation, preflight, pilot, training child, and
   full-run parent programs, plus separate bounded MLX-LM runtime programs.
@@ -106,6 +116,12 @@ gates remain open.
   loads the pinned revision and tokenizes every bound train and validation row.
   Measured preflight runs a bounded real MLX adapter smoke and records
   runtime-neutral memory metrics.
+- The Qwen3 MoE row is conditional only when model type, architecture,
+  four-bit group-64 defaults, one eight-bit group-64 router-gate override per
+  layer, topology, runtime, method, placement, and adapter scope all match the
+  exact contract. All checkpoint weights remain resident. Active parameters
+  describe per-token computation and never replace total parameters in the
+  base-weight memory budget.
 - The MLX-LM pilot is one uninterrupted exact-model and exact-data run from the
   pinned base. It requires at least two completed optimizer updates, finite
   train and validation losses, exact target coverage, positive MLX peak and
@@ -147,6 +163,9 @@ gates remain open.
 - Enforced maximum wall-time targets.
 - Full-training resume.
 - Multi-user or remotely exposed job service without an external boundary.
+- MoE architectures other than the exact Qwen3 row above, Qwen3 MoE checkpoints
+  with a shared expert or any other quantization layout, CUDA or distributed
+  MoE execution, and MoE methods other than single-device MLX-LM QLoRA.
 
 ## Not implemented
 

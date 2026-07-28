@@ -104,6 +104,17 @@ class ProjectResponse(ResponseModel):
     latest_revision: ProjectRevisionResponse | None = None
 
 
+class ReplanRequiredResponse(ClosedResponseModel):
+    status: Literal["replan_required"]
+    plan_id: str | None = None
+    found_schema: str | None = None
+    required_schema: Literal["aptus.training-plan.v3"]
+    source: Literal["project-revision", "compiled-bundle"]
+    project_id: str | None = None
+    project_revision_id: str | None = None
+    message: str
+
+
 class BootstrapResponse(ResponseModel):
     api_contract_version: Literal["aptus.api.v1"]
     version: str
@@ -119,6 +130,7 @@ class BootstrapResponse(ResponseModel):
     plan: dict[str, Any] | None = None
     bundle: dict[str, Any] | None = None
     job: dict[str, Any] | None = None
+    replan_required: ReplanRequiredResponse | None = None
 
 
 class HardwareProbeResponse(ResponseModel):
@@ -193,12 +205,65 @@ class ProfileResponse(ClosedResponseModel):
     provenance: ProfileProvenanceResponse | None = None
 
 
+class InspectedMoETopologyResponse(ClosedResponseModel):
+    expert_count: int | None = None
+    experts_per_token: int | None = None
+    expert_intermediate_size: int | None = None
+    decoder_sparse_step: int | None = None
+    mlp_only_layers: list[int] | None = None
+    shared_expert_intermediate_size: int | None = None
+
+
+class InspectedQuantizationOverrideResponse(ClosedResponseModel):
+    module_path: str
+    bits: int = Field(ge=1, le=16)
+    group_size: int = Field(gt=0)
+
+
+class InspectedQuantizationLayoutResponse(ClosedResponseModel):
+    default_bits: int = Field(ge=1, le=16)
+    default_group_size: int = Field(gt=0)
+    module_overrides: list[InspectedQuantizationOverrideResponse]
+
+
+class ModelInspectionFactsResponse(ClosedResponseModel):
+    architecture: str | None = None
+    architectures: list[str] | None = None
+    model_type: str | None = None
+    family: str | None = None
+    hidden_size: int | None = Field(default=None, gt=0)
+    intermediate_size: int | None = Field(default=None, gt=0)
+    layers: int | None = Field(default=None, gt=0)
+    context_length: int | None = Field(default=None, gt=0)
+    attention_heads: int | None = Field(default=None, gt=0)
+    key_value_heads: int | None = Field(default=None, gt=0)
+    vocab_size: int | None = Field(default=None, gt=0)
+    quantization_bits: int | None = Field(default=None, ge=1, le=16)
+    quantization_layout: InspectedQuantizationLayoutResponse | None = None
+    moe: InspectedMoETopologyResponse | None = None
+    license_name: str | None = None
+    parameters: None = None
+    training_allowed: None = None
+
+
+class ModelCompatibilityResponse(ClosedResponseModel):
+    status: Literal["conditional", "recognized", "unsupported"]
+    family: str | None = None
+    supported_runtime: str | None = None
+    supported_methods: list[str]
+    distribution: str | None = None
+    evidence_requirement: Literal["pilot-required", "implementation-required"]
+    adapter_scope: str | None = None
+    reason: str
+
+
 class ModelInspectionResponse(ClosedResponseModel):
     status: Literal["ok", "unavailable", "unsupported"]
     model_id: str
     requested_revision: str
     resolved_revision: str | None = None
-    facts: dict[str, Any] | None = None
+    facts: ModelInspectionFactsResponse | None = None
+    compatibility: ModelCompatibilityResponse | None = None
     provenance: dict[str, dict[str, Any]] | None = None
     warnings: list[str] | None = None
     explicit_user_facts_required: list[str] | None = None

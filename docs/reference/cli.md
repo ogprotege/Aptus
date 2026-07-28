@@ -20,7 +20,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | Command | Purpose | Default action | Persistent side effects |
 | --- | --- | --- | --- |
 | `profile` | Profile a local dataset | Sample up to 512 valid rows for length statistics | Optional JSON output file |
-| `spec-plan` | Write a standalone v2 plan | Objective `memory` | Plan JSON output file |
+| `spec-plan` | Write a standalone v3 plan | Objective `memory` | Plan JSON output file |
 | `plan` | Compatibility flow for plan, compile, static validation, and archive | Same as `build` | Bundle, ZIP, optional plan file |
 | `build` | Plan, compile, static validation, and archive | Objective `memory` | Bundle, ZIP, optional plan file |
 | `compile` | Compile a persisted plan | Archive beside bundle | Bundle, ZIP, validation report |
@@ -44,10 +44,20 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | --- | ---: | --- | --- |
 | `--model-id ID` | Yes | None | Provider repository identifier, not a local path |
 | `--revision HEX` | Yes | None | Immutable 40 to 64 character hexadecimal commit |
-| `--family FAMILY` | Yes | None | Current adapter catalog: `llama`, `mistral`, `gemma`, or `qwen` |
-| `--parameters-b NUMBER` | Yes | None | Positive parameter count in billions |
+| `--family FAMILY` | Yes | None | Dense adapter catalog or exact inspected `qwen3_moe` row |
+| `--parameters-b NUMBER` | Yes | None | Positive total resident parameter count in billions; never substitute active MoE parameters |
+| `--model-type TYPE` | No | `null` | Exact provider model type; required by allowlisted MoE contracts |
+| `--architecture CLASS` | No | `null` | Exact provider architecture class; required by allowlisted MoE contracts |
+| `--quantization-bits BITS` | No | `null` | Pinned checkpoint precision from 1 through 16 bits |
+| `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map; the first MoE row requires `qwen3-moe-4bit-group64-router-gates-8bit` |
 | `--hidden-size INTEGER` | Yes | None | Positive hidden width |
 | `--intermediate-size INTEGER` | No | `null` | Positive MLP width; adapter estimates otherwise use `4 * hidden_size` |
+| `--moe-expert-count INTEGER` | For MoE | `null` | Positive total routed-expert count |
+| `--moe-experts-per-token INTEGER` | For MoE | `null` | Positive experts selected per token |
+| `--moe-expert-intermediate-size INTEGER` | For MoE | `null` | Positive routed-expert width |
+| `--moe-decoder-sparse-step INTEGER` | For MoE | `null` | Positive sparse-layer cadence |
+| `--moe-mlp-only-layer INTEGER` | No | Empty | Repeat for each zero-based dense-only layer; values must be sorted and unique |
+| `--moe-shared-expert-intermediate-size INTEGER` | No | `null` | Optional positive shared-expert width; unsupported by the first executable row |
 | `--layers INTEGER` | Yes | None | Positive layer count |
 | `--context-length INTEGER` | Yes | None | Positive model context limit |
 | `--license LABEL` | Yes | None | User-supplied license label |
@@ -97,6 +107,17 @@ Explicit `mlx-lm` and `pytorch-mps` selections require `--backend mps`.
 `pytorch-mps` remains an implementation-required runtime, so it cannot produce
 an executable candidate.
 
+Supplying any MoE topology option requires all four required MoE options. The
+first executable row also requires `--model-type qwen3_moe`,
+`--architecture Qwen3MoeForCausalLM`, `--quantization-bits 4`, `--backend mps`,
+`--quantization-layout-profile qwen3-moe-4bit-group64-router-gates-8bit`, an
+MLX-LM runtime, and a QLoRA candidate. `--training-runtime mlx-lm` can pin the
+runtime explicitly, but the documented MPS inference rule selects it when the
+flag is omitted. `--prefer-method qlora` remains an optional tie-breaker because
+the exact policy makes every other MoE method unsupported. The policy also
+rejects shared experts and all placements except `single`. Every accepted row
+remains conditional and pilot-required.
+
 The CLI fixes `task` to `sft`. It exposes no maximum wall-time field and no
 full-training resume field.
 
@@ -119,7 +140,7 @@ aptus spec-plan FACT_OPTIONS --output PLAN.json
 ```
 
 The command profiles the source, constructs user-attested model and hardware
-facts, enumerates the 12 candidates, and writes one `aptus.training-plan.v2`
+facts, enumerates the 12 candidates, and writes one `aptus.training-plan.v3`
 document. Parent directories are created. An existing plan output file is
 replaced. No bundle or archive is created.
 
@@ -149,12 +170,16 @@ when a later compilation step fails.
 aptus compile --plan PLAN.json --output BUNDLE [--archive BUNDLE.zip]
 ```
 
-The plan is rehydrated through the v2 domain contract. The default archive is
-the bundle path with its suffix replaced by `.zip`. The archive must be outside
-the bundle. Bundle and archive publication are no-clobber. On success the
-command prints the bundle path, archive path, and static validation report.
-The persisted candidate runtime contract controls compilation. `compile` does
-not accept a runtime override.
+The plan is rehydrated through the exact v3 domain contract. A saved v2 plan or
+a plan with no schema identifier fails with `Replan required`. Aptus leaves the
+source plan unchanged and creates no bundle. Recreate the plan deterministically
+from its preserved facts. Do not relabel it as v3.
+
+The default archive is the bundle path with its suffix replaced by `.zip`. The
+archive must be outside the bundle. Bundle and archive publication are
+no-clobber. On success the command prints the bundle path, archive path, and
+static validation report. The persisted candidate runtime contract controls
+compilation. `compile` does not accept a runtime override.
 
 Compilation copies cleartext data and writes a mutable
 `validation-report.json` to the directory. The deterministic ZIP excludes that

@@ -22,7 +22,7 @@ describe("FitLedger", () => {
         compute_backend: "mlx",
         training_runtime: "mlx-lm",
         compiler_id: "aptus-mlx-lm-v1",
-        estimator_id: "aptus-memory-mlx-v1",
+        estimator_id: "aptus-memory-mlx-v2",
         evidence_requirement: "measured-pilot",
         export_kind: "mlx-adapter",
       },

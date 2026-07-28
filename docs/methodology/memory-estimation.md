@@ -1,9 +1,9 @@
 # Memory Estimation
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when the formula version changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when the formula version changes
 
 Methodology versions: `aptus-memory-v2` for the CUDA compiler and
-`aptus-memory-mlx-v1` for the MLX-LM compiler.
+`aptus-memory-mlx-v2` for the MLX-LM compiler.
 
 Aptus v0.2 emits a point estimate and a heuristic upper planning envelope. The
 upper value is not a proven bound or statistical confidence interval. No
@@ -117,7 +117,7 @@ When intermediate size is absent, the estimator uses $i=4h$.
 
 ## MLX-LM unified-memory coefficients
 
-The `aptus-memory-mlx-v1` estimator applies only to single-device MLX-LM LoRA
+The `aptus-memory-mlx-v2` estimator applies only to single-device MLX-LM LoRA
 and QLoRA. It models one shared Apple memory pool and does not add a second
 CUDA-style host staging pool. For LoRA, base weights use $2P$ bytes. For QLoRA,
 base weights use $0.5P$ bytes and quantization metadata uses $0.0625P$ bytes.
@@ -125,11 +125,27 @@ MLX QLoRA means an already four-bit pinned MLX model. It does not imply
 bitsandbytes or NF4.
 
 Adapter weights and gradients each use $4P_t$ bytes. AdamW state uses $8P_t$
-bytes. The activation prior is:
+bytes. The dense activation prior is:
 
 $$
-X_{\mathrm{MLX}} = b \times q \times h \times L \times 2 \times 3.0
+X_{\mathrm{dense}} = b \times q \times h \times L \times 2 \times 3.0
 $$
+
+For the exact supported Qwen3 MoE row, v2 adds a routed expert activation term:
+
+$$
+X_{\mathrm{routed}} =
+b \times q \times L_s \times E_t \times i_e \times 2 \times 3.0
+$$
+
+Here $L_s$ is the backend-derived sparse-layer count, $E_t$ is experts selected
+per token, and $i_e$ is routed-expert intermediate width. The total activation
+term is $X_{\mathrm{dense}} + X_{\mathrm{routed}}$.
+
+Every residency, quantization-metadata, staging, disk, and load-transient term
+continues to use the user-attested total parameter count $P$. The derived active
+parameter count is explanatory and identity-bound. It never substitutes for
+$P$ in resident-weight arithmetic.
 
 For $WQ=W+Q$, the MLX point allowances are:
 

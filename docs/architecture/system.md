@@ -37,6 +37,12 @@ target contracts. Facts retain provenance. Dataset profiling reads local data.
 Optional model inspection retrieves bounded provider metadata. Optional hardware
 inspection measures the local server host.
 
+Inspection keeps raw `model_type` and architecture identities. For the exact
+Qwen3 MoE row, it also returns checkpoint precision, routed-expert topology,
+and a structured compatibility decision. Total parameters and training
+permission remain user attestations. The backend derives active parameters and
+sparse-layer count only after it has the complete model contract.
+
 Apple platform inspection is a separate contract. It reports operating system,
 chip, CPU, unified memory, current memory and swap pressure, Metal guidance, and
 an optional Metal GPU core count. It reports runtime capabilities without a chip
@@ -64,6 +70,14 @@ single-device LoRA and QLoRA. PyTorch MPS is a known runtime without a compiler.
 For `mps` planning, device free VRAM remains unknown. The MLX estimator uses
 current free host RAM as the live unified-memory headroom cap when available.
 
+Sparse planning is narrower than general MLX-LM support. It accepts only an
+exact `qwen3_moe` and `Qwen3MoeForCausalLM` identity with four-bit group-64
+defaults, one eight-bit group-64 router-gate override per layer, no shared
+expert, QLoRA, `single`, and attention-only adapter targets. The v3 plan carries
+the full topology and canonical quantization layout. Resident weights use total
+parameters. Routed activity can inform compute and activation terms but never
+reduces base-weight residency.
+
 Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
 
@@ -80,6 +94,9 @@ method-specific paths. MLX-LM bundles contain pinned MLX and MLX-LM dependencies
 MLX data splits, an MLX adapter configuration, and runtime-neutral metrics.
 MLX-LM QLoRA requires a model revision with explicit four-bit MLX quantization
 metadata. It never imports bitsandbytes.
+The exact Qwen3 MoE compiler profile also binds model identity, topology,
+canonical quantization layout and digest, and attention-only adapter scope for
+model-data and later runtime checks.
 
 Runtime program source lives as package data under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. The compiler reads those bytes through

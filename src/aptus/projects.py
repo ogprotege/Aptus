@@ -27,6 +27,7 @@ from .local_store import (
     read_json_object,
     utc_now,
 )
+from .domain import SCHEMA_VERSION, UnsupportedPlanSchemaError
 from .plan_contract import sha256_file, validate_bundle_manifest
 
 
@@ -1084,6 +1085,12 @@ class ProjectRepository:
     def recover(self, project_id: str, revision_id: str) -> dict[str, Any]:
         with self._repository_lock():
             source = self.revision(project_id, revision_id)
+            plan_snapshot = source.get("plan_snapshot")
+            if (
+                isinstance(plan_snapshot, Mapping)
+                and plan_snapshot.get("schema_version") != SCHEMA_VERSION
+            ):
+                raise UnsupportedPlanSchemaError(plan_snapshot.get("schema_version"))
             self._validate_recovery_artifacts(source)
             return self.create_revision(
                 project_id,

@@ -44,32 +44,40 @@ Remaining release work:
 Full-parameter FSDP remains unsupported during v0.2. LoRA FSDP remains
 conditional until its runtime gate is complete.
 
-## First post-v0.2 milestone: MoE model support
+## First post-v0.2 milestone: exact MoE compatibility
 
-Mixture-of-Experts models are not currently supported. Aptus does not silently
-map an MoE, multimodal, prefix-matched, or unknown architecture onto a dense
-family contract.
+The first implementation slice recognizes only an exact `qwen3_moe` checkpoint
+whose architecture is `Qwen3MoeForCausalLM`, whose reviewed MLX layout uses
+four-bit group-64 defaults with one eight-bit group-64 router-gate override per
+layer, and which declares no shared expert. It carries the provider topology
+into `aptus.training-plan.v3`, derives active parameters and sparse-layer count,
+and permits only single-device MLX-LM QLoRA with attention `q_proj`, `k_proj`,
+`v_proj`, and `o_proj` adapters. Every candidate remains pilot-required. This
+slice is not released until a real target-host model run passes the gates below.
 
-Delivery is split so useful, honest MoE planning reaches users before every
-runtime is complete:
+Aptus still rejects unreviewed MoE families, prefix matches, multimodal models,
+shared-expert variants, non-four-bit Qwen3 MoE checkpoints, CUDA MoE execution,
+distributed MoE placement, and other MoE training methods.
 
-1. **Inspection and fit planning.** Detect one exact, allowlisted MoE family,
-   report total and active parameters separately, census experts and routers,
-   and produce sparse memory, storage, and throughput estimates. Training stays
-   disabled and visibly marked unsupported in this slice.
-2. **Apple Silicon QLoRA execution.** Add compile, pilot, train, export, and
-   fresh-process reload support for that family through the maintained MLX-LM
-   runtime. Release it only after real target-host acceptance.
+Next work proceeds one explicit compatibility row at a time:
+
+1. **Real-model acceptance.** Compile and run the exact Qwen3 MoE MLX-LM path
+   through dependency, model-data, measured preflight, pilot, adapter reload,
+   confirmed training, and final export gates.
+2. **Measured performance record.** Record tokens per second, wall time, peak
+   unified memory, adapter size, and dataset facts for the exact accepted run.
+   Do not generalize those measurements to another host or checkpoint.
 3. **CUDA execution and family expansion.** Add each runtime, placement, and
    architecture independently. A passing Apple path never implies CUDA support,
-   and one passing MoE family never admits prefix-matched variants.
+   and one passing family never admits another variant.
 4. **Comparable evaluation.** Compare dense and MoE candidates against the same
    immutable data, quality metrics, thresholds, and compute envelope.
 
 Each executable MoE slice requires these gates:
 
-1. an exact architecture and revision allowlist with explicit rejection for
-   unknown or unreviewed variants;
+1. an exact architecture contract and immutable revision binding. An arbitrary
+   revision is eligible only when every structural and runtime gate matches,
+   and acceptance evidence applies only to that exact revision;
 2. separate total-parameter and active-parameter facts, with expert count,
    experts selected per token, router structure, and shared-expert facts;
 3. an expert, router, and adapter-target census that proves the intended
@@ -82,10 +90,9 @@ Each executable MoE slice requires these gates:
    and compute envelope; and
 7. real target-host acceptance for every claimed runtime and placement.
 
-Inspection and fit-planning visibility may precede execution only as an explicit
-non-executable state. Training becomes selectable one allowlisted family and
-runtime at a time, after that exact executable contract and its evidence gates
-agree.
+Compatibility code may precede release evidence, but the UI and plan must retain
+the conditional state. Support expands one exact family and runtime at a time,
+after that executable contract and its evidence gates agree.
 
 ## Planner depth
 

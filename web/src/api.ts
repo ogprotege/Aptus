@@ -177,6 +177,34 @@ function planRequest(facts: FactDraft, projectId?: string | null): PlanRequest {
       ...(facts.model.intermediate_size
         ? { intermediate_size: facts.model.intermediate_size }
         : {}),
+      ...(facts.model.model_type
+        ? { model_type: facts.model.model_type }
+        : {}),
+      ...(facts.model.architecture
+        ? { architecture: facts.model.architecture }
+        : {}),
+      ...(facts.model.quantization_bits !== null
+        && facts.model.quantization_bits !== undefined
+        ? { quantization_bits: facts.model.quantization_bits }
+        : {}),
+      ...(facts.model.quantization_layout
+        ? {
+            quantization_layout: {
+              ...facts.model.quantization_layout,
+              module_overrides: facts.model.quantization_layout.module_overrides.map(
+                (override) => ({ ...override }),
+              ),
+            },
+          }
+        : {}),
+      ...(facts.model.moe
+        ? {
+            moe: {
+              ...facts.model.moe,
+              mlp_only_layers: [...facts.model.moe.mlp_only_layers],
+            },
+          }
+        : {}),
     },
     hardware: {
       discovery: facts.hardware.discovery,

@@ -17,6 +17,36 @@ export interface SourcedFact<T> {
   confidence?: "high" | "medium" | "low" | string;
 }
 
+export interface MoETopology {
+  expert_count: number;
+  experts_per_token: number;
+  expert_intermediate_size: number;
+  decoder_sparse_step: number;
+  mlp_only_layers: number[];
+  shared_expert_intermediate_size?: number | null;
+}
+
+export interface InspectedMoETopology {
+  expert_count?: number | null;
+  experts_per_token?: number | null;
+  expert_intermediate_size?: number | null;
+  decoder_sparse_step?: number | null;
+  mlp_only_layers?: number[] | null;
+  shared_expert_intermediate_size?: number | null;
+}
+
+export interface QuantizationOverride {
+  module_path: string;
+  bits: number;
+  group_size: number;
+}
+
+export interface QuantizationLayout {
+  default_bits: number;
+  default_group_size: number;
+  module_overrides: QuantizationOverride[];
+}
+
 export interface ModelFacts {
   model_id: string;
   revision: string;
@@ -28,6 +58,13 @@ export interface ModelFacts {
   intermediate_size: number | null;
   license_name: string;
   training_allowed: boolean;
+  model_type?: string | null;
+  architecture?: string | null;
+  quantization_bits?: number | null;
+  quantization_layout?: QuantizationLayout | null;
+  moe?: MoETopology | null;
+  active_parameters_b?: number | null;
+  sparse_layer_count?: number | null;
 }
 
 export interface ModelInspectionFactProvenance {
@@ -35,6 +72,18 @@ export interface ModelInspectionFactProvenance {
   source: string;
   observed_at?: string;
   resolved_revision?: string;
+}
+
+export interface ModelCompatibility {
+  status: "conditional" | "recognized" | "unsupported";
+  family?: string | null;
+  supported_runtime?: string | null;
+  supported_methods?: string[];
+  distribution?: string | null;
+  evidence_requirement?: string | null;
+  adapter_scope?: string | null;
+  reason?: string | null;
+  [key: string]: unknown;
 }
 
 export interface ModelInspectionResponse {
@@ -52,10 +101,14 @@ export interface ModelInspectionResponse {
     layers?: number | null;
     context_length?: number | null;
     license_name?: string | null;
+    quantization_bits?: number | null;
+    quantization_layout?: QuantizationLayout | null;
+    moe?: InspectedMoETopology | null;
     parameters?: null;
     training_allowed?: null;
     [key: string]: unknown;
   };
+  compatibility?: ModelCompatibility | null;
   provenance?: Record<string, ModelInspectionFactProvenance>;
   warnings?: string[];
   explicit_user_facts_required?: string[];
@@ -276,6 +329,11 @@ export interface PlanRequest {
     license_name: string;
     training_allowed: boolean;
     intermediate_size?: number;
+    model_type?: string;
+    architecture?: string;
+    quantization_bits?: number;
+    quantization_layout?: QuantizationLayout;
+    moe?: MoETopology;
   };
   hardware: {
     discovery: "manual" | "local-scan";
@@ -612,7 +670,19 @@ export interface BootstrapResponse {
   projects: ProjectSummary[];
   project?: ProjectDetail | null;
   project_history: ProjectRevisionSummary[];
+  replan_required?: ReplanRequired | null;
   [key: string]: unknown;
+}
+
+export interface ReplanRequired {
+  status: "replan_required";
+  plan_id?: string | null;
+  found_schema?: string | null;
+  required_schema: "aptus.training-plan.v3";
+  source: "project-revision" | "compiled-bundle";
+  project_id?: string | null;
+  project_revision_id?: string | null;
+  message: string;
 }
 
 export interface HardwareProbeResponse {

@@ -24,7 +24,7 @@ from aptus.execution import (
     _verify_pilot_artifacts,
     _verify_safetensors_structure,
 )
-from aptus.plan_contract import sha256_file
+from aptus.plan_contract import expected_model_architecture_contract, sha256_file
 
 
 def write_validation_state(bundle: Path, state: str) -> None:
@@ -113,6 +113,54 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
+def mlx_model_load_binding(plan: dict) -> dict:
+    model = plan["model"]
+    total = model["parameters"]
+    active = model.get("active_parameters", total)
+    census = {
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "census_method": "mlx-lm.get_total_parameters.v1",
+        "declared_total_parameters": total,
+        "observed_total_parameters": total,
+        "total_parameter_delta": 0,
+        "total_parameter_tolerance": max(1_000_000, round(total * 0.02)),
+        "declared_active_parameters": active,
+        "observed_active_parameters": active,
+        "sparse_layer_count": 0,
+        "routed_expert_parameters": 0,
+        "active_routed_expert_parameters": 0,
+        "inactive_expert_parameters": 0,
+    }
+    census["descriptor_sha256"] = _json_hash(census)
+    expected_weight_bytes = round(total * 2.0)
+    observed_safetensors_bytes = expected_weight_bytes + 4096
+    packed = {
+        "schema_version": "aptus.mlx-packed-checkpoint.v1",
+        "observed_safetensors_bytes": observed_safetensors_bytes,
+        "observed_logical_parameters": total,
+        "expected_weight_bytes": expected_weight_bytes,
+        "expected_quantization_metadata_bytes": 0,
+        "expected_packed_tensor_bytes": expected_weight_bytes,
+        "container_overhead_bytes": 4096,
+        "container_overhead_limit_bytes": max(
+            1024**2, round(expected_weight_bytes * 0.0001)
+        ),
+    }
+    packed["descriptor_sha256"] = _json_hash(packed)
+    binding = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": model["model_id"],
+        "model_revision": model["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": expected_model_architecture_contract(model),
+        "parameter_census": census,
+        "packed_checkpoint_binding": packed,
+    }
+    binding["descriptor_sha256"] = _json_hash(binding)
+    return binding
+
+
 def fake_mlx_plan() -> dict:
     reserve = 8 * 1024**3
     return {
@@ -120,7 +168,19 @@ def fake_mlx_plan() -> dict:
         "model": {
             "model_id": "example/model",
             "revision": "b" * 40,
+            "family": "llama",
+            "parameters": 1_000_000_000,
+            "hidden_size": 2048,
+            "intermediate_size": 8192,
             "layers": 2,
+            "context_length": 4096,
+            "architecture": "causal-lm",
+            "model_type": None,
+            "quantization_bits": None,
+            "quantization_layout": None,
+            "moe": None,
+            "sparse_layer_count": 0,
+            "active_parameters": 1_000_000_000,
         },
         "dataset": {"source_sha256": "c" * 64},
         "hardware": {"reserve_per_device_bytes": reserve},
@@ -136,6 +196,8 @@ def fake_mlx_plan() -> dict:
             "alpha": 16,
             "target_modules": ["q_proj", "v_proj"],
             "memory": {
+                "base_weights_bytes": 2_000_000_000,
+                "quantization_metadata_bytes": 0,
                 "point_estimate_bytes": 1024,
                 "upper_estimate_bytes": 2048,
             },
@@ -181,13 +243,27 @@ def fake_mlx_metrics(plan: dict, *, action: str) -> dict:
     }
     binding["descriptor_sha256"] = _json_hash(binding)
     reserve = 8 * 1024**3
+    memory = candidate["memory"]
+    planned_resident = (
+        memory["base_weights_bytes"] + memory["quantization_metadata_bytes"]
+    )
+    observed = mlx_model_load_binding(plan)["packed_checkpoint_binding"][
+        "observed_safetensors_bytes"
+    ]
+    adjustment = max(0, observed - planned_resident)
+    adjusted_point = memory["point_estimate_bytes"] + adjustment
+    adjusted_upper = memory["upper_estimate_bytes"] + adjustment
+    required = max(adjusted_point, adjusted_upper) + reserve
     admission = {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
-        "available_unified_memory_bytes": reserve + 4096,
-        "point_estimate_bytes": 1024,
-        "upper_estimate_bytes": 2048,
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
+        "available_unified_memory_bytes": required + 1,
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": observed,
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": adjusted_point,
+        "adjusted_upper_estimate_bytes": adjusted_upper,
         "reserve_bytes": reserve,
-        "required_available_bytes": reserve + 2048,
+        "required_available_bytes": required,
     }
     updates = 2
     return {
@@ -200,13 +276,7 @@ def fake_mlx_metrics(plan: dict, *, action: str) -> dict:
         "training_runtime": "mlx-lm",
         "compute_backend": "mps",
         "compiler_id": "mlx-lm.lora.v1",
-        "model_load_binding": {
-            "schema_version": "aptus.mlx-model-load-binding.v1",
-            "model_id": plan["model"]["model_id"],
-            "model_revision": plan["model"]["revision"],
-            "resolved_local_snapshot": True,
-            "trust_remote_code": False,
-        },
+        "model_load_binding": mlx_model_load_binding(plan),
         "scope": f"uninterrupted-{action}"
         if action == "pilot"
         else "uninterrupted-full-train",
@@ -446,7 +516,7 @@ class ExecutionJobTests(unittest.TestCase):
                 "compute_backend": "mps",
                 "training_runtime": "mlx-lm",
                 "compiler_id": "mlx-lm.lora.v1",
-                "estimator_id": "aptus-memory-mlx-v1",
+                "estimator_id": "aptus-memory-mlx-v2",
                 "evidence_requirement": "pilot-required",
                 "export_kind": "mlx-lm-adapter",
             }
@@ -472,7 +542,7 @@ class ExecutionJobTests(unittest.TestCase):
                 "compute_backend": "mps",
                 "training_runtime": "mlx-lm",
                 "compiler_id": "mlx-lm.lora.v1",
-                "estimator_id": "aptus-memory-mlx-v1",
+                "estimator_id": "aptus-memory-mlx-v2",
                 "evidence_requirement": "pilot-required",
                 "export_kind": "mlx-lm-adapter",
             }
@@ -534,6 +604,52 @@ class ExecutionJobTests(unittest.TestCase):
                         _verify_mlx_runtime_metrics(
                             bundle, plan, tampered, action="pilot"
                         )
+
+            forged_packed = json.loads(json.dumps(metrics))
+            packed = forged_packed["model_load_binding"]["packed_checkpoint_binding"]
+            packed["expected_weight_bytes"] += 1
+            packed["expected_packed_tensor_bytes"] += 1
+            packed["container_overhead_bytes"] -= 1
+            packed["descriptor_sha256"] = _json_hash(
+                {
+                    key: value
+                    for key, value in packed.items()
+                    if key != "descriptor_sha256"
+                }
+            )
+            model_binding = forged_packed["model_load_binding"]
+            model_binding["descriptor_sha256"] = _json_hash(
+                {
+                    key: value
+                    for key, value in model_binding.items()
+                    if key != "descriptor_sha256"
+                }
+            )
+            with self.assertRaisesRegex(ValueError, "safe model load"):
+                _verify_mlx_runtime_metrics(bundle, plan, forged_packed, action="pilot")
+
+            forged_adjustment = json.loads(json.dumps(metrics))
+            forged_admission = forged_adjustment["unified_memory_admission"]
+            forged_admission["resident_adjustment_bytes"] += 1
+            forged_admission["adjusted_point_estimate_bytes"] += 1
+            forged_admission["adjusted_upper_estimate_bytes"] += 1
+            forged_admission["required_available_bytes"] += 1
+            with self.assertRaisesRegex(ValueError, "memory contract"):
+                _verify_mlx_runtime_metrics(
+                    bundle, plan, forged_adjustment, action="pilot"
+                )
+
+            mismatched_measurement = json.loads(json.dumps(metrics))
+            mismatch_admission = mismatched_measurement["unified_memory_admission"]
+            mismatch_admission["observed_safetensors_bytes"] += 1
+            mismatch_admission["resident_adjustment_bytes"] += 1
+            mismatch_admission["adjusted_point_estimate_bytes"] += 1
+            mismatch_admission["adjusted_upper_estimate_bytes"] += 1
+            mismatch_admission["required_available_bytes"] += 1
+            with self.assertRaisesRegex(ValueError, "different checkpoint"):
+                _verify_mlx_runtime_metrics(
+                    bundle, plan, mismatched_measurement, action="pilot"
+                )
 
             invented = json.loads(json.dumps(metrics))
             invented["free_vram_bytes"] = 1

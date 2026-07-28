@@ -10,8 +10,12 @@ from unittest.mock import patch
 
 from aptus.domain import Backend, ValidationReport, ValidationState
 from aptus.generation import generate_bundle
-from aptus.plan_contract import sha256_file
-from aptus.plan_contract import bundle_fingerprint
+from aptus.plan_contract import (
+    bundle_fingerprint,
+    expected_model_architecture_contract,
+    mlx_quantized_storage_bytes_for_contract,
+    sha256_file,
+)
 from aptus.planning import plan_training
 from aptus.profiling import build_hardware_spec
 from aptus.validation import (
@@ -28,6 +32,77 @@ def _json_digest(value: object) -> str:
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _mlx_model_load_binding(plan: dict) -> dict:
+    model = plan["model"]
+    total = model["parameters"]
+    active = model.get("active_parameters", total)
+    sparse = model.get("sparse_layer_count", 0)
+    moe = model.get("moe")
+    if moe is None:
+        routed = active_routed = inactive = 0
+        method = "mlx-lm.get_total_parameters.v1"
+    else:
+        routed = (
+            sparse
+            * moe["expert_count"]
+            * 3
+            * model["hidden_size"]
+            * moe["expert_intermediate_size"]
+        )
+        active_routed = routed * moe["experts_per_token"] // moe["expert_count"]
+        inactive = routed - active_routed
+        method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+    census = {
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "census_method": method,
+        "declared_total_parameters": total,
+        "observed_total_parameters": total,
+        "total_parameter_delta": 0,
+        "total_parameter_tolerance": max(1_000_000, round(total * 0.02)),
+        "declared_active_parameters": active,
+        "observed_active_parameters": active,
+        "sparse_layer_count": sparse,
+        "routed_expert_parameters": routed,
+        "active_routed_expert_parameters": active_routed,
+        "inactive_expert_parameters": inactive,
+    }
+    census["descriptor_sha256"] = _json_digest(census)
+    if plan["recommended"]["method"] == "qlora":
+        expected_weight_bytes, expected_metadata_bytes = (
+            mlx_quantized_storage_bytes_for_contract(model, logical_parameters=total)
+        )
+    else:
+        expected_weight_bytes = round(total * 2.0)
+        expected_metadata_bytes = 0
+    expected_packed_bytes = expected_weight_bytes + expected_metadata_bytes
+    observed_safetensors_bytes = expected_packed_bytes + 4096
+    packed = {
+        "schema_version": "aptus.mlx-packed-checkpoint.v1",
+        "observed_safetensors_bytes": observed_safetensors_bytes,
+        "observed_logical_parameters": total,
+        "expected_weight_bytes": expected_weight_bytes,
+        "expected_quantization_metadata_bytes": expected_metadata_bytes,
+        "expected_packed_tensor_bytes": expected_packed_bytes,
+        "container_overhead_bytes": 4096,
+        "container_overhead_limit_bytes": max(
+            1024**2, round(expected_packed_bytes * 0.0001)
+        ),
+    }
+    packed["descriptor_sha256"] = _json_digest(packed)
+    binding = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": model["model_id"],
+        "model_revision": model["revision"],
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": expected_model_architecture_contract(model),
+        "parameter_census": census,
+        "packed_checkpoint_binding": packed,
+    }
+    binding["descriptor_sha256"] = _json_digest(binding)
+    return binding
 
 
 def _load_generated_module(path: Path, name: str):
@@ -133,15 +208,27 @@ def install_mlx_completed_run(
     }
     binding["descriptor_sha256"] = _json_digest(binding)
     reserve = max(plan["hardware"]["reserve_per_device_bytes"], 8 * 1024**3)
-    point = candidate["memory"]["point_estimate_bytes"]
-    upper = candidate["memory"]["upper_estimate_bytes"]
+    memory = candidate["memory"]
+    planned_resident = (
+        memory["base_weights_bytes"] + memory["quantization_metadata_bytes"]
+    )
+    observed_safetensors_bytes = _mlx_model_load_binding(plan)[
+        "packed_checkpoint_binding"
+    ]["observed_safetensors_bytes"]
+    adjustment = max(0, observed_safetensors_bytes - planned_resident)
+    adjusted_point = memory["point_estimate_bytes"] + adjustment
+    adjusted_upper = memory["upper_estimate_bytes"] + adjustment
+    required = max(adjusted_point, adjusted_upper) + reserve
     admission = {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
-        "available_unified_memory_bytes": max(point, upper) + reserve + 1,
-        "point_estimate_bytes": point,
-        "upper_estimate_bytes": upper,
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
+        "available_unified_memory_bytes": required + 1,
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": observed_safetensors_bytes,
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": adjusted_point,
+        "adjusted_upper_estimate_bytes": adjusted_upper,
         "reserve_bytes": reserve,
-        "required_available_bytes": max(point, upper) + reserve,
+        "required_available_bytes": required,
     }
     scope = {
         "bounded-smoke": "bounded-compiler-smoke-not-pilot-evidence",
@@ -178,13 +265,7 @@ def install_mlx_completed_run(
         "active_memory_bytes": 2048,
         "cache_memory_bytes": 1024,
         "memory_metric_backend": "mlx",
-        "model_load_binding": {
-            "schema_version": "aptus.mlx-model-load-binding.v1",
-            "model_id": plan["model"]["model_id"],
-            "model_revision": plan["model"]["revision"],
-            "resolved_local_snapshot": True,
-            "trust_remote_code": False,
-        },
+        "model_load_binding": _mlx_model_load_binding(plan),
         "unified_memory_admission": admission,
         "finite_train_loss": True,
         "train_loss_observations": [1.25, 1.0],
@@ -617,6 +698,19 @@ class ValidationAttestationTests(unittest.TestCase):
                 "execution_semantics": "uninterrupted",
                 "resume_supported": False,
             }
+            model_data_evidence = {
+                "schema_version": "aptus.mlx-model-data-evidence.v1",
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "model_revision": plan["model"]["revision"],
+                "model_load_binding": _mlx_model_load_binding(plan),
+                "unified_memory_admission": preflight["unified_memory_admission"],
+                "validated_at": "2026-07-22T00:00:00+00:00",
+            }
+            model_data_path = bundle / "model-data-evidence.json"
+            model_data_path.write_text(
+                json.dumps(model_data_evidence), encoding="utf-8"
+            )
             report = {
                 "state": "measured-run-pass",
                 "findings": [],
@@ -630,6 +724,7 @@ class ValidationAttestationTests(unittest.TestCase):
                     "plan_id": plan["plan_id"],
                     "candidate_id": plan["recommended"]["candidate_id"],
                     "model_revision": plan["model"]["revision"],
+                    "model_data_evidence": sha256_file(model_data_path),
                     "preflight_metrics": sha256_file(bundle / "preflight-metrics.json"),
                     "pilot_metrics": sha256_file(
                         bundle / "pilot-output" / "metrics.json"

@@ -19,6 +19,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 from plan_contract import bundle_fingerprint, validate_bundle_manifest, validate_plan_payload
+from train import (
+    build_mlx_model_load_binding,
+    require_method_model,
+    require_mlx_model_load_binding,
+    require_unified_memory_admission,
+    require_unified_memory_admission_binding,
+)
 
 STATE_RANK = {
     "contract-pass": 1,
@@ -44,6 +51,7 @@ def promote(
     plan: dict,
     state: str,
     *,
+    model_data_evidence: dict | None = None,
     preflight_metrics: dict | None = None,
     pilot_metrics: dict | None = None,
 ) -> None:
@@ -79,6 +87,8 @@ def promote(
         "candidate_id": candidate["candidate_id"],
         "model_revision": plan["model"]["revision"],
     }
+    if model_data_evidence is not None:
+        bindings["model_data_evidence"] = sha256(ROOT / "model-data-evidence.json")
     if preflight_metrics is not None:
         bindings["preflight_metrics"] = sha256(ROOT / "preflight-metrics.json")
     if pilot_metrics is not None:
@@ -109,102 +119,80 @@ def promote(
     os.replace(temporary, report_path)
 
 
-def current_available_unified_memory_bytes() -> int:
-    try:
-        completed = subprocess.run(
-            ["/usr/bin/vm_stat"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise RuntimeError("Current Apple unified-memory admission probe failed.") from error
-    if completed.returncode:
-        raise RuntimeError("Current Apple unified-memory admission probe failed.")
-    page_match = re.search(r"page size of\s+(\d+) bytes", completed.stdout)
-    if page_match is None:
-        raise RuntimeError("vm_stat did not report its page size.")
-    counts = {}
-    for line in completed.stdout.splitlines():
-        match = re.fullmatch(r"([^:]+):\s*([0-9]+)\.", line.strip())
-        if match is not None:
-            counts[match.group(1)] = int(match.group(2))
-    names = ("Pages free", "Pages inactive", "Pages speculative")
-    if not any(name in counts for name in names):
-        raise RuntimeError("vm_stat did not report available-memory page classes.")
-    available = sum(counts.get(name, 0) for name in names) * int(page_match.group(1))
-    if available <= 0:
-        raise RuntimeError("Current available Apple unified memory is zero or unknown.")
-    return available
-
-
-def require_unified_memory_admission(plan: dict) -> dict:
-    memory = plan["recommended"]["memory"]
-    point = int(memory["point_estimate_bytes"])
-    upper = int(memory["upper_estimate_bytes"])
-    reserve = max(
-        int(plan["hardware"].get("reserve_per_device_bytes", 0)),
-        8 * 1024**3,
-    )
-    available = current_available_unified_memory_bytes()
-    required = max(point, upper) + reserve
-    if available < required:
-        raise RuntimeError(
-            "Current available Apple unified memory is below the candidate upper "
-            "estimate plus the required 8 GiB Aptus reserve."
-        )
-    return {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
-        "available_unified_memory_bytes": available,
-        "point_estimate_bytes": point,
-        "upper_estimate_bytes": upper,
-        "reserve_bytes": reserve,
-        "required_available_bytes": required,
+def require_model_data_evidence(plan: dict, evidence: object) -> dict:
+    candidate = plan["recommended"]
+    expected = {
+        "schema_version": "aptus.mlx-model-data-evidence.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
     }
+    expected_fields = set(expected) | {
+        "model_load_binding",
+        "unified_memory_admission",
+        "validated_at",
+    }
+    if (
+        not isinstance(evidence, dict)
+        or set(evidence) != expected_fields
+        or any(evidence.get(name) != value for name, value in expected.items())
+        or not isinstance(evidence.get("validated_at"), str)
+        or not evidence["validated_at"]
+    ):
+        raise RuntimeError("MLX-LM model-data evidence does not bind the plan.")
+    model_load_binding = require_mlx_model_load_binding(
+        plan, evidence.get("model_load_binding")
+    )
+    admission = require_unified_memory_admission_binding(
+        plan, evidence.get("unified_memory_admission")
+    )
+    if (
+        model_load_binding["packed_checkpoint_binding"][
+            "observed_safetensors_bytes"
+        ]
+        != admission["observed_safetensors_bytes"]
+    ):
+        raise RuntimeError(
+            "MLX-LM model-data evidence binds different checkpoint byte measurements."
+        )
+    return evidence
 
 
-def require_model_data(plan: dict) -> None:
+def require_model_data(plan: dict) -> dict:
     from huggingface_hub import snapshot_download
     from mlx_lm.tuner.datasets import load_dataset
     from mlx_lm.utils import load
 
-    require_unified_memory_admission(plan)
     model_path = Path(
         snapshot_download(
             repo_id=plan["model"]["model_id"],
             revision=plan["model"]["revision"],
         )
     ).resolve(strict=True)
-    pinned_config = json.loads(
-        (model_path / "config.json").read_text(encoding="utf-8")
-    )
-    if pinned_config.get("model_file"):
-        raise RuntimeError(
-            "MLX-LM custom model_file code is unsupported; Aptus only executes pinned built-in MLX model implementations."
-        )
+    candidate = plan["recommended"]
+    architecture_contract = require_method_model(plan, candidate, model_path)
+    admission = require_unified_memory_admission(plan, model_path)
     model, tokenizer, config = load(
         str(model_path),
         lazy=True,
         return_config=True,
         tokenizer_config={"trust_remote_code": False},
     )
-    candidate = plan["recommended"]
-    quantization = config.get("quantization") or config.get("quantization_config")
-    text_config = config.get("text_config")
-    if not quantization and isinstance(text_config, dict):
-        quantization = text_config.get("quantization_config")
-    if candidate["method"] == "qlora" and (
-        not isinstance(quantization, dict) or quantization.get("bits") != 4
-    ):
+    try:
+        from plan_contract import validate_model_config_against_plan
+
+        validate_model_config_against_plan(plan["model"], config)
+    except ValueError as error:
         raise RuntimeError(
-            "MLX-LM QLoRA model-data validation requires explicit four-bit MLX quantization metadata."
-        )
-    if candidate["method"] == "lora" and quantization:
-        raise RuntimeError(
-            "MLX-LM LoRA model-data validation rejects quantized bases because "
-            "they would execute QLoRA semantics under a LoRA plan."
-        )
+            "Loaded MLX-LM config does not match the pinned model architecture contract."
+        ) from error
+    model_load_binding = build_mlx_model_load_binding(
+        model,
+        plan,
+        observed_safetensors_bytes=admission["observed_safetensors_bytes"],
+        architecture_contract=architecture_contract,
+    )
+    require_mlx_model_load_binding(plan, model_load_binding)
     args = types.SimpleNamespace(
         data=str(ROOT / "data" / "mlx"),
         train=True,
@@ -241,6 +229,24 @@ def require_model_data(plan: dict) -> None:
                 )
     del model, tokenizer, train, valid
     gc.collect()
+    evidence = {
+        "schema_version": "aptus.mlx-model-data-evidence.v1",
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "model_load_binding": model_load_binding,
+        "unified_memory_admission": admission,
+        "validated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    require_model_data_evidence(plan, evidence)
+    evidence_path = ROOT / "model-data-evidence.json"
+    temporary = evidence_path.with_name(".model-data-evidence.json.tmp")
+    temporary.write_text(
+        json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, evidence_path)
+    return evidence
 
 
 def require_runtime_metrics(
@@ -274,14 +280,14 @@ def require_runtime_metrics(
     }
     if any(metrics.get(key) != value for key, value in required.items()):
         raise RuntimeError("MLX-LM runtime metrics do not bind the selected candidate and proof scope.")
-    if metrics.get("model_load_binding") != {
-        "schema_version": "aptus.mlx-model-load-binding.v1",
-        "model_id": plan["model"]["model_id"],
-        "model_revision": plan["model"]["revision"],
-        "resolved_local_snapshot": True,
-        "trust_remote_code": False,
-    }:
-        raise RuntimeError("MLX-LM runtime metrics do not prove a pinned local safe model load.")
+    try:
+        model_load_binding = require_mlx_model_load_binding(
+            plan, metrics.get("model_load_binding")
+        )
+    except RuntimeError as error:
+        raise RuntimeError(
+            "MLX-LM runtime metrics do not prove a pinned local safe model load."
+        ) from error
     if (
         not isinstance(metrics.get("measured_peak_bytes"), int)
         or isinstance(metrics.get("measured_peak_bytes"), bool)
@@ -421,22 +427,23 @@ def require_runtime_metrics(
         or descriptor_sha256 != expected_descriptor_sha256
     ):
         raise RuntimeError("MLX-LM trainable-target binding is not exact for the plan.")
-    admission = metrics.get("unified_memory_admission")
-    reserve = max(int(plan["hardware"].get("reserve_per_device_bytes", 0)), 8 * 1024**3)
-    point = int(candidate["memory"]["point_estimate_bytes"])
-    upper = int(candidate["memory"]["upper_estimate_bytes"])
+    try:
+        admission = require_unified_memory_admission_binding(
+            plan, metrics.get("unified_memory_admission")
+        )
+    except RuntimeError as error:
+        raise RuntimeError(
+            "MLX-LM runtime metrics do not bind a passing live unified-memory admission."
+        ) from error
     if (
-        not isinstance(admission, dict)
-        or admission.get("schema_version") != "aptus.mlx-unified-memory-admission.v1"
-        or admission.get("point_estimate_bytes") != point
-        or admission.get("upper_estimate_bytes") != upper
-        or admission.get("reserve_bytes") != reserve
-        or admission.get("required_available_bytes") != max(point, upper) + reserve
-        or not isinstance(admission.get("available_unified_memory_bytes"), int)
-        or admission["available_unified_memory_bytes"] < admission["required_available_bytes"]
-        or "free_vram_bytes" in admission
+        model_load_binding["packed_checkpoint_binding"][
+            "observed_safetensors_bytes"
+        ]
+        != admission["observed_safetensors_bytes"]
     ):
-        raise RuntimeError("MLX-LM runtime metrics do not bind a passing live unified-memory admission.")
+        raise RuntimeError(
+            "MLX-LM runtime metrics bind different checkpoint byte measurements."
+        )
     return metrics
 
 
@@ -544,14 +551,17 @@ def require_completed_run(plan: dict, root: Path, *, action: str) -> dict:
             "fresh_process_observed": True,
             "generation_max_tokens": 4,
         }
-        admission = reload_evidence.get("unified_memory_admission", {})
-        memory = plan["recommended"]["memory"]
-        reserve = max(
-            int(plan["hardware"].get("reserve_per_device_bytes", 0)), 8 * 1024**3
+        try:
+            admission = require_unified_memory_admission_binding(
+                plan, reload_evidence.get("unified_memory_admission")
+            )
+        except RuntimeError as error:
+            raise RuntimeError(
+                "MLX reload evidence does not bind packed-checkpoint admission."
+            ) from error
+        model_load_binding = require_mlx_model_load_binding(
+            plan, metrics.get("model_load_binding")
         )
-        required = max(
-            int(memory["point_estimate_bytes"]), int(memory["upper_estimate_bytes"])
-        ) + reserve
         expected_adapter_digest = hashlib.sha256(
             json.dumps(
                 adapter_manifest, sort_keys=True, separators=(",", ":")
@@ -576,17 +586,10 @@ def require_completed_run(plan: dict, root: Path, *, action: str) -> dict:
             or not isinstance(reload_evidence.get("generation_text_sha256"), str)
             or re.fullmatch(r"[0-9a-f]{64}", reload_evidence["generation_text_sha256"])
             is None
-            or not isinstance(admission, dict)
-            or admission.get("schema_version")
-            != "aptus.mlx-unified-memory-admission.v1"
-            or admission.get("point_estimate_bytes") != memory["point_estimate_bytes"]
-            or admission.get("upper_estimate_bytes") != memory["upper_estimate_bytes"]
-            or admission.get("reserve_bytes") != reserve
-            or admission.get("required_available_bytes") != required
-            or not isinstance(admission.get("available_unified_memory_bytes"), int)
-            or isinstance(admission.get("available_unified_memory_bytes"), bool)
-            or admission["available_unified_memory_bytes"] < required
-            or "free_vram_bytes" in admission
+            or model_load_binding["packed_checkpoint_binding"][
+                "observed_safetensors_bytes"
+            ]
+            != admission["observed_safetensors_bytes"]
         ):
             raise RuntimeError("MLX completed metrics do not prove fresh-process bounded generation.")
     manifest_path = resolved / "artifact-manifest.json"
@@ -695,6 +698,15 @@ def stronger_attestation_is_current(previous: dict, plan: dict) -> bool:
     ):
         return False
     rank = STATE_RANK.get(previous.get("state"), 0)
+    if rank >= STATE_RANK["model-data-pass"]:
+        evidence_path = ROOT / "model-data-evidence.json"
+        try:
+            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            require_model_data_evidence(plan, evidence)
+        except (OSError, RuntimeError, json.JSONDecodeError):
+            return False
+        if bindings.get("model_data_evidence") != sha256(evidence_path):
+            return False
     if rank >= STATE_RANK["measured-preflight-pass"]:
         preflight_path = ROOT / "preflight-metrics.json"
         try:
@@ -832,18 +844,25 @@ def main() -> int:
         completed = subprocess.run([sys.executable, str(ROOT / "preflight.py")], cwd=ROOT)
         if completed.returncode:
             return completed.returncode
+    model_data_evidence = None
     if arguments.level in {"model-data", "measured-preflight", "pilot"}:
-        require_model_data(plan)
+        model_data_evidence = require_model_data(plan)
     metrics = None
     if arguments.level in {"measured-preflight", "pilot"}:
         metrics = run_measured_preflight()
     if arguments.level != "pilot":
-        promote(plan, states[arguments.level], preflight_metrics=metrics)
+        promote(
+            plan,
+            states[arguments.level],
+            model_data_evidence=model_data_evidence,
+            preflight_metrics=metrics,
+        )
     if arguments.level == "pilot":
         pilot_metrics = run_pilot(plan)
         promote(
             plan,
             "pilot-pass",
+            model_data_evidence=model_data_evidence,
             preflight_metrics=metrics,
             pilot_metrics=pilot_metrics,
         )

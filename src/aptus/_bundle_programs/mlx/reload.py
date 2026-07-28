@@ -16,8 +16,10 @@ ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 from plan_contract import validate_bundle_manifest, validate_plan_payload
 from train import (
+    build_mlx_model_load_binding,
     download_pinned_model,
     require_method_model,
+    require_mlx_model_load_binding,
     require_unified_memory_admission,
 )
 
@@ -77,16 +79,31 @@ def main() -> int:
 
     import mlx.core as mx
     from mlx_lm import load, stream_generate
+    from mlx_lm.utils import load_adapters
 
-    admission = require_unified_memory_admission(plan)
     model_path = download_pinned_model(plan, plan["model"]["model_id"])
-    require_method_model(candidate, model_path)
+    architecture_contract = require_method_model(plan, candidate, model_path)
+    admission = require_unified_memory_admission(plan, model_path)
     mx.reset_peak_memory()
     model, tokenizer = load(
         str(model_path),
-        adapter_path=str(adapter_path),
         tokenizer_config={"trust_remote_code": False},
     )
+    loaded_binding = build_mlx_model_load_binding(
+        model,
+        plan,
+        observed_safetensors_bytes=admission["observed_safetensors_bytes"],
+        architecture_contract=architecture_contract,
+    )
+    recorded_binding = require_mlx_model_load_binding(
+        plan, metrics.get("model_load_binding")
+    )
+    if loaded_binding != recorded_binding:
+        raise RuntimeError(
+            "Fresh-process MLX model census differs from the training-time model-load binding."
+        )
+    model = load_adapters(model, str(adapter_path))
+    model.eval()
     responses = list(
         stream_generate(
             model,

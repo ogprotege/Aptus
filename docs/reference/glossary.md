@@ -8,6 +8,12 @@
 | Last reviewed | 2026-07-22 |
 | Next review | 2026-10-22, or sooner when public vocabulary changes |
 
+## Active parameters
+
+The backend-derived logical parameter count used for one token after sparse
+expert routing. It describes computation, not checkpoint residency. Aptus never
+uses it in place of total parameters for the base-weight memory budget.
+
 ## Analytic point estimate
 
 The sum of named planner memory components before the separate uncertainty
@@ -148,6 +154,14 @@ method, and enforces trainable scope. MLX-LM validates the QLoRA metadata when
 applicable and tokenizes the bound train and validation rows. It performs no
 optimizer step.
 
+## MoE topology
+
+The exact Mixture-of-Experts structure bound into a v3 model fact: total routed
+experts, experts selected per token, expert intermediate width, sparse cadence,
+dense-only layer indices, and optional shared-expert width. A topology alone
+does not establish compatibility. Aptus also requires an exact provider model
+type, architecture, precision, runtime, method, placement, and evidence policy.
+
 ## No-clobber
 
 A publication rule that refuses an existing archive, non-empty bundle, or run
@@ -258,6 +272,12 @@ message is not authorization for a new run.
 The concrete software path that compiles and executes a candidate.
 `transformers-peft-cuda` and `mlx-lm` have current compiler bindings.
 `pytorch-mps` is known and discoverable but lacks a compiler.
+
+## Total resident parameters
+
+The user-attested count of every parameter in the pinned checkpoint. MoE
+routing does not remove inactive experts from memory, so the MLX base-weight
+estimate uses this total.
 
 ## Unified memory
 

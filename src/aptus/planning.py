@@ -3,7 +3,12 @@ from __future__ import annotations
 import math
 from dataclasses import replace
 
-from .catalog import target_modules_for
+from .catalog import (
+    QWEN3_MOE_FAMILY,
+    has_reviewed_qwen3_moe_quantization_layout,
+    is_exact_qwen3_moe,
+    target_modules_for,
+)
 from .domain import (
     Backend,
     CandidatePlan,
@@ -27,11 +32,15 @@ from .domain import (
 )
 from .evidence import evidence_for
 from .methods import method_descriptor, runtime_binding, selectable_method_descriptors
-from .plan_contract import candidate_id_for_payload, plan_id_for_payload
+from .plan_contract import (
+    candidate_id_for_payload,
+    mlx_memory_breakdown_for_contract,
+    plan_id_for_payload,
+)
 
 
 FORMULA_VERSION = "aptus-memory-v2"
-MLX_FORMULA_VERSION = "aptus-memory-mlx-v1"
+MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 
 
 class NoFeasiblePlanError(ValueError):
@@ -48,6 +57,12 @@ class NoFeasiblePlanError(ValueError):
 def _adapter_parameter_count(
     model: ModelSpec, rank: int, modules: tuple[str, ...]
 ) -> int:
+    if model.moe is not None and any(
+        module in {"gate_proj", "up_proj", "down_proj"} for module in modules
+    ):
+        raise ValueError(
+            "Expert adapter targets require a topology-aware cardinality contract."
+        )
     intermediate = model.intermediate_size or model.hidden_size * 4
     per_layer = 0
     for module in modules:
@@ -187,80 +202,55 @@ def _mlx_memory_breakdown(
 ) -> MemoryBreakdown:
     """Conservative unified-memory envelope for the MLX-LM pilot path."""
 
-    if method not in {Method.LORA, Method.QLORA}:
-        raise ValueError("The MLX estimator currently supports LoRA and QLoRA only.")
-    bytes_per_weight = 2.0 if method == Method.LORA else 0.5
-    base_weights = round(model.parameters * bytes_per_weight)
-    quantization_metadata = (
-        0 if method == Method.LORA else round(model.parameters * 0.0625)
+    calculated = mlx_memory_breakdown_for_contract(
+        model=to_primitive(model),
+        target=to_primitive(target),
+        candidate={
+            "method": method.value,
+            "rank": rank,
+            "micro_batch_size": micro_batch_size,
+            "target_modules": list(target_modules),
+        },
     )
-    trainable = _adapter_parameter_count(model, rank, target_modules)
-    adapter_weights = round(trainable * 4)
-    gradients = round(trainable * 4)
-    optimizer = round(trainable * 8)
-    activations = round(
-        micro_batch_size
-        * target.sequence_length
-        * model.hidden_size
-        * model.layers
-        * 2
-        * 3.0
-    )
-    workspace = max(
-        gibibytes(0.75), round((base_weights + quantization_metadata) * 0.04)
-    )
-    temporary = max(
-        gibibytes(0.75), round((base_weights + quantization_metadata) * 0.08)
-    )
-    load_transient = round((base_weights + quantization_metadata) * 0.30)
-    point_components = {
-        "base_weights_bytes": base_weights,
-        "quantization_metadata_bytes": quantization_metadata,
-        "adapter_weights_bytes": adapter_weights,
-        "adapter_gradients_bytes": gradients,
-        "optimizer_states_bytes": optimizer,
-        "activations_bytes": activations,
-        "communication_bytes": 0,
-        "workspace_bytes": workspace,
-        "temporary_overhead_bytes": temporary,
-        "load_transient_bytes": load_transient,
-    }
-    allocator = round(sum(point_components.values()) * 0.15)
-    point_components["allocator_bytes"] = allocator
-    point = sum(point_components.values())
-    safety = round(point * 0.25)
-    component_upper_bounds = {
-        **point_components,
-        "activations_bytes": round(activations * 1.60),
-        "workspace_bytes": round(workspace * 1.75),
-        "temporary_overhead_bytes": round(temporary * 1.75),
-        "allocator_bytes": round(allocator * 1.75),
-        "load_transient_bytes": round(load_transient * 1.50),
-        "uncertainty_bytes": safety,
-    }
     return MemoryBreakdown(
-        base_weights_bytes=base_weights,
-        quantization_metadata_bytes=quantization_metadata,
-        adapter_weights_bytes=adapter_weights,
-        adapter_gradients_bytes=gradients,
-        optimizer_states_bytes=optimizer,
-        activations_bytes=activations,
-        temporary_overhead_bytes=temporary,
-        safety_margin_bytes=safety,
-        communication_bytes=0,
-        workspace_bytes=workspace,
-        allocator_bytes=allocator,
-        load_transient_bytes=load_transient,
-        component_upper_bounds=component_upper_bounds,
-        upper_estimate_bytes=sum(component_upper_bounds.values()),
-        formula_version=MLX_FORMULA_VERSION,
+        base_weights_bytes=calculated["base_weights_bytes"],
+        quantization_metadata_bytes=calculated["quantization_metadata_bytes"],
+        adapter_weights_bytes=calculated["adapter_weights_bytes"],
+        adapter_gradients_bytes=calculated["adapter_gradients_bytes"],
+        optimizer_states_bytes=calculated["optimizer_states_bytes"],
+        activations_bytes=calculated["activations_bytes"],
+        temporary_overhead_bytes=calculated["temporary_overhead_bytes"],
+        safety_margin_bytes=calculated["safety_margin_bytes"],
+        communication_bytes=calculated["communication_bytes"],
+        workspace_bytes=calculated["workspace_bytes"],
+        allocator_bytes=calculated["allocator_bytes"],
+        load_transient_bytes=calculated["load_transient_bytes"],
+        component_upper_bounds=calculated["component_upper_bounds"],
+        upper_estimate_bytes=calculated["upper_estimate_bytes"],
+        formula_version=calculated["formula_version"],
         assumptions=(
             "MLX-LM uses Apple unified memory; this estimate does not add a second CUDA-style host staging pool.",
-            "MLX four-bit storage is modeled as groupwise quantized weights plus explicit metadata, not bitsandbytes NF4.",
+            *(
+                (
+                    "The reviewed Qwen3 MoE layout prices its four-bit group-64 default, eight-bit group-64 router gates, and affine scale and bias metadata separately.",
+                )
+                if model.quantization_layout is not None
+                else (
+                    "MLX four-bit storage is modeled as groupwise quantized weights plus explicit metadata, not bitsandbytes NF4.",
+                )
+            ),
             "The formula is a conservative uncalibrated prior and cannot establish feasibility.",
             "Gradient checkpointing is enabled for the generated MLX-LM pilot.",
             "Point estimate is the sum of named components and excludes uncertainty.",
             "Upper envelope uses wider MLX allocator, activation, workspace, and load-transient factors plus a 25 percent uncertainty term.",
+            *(
+                (
+                    "MoE residency, quantization metadata, staging, and disk use total parameters; active parameters never substitute for resident weights.",
+                    "MoE activation memory adds a routed SwiGLU term for every selected expert in each sparse layer, with a conservative 3x checkpointed-intermediate factor.",
+                )
+                if model.moe is not None
+                else ()
+            ),
         ),
     )
 
@@ -366,7 +356,7 @@ def _runtime_contract_for(
 ) -> RuntimeContract:
     compute_backend = devices[0].backend if devices else Backend.CUDA
     if target.training_runtime is not None:
-        training_runtime = target.training_runtime
+        training_runtime = TrainingRuntime(target.training_runtime)
     elif compute_backend == Backend.MPS:
         training_runtime = (
             TrainingRuntime.MLX_LM
@@ -444,6 +434,56 @@ def estimate_candidate(
         target=target,
         devices=participating_devices,
     )
+    has_moe_identity = bool(
+        model.moe is not None
+        or model.family.lower() == QWEN3_MOE_FAMILY
+        or model.model_type == QWEN3_MOE_FAMILY
+        or model.architecture == "Qwen3MoeForCausalLM"
+    )
+    if has_moe_identity:
+        exact_identity = is_exact_qwen3_moe(
+            family=model.family,
+            model_type=model.model_type,
+            architecture=model.architecture,
+        )
+        reviewed_layout = has_reviewed_qwen3_moe_quantization_layout(
+            model.quantization_layout,
+            layers=model.layers,
+        )
+        if not exact_identity:
+            unsupported.append(
+                "MoE execution requires the exact reviewed qwen3_moe and Qwen3MoeForCausalLM provider identity."
+            )
+        elif not reviewed_layout:
+            unsupported.append(
+                "Qwen3 MoE execution requires the exact four-bit plus eight-bit router-gate MLX quantization layout."
+            )
+        elif model.moe is None:
+            unsupported.append(
+                "Qwen3 MoE execution requires the complete provider-declared expert topology."
+            )
+        elif model.moe.shared_expert_intermediate_size is not None:
+            unsupported.append(
+                "The first Qwen3 MoE MLX-LM contract does not support a shared expert."
+            )
+        elif model.quantization_bits != 4:
+            unsupported.append(
+                "The first Qwen3 MoE MLX-LM contract requires explicit four-bit model metadata."
+            )
+        if not (
+            exact_identity
+            and reviewed_layout
+            and model.moe is not None
+            and model.moe.shared_expert_intermediate_size is None
+            and model.quantization_bits == 4
+            and method == Method.QLORA
+            and distribution == Distribution.SINGLE
+            and runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+            and runtime_contract.compute_backend == Backend.MPS
+        ):
+            unsupported.append(
+                "Qwen3 MoE is executable only as single-device MLX-LM QLoRA with attention-only adapters."
+            )
     binding = runtime_binding(
         method,
         training_runtime=runtime_contract.training_runtime,
@@ -577,6 +617,14 @@ def estimate_candidate(
                 "The Apple unified-memory envelope must pass model-data validation and a bounded measured preflight; neither guarantees full-run fit.",
             )
         )
+        if model.moe is not None:
+            policy_assumptions.extend(
+                (
+                    f"The model has {model.parameters} total resident parameters and {model.active_parameters} derived active parameters per token.",
+                    f"The reviewed topology routes {model.moe.experts_per_token} of {model.moe.expert_count} experts across {model.sparse_layer_count} sparse layers.",
+                    "The first MoE compiler scope trains attention projections only; routed experts and router weights remain frozen.",
+                )
+            )
     else:
         policy_assumptions.append(
             "The compiler uses AdamW (torch), a linear scheduler, zero weight decay, zero warmup steps, and max_grad_norm=1.0 as explicit Aptus v0.2 defaults."

@@ -46,7 +46,7 @@ branches.
 | int8-LoRA | No compiler | Unsupported | Unsupported | None |
 | QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with explicit four-bit capability facts and MLX model metadata | Unsupported | Unsupported | MLX-LM adapter |
 
-MLX-LM uses the `mps` compute backend and `aptus-memory-mlx-v1` estimator. Its
+MLX-LM uses the `mps` compute backend and `aptus-memory-mlx-v2` estimator. Its
 LoRA and QLoRA candidates always remain conditional and pilot-required. Its
 pilot is one uninterrupted run from the pinned base with at least two optimizer
 updates, finite losses, exact target binding, positive memory and adapter-delta
@@ -88,7 +88,9 @@ checks remain authoritative for the pinned software stack.
 
 MLX-LM QLoRA does not use bitsandbytes or NF4 assumptions. Aptus does not
 quantize an unbound model during training. The pinned model revision must
-already declare its MLX four-bit quantization metadata.
+already declare its MLX four-bit quantization metadata. This general dense
+QLoRA rule does not admit an MoE checkpoint. The Qwen3 MoE row also requires
+the exact mixed layout in the model-support table below.
 
 ## Backend matrix
 
@@ -113,7 +115,7 @@ MPS or MLX.
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
 | `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass` is reachable, but no qualifying target-host run is recorded |
-| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA | Two clean QLoRA workflows reached `measured-run-pass` for the exact recorded acceptance configuration |
+| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the exact conditional Qwen3 MoE row | Two clean dense QLoRA workflows reached `measured-run-pass`; the Qwen3 MoE acceptance gate remains open |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
 LM Studio and oMLX are not training runtimes. They are loopback inference-only
@@ -155,6 +157,7 @@ devices.
 | `mistral` | Same seven dense projection names |
 | `gemma` | Same seven dense projection names |
 | `qwen` | Same seven dense projection names |
+| `qwen3_moe` | `q_proj`, `k_proj`, `v_proj`, `o_proj` only |
 
 Full training does not need adapter target modules. Provider inspection performs
 only exact alias normalization:
@@ -163,11 +166,38 @@ only exact alias normalization:
 - `gemma2`, `gemma3`, and `gemma3_text` to `gemma`; and
 - `gemma3` only for explicitly accepted text architectures.
 
-MoE, multimodal, prefix-matched, or unknown architectures are not silently
-mapped. CUDA model-data validation checks the loaded parameter count, hidden
-size, optional intermediate size, layers, context length, and adapter targets.
-MLX-LM model-data validation loads the exact revision, validates its QLoRA
-quantization metadata when applicable, and tokenizes every bound row.
+Multimodal, prefix-matched, and unknown architectures are not silently mapped.
+The only sparse exception is exact and requires all fields below:
+
+| Qwen3 MoE field | Required value |
+| --- | --- |
+| Aptus family | `qwen3_moe` |
+| Provider model type | `qwen3_moe` |
+| Architecture | `Qwen3MoeForCausalLM` |
+| Default checkpoint layout | Four-bit, group size 64 |
+| Module overrides | Exactly one eight-bit, group-size-64 `model.layers.N.mlp.gate` override for every layer, sorted by module path |
+| Shared expert | Absent |
+| Runtime and backend | `mlx-lm` on `mps` |
+| Method and placement | QLoRA, `single` |
+| Adapter scope | Attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
+| Evidence | `pilot-required` |
+
+The plan records total resident parameters separately from backend-derived
+active parameters and sparse-layer count. Active parameters describe routed
+per-token computation. They never reduce the base-weight residency budget.
+The quantization layout is canonical and bound into plan identity. A different
+override count, module path, bit width, group size, or ordering remains
+unsupported. Aptus can inspect an arbitrary immutable revision, but it admits
+that revision only when every structural and runtime gate matches this row.
+Target-host acceptance applies only to the exact revision that produced the
+evidence. Every other MoE family, precision, runtime, method, and placement
+remains unsupported.
+
+CUDA model-data validation checks the loaded parameter count, hidden size,
+optional intermediate size, layers, context length, and adapter targets.
+MLX-LM model-data validation loads the exact revision, validates QLoRA
+quantization metadata and exact MoE topology when applicable, and tokenizes
+every bound row.
 
 ## Dataset support
 

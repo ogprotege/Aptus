@@ -19,7 +19,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Mapping
 
 from .domain import (
     Backend,
@@ -27,9 +27,12 @@ from .domain import (
     DeviceSpec,
     HardwareSpec,
     MeasurementKind,
+    MoETopology,
     ModelSpec,
     Provenance,
     ProvenanceKind,
+    QuantizationLayout,
+    QuantizationOverride,
     gibibytes,
 )
 
@@ -965,8 +968,50 @@ def build_model_spec(
     license_name: str,
     training_allowed: bool,
     intermediate_size: int | None = None,
+    architecture: str = "causal-lm",
+    model_type: str | None = None,
+    quantization_bits: int | None = None,
+    quantization_layout: QuantizationLayout | Mapping[str, Any] | None = None,
+    moe: MoETopology | Mapping[str, Any] | None = None,
 ) -> ModelSpec:
     provenance = Provenance(ProvenanceKind.USER_ATTESTED, "cli-or-api")
+    topology = (
+        MoETopology(
+            expert_count=int(moe["expert_count"]),
+            experts_per_token=int(moe["experts_per_token"]),
+            expert_intermediate_size=int(moe["expert_intermediate_size"]),
+            decoder_sparse_step=int(moe["decoder_sparse_step"]),
+            mlp_only_layers=tuple(moe.get("mlp_only_layers", ())),
+            shared_expert_intermediate_size=(
+                int(moe["shared_expert_intermediate_size"])
+                if moe.get("shared_expert_intermediate_size") is not None
+                else None
+            ),
+        )
+        if isinstance(moe, Mapping)
+        else moe
+    )
+    layout = (
+        QuantizationLayout(
+            default_bits=quantization_layout["default_bits"],
+            default_group_size=quantization_layout["default_group_size"],
+            module_overrides=tuple(
+                sorted(
+                    (
+                        QuantizationOverride(
+                            module_path=item["module_path"],
+                            bits=item["bits"],
+                            group_size=item["group_size"],
+                        )
+                        for item in quantization_layout.get("module_overrides", ())
+                    ),
+                    key=lambda item: item.module_path,
+                )
+            ),
+        )
+        if isinstance(quantization_layout, Mapping)
+        else quantization_layout
+    )
     return ModelSpec(
         model_id=model_id,
         revision=revision,
@@ -978,5 +1023,10 @@ def build_model_spec(
         license_name=license_name,
         training_allowed=training_allowed,
         intermediate_size=intermediate_size,
+        architecture=architecture,
+        model_type=model_type,
+        quantization_bits=quantization_bits,
+        quantization_layout=layout,
+        moe=topology,
         provenance={"all": provenance},
     )

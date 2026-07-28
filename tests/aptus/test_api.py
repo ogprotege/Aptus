@@ -16,8 +16,11 @@ from aptus.api import (
     _resolve_static_dir,
     create_app,
 )
-from aptus.domain import Backend, ValidationReport, ValidationState
+from aptus.api_contracts import ModelInspectionResponse
+from aptus.catalog import reviewed_qwen3_moe_quantization_layout
+from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.execution import ActiveJobError, JobPrerequisiteError
+from aptus.local_store import atomic_write_json
 from aptus.profiling import build_hardware_spec
 from aptus.runtime_env import RuntimeInterpreter
 
@@ -42,6 +45,39 @@ class ApiContractTests(unittest.TestCase):
                 confirm_full_train=True,
                 resume_from="checkpoint-1",
             )
+
+    def test_inspection_response_allows_incomplete_moe_evidence(self) -> None:
+        response = ModelInspectionResponse.model_validate(
+            {
+                "status": "ok",
+                "model_id": "provider/incomplete-moe",
+                "requested_revision": "main",
+                "resolved_revision": "a" * 40,
+                "facts": {
+                    "model_type": "unknown_moe",
+                    "architecture": "UnknownMoeForCausalLM",
+                    "moe": {
+                        "expert_count": 64,
+                        "experts_per_token": None,
+                        "expert_intermediate_size": 512,
+                        "decoder_sparse_step": 1,
+                        "mlp_only_layers": None,
+                        "shared_expert_intermediate_size": None,
+                    },
+                },
+                "compatibility": {
+                    "status": "unsupported",
+                    "family": "unknown_moe",
+                    "supported_runtime": None,
+                    "supported_methods": [],
+                    "distribution": None,
+                    "evidence_requirement": "implementation-required",
+                    "reason": "The provider topology is incomplete.",
+                },
+            }
+        )
+
+        self.assertIsNone(response.facts.moe.experts_per_token)
 
     def test_plan_store_survives_context_restart(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -434,6 +470,175 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(conflict.json()["error"], "path_conflict")
 
+    def test_exact_qwen3_moe_plan_preserves_topology_and_derived_facts(self) -> None:
+        payload = self.plan_payload()
+        payload["model"] = {
+            **payload["model"],
+            "model_id": "Qwen/Qwen3-30B-A3B-MLX-4bit",
+            "family": "qwen3_moe",
+            "parameters_b": 30.5,
+            "hidden_size": 2048,
+            "intermediate_size": 6144,
+            "layers": 48,
+            "context_length": 40960,
+            "model_type": "qwen3_moe",
+            "architecture": "Qwen3MoeForCausalLM",
+            "quantization_bits": 4,
+            "quantization_layout": to_primitive(
+                reviewed_qwen3_moe_quantization_layout(48)
+            ),
+            "moe": {
+                "expert_count": 128,
+                "experts_per_token": 8,
+                "expert_intermediate_size": 768,
+                "decoder_sparse_step": 1,
+                "mlp_only_layers": [],
+            },
+        }
+        payload["hardware"] = {
+            **payload["hardware"],
+            "backend": "mps",
+            "gpu_count": 1,
+            "vram_gib": 64,
+            "free_vram_gib": 48,
+            "supports_bf16": False,
+            "supports_8bit": False,
+            "supports_4bit": False,
+            "host_ram_gib": 64,
+            "host_ram_free_gib": 48,
+            "reserve_gib": 8,
+        }
+        payload["target"] = {
+            **payload["target"],
+            "method_preference": "qlora",
+            "training_runtime": "mlx-lm",
+        }
+
+        response = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(response.status_code, 200, response.text)
+        plan = response.json()
+        self.assertEqual(plan["schema_version"], "aptus.training-plan.v3")
+        self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
+        self.assertEqual(
+            len(plan["model"]["quantization_layout"]["module_overrides"]), 48
+        )
+        self.assertEqual(plan["model"]["moe"]["expert_count"], 128)
+        self.assertEqual(plan["model"]["sparse_layer_count"], 48)
+        self.assertLess(plan["model"]["active_parameters"], plan["model"]["parameters"])
+        self.assertEqual(plan["recommended"]["method"], "qlora")
+        self.assertEqual(
+            plan["recommended"]["runtime_contract"]["training_runtime"],
+            "mlx-lm",
+        )
+
+    def test_moe_integer_facts_reject_boolean_coercion(self) -> None:
+        payload = self.plan_payload()
+        payload["model"] = {
+            **payload["model"],
+            "quantization_bits": True,
+            "quantization_layout": {
+                "default_bits": True,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+            "moe": {
+                "expert_count": True,
+                "experts_per_token": 1,
+                "expert_intermediate_size": 768,
+                "decoder_sparse_step": 1,
+                "mlp_only_layers": [],
+            },
+        }
+
+        response = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(response.status_code, 422, response.text)
+        locations = {tuple(item["loc"]) for item in response.json()["details"]}
+        self.assertIn(("body", "model", "quantization_bits"), locations)
+        self.assertIn(
+            ("body", "model", "quantization_layout", "default_bits"), locations
+        )
+        self.assertIn(("body", "model", "moe", "expert_count"), locations)
+
+    def test_model_inspection_contract_exposes_exact_moe_compatibility(self) -> None:
+        inspection = {
+            "status": "ok",
+            "model_id": "Qwen/Qwen3-30B-A3B-MLX-4bit",
+            "requested_revision": "main",
+            "resolved_revision": "d" * 40,
+            "facts": {
+                "architecture": "Qwen3MoeForCausalLM",
+                "architectures": ["Qwen3MoeForCausalLM"],
+                "model_type": "qwen3_moe",
+                "family": "qwen3_moe",
+                "hidden_size": 2048,
+                "intermediate_size": 6144,
+                "layers": 48,
+                "context_length": 40960,
+                "attention_heads": 32,
+                "key_value_heads": 4,
+                "vocab_size": 151936,
+                "quantization_bits": 4,
+                "quantization_layout": to_primitive(
+                    reviewed_qwen3_moe_quantization_layout(48)
+                ),
+                "moe": {
+                    "expert_count": 128,
+                    "experts_per_token": 8,
+                    "expert_intermediate_size": 768,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                    "shared_expert_intermediate_size": None,
+                },
+                "license_name": "apache-2.0",
+                "parameters": None,
+                "training_allowed": None,
+            },
+            "provenance": {},
+            "warnings": [],
+            "compatibility": {
+                "status": "conditional",
+                "family": "qwen3_moe",
+                "supported_runtime": "mlx-lm",
+                "supported_methods": ["qlora"],
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": "attention-only",
+                "reason": "Exact model-data and pilot evidence are required.",
+            },
+            "explicit_user_facts_required": ["parameters", "training_allowed"],
+        }
+        static = self.root / "inspection-web"
+        static.mkdir()
+        (static / "index.html").write_text("Aptus", encoding="utf-8")
+        with patch(
+            "aptus.inspection.inspect_huggingface_model",
+            return_value=inspection,
+        ):
+            client = TestClient(
+                create_app(state_dir=self.root / "inspection-state", static_dir=static)
+            )
+        try:
+            response = client.post(
+                "/api/v1/models/inspect",
+                json={
+                    "model_id": "Qwen/Qwen3-30B-A3B-MLX-4bit",
+                    "revision": "main",
+                },
+            )
+        finally:
+            client.close()
+
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["facts"]["moe"]["experts_per_token"], 8)
+        self.assertEqual(
+            len(result["facts"]["quantization_layout"]["module_overrides"]), 48
+        )
+        self.assertEqual(result["compatibility"]["status"], "conditional")
+        self.assertEqual(result["compatibility"]["adapter_scope"], "attention-only")
+
     def test_mutating_workflow_requests_require_exact_project_identity(self) -> None:
         for path, payload in (
             ("/api/v1/compile", {"plan_id": "plan_test", "output_dir": "bundle"}),
@@ -556,6 +761,75 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(bootstrap.status_code, 200, bootstrap.text)
         self.assertEqual(bootstrap.json()["project"]["project_id"], project_id)
         self.assertEqual(bootstrap.json()["project_history"][0]["ordinal"], 2)
+
+    def test_legacy_plan_is_preserved_and_requires_explicit_replan(self) -> None:
+        context = self.client.app.state.aptus
+        plan_id = "plan_" + "c" * 20
+        legacy_plan = {
+            "schema_version": "aptus.training-plan.v2",
+            "plan_id": plan_id,
+            "recommended": {"candidate_id": "candidate_legacy"},
+        }
+        atomic_write_json(
+            context.plans_dir / f"{plan_id}.json", legacy_plan, mode=0o600
+        )
+        project = context.projects.create("Legacy saved plan")
+        revision = context.projects.create_revision(
+            project["project_id"],
+            reason="legacy-plan-imported",
+            plan_id=plan_id,
+            plan_snapshot=legacy_plan,
+            selected_candidate_id="candidate_legacy",
+        )
+        saved_plan_path = context.plans_dir / f"{plan_id}.json"
+        before = saved_plan_path.read_bytes()
+
+        bootstrap = self.client.get("/api/v1/bootstrap")
+        loaded = self.client.get(f"/api/v1/plans/{plan_id}")
+        compiled = self.client.post(
+            "/api/v1/compile",
+            json={
+                "plan_id": plan_id,
+                "output_dir": str(self.root / "legacy-output"),
+                "project_id": project["project_id"],
+                "expected_project_revision_id": revision["revision_id"],
+            },
+        )
+        recovered = self.client.post(
+            f"/api/v1/projects/{project['project_id']}/recover",
+            json={"revision_id": revision["revision_id"]},
+        )
+
+        self.assertEqual(bootstrap.status_code, 200, bootstrap.text)
+        self.assertIsNone(bootstrap.json().get("plan"))
+        self.assertEqual(
+            bootstrap.json()["replan_required"],
+            {
+                "status": "replan_required",
+                "plan_id": plan_id,
+                "found_schema": "aptus.training-plan.v2",
+                "required_schema": "aptus.training-plan.v3",
+                "source": "project-revision",
+                "project_id": project["project_id"],
+                "project_revision_id": revision["revision_id"],
+                "message": (
+                    "This saved plan predates the current executable contract. "
+                    "Create a new plan from its preserved facts before compiling "
+                    "or recovering it."
+                ),
+            },
+        )
+        for response in (loaded, compiled, recovered):
+            self.assertEqual(response.status_code, 409, response.text)
+            self.assertEqual(response.json()["error"], "replan_required")
+            self.assertEqual(
+                response.json()["required_schema"], "aptus.training-plan.v3"
+            )
+        self.assertEqual(saved_plan_path.read_bytes(), before)
+        self.assertFalse((self.root / "legacy-output").exists())
+        self.assertEqual(
+            context.projects.get(project["project_id"])["revision_count"], 1
+        )
 
     def test_plan_only_recovery_ignores_newer_legacy_bundle_pointer(self) -> None:
         planned = self.client.post("/api/v1/plan", json=self.plan_payload())

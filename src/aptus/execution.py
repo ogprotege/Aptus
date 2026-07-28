@@ -33,6 +33,8 @@ from .attestation import require_trainable_parameter_census
 from .domain import RunState, ValidationState
 from .local_store import atomic_write_json, private_directory, quarantine_file
 from .plan_contract import (
+    expected_model_architecture_contract,
+    mlx_quantized_storage_bytes_for_contract,
     sha256_file,
     validate_bundle_manifest,
     validate_plan_payload,
@@ -597,19 +599,32 @@ def _verify_mlx_admission(
     plan: dict[str, Any], admission: object, *, label: str
 ) -> dict[str, Any]:
     candidate = plan["recommended"]
-    point = int(candidate["memory"]["point_estimate_bytes"])
-    upper = int(candidate["memory"]["upper_estimate_bytes"])
+    memory = candidate["memory"]
+    point = int(memory["point_estimate_bytes"])
+    upper = int(memory["upper_estimate_bytes"])
+    planned_resident = int(memory["base_weights_bytes"]) + int(
+        memory["quantization_metadata_bytes"]
+    )
     reserve = max(
         int(plan["hardware"].get("reserve_per_device_bytes", 0)),
         8 * 1024**3,
     )
-    required = max(point, upper) + reserve
     if not isinstance(admission, dict):
         raise ValueError(f"{label} must be an object.")
+    observed = admission.get("observed_safetensors_bytes")
+    if not isinstance(observed, int) or isinstance(observed, bool) or observed <= 0:
+        raise ValueError(f"{label} requires positive safetensors bytes.")
+    adjustment = max(0, observed - planned_resident)
+    adjusted_point = point + adjustment
+    adjusted_upper = upper + adjustment
+    required = max(adjusted_point, adjusted_upper) + reserve
     expected = {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
-        "point_estimate_bytes": point,
-        "upper_estimate_bytes": upper,
+        "schema_version": "aptus.mlx-unified-memory-admission.v2",
+        "planned_resident_bytes": planned_resident,
+        "observed_safetensors_bytes": observed,
+        "resident_adjustment_bytes": adjustment,
+        "adjusted_point_estimate_bytes": adjusted_point,
+        "adjusted_upper_estimate_bytes": adjusted_upper,
         "reserve_bytes": reserve,
         "required_available_bytes": required,
     }
@@ -624,9 +639,178 @@ def _verify_mlx_admission(
         or "free_vram_bytes" in admission
     ):
         raise ValueError(
-            f"{label} does not contain a passing unified-memory measurement."
+            f"{label} does not contain a passing unified-memory admission."
         )
     return admission
+
+
+def _require_mlx_model_load_binding(
+    plan: Mapping[str, Any], binding: object
+) -> dict[str, Any]:
+    """Verify the portable MLX model identity, topology, and parameter census."""
+
+    expected_keys = {
+        "schema_version",
+        "model_id",
+        "model_revision",
+        "resolved_local_snapshot",
+        "trust_remote_code",
+        "architecture_contract",
+        "parameter_census",
+        "packed_checkpoint_binding",
+        "descriptor_sha256",
+    }
+    if not isinstance(binding, dict) or set(binding) != expected_keys:
+        raise ValueError("MLX model-load binding has an invalid shape.")
+    model = plan.get("model")
+    if not isinstance(model, Mapping):
+        raise ValueError("MLX model-load binding requires a plan model contract.")
+    expected_static = {
+        "schema_version": "aptus.mlx-model-load-binding.v3",
+        "model_id": model.get("model_id"),
+        "model_revision": model.get("revision"),
+        "resolved_local_snapshot": True,
+        "trust_remote_code": False,
+        "architecture_contract": expected_model_architecture_contract(model),
+    }
+    if any(binding.get(key) != value for key, value in expected_static.items()):
+        raise ValueError("MLX model-load binding does not match the plan architecture.")
+    if binding.get("descriptor_sha256") != _json_hash(
+        {key: value for key, value in binding.items() if key != "descriptor_sha256"}
+    ):
+        raise ValueError("MLX model-load binding digest is invalid.")
+
+    census = binding.get("parameter_census")
+    census_keys = {
+        "schema_version",
+        "census_method",
+        "declared_total_parameters",
+        "observed_total_parameters",
+        "total_parameter_delta",
+        "total_parameter_tolerance",
+        "declared_active_parameters",
+        "observed_active_parameters",
+        "sparse_layer_count",
+        "routed_expert_parameters",
+        "active_routed_expert_parameters",
+        "inactive_expert_parameters",
+        "descriptor_sha256",
+    }
+    if not isinstance(census, dict) or set(census) != census_keys:
+        raise ValueError("MLX model parameter census has an invalid shape.")
+    if census.get("descriptor_sha256") != _json_hash(
+        {key: value for key, value in census.items() if key != "descriptor_sha256"}
+    ):
+        raise ValueError("MLX model parameter census digest is invalid.")
+    declared_total = model.get("parameters")
+    declared_active = model.get("active_parameters", declared_total)
+    if (
+        not isinstance(declared_total, int)
+        or isinstance(declared_total, bool)
+        or declared_total <= 0
+        or not isinstance(declared_active, int)
+        or isinstance(declared_active, bool)
+        or declared_active <= 0
+    ):
+        raise ValueError("MLX plan parameter counts are invalid.")
+    tolerance = max(1_000_000, round(declared_total * 0.02))
+    observed_total = census.get("observed_total_parameters")
+    observed_active = census.get("observed_active_parameters")
+    moe = model.get("moe")
+    sparse_layer_count = model.get("sparse_layer_count", 0)
+    if moe is None:
+        routed = active_routed = inactive = 0
+        census_method = "mlx-lm.get_total_parameters.v1"
+    elif isinstance(moe, Mapping) and isinstance(sparse_layer_count, int):
+        routed = (
+            sparse_layer_count
+            * int(moe["expert_count"])
+            * 3
+            * int(model["hidden_size"])
+            * int(moe["expert_intermediate_size"])
+        )
+        active_routed = (
+            routed * int(moe["experts_per_token"]) // int(moe["expert_count"])
+        )
+        inactive = routed - active_routed
+        census_method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+    else:
+        raise ValueError("MLX plan MoE topology is invalid.")
+    if (
+        not isinstance(observed_total, int)
+        or isinstance(observed_total, bool)
+        or observed_total <= 0
+        or not isinstance(observed_active, int)
+        or isinstance(observed_active, bool)
+        or observed_active <= 0
+        or abs(observed_total - declared_total) > tolerance
+        or abs(observed_active - declared_active) > tolerance
+        or observed_active != observed_total - inactive
+        or census.get("schema_version") != "aptus.mlx-model-parameter-census.v1"
+        or census.get("census_method") != census_method
+        or census.get("declared_total_parameters") != declared_total
+        or census.get("total_parameter_delta") != observed_total - declared_total
+        or census.get("total_parameter_tolerance") != tolerance
+        or census.get("declared_active_parameters") != declared_active
+        or census.get("sparse_layer_count") != sparse_layer_count
+        or census.get("routed_expert_parameters") != routed
+        or census.get("active_routed_expert_parameters") != active_routed
+        or census.get("inactive_expert_parameters") != inactive
+    ):
+        raise ValueError("MLX model parameter census does not match the plan.")
+    packed = binding.get("packed_checkpoint_binding")
+    packed_fields = {
+        "schema_version",
+        "observed_safetensors_bytes",
+        "observed_logical_parameters",
+        "expected_weight_bytes",
+        "expected_quantization_metadata_bytes",
+        "expected_packed_tensor_bytes",
+        "container_overhead_bytes",
+        "container_overhead_limit_bytes",
+        "descriptor_sha256",
+    }
+    if not isinstance(packed, dict) or set(packed) != packed_fields:
+        raise ValueError("MLX packed-checkpoint binding has an invalid shape.")
+    if packed.get("descriptor_sha256") != _json_hash(
+        {key: value for key, value in packed.items() if key != "descriptor_sha256"}
+    ):
+        raise ValueError("MLX packed-checkpoint binding digest is invalid.")
+    observed_safetensors = packed.get("observed_safetensors_bytes")
+    if (
+        not isinstance(observed_safetensors, int)
+        or isinstance(observed_safetensors, bool)
+        or observed_safetensors <= 0
+    ):
+        raise ValueError("MLX packed-checkpoint bytes must be positive.")
+    if plan["recommended"].get("method") == "qlora":
+        expected_weight_bytes, expected_metadata_bytes = (
+            mlx_quantized_storage_bytes_for_contract(
+                model, logical_parameters=observed_total
+            )
+        )
+    else:
+        expected_weight_bytes = round(observed_total * 2.0)
+        expected_metadata_bytes = 0
+    expected_packed_bytes = expected_weight_bytes + expected_metadata_bytes
+    overhead = observed_safetensors - expected_packed_bytes
+    overhead_limit = max(1024**2, round(expected_packed_bytes * 0.0001))
+    expected_packed = {
+        "schema_version": "aptus.mlx-packed-checkpoint.v1",
+        "observed_safetensors_bytes": observed_safetensors,
+        "observed_logical_parameters": observed_total,
+        "expected_weight_bytes": expected_weight_bytes,
+        "expected_quantization_metadata_bytes": expected_metadata_bytes,
+        "expected_packed_tensor_bytes": expected_packed_bytes,
+        "container_overhead_bytes": overhead,
+        "container_overhead_limit_bytes": overhead_limit,
+    }
+    expected_packed["descriptor_sha256"] = _json_hash(expected_packed)
+    if overhead < 0 or overhead > overhead_limit or packed != expected_packed:
+        raise ValueError(
+            "MLX packed-checkpoint binding does not match the logical parameter census."
+        )
+    return binding
 
 
 def _verify_mlx_runtime_metrics(
@@ -730,14 +914,14 @@ def _verify_mlx_runtime_metrics(
     }
     if any(metrics.get(name) != value for name, value in expected.items()):
         raise ValueError("MLX runtime metrics do not bind the selected runtime action.")
-    if metrics.get("model_load_binding") != {
-        "schema_version": "aptus.mlx-model-load-binding.v1",
-        "model_id": plan["model"]["model_id"],
-        "model_revision": plan["model"]["revision"],
-        "resolved_local_snapshot": True,
-        "trust_remote_code": False,
-    }:
-        raise ValueError("MLX runtime metrics do not prove a pinned safe model load.")
+    try:
+        model_load_binding = _require_mlx_model_load_binding(
+            plan, metrics.get("model_load_binding")
+        )
+    except ValueError as error:
+        raise ValueError(
+            "MLX runtime metrics do not prove a pinned safe model load."
+        ) from error
     if candidate.get("method") not in {"lora", "qlora"}:
         raise ValueError("MLX runtime metrics require a LoRA or QLoRA candidate.")
     if (
@@ -943,11 +1127,18 @@ def _verify_mlx_runtime_metrics(
     ):
         raise ValueError("MLX runtime metrics target binding is stale or inexact.")
 
-    _verify_mlx_admission(
+    admission = _verify_mlx_admission(
         plan,
         metrics.get("unified_memory_admission"),
         label=f"MLX {action} admission",
     )
+    if (
+        model_load_binding["packed_checkpoint_binding"]["observed_safetensors_bytes"]
+        != admission["observed_safetensors_bytes"]
+    ):
+        raise ValueError(
+            "MLX runtime metrics bind different checkpoint byte measurements."
+        )
     adapter_manifest = metrics.get("adapter_manifest")
     if (
         not isinstance(adapter_manifest, list)
@@ -1026,11 +1217,21 @@ def _verify_mlx_reload_evidence(
         or reload_peak <= 0
     ):
         raise ValueError("MLX reload evidence requires a positive MLX memory peak.")
-    _verify_mlx_admission(
+    admission = _verify_mlx_admission(
         plan,
         evidence.get("unified_memory_admission"),
         label="MLX reload admission",
     )
+    model_load_binding = _require_mlx_model_load_binding(
+        plan, metrics.get("model_load_binding")
+    )
+    if (
+        model_load_binding["packed_checkpoint_binding"]["observed_safetensors_bytes"]
+        != admission["observed_safetensors_bytes"]
+    ):
+        raise ValueError(
+            "MLX reload evidence binds different checkpoint byte measurements."
+        )
     return evidence
 
 

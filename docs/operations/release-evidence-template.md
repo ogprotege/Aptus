@@ -104,8 +104,9 @@ Record the exact registry and planner facts from the candidate build:
 | Experimental IDs | `dora`, `bitfit`, `adalora`, `sharelora` | `[fill]` | `[fill]` |
 | Research-only IDs | `loreft`, `aflora`, `bilora` | `[fill]` | `[fill]` |
 | Planner rows | 12 | `[fill]` | `[fill]` |
-| Plan schema | `aptus.training-plan.v2` | `[fill]` | `[fill]` |
+| Plan schema | `aptus.training-plan.v3` | `[fill]` | `[fill]` |
 | Memory formula | `aptus-memory-v2` | `[fill]` | `[fill]` |
+| MLX memory formula | `aptus-memory-mlx-v2` | `[fill]` | `[fill]` |
 | Bundle schema | `aptus.bundle.v2` | `[fill]` | `[fill]` |
 
 Attach evidence for:
@@ -124,6 +125,11 @@ Attach evidence for:
       dedicated VRAM, and live available memory constrains MLX planning.
 - [ ] MLX-LM LoRA and QLoRA runtime contracts compile only as conditional,
       single-device paths; PyTorch MPS remains compilerless.
+- [ ] The exact Qwen3 MoE row binds `qwen3_moe`,
+      `Qwen3MoeForCausalLM`, four-bit checkpoint metadata, a complete
+      group-64 layout with exactly one eight-bit group-64 router-gate override
+      per layer, a complete no-shared-expert topology, MLX-LM QLoRA, single
+      placement, and attention-only targets.
 
 ## Target-host inventory
 
@@ -200,6 +206,7 @@ uninterrupted pilot and, when claimed, a parent-verified full-duration run.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `mlx-lm` | LoRA | Single | Conditional | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | `mlx-lm` | QLoRA | Single | Conditional after pinned four-bit metadata check | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| `mlx-lm` | QLoRA, exact Qwen3 MoE row | Single | Conditional after identity, topology, and four-bit checks | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | `pytorch-mps` | Any | Any | Implementation required | `[fill]` | `[fill]` | `[fill]` | `N/A` | `N/A` | `N/A` | `N/A` | `N/A` | `[fill negative evidence]` |
 
 ## Per-path evidence packet
@@ -219,6 +226,11 @@ Repeat this section for each runtime row marked passed.
 | Model and tokenizer commit | `[fill]` |
 | Environment binding | `[fill]` |
 | Hardware binding | `[fill]` |
+| Provider model type and architecture | `[fill]` |
+| Checkpoint precision and quantization-layout digest | `[fill]` |
+| MoE topology, when applicable | `[fill: experts, selected experts, expert width, sparse cadence, dense-only layers, shared expert]` |
+| Total, active, and sparse-layer counts | `[fill]` |
+| Adapter target scope | `[fill]` |
 
 #### Ordered actions
 
@@ -280,6 +292,9 @@ For MLX-LM, record the uninterrupted pilot separately:
 - [ ] MLX output records `resume_supported: false`.
 - [ ] All MLX resume argument paths fail closed.
 - [ ] Periodic MLX files are described as weight snapshots, not checkpoints.
+- [ ] Qwen3 MoE metrics bind the exact provider identity, complete topology,
+      canonical quantization layout and digest, logical total and active
+      parameter census, sparse-layer count, and attention-only target instances.
 
 #### Full-run split and export
 
@@ -323,6 +338,8 @@ Record test names and immutable results for:
 - [ ] checkpoint corruption and continuation mismatch rejection;
 - [ ] MLX resume-argument rejection and weight-snapshot non-resume boundary;
 - [ ] current capacity regression after pilot rejection;
+- [ ] MoE shared-expert, wrong-precision, malformed-topology, wrong-runtime,
+      wrong-method, distributed-placement, and expanded-adapter-scope rejection;
 - [ ] wrong run, rank, split, metric, and export binding rejection;
 - [ ] child exit zero with invalid evidence rejection;
 - [ ] full-run resume rejection;

@@ -94,7 +94,7 @@ aptus spec-plan \
 
 Open `aptus-work/plan.json` and confirm:
 
-- `schema_version` is `aptus.training-plan.v2`;
+- `schema_version` is `aptus.training-plan.v3`;
 - `formula_version` is `aptus-memory-v2`;
 - twelve candidates are present;
 - each candidate retains a status and reason;

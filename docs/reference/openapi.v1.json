@@ -99,6 +99,16 @@
             "title": "Projects",
             "type": "array"
           },
+          "replan_required": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReplanRequiredResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "service": {
             "$ref": "#/components/schemas/ServiceIdentity"
           },
@@ -811,6 +821,139 @@
         "title": "InferenceServicesResponse",
         "type": "object"
       },
+      "InspectedMoETopologyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decoder_sparse_step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decoder Sparse Step"
+          },
+          "expert_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expert Count"
+          },
+          "expert_intermediate_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expert Intermediate Size"
+          },
+          "experts_per_token": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experts Per Token"
+          },
+          "mlp_only_layers": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mlp Only Layers"
+          },
+          "shared_expert_intermediate_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared Expert Intermediate Size"
+          }
+        },
+        "title": "InspectedMoETopologyResponse",
+        "type": "object"
+      },
+      "InspectedQuantizationLayoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "default_bits": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Default Bits",
+            "type": "integer"
+          },
+          "default_group_size": {
+            "exclusiveMinimum": 0.0,
+            "title": "Default Group Size",
+            "type": "integer"
+          },
+          "module_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/InspectedQuantizationOverrideResponse"
+            },
+            "title": "Module Overrides",
+            "type": "array"
+          }
+        },
+        "required": [
+          "default_bits",
+          "default_group_size",
+          "module_overrides"
+        ],
+        "title": "InspectedQuantizationLayoutResponse",
+        "type": "object"
+      },
+      "InspectedQuantizationOverrideResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "bits": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Bits",
+            "type": "integer"
+          },
+          "group_size": {
+            "exclusiveMinimum": 0.0,
+            "title": "Group Size",
+            "type": "integer"
+          },
+          "module_path": {
+            "title": "Module Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_path",
+          "bits",
+          "group_size"
+        ],
+        "title": "InspectedQuantizationOverrideResponse",
+        "type": "object"
+      },
       "JobRequest": {
         "additionalProperties": false,
         "properties": {
@@ -931,9 +1074,158 @@
         "title": "Method",
         "type": "string"
       },
+      "MoETopologyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "decoder_sparse_step": {
+            "exclusiveMinimum": 0.0,
+            "title": "Decoder Sparse Step",
+            "type": "integer"
+          },
+          "expert_count": {
+            "exclusiveMinimum": 0.0,
+            "title": "Expert Count",
+            "type": "integer"
+          },
+          "expert_intermediate_size": {
+            "exclusiveMinimum": 0.0,
+            "title": "Expert Intermediate Size",
+            "type": "integer"
+          },
+          "experts_per_token": {
+            "exclusiveMinimum": 0.0,
+            "title": "Experts Per Token",
+            "type": "integer"
+          },
+          "mlp_only_layers": {
+            "items": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Mlp Only Layers",
+            "type": "array"
+          },
+          "shared_expert_intermediate_size": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared Expert Intermediate Size"
+          }
+        },
+        "required": [
+          "expert_count",
+          "experts_per_token",
+          "expert_intermediate_size",
+          "decoder_sparse_step"
+        ],
+        "title": "MoETopologyRequest",
+        "type": "object"
+      },
+      "ModelCompatibilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Scope"
+          },
+          "distribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distribution"
+          },
+          "evidence_requirement": {
+            "enum": [
+              "pilot-required",
+              "implementation-required"
+            ],
+            "title": "Evidence Requirement",
+            "type": "string"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "conditional",
+              "recognized",
+              "unsupported"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_methods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Methods",
+            "type": "array"
+          },
+          "supported_runtime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported Runtime"
+          }
+        },
+        "required": [
+          "status",
+          "supported_methods",
+          "evidence_requirement",
+          "reason"
+        ],
+        "title": "ModelCompatibilityResponse",
+        "type": "object"
+      },
       "ModelFactsRequest": {
         "additionalProperties": false,
         "properties": {
+          "architecture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Architecture"
+          },
           "context_length": {
             "exclusiveMinimum": 0.0,
             "title": "Context Length",
@@ -973,10 +1265,54 @@
             "title": "Model Id",
             "type": "string"
           },
+          "model_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Type"
+          },
+          "moe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoETopologyRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "parameters_b": {
             "exclusiveMinimum": 0.0,
             "title": "Parameters B",
             "type": "number"
+          },
+          "quantization_bits": {
+            "anyOf": [
+              {
+                "maximum": 16.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantization Bits"
+          },
+          "quantization_layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuantizationLayoutRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "revision": {
             "title": "Revision",
@@ -1027,9 +1363,209 @@
         "title": "ModelInspectRequest",
         "type": "object"
       },
+      "ModelInspectionFactsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "architecture": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Architecture"
+          },
+          "architectures": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Architectures"
+          },
+          "attention_heads": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention Heads"
+          },
+          "context_length": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Length"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "hidden_size": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Size"
+          },
+          "intermediate_size": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intermediate Size"
+          },
+          "key_value_heads": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Value Heads"
+          },
+          "layers": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layers"
+          },
+          "license_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Name"
+          },
+          "model_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Type"
+          },
+          "moe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InspectedMoETopologyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parameters": {
+            "title": "Parameters",
+            "type": "null"
+          },
+          "quantization_bits": {
+            "anyOf": [
+              {
+                "maximum": 16.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantization Bits"
+          },
+          "quantization_layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InspectedQuantizationLayoutResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "training_allowed": {
+            "title": "Training Allowed",
+            "type": "null"
+          },
+          "vocab_size": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vocab Size"
+          }
+        },
+        "title": "ModelInspectionFactsResponse",
+        "type": "object"
+      },
       "ModelInspectionResponse": {
         "additionalProperties": false,
         "properties": {
+          "compatibility": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelCompatibilityResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "error": {
             "anyOf": [
               {
@@ -1058,14 +1594,12 @@
           "facts": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/ModelInspectionFactsResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Facts"
+            ]
           },
           "model_id": {
             "title": "Model Id",
@@ -1926,6 +2460,144 @@
         "title": "ProjectSummaryResponse",
         "type": "object"
       },
+      "QuantizationLayoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "default_bits": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Default Bits",
+            "type": "integer"
+          },
+          "default_group_size": {
+            "exclusiveMinimum": 0.0,
+            "title": "Default Group Size",
+            "type": "integer"
+          },
+          "module_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/QuantizationOverrideRequest"
+            },
+            "title": "Module Overrides",
+            "type": "array"
+          }
+        },
+        "required": [
+          "default_bits",
+          "default_group_size"
+        ],
+        "title": "QuantizationLayoutRequest",
+        "type": "object"
+      },
+      "QuantizationOverrideRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "bits": {
+            "maximum": 16.0,
+            "minimum": 1.0,
+            "title": "Bits",
+            "type": "integer"
+          },
+          "group_size": {
+            "exclusiveMinimum": 0.0,
+            "title": "Group Size",
+            "type": "integer"
+          },
+          "module_path": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*$",
+            "title": "Module Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "module_path",
+          "bits",
+          "group_size"
+        ],
+        "title": "QuantizationOverrideRequest",
+        "type": "object"
+      },
+      "ReplanRequiredResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "found_schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Found Schema"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "project_revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Revision Id"
+          },
+          "required_schema": {
+            "const": "aptus.training-plan.v3",
+            "title": "Required Schema",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "project-revision",
+              "compiled-bundle"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "const": "replan_required",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "required_schema",
+          "source",
+          "message"
+        ],
+        "title": "ReplanRequiredResponse",
+        "type": "object"
+      },
       "RuntimeConfigureRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2133,18 +2805,12 @@
           "training_runtime": {
             "anyOf": [
               {
-                "enum": [
-                  "transformers-peft-cuda",
-                  "mlx-lm",
-                  "pytorch-mps"
-                ],
-                "type": "string"
+                "$ref": "#/components/schemas/TrainingRuntime"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Training Runtime"
+            ]
           }
         },
         "required": [
@@ -2217,6 +2883,15 @@
         ],
         "title": "TrainingPlanResponse",
         "type": "object"
+      },
+      "TrainingRuntime": {
+        "enum": [
+          "transformers-peft-cuda",
+          "mlx-lm",
+          "pytorch-mps"
+        ],
+        "title": "TrainingRuntime",
+        "type": "string"
       },
       "ValidateRequest": {
         "additionalProperties": false,

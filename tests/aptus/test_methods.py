@@ -89,7 +89,7 @@ class MethodRegistryTests(unittest.TestCase):
         )
         self.assertEqual(cuda.compiler_id, "transformers.peft-qlora.v2")
         self.assertEqual(mlx.compiler_id, "mlx-lm.qlora.v1")
-        self.assertEqual(mlx.estimator_id, "aptus-memory-mlx-v1")
+        self.assertEqual(mlx.estimator_id, "aptus-memory-mlx-v2")
         self.assertEqual(mlx.supported_distributions, ("single",))
 
 

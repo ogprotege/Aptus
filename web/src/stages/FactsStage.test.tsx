@@ -73,6 +73,170 @@ function FactsHarness() {
 }
 
 describe("FactsStage", () => {
+  it("shows exact MoE topology, runtime scope, and resident-memory truth", () => {
+    const draft = structuredClone(EXAMPLE_DRAFT);
+    draft.model = {
+      ...draft.model,
+      family: "qwen3_moe",
+      parameters_b: 30.5,
+      model_type: "qwen3_moe",
+      architecture: "Qwen3MoeForCausalLM",
+      quantization_bits: 4,
+      active_parameters_b: 3.3,
+      sparse_layer_count: 48,
+      moe: {
+        expert_count: 128,
+        experts_per_token: 8,
+        expert_intermediate_size: 768,
+        decoder_sparse_step: 1,
+        mlp_only_layers: [],
+        shared_expert_intermediate_size: null,
+      },
+    };
+    draft.hardware.devices[0].backend = "mps";
+    draft.target.runtime = "mlx-lm";
+
+    render(
+      <FactsStage
+        draft={draft}
+        setDraft={vi.fn()}
+        profile={null}
+        busy={null}
+        demoMode={false}
+        onLoadExample={vi.fn()}
+        onClearExample={vi.fn()}
+        onProfile={vi.fn(async () => undefined)}
+        onModelInspect={vi.fn(async () => undefined)}
+        onInvalidateModelInspection={vi.fn()}
+        onPlan={vi.fn(async () => undefined)}
+        onHardwareScan={vi.fn(async () => undefined)}
+        hardwareScanned
+        modelInspection={{
+          status: "ok",
+          model_id: "Qwen/Qwen3-30B-A3B",
+          requested_revision: "main",
+          resolved_revision: "d".repeat(40),
+          facts: {
+            family: "qwen3_moe",
+            model_type: "qwen3_moe",
+            architecture: "Qwen3MoeForCausalLM",
+            quantization_layout: {
+              default_bits: 4,
+              default_group_size: 64,
+              module_overrides: [{
+                module_path: "model.layers.0.mlp.gate",
+                bits: 8,
+                group_size: 64,
+              }],
+            },
+          },
+          compatibility: {
+            status: "conditional",
+            family: "qwen3_moe",
+            supported_runtime: "mlx-lm",
+            supported_methods: ["qlora"],
+            distribution: "single",
+            evidence_requirement: "pilot-required",
+            reason: "Exact model-data and pilot evidence are required.",
+          },
+        }}
+        methodCatalog={methods}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Exact MoE path recognized" })).toBeInTheDocument();
+    expect(screen.getByText("Pilot required")).toBeInTheDocument();
+    expect(screen.getByText("Any 8 of 128 routed experts")).toBeInTheDocument();
+    expect(screen.getByText(/router selects any 8 of 128 routed experts for each token/i)).toBeInTheDocument();
+    expect(screen.getByText("30.5B")).toBeInTheDocument();
+    expect(screen.getByText("3.3B")).toBeInTheDocument();
+    expect(screen.getByText("4-bit group 64; 1 override")).toBeInTheDocument();
+    expect(screen.getByText(/all checkpoint weights must remain resident/i)).toBeInTheDocument();
+    expect(screen.getByText(/mlx-lm supports qlora on single/i)).toBeInTheDocument();
+  });
+
+  it("clears stale provider topology when an inspected model fact changes", async () => {
+    const invalidate = vi.fn();
+
+    function MoEHarness() {
+      const [draft, setDraft] = useState(() => {
+        const next = structuredClone(EXAMPLE_DRAFT);
+        next.model = {
+          ...next.model,
+          family: "qwen3_moe",
+          model_type: "qwen3_moe",
+          architecture: "Qwen3MoeForCausalLM",
+          quantization_bits: 4,
+          quantization_layout: {
+            default_bits: 4,
+            default_group_size: 64,
+            module_overrides: [],
+          },
+          active_parameters_b: 3.3,
+          sparse_layer_count: 48,
+          moe: {
+            expert_count: 128,
+            experts_per_token: 8,
+            expert_intermediate_size: 768,
+            decoder_sparse_step: 1,
+            mlp_only_layers: [],
+          },
+        };
+        return next;
+      });
+      return (
+        <>
+          <FactsStage
+            draft={draft}
+            setDraft={setDraft}
+            profile={null}
+            busy={null}
+            demoMode={false}
+            onLoadExample={vi.fn()}
+            onClearExample={vi.fn()}
+            onProfile={vi.fn(async () => undefined)}
+            onModelInspect={vi.fn(async () => undefined)}
+            onInvalidateModelInspection={invalidate}
+            onPlan={vi.fn(async () => undefined)}
+            onHardwareScan={vi.fn(async () => undefined)}
+            hardwareScanned={false}
+            modelInspection={null}
+            methodCatalog={methods}
+          />
+          <output data-testid="quantization-layout-state">
+            {JSON.stringify(draft.model.quantization_layout)}
+          </output>
+        </>
+      );
+    }
+
+    render(<MoEHarness />);
+    expect(screen.getByRole("heading", { name: "Pinned MoE topology" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Total resident parameters"), {
+      target: { value: "31" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Pinned MoE topology" })).toBeInTheDocument();
+      expect(screen.queryByText("3.3B")).not.toBeInTheDocument();
+      expect(screen.getAllByText("Derived during planning")).toHaveLength(2);
+    });
+    expect(screen.getByLabelText("Architecture family")).toHaveValue("qwen3_moe");
+    expect(screen.getByTestId("quantization-layout-state")).not.toHaveTextContent("null");
+    expect(invalidate).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Architecture family"), {
+      target: { value: "llama" },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Pinned MoE topology" })).not.toBeInTheDocument();
+      expect(screen.getByTestId("quantization-layout-state")).toHaveTextContent("null");
+    });
+    expect(invalidate).toHaveBeenCalledOnce();
+  });
+
   it("uses the API method registry and explains Apple unified memory", () => {
     const draft = structuredClone(EXAMPLE_DRAFT);
     draft.hardware.devices[0] = {

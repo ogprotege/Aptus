@@ -8,7 +8,11 @@ import {
 import { FitLedger } from "./components/FitLedger";
 import { ProjectHistory } from "./components/ProjectHistory";
 import { summarizeHardwareProbe } from "./lib/hardware";
-import { applyProviderModelInspection } from "./lib/modelInspection";
+import {
+  applyPlanDerivedModelFacts,
+  applyProviderModelInspection,
+  moeCompatibilityFromPlan,
+} from "./lib/modelInspection";
 import {
   MobileStageBar,
   WorkflowRail,
@@ -128,6 +132,22 @@ function restoredDraft(
       intermediate_size: numberValue(model.intermediate_size),
       license_name: String(model.license_name ?? ""),
       training_allowed: model.training_allowed === true,
+      model_type: typeof model.model_type === "string" ? model.model_type : null,
+      architecture: typeof model.architecture === "string" ? model.architecture : null,
+      quantization_bits: numberValue(model.quantization_bits),
+      quantization_layout:
+        typeof model.quantization_layout === "object" && model.quantization_layout !== null
+          ? structuredClone(model.quantization_layout) as FactDraft["model"]["quantization_layout"]
+          : null,
+      moe:
+        typeof model.moe === "object" && model.moe !== null
+          ? structuredClone(model.moe) as FactDraft["model"]["moe"]
+          : null,
+      active_parameters_b:
+        numberValue(model.active_parameters) === null
+          ? null
+          : Number(model.active_parameters) / 1_000_000_000,
+      sparse_layer_count: numberValue(model.sparse_layer_count),
     },
     dataset: {
       source_path: sourcePath,
@@ -361,8 +381,11 @@ export default function App() {
           setNotice(
             bootstrap.bundle
               ? "Restored the latest validated local artifact and its bound facts."
-              : "Restored the latest local project revision. Training authorization was not restored.",
+            : "Restored the latest local project revision. Training authorization was not restored.",
           );
+        }
+        if (bootstrap.replan_required && restoreWorkspace) {
+          setError(bootstrap.replan_required.message);
         }
         if (bootstrap.job) {
           applyJobUpdate(bootstrap.job);
@@ -438,6 +461,8 @@ export default function App() {
   }, [profile, plan, bundle, activeReport?.state, job]);
 
   const selected = selectedCandidate ?? plan?.recommended ?? plan?.candidates[0] ?? null;
+  const moeCompatibility = modelInspection?.compatibility
+    ?? moeCompatibilityFromPlan(plan, draft.model);
   const currentStageLabel = WORKFLOW_STAGES.find((item) => item.id === stage)?.label ?? "Facts";
   const activeJob = isActiveJob(job);
 
@@ -463,9 +488,17 @@ export default function App() {
       return;
     }
     draftVersionRef.current += 1;
-    setDraft((current) =>
-      typeof action === "function" ? action(current) : action,
-    );
+    setDraft((current) => {
+      const next = typeof action === "function" ? action(current) : action;
+      return {
+        ...next,
+        model: {
+          ...next.model,
+          active_parameters_b: null,
+          sparse_layer_count: null,
+        },
+      };
+    });
     setProfile(null);
     setPlan(null);
     setSelectedCandidate(null);
@@ -541,14 +574,15 @@ export default function App() {
     const requestDraftVersion = draftVersionRef.current;
     try {
       const inspection = await api.inspectModel(modelId, revision);
-      setModelInspection(inspection);
       if (inspection.status !== "ok" || !inspection.facts || !inspection.resolved_revision) {
+        setModelInspection(inspection);
         throw new Error(inspection.error ?? "The provider did not return revision-bound model facts.");
       }
       if (draftVersionRef.current !== requestDraftVersion) {
         setNotice("Model facts changed during inspection. Aptus did not apply the older provider response.");
         return;
       }
+      setModelInspection(inspection);
       draftVersionRef.current += 1;
       setDraft((current) => ({
         ...current,
@@ -587,6 +621,10 @@ export default function App() {
         return;
       }
       setPlan(nextPlan);
+      setDraft((current) => ({
+        ...current,
+        model: applyPlanDerivedModelFacts(current.model, nextPlan),
+      }));
       setSelectedCandidate(nextPlan.recommended ?? nextPlan.candidates[0] ?? null);
       setBundle(null);
       setReport(null);
@@ -1026,6 +1064,7 @@ export default function App() {
               onHardwareScan={handleHardwareScan}
               hardwareScanned={hardwareScanned}
               modelInspection={modelInspection}
+              moeCompatibility={moeCompatibility}
               methodCatalog={methodCatalog}
             />
           ) : null}

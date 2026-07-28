@@ -35,7 +35,11 @@ from .domain import (
     to_primitive,
     training_plan_from_primitive,
 )
-from .execution import _actual_hardware_binding as _job_hardware_binding
+from .execution import (
+    _actual_hardware_binding as _job_hardware_binding,
+    _require_mlx_model_load_binding,
+    _verify_mlx_admission,
+)
 from .plan_contract import (
     bundle_fingerprint,
     sha256_file,
@@ -187,41 +191,9 @@ def _mlx_finite(value: Any, label: str, *, positive: bool = False) -> float:
 
 
 def _require_mlx_admission(value: Any, plan: Mapping[str, Any], label: str) -> None:
-    candidate = plan.get("recommended")
-    hardware = plan.get("hardware")
-    if not isinstance(candidate, Mapping) or not isinstance(hardware, Mapping):
+    if not isinstance(plan, dict):
         raise ValueError(f"{label} cannot bind an incomplete plan.")
-    memory = candidate.get("memory")
-    if not isinstance(memory, Mapping) or not isinstance(value, Mapping):
-        raise ValueError(f"{label} has no unified-memory admission.")
-    point = memory.get("point_estimate_bytes")
-    upper = memory.get("upper_estimate_bytes")
-    planned_reserve = hardware.get("reserve_per_device_bytes")
-    if not all(
-        isinstance(item, int) and not isinstance(item, bool) and item >= 0
-        for item in (point, upper, planned_reserve)
-    ):
-        raise ValueError(f"{label} cannot bind invalid memory values.")
-    reserve = max(int(planned_reserve), 8 * 1024**3)
-    required = max(int(point), int(upper)) + reserve
-    expected = {
-        "schema_version": "aptus.mlx-unified-memory-admission.v1",
-        "point_estimate_bytes": point,
-        "upper_estimate_bytes": upper,
-        "reserve_bytes": reserve,
-        "required_available_bytes": required,
-    }
-    available = value.get("available_unified_memory_bytes")
-    if (
-        any(value.get(name) != item for name, item in expected.items())
-        or not isinstance(available, int)
-        or isinstance(available, bool)
-        or available < required
-        or "free_vram_bytes" in value
-    ):
-        raise ValueError(
-            f"{label} does not bind a passing live unified-memory admission."
-        )
+    _verify_mlx_admission(plan, value, label=label)
 
 
 def _require_mlx_target_binding(value: Any, plan: Mapping[str, Any]) -> None:
@@ -381,16 +353,12 @@ def _read_mlx_runtime_metrics(
         raise ValueError(
             "MLX runtime metrics do not bind the plan and uninterrupted action."
         )
-    if metrics.get("model_load_binding") != {
-        "schema_version": "aptus.mlx-model-load-binding.v1",
-        "model_id": model.get("model_id"),
-        "model_revision": model.get("revision"),
-        "resolved_local_snapshot": True,
-        "trust_remote_code": False,
-    }:
+    try:
+        _require_mlx_model_load_binding(plan, metrics.get("model_load_binding"))
+    except ValueError as error:
         raise ValueError(
             "MLX runtime metrics do not prove a pinned local safe model load."
-        )
+        ) from error
     _mlx_finite(metrics.get("measured_peak_bytes"), "MLX peak", positive=True)
     for name in ("active_memory_bytes", "cache_memory_bytes"):
         value = metrics.get(name)

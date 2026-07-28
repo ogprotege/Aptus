@@ -2,6 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 import { EXAMPLE_DRAFT } from "./demo";
 
+const REVIEWED_QWEN3_LAYOUT = {
+  default_bits: 4,
+  default_group_size: 64,
+  module_overrides: Array.from({ length: 48 }, (_, index) => ({
+    module_path: `model.layers.${index}.mlp.gate`,
+    bits: 8,
+    group_size: 64,
+  })).sort((left, right) => left.module_path.localeCompare(right.module_path)),
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -123,7 +133,7 @@ describe("typed API client", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          schema_version: "aptus.training-plan.v2",
+          schema_version: "aptus.training-plan.v3",
           plan_id: "plan_example",
           recommended: null,
           candidates: [],
@@ -145,6 +155,10 @@ describe("typed API client", () => {
     expect(body.project_id).toBe(projectId);
     expect(body.project_name).toBe(EXAMPLE_DRAFT.project_name);
     expect(body.model.model_id).toBe(EXAMPLE_DRAFT.model.model_id);
+    expect(body.model).not.toHaveProperty("moe");
+    expect(body.model).not.toHaveProperty("model_type");
+    expect(body.model).not.toHaveProperty("quantization_bits");
+    expect(body.model).not.toHaveProperty("quantization_layout");
     expect(body.hardware.gpu_count).toBe(1);
     expect(body.hardware.discovery).toBe("manual");
     expect(body.hardware.free_vram_gib).toBe(24);
@@ -153,6 +167,65 @@ describe("typed API client", () => {
     expect(body.target.task).toBe("sft");
     expect(body.target.evaluation_fraction).toBe(0.1);
     expect(body.dataset_path).toBe(EXAMPLE_DRAFT.dataset.source_path);
+  });
+
+  it("sends the exact MoE topology while omitting derived plan facts", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema_version: "aptus.training-plan.v3",
+          plan_id: "plan_moe",
+          recommended: null,
+          candidates: [],
+          warnings: [],
+          recommendation_rationale: [],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const draft = structuredClone(EXAMPLE_DRAFT);
+    draft.model = {
+      ...draft.model,
+      family: "qwen3_moe",
+      model_type: "qwen3_moe",
+      architecture: "Qwen3MoeForCausalLM",
+      quantization_bits: 4,
+      quantization_layout: REVIEWED_QWEN3_LAYOUT,
+      parameters_b: 30.5,
+      active_parameters_b: 3.3,
+      sparse_layer_count: 48,
+      moe: {
+        expert_count: 128,
+        experts_per_token: 8,
+        expert_intermediate_size: 768,
+        decoder_sparse_step: 1,
+        mlp_only_layers: [],
+        shared_expert_intermediate_size: 768,
+      },
+    };
+
+    await api.plan(draft);
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.model).toMatchObject({
+      family: "qwen3_moe",
+      model_type: "qwen3_moe",
+      architecture: "Qwen3MoeForCausalLM",
+      quantization_bits: 4,
+      quantization_layout: REVIEWED_QWEN3_LAYOUT,
+      moe: {
+        expert_count: 128,
+        experts_per_token: 8,
+        expert_intermediate_size: 768,
+        decoder_sparse_step: 1,
+        mlp_only_layers: [],
+        shared_expert_intermediate_size: 768,
+      },
+    });
+    expect(body.model).not.toHaveProperty("active_parameters");
+    expect(body.model).not.toHaveProperty("active_parameters_b");
+    expect(body.model).not.toHaveProperty("sparse_layer_count");
   });
 
   it("binds compile and validation mutations to the exact project revision", async () => {
@@ -183,7 +256,7 @@ describe("typed API client", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
     const plan = {
-      schema_version: "aptus.training-plan.v2",
+      schema_version: "aptus.training-plan.v3",
       plan_id: "plan_exact",
       project_id: projectId,
       project_revision_id: planRevisionId,
@@ -219,7 +292,7 @@ describe("typed API client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(api.compileBundle({
-      schema_version: "aptus.training-plan.v2",
+      schema_version: "aptus.training-plan.v3",
       plan_id: "plan_unbound",
       recommended: null,
       candidates: [],

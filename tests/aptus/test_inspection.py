@@ -3,6 +3,11 @@ import unittest
 from urllib.error import URLError
 
 from aptus.inspection import inspect_huggingface_model
+from tests.aptus.helpers import (
+    QWEN3_MOE_MODEL_ID,
+    QWEN3_MOE_REVISION,
+    qwen3_moe_quantization_config,
+)
 
 
 class FakeResponse:
@@ -71,6 +76,7 @@ class ModelInspectionTests(unittest.TestCase):
         self.assertEqual(
             result["explicit_user_facts_required"], ["parameters", "training_allowed"]
         )
+        self.assertEqual(result["compatibility"]["status"], "recognized")
 
     def test_normalizes_only_exact_dense_aliases_and_keeps_raw_evidence(self) -> None:
         cases = (
@@ -119,7 +125,7 @@ class ModelInspectionTests(unittest.TestCase):
     def test_does_not_prefix_map_moe_or_multimodal_provider_types(self) -> None:
         cases = (
             ("qwen2_moe", "Qwen2MoeForCausalLM"),
-            ("qwen3_moe", "Qwen3MoeForCausalLM"),
+            ("qwen3_moe", "Qwen3MoeModel"),
             ("gemma3", "Gemma3Model"),
             ("gemma3", "Gemma3ForConditionalGeneration"),
         )
@@ -145,6 +151,138 @@ class ModelInspectionTests(unittest.TestCase):
 
                 self.assertEqual(result["facts"]["family"], model_type)
                 self.assertEqual(result["facts"]["model_type"], model_type)
+                self.assertEqual(result["compatibility"]["status"], "unsupported")
+                self.assertIsNone(result["compatibility"]["supported_runtime"])
+
+    def test_exact_four_bit_qwen3_moe_is_conditionally_supported(self) -> None:
+        commit = QWEN3_MOE_REVISION
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "qwen3_moe",
+                        "architectures": ["Qwen3MoeForCausalLM"],
+                        "hidden_size": 2048,
+                        "intermediate_size": 6144,
+                        "num_hidden_layers": 48,
+                        "max_position_embeddings": 262144,
+                        "num_experts": 128,
+                        "num_experts_per_tok": 8,
+                        "moe_intermediate_size": 768,
+                        "decoder_sparse_step": 1,
+                        "mlp_only_layers": [],
+                        "quantization": qwen3_moe_quantization_config(),
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse(
+                    {"cardData": {"license": "apache-2.0"}},
+                    {"X-Repo-Commit": commit},
+                ),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            QWEN3_MOE_MODEL_ID, "main", transport=transport
+        )
+
+        self.assertEqual(result["facts"]["family"], "qwen3_moe")
+        self.assertEqual(result["facts"]["quantization_bits"], 4)
+        self.assertEqual(
+            len(result["facts"]["quantization_layout"]["module_overrides"]),
+            48,
+        )
+        self.assertEqual(
+            result["facts"]["moe"],
+            {
+                "expert_count": 128,
+                "experts_per_token": 8,
+                "expert_intermediate_size": 768,
+                "decoder_sparse_step": 1,
+                "mlp_only_layers": [],
+                "shared_expert_intermediate_size": None,
+            },
+        )
+        self.assertEqual(
+            result["compatibility"],
+            {
+                "status": "conditional",
+                "family": "qwen3_moe",
+                "supported_runtime": "mlx-lm",
+                "supported_methods": ["qlora"],
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": "attention-only",
+                "reason": (
+                    "This exact mixed-precision Qwen3 MoE artifact can enter the "
+                    "single-device MLX-LM QLoRA path with attention-only adapters. "
+                    "Measured preflight and a real-model pilot remain mandatory."
+                ),
+            },
+        )
+
+    def test_qwen3_moe_inspection_rejects_malformed_topology(self) -> None:
+        config = {
+            "model_type": "qwen3_moe",
+            "architectures": ["Qwen3MoeForCausalLM"],
+            "hidden_size": 2048,
+            "intermediate_size": 6144,
+            "num_hidden_layers": 48,
+            "max_position_embeddings": 262144,
+            "num_experts": 8,
+            "num_experts_per_tok": 9,
+            "moe_intermediate_size": 768,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": [],
+            "quantization": qwen3_moe_quantization_config(),
+        }
+        transport = SequenceTransport(
+            [
+                FakeResponse(config, {"X-Repo-Commit": QWEN3_MOE_REVISION}),
+                FakeResponse({}, {"X-Repo-Commit": QWEN3_MOE_REVISION}),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            QWEN3_MOE_MODEL_ID, "main", transport=transport
+        )
+
+        self.assertEqual(result["compatibility"]["status"], "unsupported")
+        self.assertTrue(
+            any("cannot exceed" in item for item in result["warnings"]),
+            result["warnings"],
+        )
+
+    def test_qwen3_moe_inspection_rejects_layout_override_drift(self) -> None:
+        quantization = qwen3_moe_quantization_config()
+        quantization.pop("model.layers.47.mlp.gate")
+        config = {
+            "model_type": "qwen3_moe",
+            "architectures": ["Qwen3MoeForCausalLM"],
+            "hidden_size": 2048,
+            "intermediate_size": 6144,
+            "num_hidden_layers": 48,
+            "max_position_embeddings": 262144,
+            "num_experts": 128,
+            "num_experts_per_tok": 8,
+            "moe_intermediate_size": 768,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": [],
+            "quantization": quantization,
+        }
+        transport = SequenceTransport(
+            [
+                FakeResponse(config, {"X-Repo-Commit": QWEN3_MOE_REVISION}),
+                FakeResponse({}, {"X-Repo-Commit": QWEN3_MOE_REVISION}),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            QWEN3_MOE_MODEL_ID, "main", transport=transport
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["compatibility"]["status"], "unsupported")
 
     def test_alias_normalization_fails_closed_if_catalog_policy_changes(self) -> None:
         from unittest.mock import patch

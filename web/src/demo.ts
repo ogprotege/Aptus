@@ -23,6 +23,13 @@ export const EMPTY_DRAFT: FactDraft = {
     intermediate_size: null,
     license_name: "",
     training_allowed: false,
+    model_type: null,
+    architecture: null,
+    quantization_bits: null,
+    quantization_layout: null,
+    moe: null,
+    active_parameters_b: null,
+    sparse_layer_count: null,
   },
   dataset: {
     source_path: "",
@@ -77,6 +84,13 @@ export const EXAMPLE_DRAFT: FactDraft = {
     intermediate_size: 11008,
     license_name: "Example license entry",
     training_allowed: true,
+    model_type: null,
+    architecture: null,
+    quantization_bits: null,
+    quantization_layout: null,
+    moe: null,
+    active_parameters_b: null,
+    sparse_layer_count: null,
   },
   dataset: {
     source_path: "/data/example-support.jsonl",
@@ -273,7 +287,7 @@ const EXAMPLE_CANDIDATES: CandidatePlan[] = [
 const EXAMPLE_RECOMMENDED = EXAMPLE_CANDIDATES[3];
 
 export const EXAMPLE_PLAN: TrainingPlan = {
-  schema_version: "aptus.training-plan.v2",
+  schema_version: "aptus.training-plan.v3",
   plan_id: "plan_eeeeeeeeeeeeeeeeeeee",
   example: true,
   recommended: EXAMPLE_RECOMMENDED,

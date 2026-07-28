@@ -88,9 +88,16 @@ do not prove public notarization.
   compatibility record and never presents it as dedicated VRAM. Live available
   host memory constrains MLX planning separately from that record.
 - MLX-LM single-device LoRA and QLoRA candidates bind
-  `aptus.runtime-contract.v1`, compile with `aptus-memory-mlx-v1`, and remain
+  `aptus.runtime-contract.v1`, compile with `aptus-memory-mlx-v2`, and remain
   conditional. MLX QLoRA eligibility comes from pinned-model four-bit metadata,
   not a CUDA capability flag.
+- The first MoE row accepts only `qwen3_moe`, `Qwen3MoeForCausalLM`, four-bit
+  group-64 defaults, exactly one eight-bit group-64 router-gate override per
+  layer, a complete no-shared-expert topology, MLX-LM, QLoRA, `single`, and
+  attention-only adapters. Every near match stays unsupported.
+- The plan and portable validator recompute sparse-layer count and active
+  parameters. Base-weight, metadata, staging, and disk terms use the total
+  resident parameter count.
 - PyTorch MPS has no compiler and produces no executable candidate.
 
 ## 3. Runtime sequence by training runtime
@@ -145,6 +152,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
 - Every MLX action reports uninterrupted semantics and
   `resume_supported: false`. Resume arguments fail, and periodic MLX files are
   called weight snapshots rather than resumable checkpoints.
+- A claimed Qwen3 MoE path additionally proves exact provider type,
+  architecture, canonical quantization layout and digest, complete expert
+  topology, derived sparse facts, and attention-only trainable targets at
+  model-data, preflight, pilot, reload, and completion boundaries.
 
 ## 4. Full-run transaction
 
@@ -217,6 +228,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
   completion attestation, and artifact integrity.
 - The method preference control cannot select experimental or research-only
   descriptors. The readiness board displays their blocker and required proof.
+- An inspected MoE topology renders experts selected per token, total experts,
+  sparse layers, checkpoint precision, total resident parameters, active
+  parameters, runtime scope, and pilot status. Editing an inspection-derived
+  model fact clears stale topology.
 - Keyboard, focus, live-region, contrast, and narrow-viewport checks pass against
   the packaged build.
 - Example mode is visibly non-executed on every stage.

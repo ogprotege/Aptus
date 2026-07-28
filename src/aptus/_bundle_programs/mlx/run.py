@@ -21,6 +21,7 @@ from plan_contract import (
     validate_plan_payload,
 )
 from runtime_lease import portable_execution_lease, run_with_lease
+from train import require_mlx_model_load_binding, require_unified_memory_admission_binding
 
 
 def sha256(path: Path) -> str:
@@ -138,14 +139,26 @@ def require_training_metrics(plan: dict, metrics: dict, action: str) -> None:
         metrics.get(name) != value for name, value in expected.items()
     ):
         raise RuntimeError("MLX training metrics do not bind the requested action.")
-    if metrics.get("model_load_binding") != {
-        "schema_version": "aptus.mlx-model-load-binding.v1",
-        "model_id": plan["model"]["model_id"],
-        "model_revision": plan["model"]["revision"],
-        "resolved_local_snapshot": True,
-        "trust_remote_code": False,
-    }:
-        raise RuntimeError("MLX training metrics do not prove a pinned local safe model load.")
+    try:
+        model_load_binding = require_mlx_model_load_binding(
+            plan, metrics.get("model_load_binding")
+        )
+        admission = require_unified_memory_admission_binding(
+            plan, metrics.get("unified_memory_admission")
+        )
+    except RuntimeError as error:
+        raise RuntimeError(
+            "MLX training metrics do not prove a pinned local safe model load."
+        ) from error
+    if (
+        model_load_binding["packed_checkpoint_binding"][
+            "observed_safetensors_bytes"
+        ]
+        != admission["observed_safetensors_bytes"]
+    ):
+        raise RuntimeError(
+            "MLX training metrics bind different checkpoint byte measurements."
+        )
     updates = metrics.get("completed_optimizer_updates")
     minimum_updates = 2 if action == "pilot" else 1
     if not isinstance(updates, int) or isinstance(updates, bool) or updates < minimum_updates:

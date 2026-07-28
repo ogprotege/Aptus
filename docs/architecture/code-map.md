@@ -29,15 +29,15 @@ that protect it.
 
 | Module | Owns | Must not silently decide |
 |---|---|---|
-| [`domain.py`](../../src/aptus/domain.py) | Typed facts, runtime contracts, candidates, plans, validation states, run states, and serialization | Model permission, quality, or unsupported defaults |
+| [`domain.py`](../../src/aptus/domain.py) | Typed facts, including exact MoE topology and derived sparse facts, runtime contracts, candidates, plans, validation states, run states, and serialization | Model permission, quality, or unsupported defaults |
 | [`methods/contracts.py`](../../src/aptus/methods/contracts.py) | Method descriptor and lifecycle shape | Executability by registry presence alone |
 | [`methods/registry.py`](../../src/aptus/methods/registry.py) | Eleven method descriptors, runtime bindings, and the exact selectable set | Planner feasibility or target-host success |
 | [`evidence.py`](../../src/aptus/evidence.py) | Versioned evidence records referenced by candidates and methods | Runtime proof from a paper or documentation page |
-| [`catalog.py`](../../src/aptus/catalog.py) | Runtime-specific direct package pins, supported model-family target modules, and stack versions | Provider compatibility without inspection |
+| [`catalog.py`](../../src/aptus/catalog.py) | Runtime-specific direct package pins, supported model-family target modules, exact Qwen3 MoE identity, and stack versions | Provider compatibility without inspection |
 | [`profiling.py`](../../src/aptus/profiling.py) | Dataset parsing/profiling, canonical rows, pilot pressure rows, model-fact construction, CUDA hardware discovery, and Apple platform probing | Tokenizer measurement when only the character estimate ran |
 | [`runtime_env.py`](../../src/aptus/runtime_env.py) | Exact Python interpreter discovery, runtime capability probes, and runtime resolution | Compiler support from an installed package alone |
 | [`integrations.py`](../../src/aptus/integrations.py) | Bounded loopback LM Studio and oMLX inference clients | Training, remote endpoints, or automatic service discovery beyond declared origins |
-| [`inspection.py`](../../src/aptus/inspection.py) | Bounded provider metadata inspection and family aliasing | License or training permission |
+| [`inspection.py`](../../src/aptus/inspection.py) | Bounded provider metadata inspection, family aliasing, MoE topology extraction, and exact compatibility reporting | License or training permission |
 | [`planning.py`](../../src/aptus/planning.py) | Candidate enumeration, feasibility, memory use, Pareto marking, and deterministic ranking | Universal optimality or measured fit |
 | [`plan_contract.py`](../../src/aptus/plan_contract.py) | Canonical candidate/plan identities and bundle-manifest verification | Runtime artifact success |
 | [`generation.py`](../../src/aptus/generation.py) | Runtime-dispatched artifact compilers and packaged-resource emission | In-place bundle mutation or child-owned success promotion |
@@ -122,6 +122,7 @@ review the output diff.
 | [`types.ts`](../../web/src/types.ts) | Browser-side API and view models |
 | [`stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
 | [`components/`](../../web/src/components) | Shared candidate, evidence, artifact, job, and navigation components |
+| [`components/ExpertTopologyRail.tsx`](../../web/src/components/ExpertTopologyRail.tsx) | Static accessible MoE routing and residency explanation |
 | [`lib/`](../../web/src/lib) | Hardware, model-inspection, and plan view helpers |
 | [`demo.ts`](../../web/src/demo.ts) | Clearly labeled non-executed example state |
 | [`styles.css`](../../web/src/styles.css) | Visual tokens, layout, responsive behavior, focus, and motion policy |

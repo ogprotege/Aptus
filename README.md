@@ -36,6 +36,12 @@ and packages GitHub's exact tested merge commit. The artifact records that
 commit in `COMMIT`. The default Mac build is ad-hoc signed.
 Public distribution still requires a Developer ID identity and notarization.
 No real CUDA target-host pilot has completed the release gates.
+The first MoE compatibility slice is exact and fail-closed. It recognizes
+`qwen3_moe` checkpoints with `Qwen3MoeForCausalLM` only when they use the
+reviewed MLX layout: four-bit group-64 defaults plus one eight-bit group-64
+`model.layers.N.mlp.gate` override per layer. It then permits only
+single-device MLX-LM QLoRA with attention-only adapters. That MoE slice still
+requires its own real-model acceptance run.
 
 </details>
 
@@ -174,6 +180,12 @@ a CUDA host. They do not enable CUDA work on the Mac.
 
 - CUDA supervised fine-tuning with Full, LoRA, int8-LoRA, and QLoRA.
 - Conditional Apple Silicon MLX-LM LoRA and QLoRA planning and compilation.
+- Exact mixed-precision Qwen3 MoE inspection and conditional single-device
+  MLX-LM QLoRA planning. The reviewed checkpoint layout uses four-bit group-64
+  defaults and one eight-bit group-64 router-gate override per layer. Aptus
+  records routed-expert topology, derives active parameters and sparse-layer
+  count, and keeps the user-attested total parameter count as the resident-weight
+  budget. Other four-bit Qwen3 MoE layouts remain unsupported.
 - Uninterrupted MLX-LM pilot and full-duration adapter training. Pilot requires
   at least two optimizer updates, finite train and validation losses, an exact
   target census, positive memory and adapter-delta evidence, immutable
@@ -201,8 +213,9 @@ a CUDA host. They do not enable CUDA work on the Mac.
 
 Not yet supported: crash resume for MLX-LM or CUDA full runs, full-parameter or
 DoRA training through MLX-LM, PyTorch MPS compilation, ROCm or CPU training,
-CUDA execution on macOS, sequence packing, tasks other than SFT, and a
-notarized public download. Read the
+CUDA execution on macOS, general MoE families, MoE CUDA execution, shared-expert
+Qwen3 MoE variants, MoE methods other than the exact MLX-LM QLoRA path,
+sequence packing, tasks other than SFT, and a notarized public download. Read the
 [complete capability matrix](docs/reference/capability-matrix.md) before
 committing compute time.
 

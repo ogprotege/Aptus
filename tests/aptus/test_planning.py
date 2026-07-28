@@ -17,7 +17,7 @@ from aptus.methods import METHOD_REGISTRY
 from aptus.planning import NoFeasiblePlanError, estimate_candidate, plan_training
 from aptus.profiling import build_hardware_spec
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 
 class PlannerTests(unittest.TestCase):
@@ -357,8 +357,8 @@ class PlannerTests(unittest.TestCase):
             all(
                 item.runtime_contract
                 and item.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
-                and item.runtime_contract.estimator_id == "aptus-memory-mlx-v1"
-                and item.memory.formula_version == "aptus-memory-mlx-v1"
+                and item.runtime_contract.estimator_id == "aptus-memory-mlx-v2"
+                and item.memory.formula_version == "aptus-memory-mlx-v2"
                 for item in viable
             )
         )
@@ -366,6 +366,64 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(qlora.quantization, "mlx-4bit-groupwise")
         self.assertFalse(hardware.devices[0].supports_4bit)
         self.assertTrue(any("not bitsandbytes" in item for item in qlora.assumptions))
+
+    def test_qwen3_moe_allows_only_attention_only_single_mlx_qlora(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen3_moe_plan(Path(temporary))
+
+        viable = [candidate for candidate in plan.candidates if candidate.feasible]
+        self.assertEqual(len(viable), 1)
+        candidate = viable[0]
+        self.assertEqual(candidate.method, Method.QLORA)
+        self.assertEqual(candidate.distribution, Distribution.SINGLE)
+        self.assertEqual(candidate.status, CandidateStatus.CONDITIONAL)
+        self.assertEqual(
+            candidate.runtime_contract.training_runtime, TrainingRuntime.MLX_LM
+        )
+        self.assertEqual(candidate.runtime_contract.estimator_id, "aptus-memory-mlx-v2")
+        self.assertEqual(
+            candidate.target_modules, ("q_proj", "k_proj", "v_proj", "o_proj")
+        )
+        self.assertTrue(
+            all(
+                item.status == CandidateStatus.UNSUPPORTED
+                for item in plan.candidates
+                if item.candidate_id != candidate.candidate_id
+            )
+        )
+        router_parameters = 48 * 2048 * 128
+        self.assertEqual(
+            candidate.memory.base_weights_bytes,
+            round((30_500_000_000 - router_parameters) * 0.5 + router_parameters),
+        )
+        self.assertEqual(
+            candidate.memory.quantization_metadata_bytes,
+            round(30_500_000_000 * 4 / 64),
+        )
+        dense_activation = round(8 * 128 * 2048 * 48 * 2 * 3.0)
+        routed_activation = round(8 * 128 * 48 * 8 * 768 * 2 * 3.0)
+        self.assertEqual(
+            candidate.memory.activations_bytes,
+            dense_activation + routed_activation,
+        )
+        self.assertLess(plan.model.active_parameters, plan.model.parameters)
+        self.assertTrue(
+            any(
+                "total parameters" in assumption
+                for assumption in candidate.memory.assumptions
+            )
+        )
+
+    def test_qwen3_moe_near_match_has_no_viable_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen3_moe_plan(Path(temporary))
+            with self.assertRaises(NoFeasiblePlanError):
+                plan_training(
+                    model=replace(plan.model, architecture="Qwen3MoeModel"),
+                    dataset=plan.dataset,
+                    hardware=plan.hardware,
+                    target=plan.target,
+                )
 
     def test_apple_fit_uses_current_unified_memory_headroom_without_fake_vram(
         self,

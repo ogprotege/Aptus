@@ -10,9 +10,10 @@ compatible. Decide the semantic effect before editing code.
 
 | Contract | Current identifier | Primary authority |
 |---|---|---|
-| Facts | `aptus.facts.v2` | `domain.py` and interface request models |
-| Training plan | `aptus.training-plan.v2` | `domain.py` and `plan_contract.py` |
+| Facts | `aptus.facts.v3` | `domain.py` and interface request models |
+| Training plan | `aptus.training-plan.v3` | `domain.py` and `plan_contract.py` |
 | Memory formula | `aptus-memory-v2` | `planning.py` |
+| MLX memory formula | `aptus-memory-mlx-v2` | `planning.py` and the method registry |
 | Method descriptor | `aptus.method-descriptor.v1` | `methods/contracts.py` and registry |
 | Bundle manifest | `aptus.bundle.v2` | `generation.py` and `plan_contract.py` |
 | Trainer configuration | `aptus.trainer-config.v2` | `generation.py` |
@@ -109,6 +110,15 @@ Do not assume shared field names prove shared semantics.
 Current plan and bundle validators require exact schema identifiers. There is no
 general artifact migration command. Never reinterpret an old artifact under new
 semantics without an explicit reader and migration policy.
+
+The current plan reader accepts only `aptus.training-plan.v3`. A saved v2 plan,
+or a plan with no schema identifier, stays byte-for-byte preserved but enters
+`replan_required`. The CLI cannot compile it. The API cannot rehydrate, compile,
+or recover it, and project recovery does not append a revision. Bootstrap omits
+the old plan from the executable workspace and returns the source identity plus
+the required schema. The operator must create a deterministic v3 plan from the
+preserved facts. Changing only `schema_version` is not migration because v3
+binds new model, topology, quantization, and runtime semantics.
 
 For an incompatible change, choose one of these:
 

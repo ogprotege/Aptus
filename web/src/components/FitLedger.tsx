@@ -1,6 +1,7 @@
 import type { CandidatePlan } from "../types";
 import {
   candidateStatus,
+  candidateMemoryLanguage,
   expectedMemory,
   formatBytes,
   formatMethod,
@@ -32,16 +33,17 @@ export function FitLedger({ candidate, example = false, compact = false }: FitLe
     deviceTotal && limit
       ? Math.max(((deviceTotal - limit) / scale) * 100, 0)
       : 0;
+  const memoryLanguage = candidateMemoryLanguage(candidate);
 
   const description = candidate
-    ? `${formatMethod(candidate.method)} has a ${formatBytes(upper)} heuristic upper envelope against ${formatBytes(limit)} usable per-device VRAM.`
+    ? `${formatMethod(candidate.method)} has a ${formatBytes(upper)} heuristic upper envelope against ${formatBytes(limit)} ${memoryLanguage.budgetDescription}. Host staging memory is tracked separately.`
     : "No candidate is selected. Compare strategies to calculate memory fit.";
 
   return (
     <section className={`fit-ledger${compact ? " fit-ledger-compact" : ""}`} aria-labelledby={compact ? "compact-fit-title" : "fit-title"}>
       <header className="ledger-header">
         <div>
-          <p className="eyebrow">Per-device feasibility</p>
+          <p className="eyebrow">{memoryLanguage.eyebrow}</p>
           <h2 id={compact ? "compact-fit-title" : "fit-title"}>The Fit Ledger</h2>
         </div>
         {candidate ? <StatusBadge state={candidateStatus(candidate)} /> : null}
@@ -61,7 +63,7 @@ export function FitLedger({ candidate, example = false, compact = false }: FitLe
           <div className="ledger-summary" role="status">
             <strong>{fits === true ? `${formatBytes(headroom)} predicted headroom` : fits === false ? "Heuristic upper envelope crosses the fit line" : "Fit limit not supplied"}</strong>
             <span>
-              {formatBytes(expected)} point estimate · {formatBytes(upper)} heuristic upper
+              {formatBytes(expected)} point estimate · {formatBytes(upper)} heuristic upper · {formatBytes(limit)} {memoryLanguage.budgetDescription}
             </span>
           </div>
 
@@ -88,7 +90,7 @@ export function FitLedger({ candidate, example = false, compact = false }: FitLe
             </div>
             {fitLinePosition !== null ? (
               <div className="fit-line" style={{ bottom: `${fitLinePosition}%` }} aria-hidden="true">
-                <span>FIT {formatBytes(limit)}</span>
+                <span>{memoryLanguage.fitLineLabel} {formatBytes(limit)}</span>
               </div>
             ) : null}
           </div>
@@ -104,7 +106,7 @@ export function FitLedger({ candidate, example = false, compact = false }: FitLe
             {deviceTotal && limit && deviceTotal > limit ? (
               <li>
                 <span className="key-swatch reserve-swatch" aria-hidden="true" />
-                <span>User reserve</span>
+                <span>{memoryLanguage.reserveLabel}</span>
                 <strong>{formatBytes(deviceTotal - limit)}</strong>
               </li>
             ) : null}

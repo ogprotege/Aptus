@@ -1,9 +1,11 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 and every release
 
-This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased and
-still lacks target CUDA and Apple Silicon release evidence.
+This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
+Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
+isolated checkout. CUDA target-host and public desktop distribution gates remain
+open.
 
 ## Available now
 
@@ -60,19 +62,30 @@ still lacks target CUDA and Apple Silicon release evidence.
 - Five ordered runtime actions: dependency, model-data, preflight, pilot, train.
 - Persisted managed jobs, logs, cancellation, stale-owner reconciliation, and a
   per-user host-global Aptus lease.
+- Versioned `aptus.job-record.v1` persistence. Legacy records migrate in place,
+  while corrupt, symlinked, or unsupported records move to recoverable private
+  quarantine without blocking healthy jobs.
 - Runtime-specific deep train admission using current pilot and capacity
   evidence. MLX admission rechecks live Apple unified-memory headroom.
 - Unique run-ID output directories, parent-owned completion promotion, and
   runtime-specific immutable export verification.
 - Local same-origin API and React workbench.
 - Exact external Python runtime discovery and configuration. Aptus probes the
-  selected executable, persists its canonical path in a private mode-0600
+  selected executable, persists its absolute command path in a private mode-0600
   configuration file, and launches MLX-LM work with that interpreter.
 - Local LM Studio and oMLX adapters for bounded model listing and generation on
   explicit loopback origins. Both are inference-only.
-- Native macOS application with an AppKit lifecycle and SwiftUI Home, Machine,
-  Models, Data, Plans, and Runs shell. The authenticated React workbench is a
-  contained transitional surface for the complete workflow.
+- Named local projects with content-hashed `aptus.project-revision.v1`
+  snapshots of facts, plans, bundles, validations, and job identities. Recovery
+  creates a new revision and never restores training authorization.
+- Native macOS application with an AppKit lifecycle and SwiftUI Home,
+  Workbench, Machine, and Models shell. The authenticated React workbench is
+  inline and owns the complete Facts, Compare, Compile, Validate, and Run flow.
+- A read-only native MLX environment doctor that shows each likely Python path,
+  source, version, import result, and exact-pin compatibility. Runtime selection
+  rechecks the backend contract. Aptus performs no silent installation.
+- Explicit API response models under `aptus.api.v1`, a checked OpenAPI JSON
+  artifact, read-only `aptus doctor`, and privacy-bounded diagnostic archives.
 - Local MLX-LM managed actions through pilot and explicitly confirmed
   full-duration adapter training. CUDA bundles remain explicit target-host
   handoffs from the Mac app.
@@ -141,11 +154,12 @@ still lacks target CUDA and Apple Silicon release evidence.
 
 ## Evidence status
 
-Static and local tests can confirm contracts and platform-independent behavior.
-No real CUDA pilot has run on a CUDA target for this release, and no target-host
-MLX pilot or full run has been recorded in the release evidence. Aptus must not
-be described as release-ready until the release record passes every applicable
-gate for the capability being claimed.
+Static and local tests confirm contracts and platform-independent behavior. The
+[2026-07-27 MLX-LM acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+binds two clean runs through measured preflight, pilot, fresh-process adapter
+reload, confirmed full training, final export, and `measured-run-pass`. No real
+CUDA pilot has run on a CUDA target for this release. The default Mac artifact
+is ad-hoc signed, not a notarized public distribution.
 
 ## Related documentation
 

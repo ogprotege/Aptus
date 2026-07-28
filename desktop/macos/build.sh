@@ -7,6 +7,8 @@ REPOSITORY_ROOT="${SCRIPT_DIR:h:h}"
 BUILD_ROOT="${SCRIPT_DIR}/build"
 DIST_ROOT="${SCRIPT_DIR}/dist"
 PROJECT_FILE="${SCRIPT_DIR}/Aptus.xcodeproj"
+PYTHON_BUILD_ROOT="${REPOSITORY_ROOT}/build"
+PYTHON_EGG_INFO="${REPOSITORY_ROOT}/src/aptus.egg-info"
 TEST_DERIVED_DATA="${BUILD_ROOT}/TestDerivedData"
 APP_DERIVED_DATA="${BUILD_ROOT}/AppDerivedData"
 CONFIGURATION="Release"
@@ -14,6 +16,8 @@ BUILD_BACKEND=1
 CREATE_DMG=1
 RUN_TESTS=1
 RUN_WEB_GATE=1
+REQUIRE_NOTARIZATION="${APTUS_REQUIRE_NOTARIZATION:-0}"
+REQUIRE_CLEAN_CHECKOUT="${APTUS_REQUIRE_CLEAN_CHECKOUT:-0}"
 
 for argument in "$@"; do
   case "$argument" in
@@ -45,13 +49,32 @@ if [[ -n "${APTUS_PYINSTALLER_PYTHON:-}" && "$CONFIGURATION" != "Debug" ]]; then
   print -u2 "Release builds cannot use APTUS_PYINSTALLER_PYTHON. The hash-locked Python 3.12 environment is mandatory."
   exit 2
 fi
+if [[ "$REQUIRE_CLEAN_CHECKOUT" == "1" ]] && [[ -n "$(git -C "$REPOSITORY_ROOT" status --porcelain)" ]]; then
+  print -u2 "Aptus release evidence requires a clean checkout when APTUS_REQUIRE_CLEAN_CHECKOUT=1."
+  exit 2
+fi
 
-for required_tool in xcodegen xcodebuild xcrun ditto codesign plutil; do
+SIGNING_IDENTITY="${APTUS_CODESIGN_IDENTITY:--}"
+NOTARY_PROFILE="${APTUS_NOTARY_PROFILE:-}"
+if [[ "$REQUIRE_NOTARIZATION" == "1" ]] && [[ "$SIGNING_IDENTITY" == "-" || -z "$NOTARY_PROFILE" ]]; then
+  print -u2 "Aptus notarization requires APTUS_CODESIGN_IDENTITY and APTUS_NOTARY_PROFILE."
+  exit 2
+fi
+if [[ -n "$NOTARY_PROFILE" && "$SIGNING_IDENTITY" == "-" ]]; then
+  print -u2 "APTUS_NOTARY_PROFILE cannot be used with an ad-hoc signature."
+  exit 2
+fi
+
+for required_tool in xcodegen xcodebuild xcrun ditto codesign git plutil shasum; do
   if ! command -v "$required_tool" >/dev/null 2>&1; then
     print -u2 "Aptus desktop build requires $required_tool."
     exit 2
   fi
 done
+if [[ -n "$NOTARY_PROFILE" ]] && ! command -v spctl >/dev/null 2>&1; then
+  print -u2 "Aptus notarization verification requires spctl."
+  exit 2
+fi
 if (( CREATE_DMG )) && ! command -v hdiutil >/dev/null 2>&1; then
   print -u2 "Aptus disk-image packaging requires hdiutil."
   exit 2
@@ -70,6 +93,12 @@ if (( RUN_TESTS )); then
     PYTHONPATH="$REPOSITORY_ROOT/src:$REPOSITORY_ROOT" \
       uv run --isolated --python 3.12 --locked --extra server --extra test \
       python -m unittest discover -s tests -t .
+    uv run --isolated --python 3.12 --locked --extra server --extra test \
+      python tools/generate_openapi.py --check
+    uv run --isolated --python 3.12 --locked --extra server --extra test \
+      python tools/check_client_contracts.py
+    uv run --isolated --python 3.12 --locked --extra server --extra test \
+      python tools/verify_versions.py
   )
 fi
 
@@ -83,6 +112,7 @@ if (( RUN_WEB_GATE )); then
   (
     cd "$REPOSITORY_ROOT/web"
     npm ci
+    npm run openapi:check
     npm test
     npm run typecheck
     npm run build
@@ -91,6 +121,9 @@ fi
 
 BACKEND_BINARY=""
 if (( BUILD_BACKEND )); then
+  # Setuptools can reuse repository-local build metadata. Remove only its known
+  # generated roots so deleted package resources cannot reappear in a release.
+  rm -rf "$PYTHON_BUILD_ROOT" "$PYTHON_EGG_INFO"
   if [[ -n "${APTUS_PYINSTALLER_PYTHON:-}" ]]; then
     PYINSTALLER_PYTHON="$APTUS_PYINSTALLER_PYTHON"
   else
@@ -139,6 +172,9 @@ xcodegen generate \
 
 if (( RUN_TESTS )); then
   mkdir -p "$TEST_DERIVED_DATA/Profiles"
+  if (( BUILD_BACKEND )); then
+    export APTUS_DESKTOP_TEST_PYTHON="$PYINSTALLER_PYTHON"
+  fi
   LLVM_PROFILE_FILE="$TEST_DERIVED_DATA/Profiles/aptus-%p.profraw" \
     xcodebuild \
     -project "$PROJECT_FILE" \
@@ -178,7 +214,6 @@ xcrun swift \
   "$SCRIPT_DIR/Resources/AptusMark.svg" \
   "$OUTPUT_APP/Contents/Resources/AppIcon.icns"
 
-SIGNING_IDENTITY="${APTUS_CODESIGN_IDENTITY:--}"
 if [[ -x "$OUTPUT_APP/Contents/Resources/backend/aptus-desktop" ]]; then
   if [[ "$SIGNING_IDENTITY" == "-" ]]; then
     codesign --force --sign - "$OUTPUT_APP/Contents/Resources/backend/aptus-desktop"
@@ -193,6 +228,19 @@ else
     --entitlements "$SCRIPT_DIR/Resources/Aptus.entitlements" "$OUTPUT_APP"
 fi
 codesign --verify --deep --strict --verbose=2 "$OUTPUT_APP"
+
+if [[ -n "$NOTARY_PROFILE" ]]; then
+  NOTARY_ROOT="$BUILD_ROOT/notary"
+  NOTARY_APP_ZIP="$NOTARY_ROOT/Aptus.app.zip"
+  mkdir -p "$NOTARY_ROOT"
+  ditto -c -k --sequesterRsrc --keepParent "$OUTPUT_APP" "$NOTARY_APP_ZIP"
+  xcrun notarytool submit "$NOTARY_APP_ZIP" \
+    --keychain-profile "$NOTARY_PROFILE" \
+    --wait
+  xcrun stapler staple "$OUTPUT_APP"
+  xcrun stapler validate "$OUTPUT_APP"
+  spctl --assess --type execute --verbose=2 "$OUTPUT_APP"
+fi
 
 if (( BUILD_BACKEND )); then
   PROBE_ROOT="$BUILD_ROOT/launch-probe"
@@ -241,6 +289,9 @@ if (( BUILD_BACKEND )); then
   fi
 fi
 
+APP_ZIP="$DIST_ROOT/Aptus.app.zip"
+ditto -c -k --sequesterRsrc --keepParent "$OUTPUT_APP" "$APP_ZIP"
+
 if (( CREATE_DMG )); then
   DMG_STAGE="$BUILD_ROOT/dmg-stage"
   DMG_MOUNT="$BUILD_ROOT/dmg-verify"
@@ -264,9 +315,40 @@ if (( CREATE_DMG )); then
     print -u2 "Aptus disk image is missing the app or Applications shortcut."
     exit 1
   fi
+  if [[ "$SIGNING_IDENTITY" != "-" ]]; then
+    codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG_PATH"
+    codesign --verify --strict --verbose=2 "$DMG_PATH"
+  fi
+  if [[ -n "$NOTARY_PROFILE" ]]; then
+    xcrun notarytool submit "$DMG_PATH" \
+      --keychain-profile "$NOTARY_PROFILE" \
+      --wait
+    xcrun stapler staple "$DMG_PATH"
+    xcrun stapler validate "$DMG_PATH"
+    spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH"
+  fi
 fi
 
+if [[ "$REQUIRE_CLEAN_CHECKOUT" == "1" ]] && [[ -n "$(git -C "$REPOSITORY_ROOT" status --porcelain)" ]]; then
+  print -u2 "Aptus release gates changed tracked files in a clean checkout. Commit regenerated contracts or assets before publishing artifacts."
+  exit 1
+fi
+
+(
+  cd "$DIST_ROOT"
+  if (( CREATE_DMG )); then
+    shasum -a 256 "Aptus.app.zip" "Aptus-macOS-arm64.dmg" > SHA256SUMS
+  else
+    shasum -a 256 "Aptus.app.zip" > SHA256SUMS
+  fi
+  git -C "$REPOSITORY_ROOT" rev-parse HEAD > COMMIT
+  if [[ -n "$(git -C "$REPOSITORY_ROOT" status --porcelain)" ]]; then
+    print "working-tree-dirty" >> COMMIT
+  fi
+)
+
 print "Aptus app: $OUTPUT_APP"
+print "Aptus app archive: $APP_ZIP"
 if (( CREATE_DMG )); then
   print "Aptus disk image: $DIST_ROOT/Aptus-macOS-arm64.dmg"
 fi

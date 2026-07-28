@@ -2,11 +2,11 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository snapshot reviewed on 2026-07-22
+> **Applies to:** Repository snapshot reviewed on 2026-07-27
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-07-27
 >
-> **Next scheduled review:** 2026-10-22, or after the next contract-changing pull request
+> **Next scheduled review:** 2026-10-27, or after the next contract-changing pull request
 
 ## Overall assessment
 
@@ -18,8 +18,8 @@ artifacts, API shapes, CLI help, and workbench copy without enough automated
 parity checks.
 
 Overall documentation health is **strong with named maintenance gaps**. The
-release itself remains blocked until qualifying target-host CUDA and MLX
-evidence exists for the capabilities being claimed. The repository now checks
+release itself remains blocked until qualifying CUDA target-host and desktop
+distribution evidence exists for the capabilities being claimed. The repository now checks
 its principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -30,13 +30,13 @@ derive every default, status, and response field from one source.
 | Product boundaries | Good | Current capabilities, claim language, roadmap, and release gates distinguish implemented, conditional, unsupported, and future work |
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
-| API and CLI reference | Good with gaps | Automated checks cover commands, options, routes, and static API error codes; structured default, choice, status, and response parity remains incomplete |
+| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, and the generated `aptus.api.v1` OpenAPI artifact; structured CLI default and choice parity remains incomplete |
 | Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts |
 | Historical separation | Good after this batch | Reference intake, superseded v0.1 pages, and the legacy audit now display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
 | Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, and bundle-environment safety; generated-doc and structured default parity remain partial |
-| Release evidence | Blocked | No approved target-host CUDA or MLX pilot and full-run evidence record exists |
+| Release evidence | Partial | Two clean MLX-LM workflows reached `measured-run-pass`; CUDA target-host and public desktop distribution evidence remain open |
 
 ## Freshness and classification
 
@@ -62,9 +62,9 @@ not become a one-time cleanup.
 1. CLI choices and defaults still appear in both `src/aptus/cli.py` and prose.
    Tests cover the parser's commands, subcommands, and long options, but not yet
    every structured value.
-2. API response fields and status codes remain partly duplicated between
-   `src/aptus/api.py` and prose. Tests cover routes and static error names, while
-   OpenAPI still lacks complete descriptions and stable response models.
+2. React TypeScript and Swift native response types remain manually maintained
+   client boundaries. Tests cover their current contracts, but generated SDKs
+   are not implemented.
 3. Generated bundle guidance is operationally important but embedded in large
    source templates. Representative output needs stronger contract testing.
 
@@ -124,10 +124,9 @@ consistency. They do not replace the required target-host CUDA or MLX evidence.
 
 ## Recommended actions by impact
 
-1. Close the remaining structured API, CLI, and generated-bundle parity gaps.
+1. Close the remaining client-type, CLI-default, and generated-bundle parity gaps.
 2. Publish a concrete private security-reporting route.
-3. Complete qualifying CUDA and MLX target-host evidence and publish a versioned
-   release record.
+3. Complete qualifying CUDA target-host and public desktop distribution evidence.
 4. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

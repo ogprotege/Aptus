@@ -1,0 +1,149 @@
+{
+  "schema_version": "aptus.mlx-target-host-acceptance.v2",
+  "state": "measured-run-pass",
+  "required_clean_repetitions": 2,
+  "completed_clean_repetitions": 2,
+  "source": {
+    "baseline_commit": "b371f49ee7021f86c3271b5a57efcd958971ce08",
+    "clean_acceptance_commit": "36ef1314950c8f86a2b298e8d515e247734043ce",
+    "runtime_interpreter_patch_sha256": "c1307ba8835751b413f89ee8f56b98c03429fd5eb5429c8b909d8f8535b9295c",
+    "status_before_run_1": "clean",
+    "status_after_run_1": "clean",
+    "status_after_run_2": "clean"
+  },
+  "host": {
+    "chip": "Apple M5 Pro",
+    "machine": "arm64",
+    "macos_version": "26.6",
+    "macos_build": "25G72",
+    "unified_memory_bytes": 68719476736
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "external_environment": true,
+    "isolated_model_cache": true,
+    "hf_hub_offline": true
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    "revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "license": "Apache-2.0"
+  },
+  "dataset": {
+    "path": "examples/support-sft.jsonl",
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "train_rows": 3,
+    "validation_rows": 1
+  },
+  "compiled_input": {
+    "plan_id": "plan_df3b75050e6ea520a9c0",
+    "candidate_id": "cand_f222b24ca5b139b67436",
+    "compiler_id": "mlx-lm.qlora.v1",
+    "method": "qlora",
+    "plan_sha256": "02d9c45c73ff1240cc8fd981381066e9e09ed1e7d1a7e1b72a16b4aad9f4fe1f",
+    "bundle_zip_sha256": "18a3ec97163ea1968137539e6045df5f092e2059c65da30c196676a6b05eda72",
+    "bundle_fingerprint": "9cf730c5e2c4044bc297742b1d0f4832ff992cbf4f0d1b6f63af6e2456680bbd",
+    "byte_identical_across_runs": true
+  },
+  "runs": [
+    {
+      "ordinal": 1,
+      "state": "measured-run-pass",
+      "validated_at": "2026-07-27T23:25:45.973693+00:00",
+      "preflight": {
+        "run_id": "bounded-smoke_c64b8c1d3f184112b1e3061a4840a99c",
+        "measured_peak_bytes": 524594168,
+        "completed_optimizer_updates": 2,
+        "wall_seconds": 5.00
+      },
+      "pilot": {
+        "run_id": "pilot_f9dfb07d8636412fbcecf50ad3333369",
+        "measured_peak_bytes": 523730508,
+        "completed_optimizer_updates": 2,
+        "adapter_weights_sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+        "reload_evidence_sha256": "75ff2d6ff71e256503483868b9996db10b7867c71c9f77816014ceeb4f350a3d",
+        "reload_generation_tokens": 4,
+        "wall_seconds": 6.01
+      },
+      "full_train": {
+        "run_id": "run_5ef5bc73bdff4a0abf428ca472be2789",
+        "runtime_metrics_sha256": "f7b1d8e573a1cea005f6023cb8a016c5a3584d43dcc4c067565e8e56328a260e",
+        "measured_peak_bytes": 582055054,
+        "available_unified_memory_bytes": 35438772224,
+        "completed_optimizer_updates": 3,
+        "artifact_manifest_sha256": "8b4b679fb9e06a469d97e50e4418e7ea3a649667f4df3f5f909ad9fdff5a1c65",
+        "reload_evidence_sha256": "54b9878b40ce53af77623a845c0c5c98e7d598e487c6711151f048457838edc8",
+        "reload_generation_tokens": 4,
+        "export_bytes": 17633607,
+        "wall_seconds": 4.73
+      },
+      "dependency_wall_seconds": 1.07,
+      "model_data_wall_seconds": 1.84
+    },
+    {
+      "ordinal": 2,
+      "state": "measured-run-pass",
+      "validated_at": "2026-07-27T23:26:13.123998+00:00",
+      "preflight": {
+        "run_id": "bounded-smoke_4b6a4755b4644d989543acdfa288e38e",
+        "measured_peak_bytes": 524491768,
+        "completed_optimizer_updates": 2,
+        "wall_seconds": 3.43
+      },
+      "pilot": {
+        "run_id": "pilot_1c328dda0c9f42669b6d87d3d4ff1088",
+        "measured_peak_bytes": 524353588,
+        "completed_optimizer_updates": 2,
+        "adapter_weights_sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+        "reload_evidence_sha256": "f0c80d53aa6862aff45070d49d9357301c1e999a8da8b683b73ba43c57829c5f",
+        "reload_generation_tokens": 4,
+        "wall_seconds": 6.00
+      },
+      "full_train": {
+        "run_id": "run_d957e756c1074bbea0f177f553751f7e",
+        "runtime_metrics_sha256": "59913c7c0950c769bd0a87b3f814a7c5dfef7dd588ae9a5e05d2c83683e8155c",
+        "measured_peak_bytes": 581975426,
+        "available_unified_memory_bytes": 35154788352,
+        "completed_optimizer_updates": 3,
+        "artifact_manifest_sha256": "5e79021b2af12fa9b829d8a41eeacb3fb2fe786db3f5c48091f3a0129fbd0a8e",
+        "reload_evidence_sha256": "d5687c8d6be5270e0ccdcb3230b4bc57eb915f1548d6b43ce0a0196055d3be36",
+        "reload_generation_tokens": 4,
+        "export_bytes": 17633607,
+        "wall_seconds": 5.06
+      },
+      "dependency_wall_seconds": 1.12,
+      "model_data_wall_seconds": 1.86
+    }
+  ],
+  "deterministic_outputs": {
+    "train_loss_observations": [
+      3.8527462482452393,
+      3.1543750762939453,
+      4.094791889190674
+    ],
+    "validation_loss_observations": [
+      4.8986897468566895,
+      3.818800449371338,
+      3.560231924057007
+    ],
+    "adapter_delta_l1": 5297.497747182846,
+    "changed_adapter_tensor_count": 336,
+    "target_instance_count": 168,
+    "transformer_layer_count": 24,
+    "final_adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+    "final_adapter_weights_byte_identical": true
+  },
+  "admission": {
+    "point_estimate_bytes": 2372989999,
+    "upper_estimate_bytes": 4457927670,
+    "reserve_bytes": 8589934592,
+    "required_available_bytes": 13047862262
+  },
+  "handoff": {
+    "host_global_lease_active": false,
+    "aptus_generated_process_active": false,
+    "adapter_binaries_committed": false
+  }
+}

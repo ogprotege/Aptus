@@ -1,6 +1,6 @@
 # Execution Orchestrator
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when job semantics change
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when job semantics change
 
 The orchestrator turns runtime validation and training into persisted,
 cancellable local jobs. It is a single-user local process manager, not a remote
@@ -30,13 +30,16 @@ Full training requires `confirm_full_train=true`. `resume_from` is rejected.
 
 ## Persistence
 
-Each job record contains identity, action, bundle path, command, log path,
+Each `aptus.job-record.v1` record contains identity, action, bundle path, command, log path,
 timestamps, process identity, process-group identity, return code, current
 phase, run ID and output path when applicable, capacity evidence, error text,
 and completion attestation when available.
 
-Atomic JSON replacement prevents partially written records. Startup and reads
-reconcile stale owners and processes against recorded process identities.
+Atomic mode-0600 JSON replacement prevents partially written records. The job
+root is user-private. Startup and reads reconcile stale owners and processes
+against recorded process identities. Legacy records migrate with durable
+authorization cleared. Corrupt, symlinked, and unsupported records move to a
+private quarantine with a reason receipt, while healthy records remain usable.
 
 ## Serialization
 
@@ -54,6 +57,11 @@ or Metal programs do not participate.
 ## Admission
 
 Job submission first validates the bundle and required preceding report state.
+API submission also requires the exact current project revision. It compares
+the resolved bundle path, saved plan snapshot, plan ID, selected candidate, and
+recorded bundle-manifest fingerprint. A same-content plan in another project
+does not authorize the bundle. The accepted job record carries that fingerprint
+through launch.
 Train submission also performs deep pilot authorization while holding the lease
 and record locks. CUDA checks current free CUDA memory, host RAM, disk,
 environment, bundle, plan, pilot metrics, checkpoint contracts, and pilot export
@@ -70,6 +78,15 @@ On POSIX systems, jobs launch in their own process group. Cancellation records
 `cancelling`, sends termination to the recorded group, and escalates if required.
 The service validates process identity to reduce PID-reuse risk. Cancellation is
 not accepted while parent-owned completion verification is committing.
+
+The worker starts a permit launcher with the verified bundle as its working
+directory. Manifest entries remain relative to that directory. After the parent
+records process identity and binds the global lease, it rechecks the project
+artifact binding and releases the permit. The launcher then rereads the manifest,
+verifies its recorded fingerprint, rejects relative-path escapes and symlinks,
+and rehashes every manifested file immediately before `exec`. This closes the
+submission-to-launch mutation interval without trusting an absolute path from
+the launch specification.
 
 Windows uses the supported direct-process termination path and has a narrower
 group-control contract. Direct portable child execution is fail-closed on

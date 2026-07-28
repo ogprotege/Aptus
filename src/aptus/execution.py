@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, distribution, version
 from pathlib import Path, PurePosixPath
-from typing import Any, Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 try:
     import fcntl
@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - POSIX uses fcntl.
 
 from .attestation import require_trainable_parameter_census
 from .domain import RunState, ValidationState
+from .local_store import atomic_write_json, private_directory, quarantine_file
 from .plan_contract import (
     sha256_file,
     validate_bundle_manifest,
@@ -42,6 +43,7 @@ from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
 JOB_ACTIONS = {"dependency", "model-data", "preflight", "pilot", "train"}
+JOB_RECORD_SCHEMA_VERSION = "aptus.job-record.v1"
 _GLOBAL_LEASE_THREAD_LOCK = threading.RLock()
 
 
@@ -94,6 +96,7 @@ _JOB_PREREQUISITE_STATES: dict[JobAction, str] = {
 
 
 _PERMIT_LAUNCHER = r"""
+import hashlib
 import json
 import os
 import subprocess
@@ -108,7 +111,40 @@ while not permit_path.is_file():
     if time.monotonic() >= deadline:
         raise SystemExit(125)
     time.sleep(0.05)
-command = json.loads(spec_path.read_text(encoding="utf-8"))["command"]
+spec = json.loads(spec_path.read_text(encoding="utf-8"))
+manifest_path = Path("bundle-manifest.json")
+if manifest_path.is_symlink() or not manifest_path.is_file():
+    raise SystemExit("Aptus launch blocked: bundle manifest is unavailable")
+manifest_bytes = manifest_path.read_bytes()
+expected_fingerprint = spec.get("expected_artifact_fingerprint")
+if expected_fingerprint is not None and (
+    hashlib.sha256(manifest_bytes).hexdigest() != expected_fingerprint
+):
+    raise SystemExit("Aptus launch blocked: project artifact fingerprint changed")
+manifest = json.loads(manifest_bytes)
+root = Path.cwd().resolve()
+for entry in manifest.get("files", []):
+    relative = entry.get("path")
+    if not isinstance(relative, str):
+        raise SystemExit("Aptus launch blocked: invalid manifest path")
+    candidate = Path(relative)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        raise SystemExit("Aptus launch blocked: unsafe manifest path")
+    path = root / candidate
+    cursor = root
+    for part in candidate.parts:
+        cursor = cursor / part
+        if cursor.is_symlink():
+            raise SystemExit("Aptus launch blocked: manifested symlink")
+    if not path.is_file():
+        raise SystemExit("Aptus launch blocked: manifested file is missing")
+    payload = path.read_bytes()
+    if (
+        len(payload) != entry.get("size_bytes")
+        or hashlib.sha256(payload).hexdigest() != entry.get("sha256")
+    ):
+        raise SystemExit("Aptus launch blocked: manifested file changed")
+command = spec["command"]
 if os.name == "nt":
     raise SystemExit(subprocess.run(command, check=False).returncode)
 os.execvpe(command[0], command, os.environ)
@@ -233,19 +269,7 @@ def _json_hash(value: object) -> str:
 
 
 def _atomic_write_json(path: Path, value: Mapping[str, Any] | dict[str, Any]) -> None:
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    atomic_write_json(path, value)
 
 
 def _read_json_object(path: Path, label: str) -> dict[str, Any]:
@@ -1783,8 +1807,7 @@ class JobService:
         *,
         runtime_environment: Mapping[str, str] | None = None,
     ) -> None:
-        self.root = root.resolve()
-        self.root.mkdir(parents=True, exist_ok=True)
+        self.root = private_directory(root)
         self._lock = threading.RLock()
         self._records_lock_state = threading.local()
         self._global_lease_lock_state = threading.local()
@@ -1912,25 +1935,87 @@ class JobService:
 
     def _write(self, record: dict[str, Any]) -> None:
         with self._records_lock():
+            record["schema_version"] = JOB_RECORD_SCHEMA_VERSION
+            record.setdefault("job_id", record.get("id"))
+            record.setdefault("created_at", _now())
+            record.setdefault("action", "unknown")
+            record.setdefault("bundle_dir", "")
             path = self._record_path(record["id"])
-            _atomic_write_json(path, record)
+            atomic_write_json(path, record, mode=0o600)
+
+    def _migrate_record(
+        self, value: dict[str, Any], job_id: str
+    ) -> tuple[dict[str, Any], bool]:
+        schema_version = value.get("schema_version")
+        migrated = dict(value)
+        changed = False
+        if schema_version is None:
+            migrated["schema_version"] = JOB_RECORD_SCHEMA_VERSION
+            migrated["persistence_migrated_from"] = "aptus.job-record.legacy"
+            # Authorization is always established by a new atomic train submission.
+            migrated.pop("authorization_current", None)
+            migrated.setdefault("created_at", _now())
+            migrated.setdefault("action", "unknown")
+            migrated.setdefault("bundle_dir", "")
+            changed = True
+        elif schema_version != JOB_RECORD_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported schema version {schema_version!r}; expected {JOB_RECORD_SCHEMA_VERSION!r}"
+            )
+        if migrated.get("id") != job_id:
+            raise ValueError("the object ID must match its filename")
+        if migrated.get("job_id") is None:
+            migrated["job_id"] = job_id
+            changed = True
+        if migrated.get("job_id") != job_id:
+            raise ValueError("job_id must match the immutable record ID")
+        valid_states = {item.value for item in RunState}
+        if migrated.get("state") not in valid_states:
+            raise ValueError("the persisted run state is invalid")
+        for field in ("created_at", "action", "bundle_dir"):
+            if not isinstance(migrated.get(field), str):
+                raise ValueError(f"the persisted {field} field is invalid")
+        return migrated, changed
+
+    def _quarantine_record(self, path: Path, reason: str) -> Path:
+        return quarantine_file(path, self.root / "quarantine", reason=reason)
 
     def _read(self, job_id: str) -> dict[str, Any]:
         with self._records_lock():
             path = self._record_path(job_id)
+            if path.is_symlink():
+                destination = self._quarantine_record(
+                    path, "Job record symlinks are not permitted."
+                )
+                raise ValueError(
+                    f"Invalid Aptus job record {path}; preserved at {destination}: symlinks are not permitted."
+                )
             if not path.is_file():
                 raise KeyError(job_id)
             try:
                 value = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as error:
+                destination = self._quarantine_record(path, str(error))
                 raise ValueError(
-                    f"Unreadable Aptus job record {path}: {error}"
+                    f"Unreadable Aptus job record {path}; preserved at {destination}: {error}"
                 ) from error
-            if not isinstance(value, dict) or value.get("id") != job_id:
-                raise ValueError(
-                    f"Invalid Aptus job record {path}: the object ID must match its filename."
+            if not isinstance(value, dict):
+                destination = self._quarantine_record(
+                    path, "The persisted value is not a JSON object."
                 )
-            return value
+                raise ValueError(
+                    f"Invalid Aptus job record {path}; preserved at {destination}: the value must be a JSON object."
+                )
+            try:
+                migrated, changed = self._migrate_record(value, job_id)
+            except ValueError as error:
+                destination = self._quarantine_record(path, str(error))
+                raise ValueError(
+                    f"Invalid Aptus job record {path}; preserved at {destination}: {error}"
+                ) from error
+            if changed:
+                atomic_write_json(path, migrated, mode=0o600)
+            return migrated
 
     @staticmethod
     def _process_identity(value: Any) -> str | None:
@@ -2198,7 +2283,11 @@ class JobService:
     def _recover_interrupted_jobs(self) -> None:
         with self._records_lock():
             for path in self._record_paths():
-                self._reconcile_external_record(self._read(path.stem))
+                try:
+                    self._reconcile_external_record(self._read(path.stem))
+                except (KeyError, ValueError):
+                    # Invalid records are quarantined by _read. Other jobs remain usable.
+                    continue
 
     def _require_no_active_job(self) -> None:
         with self._records_lock():
@@ -2260,24 +2349,24 @@ class JobService:
             }[action]
             return [
                 interpreter,
-                str(bundle / "validate.py"),
+                "validate.py",
                 "--level",
                 level,
             ]
         if action == "pilot":
-            return [interpreter, str(bundle / "validate.py"), "--level", "pilot"]
+            return [interpreter, "validate.py", "--level", "pilot"]
         if action != "train":
             raise ValueError(f"Unsupported job action: {action}")
         if resume_from is not None:
             raise ValueError("Full-training resume is unsupported in Aptus v0.2.")
         training_entrypoint = "run.py" if runtime_id == "mlx-lm" else "train.py"
         train_arguments = [
-            str(bundle / training_entrypoint),
+            training_entrypoint,
             "--confirm-full-train",
         ]
         if run_id is None:
             raise ValueError("Full training requires an immutable Aptus run ID.")
-        train_arguments.extend(("--output-dir", str(bundle / "runs" / run_id)))
+        train_arguments.extend(("--output-dir", str(Path("runs") / run_id)))
         if plan["recommended"]["distribution"] == "single":
             return [interpreter, *train_arguments]
         return [
@@ -2286,9 +2375,25 @@ class JobService:
             "accelerate.commands.accelerate_cli",
             "launch",
             "--config_file",
-            str(bundle / "config" / "accelerate.yaml"),
+            str(Path("config") / "accelerate.yaml"),
             *train_arguments,
         ]
+
+    @staticmethod
+    def _require_record_bundle_binding(record: Mapping[str, Any]) -> None:
+        bundle = Path(str(record["bundle_dir"]))
+        manifest_errors = validate_bundle_manifest(bundle)
+        if manifest_errors:
+            raise ValueError(
+                "Bundle changed before worker launch: " + " | ".join(manifest_errors)
+            )
+        expected_fingerprint = record.get("artifact_fingerprint")
+        if isinstance(expected_fingerprint, str) and (
+            sha256_file(bundle / "bundle-manifest.json") != expected_fingerprint
+        ):
+            raise ValueError(
+                "Bundle changed from its project-bound artifact before worker launch."
+            )
 
     def _require_action_prerequisite(self, bundle: Path, action: JobAction) -> None:
         required_state = _JOB_PREREQUISITE_STATES[action]
@@ -2575,6 +2680,11 @@ class JobService:
         action: JobAction = "preflight",
         confirm_full_train: bool = False,
         resume_from: str | None = None,
+        before_start: (
+            Callable[[Mapping[str, Any]], Mapping[str, Any] | None] | None
+        ) = None,
+        admission_check: Callable[[], Any] | None = None,
+        expected_artifact_fingerprint: str | None = None,
     ) -> dict[str, Any]:
         if action not in JOB_ACTIONS:
             raise ValueError(f"Unsupported job action: {action}")
@@ -2594,6 +2704,19 @@ class JobService:
             raise ValueError(
                 "Bundle integrity check failed: " + " | ".join(manifest_errors)
             )
+        if expected_artifact_fingerprint is not None:
+            if (
+                len(expected_artifact_fingerprint) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in expected_artifact_fingerprint
+                )
+                or sha256_file(bundle / "bundle-manifest.json")
+                != expected_artifact_fingerprint
+            ):
+                raise ValueError(
+                    "The bundle manifest does not match the expected project artifact fingerprint."
+                )
         if action == "train":
             if not confirm_full_train:
                 raise ValueError("Full training requires confirm_full_train=true.")
@@ -2622,6 +2745,7 @@ class JobService:
             "process_identity": None,
             "process_group_id": None,
             "prelaunch_capacity_check": None,
+            "artifact_fingerprint": expected_artifact_fingerprint,
         }
         worker = threading.Thread(
             target=self._run, args=(job_id,), name=f"aptus-{job_id}", daemon=True
@@ -2642,6 +2766,8 @@ class JobService:
                                 "Could not inspect the current training-runtime "
                                 f"resources: {error}"
                             ) from error
+                    if admission_check is not None:
+                        admission_check()
                     self._write(record)
                     try:
                         self._create_global_lease(record)
@@ -2653,6 +2779,34 @@ class JobService:
                         )
                         self._write(record)
                         raise
+            if before_start is not None:
+                try:
+                    metadata = before_start(dict(record))
+                    if metadata is not None:
+                        unsupported = set(metadata) - {
+                            "project_id",
+                            "project_revision_id",
+                        }
+                        if unsupported:
+                            raise ValueError(
+                                "Job pre-start metadata contains unsupported fields: "
+                                + ", ".join(sorted(unsupported))
+                            )
+                        with self._global_lease_lock(), self._records_lock():
+                            current = self._read(job_id)
+                            current.update(dict(metadata))
+                            self._write(current)
+                except Exception as error:
+                    with self._global_lease_lock(), self._records_lock():
+                        current = self._read(job_id)
+                        current.update(
+                            state=RunState.FAILED.value,
+                            finished_at=_now(),
+                            error=f"Job pre-start persistence failed: {error}",
+                        )
+                        self._write(current)
+                        self._clear_global_lease(job_id)
+                    raise
             try:
                 self._threads[job_id] = worker
                 worker.start()
@@ -2689,7 +2843,14 @@ class JobService:
                     self._write(record)
                     self._clear_global_lease(job_id)
                     return
-            _atomic_write_json(launch_spec, {"command": record["command"]})
+            self._require_record_bundle_binding(record)
+            _atomic_write_json(
+                launch_spec,
+                {
+                    "command": record["command"],
+                    "expected_artifact_fingerprint": record.get("artifact_fingerprint"),
+                },
+            )
             launch_permit.unlink(missing_ok=True)
             with log_path.open("a", encoding="utf-8") as log:
                 process_options: dict[str, Any] = {}
@@ -2741,6 +2902,7 @@ class JobService:
                         job_id, process.pid, process_identity
                     )
                     if not cancelled_before_registration:
+                        self._require_record_bundle_binding(current)
                         launch_permit.write_text("go\n", encoding="utf-8")
                 if cancelled_before_registration and process.poll() is None:
                     self._terminate_process(process)
@@ -3009,10 +3171,14 @@ class JobService:
         return record
 
     def list(self) -> list[dict[str, Any]]:
-        records = [
-            self.get(path.stem, include_validation_report=False)
-            for path in self._record_paths()
-        ]
+        records = []
+        for path in self._record_paths():
+            try:
+                records.append(self.get(path.stem, include_validation_report=False))
+            except (KeyError, ValueError):
+                # _read() quarantines invalid records with a reason receipt. A
+                # record corrupted after startup must not hide healthy jobs.
+                continue
         return sorted(records, key=lambda item: item["created_at"], reverse=True)
 
     @staticmethod

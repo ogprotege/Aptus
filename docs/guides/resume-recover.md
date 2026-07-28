@@ -1,6 +1,6 @@
 # Recovery and the Resume Boundary
 
-> **Status:** Active | **Authority:** Operational recovery guide | **Applies to:** Aptus 0.2 | **Audience:** Operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when recovery changes
+> **Status:** Active | **Authority:** Operational recovery guide | **Applies to:** Aptus 0.2 | **Audience:** Operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when recovery changes
 
 ## Full-training resume is unsupported
 
@@ -46,6 +46,31 @@ promotion only when verified pending evidence was already persisted and still
 passes the completion transaction.
 
 Never mark a job complete by editing its JSON record.
+
+## Recover a project revision
+
+Project recovery is control-plane history, not training resume. Open project
+history, inspect an immutable revision, and choose **Recover as new revision**.
+Aptus requires the persisted plan to equal the immutable plan snapshot. It also
+verifies the selected candidate, exact bundle path, complete bundle manifest,
+recorded manifest fingerprint, and any recorded ZIP SHA-256 and byte size. Only
+then does it append a new content-hashed head. The original revision remains
+unchanged.
+
+Project revision writes are transactionally recoverable after interruption.
+Aptus finishes only a receipt-bound revision or a unique orphan chain that
+extends the indexed history. It quarantines corrupt or ambiguous orphan files.
+Crash repair respects later current-project selection intent, so recovering an
+older interrupted write cannot select a different project over a newer choice.
+
+The recovered revision always records training authorization as false. It does
+not restore current capacity, a runtime lease, optimizer state, or data position.
+Repeat any invalidated validation action, then submit a new explicitly confirmed
+train job.
+
+Legacy plans, the current bundle pointer, and matching jobs import once into
+project history. Aptus preserves their source files and records a versioned
+import receipt.
 
 ## Retry after failure
 

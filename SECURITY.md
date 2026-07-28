@@ -1,11 +1,12 @@
 # Security Policy
 
-> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Supported status
 
-Aptus v0.2 is an engineering preview. It has not passed the required target-host
-CUDA or MLX release evidence gates. Use GitHub's
+Aptus v0.2 is an engineering preview. Apple Silicon MLX-LM acceptance reached
+`measured-run-pass` twice in a clean isolated checkout. CUDA target-host evidence,
+the complete product release gate, and public notarization remain open. Use GitHub's
 [private vulnerability-reporting flow](https://github.com/ogprotege/Aptus/security/advisories/new)
 when it is available. Otherwise contact the repository owner through an
 existing private channel before sharing technical details. Do not include
@@ -31,8 +32,9 @@ continued privacy unsafe, coordinate the minimum necessary disclosure first.
 
 Aptus is a single-user, local-host tool. The API can read local datasets, write
 bundles and job state, fetch bounded model metadata, and start Python training
-processes. The ordinary `aptus serve` interface has no authentication, tenant
-isolation, CSRF protection, or remote-user authorization.
+processes. `aptus serve` creates a random per-launch session token and requires
+its HttpOnly cookie or bearer form on protected routes. It still has no tenant
+isolation, remote-user authorization, TLS, or worker sandbox.
 
 Keep `aptus serve` on `127.0.0.1`. `--allow-non-loopback` is an explicit
 acknowledgment, not a security control. A non-loopback deployment requires an
@@ -40,13 +42,13 @@ external authenticated boundary, origin controls, TLS, and filesystem
 isolation.
 
 Aptus for Mac starts a distinct service on an ephemeral loopback port. Every
-route requires a random per-launch HttpOnly, SameSite Strict cookie installed
-by the native host. WebKit stays on the exact session origin. This protects the
-desktop sidecar from unrelated local web pages, but it does not create a remote
-or multi-user service boundary. Desktop responses enforce a same-origin content
-security policy and deny framing. The desktop sidecar also rejects runtime
-validation and job submission. CUDA and MLX actions must run outside the
-sidecar on the selected target host.
+protected route requires a random per-launch HttpOnly, SameSite Strict cookie
+installed by the native host. WebKit stays on the exact session origin. This
+protects the desktop sidecar from unrelated local web pages, but it does not
+create a remote or multi-user service boundary. Desktop responses enforce a
+same-origin content security policy and deny framing. The sidecar can run an
+eligible MLX-LM bundle through the configured external interpreter. CUDA
+remains an external target-host path.
 
 ## Data copies
 
@@ -63,7 +65,17 @@ Validation and training may also place tokenizer, model, CUDA checkpoint, MLX
 adapter or weight snapshot, log, metrics, and final-export material on disk.
 Generated runtime outputs are not part of the compiler manifest, but they
 remain sensitive files. Protect the bundle directory, archive, `.aptus-state`,
-cache directories, and backups.
+cache directories, and backups. The selected state root and its project, plan,
+runtime-configuration, job, current-pointer, and quarantine records use
+user-private directories and mode-0600 JSON files on POSIX systems. State
+readers reject symlink records. Unreadable or unsupported job and project
+records move into private quarantine with a reason receipt, so one corrupt
+record does not hide healthy state.
+
+`aptus diagnostics` creates a mode-0600 ZIP with bounded host facts, runtime
+probe results, disk capacity, and state counts. It excludes logs, dataset and
+model content, project names, environment values, and unredacted home paths.
+Review `diagnostics.json` before sharing the archive.
 
 ## Input and path controls
 
@@ -97,6 +109,13 @@ evidence. The admission transaction is authoritative.
 Cancellation targets the recorded process group on POSIX systems. The service
 records `cancelling` while termination is in progress. A result is not promoted
 to success merely because a process disappeared.
+
+The native Mac host separately owns its sidecar process tree. Quit and restart
+wait for typed shutdown success. Shutdown tracks PID plus process-start
+identity, expands late descendants, distinguishes zombies and PID reuse, and
+records its signal attempts. A survivor retains controller, path, and session
+ownership, blocks replacement startup, and causes the application to refuse
+termination until an explicit shutdown retry succeeds.
 
 Full-training resume is disabled. CUDA does not accept an arbitrary checkpoint
 path because v0.2 cannot yet prove complete model, optimizer, scheduler, scaler,

@@ -1,6 +1,6 @@
 # Code Map
 
-> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22
+> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27
 
 Aptus has four execution surfaces: the native macOS host, the Python
 application, the React workbench, and the self-contained Python programs
@@ -13,6 +13,7 @@ that protect it.
 | Path | Responsibility |
 |---|---|
 | `src/aptus/` | Planner, compiler, validator, job service, API, and CLI |
+| `src/aptus/_bundle_programs/` | Canonical CUDA and MLX portable program resources |
 | `src/aptus/methods/` | Typed method lifecycle and compiler-readiness registry |
 | `web/src/` | React workbench source |
 | `src/aptus/_web/` | Built workbench assets packaged in the Python wheel |
@@ -39,12 +40,16 @@ that protect it.
 | [`inspection.py`](../../src/aptus/inspection.py) | Bounded provider metadata inspection and family aliasing | License or training permission |
 | [`planning.py`](../../src/aptus/planning.py) | Candidate enumeration, feasibility, memory use, Pareto marking, and deterministic ranking | Universal optimality or measured fit |
 | [`plan_contract.py`](../../src/aptus/plan_contract.py) | Canonical candidate/plan identities and bundle-manifest verification | Runtime artifact success |
-| [`generation.py`](../../src/aptus/generation.py) | Runtime-dispatched artifact compilers plus generated trainer, runner, preflight, and validator sources | In-place bundle mutation or child-owned success promotion |
+| [`generation.py`](../../src/aptus/generation.py) | Runtime-dispatched artifact compilers and packaged-resource emission | In-place bundle mutation or child-owned success promotion |
 | [`attestation.py`](../../src/aptus/attestation.py) | Strict trainable-parameter census validation shared by host code | Method preparation itself |
 | [`validation.py`](../../src/aptus/validation.py) | Host-side validation ladder and report persistence | Cancellable runtime execution through the direct API path |
 | [`runtime_lease.py`](../../src/aptus/runtime_lease.py) | Portable per-user execution lease and process-group control | Reservation against unrelated accelerator programs |
 | [`execution.py`](../../src/aptus/execution.py) | Persisted jobs, admission, cancellation, recovery, and parent completion verification | Model quality |
+| [`local_store.py`](../../src/aptus/local_store.py) | Private directories, atomic JSON, strict reads, and recoverable quarantine | Data retention policy |
+| [`projects.py`](../../src/aptus/projects.py) | Named projects, immutable revisions, legacy import, and recovery | Durable training authorization |
+| [`api_contracts.py`](../../src/aptus/api_contracts.py) | Explicit response models and `aptus.api.v1` identity | Client generation or request handling |
 | [`api.py`](../../src/aptus/api.py) | Strict FastAPI request models, endpoints, persistence context, and packaged SPA serving | A secure multi-user boundary |
+| [`diagnostics.py`](../../src/aptus/diagnostics.py) | Read-only environment doctor and privacy-bounded support archive | Package installation or secret collection |
 | [`cli.py`](../../src/aptus/cli.py) | Command parsing and orchestration over the same core contracts | Alternate planning or validation semantics |
 | [`desktop.py`](../../src/aptus/desktop.py) | Ephemeral loopback binding and private desktop-service readiness | Native UI state or a public network service |
 
@@ -104,8 +109,9 @@ tests and generated-module tests.
 
 `generation.py` also owns trainer and Accelerate configuration, bundle reports,
 manifest production, atomic publication, and deterministic ZIP creation. Do
-not edit a generated bundle and copy the result back by hand. Change the source
-generator, compile a fresh fixture, and review the output diff.
+not edit a generated bundle and copy the result back by hand. Change the
+packaged program resource or source generator, compile a fresh fixture, and
+review the output diff.
 
 ## Workbench map
 
@@ -127,10 +133,10 @@ generator, compile a fresh fixture, and review the output diff.
 |---|---|
 | [`AptusApplication.swift`](../../desktop/macos/Sources/AptusApplication.swift) | AppKit lifecycle and backend shutdown |
 | [`MainWindowController.swift`](../../desktop/macos/Sources/MainWindowController.swift) | Startup state, private backend session, and SwiftUI shell installation |
-| [`DesktopShell.swift`](../../desktop/macos/Sources/DesktopShell.swift) | Home, Machine, Models, Data, Plans, and Runs navigation and presentation |
+| [`DesktopShell.swift`](../../desktop/macos/Sources/DesktopShell.swift) | Home, Workbench, Machine, Models, and MLX environment-doctor presentation |
 | [`DesktopPlatform.swift`](../../desktop/macos/Sources/DesktopPlatform.swift) | macOS 15 and 26 policies plus local machine facts |
 | [`DesktopBackendClient.swift`](../../desktop/macos/Sources/DesktopBackendClient.swift) | Exact-origin authenticated runtime configuration request |
-| [`WebViewController.swift`](../../desktop/macos/Sources/WebViewController.swift) | Contained nonpersistent WebKit workbench and navigation policy |
+| [`WebViewController.swift`](../../desktop/macos/Sources/WebViewController.swift) | Inline nonpersistent WebKit workbench and navigation policy |
 
 The Vite build writes to `src/aptus/_web` and clears its prior contents. Those
 assets are package data in the wheel. A source-only web change is incomplete

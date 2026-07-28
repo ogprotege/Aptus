@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -23,6 +23,12 @@ flowchart LR
   L --> M["Parent verification"]
   M --> N["Measured-run-pass"]
 ```
+
+The local product adds an append-only control-plane history around this flow.
+Named projects record immutable revisions after planning, compilation,
+validation, and job submission. A recovery operation verifies referenced local
+artifacts and creates a new revision. It never mutates an old revision or
+restores training authorization.
 
 ## 1. Fact intake
 
@@ -75,6 +81,11 @@ MLX data splits, an MLX adapter configuration, and runtime-neutral metrics.
 MLX-LM QLoRA requires a model revision with explicit four-bit MLX quantization
 metadata. It never imports bitsandbytes.
 
+Runtime program source lives as package data under
+`src/aptus/_bundle_programs/{cuda,mlx}/`. The compiler reads those bytes through
+`importlib.resources`. Packaging tests require source-tree, wheel, and frozen
+sidecar builds to preserve byte identity and the resulting manifest hashes.
+
 ## 4. Validation
 
 Validation is monotonic in required evidence:
@@ -121,6 +132,11 @@ interpreter. A configured path is probed before it is persisted and before it
 can become the runtime for a job. The desktop sidecar is not assumed to contain
 the user's training stack.
 
+Job records use `aptus.job-record.v1`. Legacy records migrate to the current
+shape with durable authorization cleared. Corrupt, symlinked, or unsupported
+records move to private quarantine with a reason receipt. A bad record does not
+prevent healthy jobs from loading.
+
 ## 6. Full-run admission and completion
 
 Train submission holds the global lease and record locks while it deeply
@@ -157,12 +173,14 @@ is fail-closed on Windows in v0.2. Use the managed service there.
 
 ## Interfaces
 
-- Aptus for Mac: AppKit lifecycle, SwiftUI Home, Machine, Models, Data, Plans,
-  and Runs shell, private backend session, and a contained transitional WebKit
-  workbench. macOS 26 is the primary design and macOS 15 is the fallback.
+- Aptus for Mac: AppKit lifecycle, SwiftUI Home, Workbench, Machine, and Models
+  shell, private backend session, and one inline WebKit workbench. macOS 26 is
+  the primary design and macOS 15 is the fallback.
 - CLI: local scripting and operator use.
 - FastAPI: same-origin local workbench and programmatic control.
 - React workbench: five-stage planning and execution flow.
+- OpenAPI: generated from explicit Pydantic response models and checked into
+  `docs/reference/openapi.v1.json` under `aptus.api.v1`.
 - Portable bundle: host-independent artifacts with local runtime requirements.
 
 LM Studio and oMLX are loopback-only inference adapters. They do not enter the

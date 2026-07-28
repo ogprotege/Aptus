@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-07-22 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-07-27 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -9,7 +9,9 @@ applicable gate. Passing repository tests is not target-runtime evidence.
 
 - Clean checkout installs on every supported Python version.
 - Wheel and source distribution contain the packaged workbench and required
-  runtime modules, including the typed method registry.
+  runtime modules, including the typed method registry and CUDA and MLX program
+  resources. Source, wheel, and frozen-sidecar compilation emit identical
+  program bytes and manifest hashes.
 - Installed-wheel CLI, API, static assets, plan, compile, and static validation
   smoke tests pass outside the source tree.
 - The arm64 macOS build embeds the current tested workbench and Python runtime,
@@ -20,8 +22,40 @@ applicable gate. Passing repository tests is not target-runtime evidence.
   tested semantic-material fallback on macOS 15.
 - The DMG installs and launches on a clean supported Mac. A public artifact is
   Developer ID signed and notarized. An ad-hoc signature is local evidence only.
+- `Aptus.app`, `Aptus.app.zip`, DMG, `SHA256SUMS`, and `COMMIT` identify one
+  build. `APTUS_REQUIRE_CLEAN_CHECKOUT=1` rejects dirty release evidence.
+- A public build uses `APTUS_CODESIGN_IDENTITY`, `APTUS_NOTARY_PROFILE`, and
+  `APTUS_REQUIRE_NOTARIZATION=1`; the app and DMG pass submission, stapling,
+  validation, and Gatekeeper assessment.
 - Generated bundles install from `requirements.txt` in clean environments.
 - Resolved transitive distributions are captured in the environment binding.
+- `tools/generate_openapi.py --check` proves the checked API schema is current,
+  and `tools/verify_versions.py` proves `aptus.__version__`, the web package and
+  lock, `Info.plist`, and OpenAPI report the same version. The desktop build runs
+  both commands inside its isolated Python gate.
+
+Run the repeated desktop gate only from a clean checkout:
+
+```bash
+tools/repeat_desktop_release_gate.zsh
+```
+
+The default is ten consecutive complete `desktop/macos/build.sh` runs. An
+explicit positive argument changes the repetition count for diagnosis, but it
+does not satisfy the ten-run release requirement. Every iteration enables
+`APTUS_REQUIRE_CLEAN_CHECKOUT=1`, captures its full log, verifies the app
+signature, verifies the DMG, and records both artifact hashes and timing. A
+passing ten-run gate writes:
+
+```text
+desktop/macos/dist/RELEASE-GATE.tsv
+desktop/macos/dist/release-gate-logs.zip
+```
+
+Their hashes are appended to `SHA256SUMS`. The script uses the build's default
+ad-hoc signature unless the caller supplies a real `APTUS_CODESIGN_IDENTITY`
+and `APTUS_NOTARY_PROFILE`. Ad-hoc repetitions prove build stability only. They
+do not prove public notarization.
 
 ## 2. Planner and compiler
 
@@ -154,10 +188,18 @@ For each claimed MLX-LM LoRA or QLoRA path:
   child process-group liveness and restart recovery.
 - Windows direct portable child execution fails closed and uses the managed
   service path instead.
+- `aptus.job-record.v1` migration, private file modes, symlink rejection, and
+  recoverable quarantine pass without one bad record hiding healthy jobs.
+- Native sidecar shutdown returns typed success or failure, retains ownership
+  for survivors, blocks queued restart, refuses app termination on failure, and
+  passes late-fork, zombie, PID-reuse, explicit-retry, and repeated-poll tests.
 
 ## 6. API and workbench
 
 - Strict request schemas reject unknown and resume fields.
+- Every success route has an explicit response model. Generated
+  `docs/reference/openapi.v1.json` matches the application and reports
+  `aptus.api.v1`.
 - Bootstrap exposes all 11 method descriptors with exact lifecycle and
   selectable values, while its selectable list contains only the four guarded
   executable methods.
@@ -178,6 +220,12 @@ For each claimed MLX-LM LoRA or QLoRA path:
   locally, and keeps CUDA as an external target-host handoff.
 - LM Studio and oMLX integrations remain inference-only and never satisfy a
   training runtime gate.
+- Named project revisions are immutable and content hashed. Recovery appends a
+  new revision, never restores authorization, and requires fresh validation and
+  confirmation.
+- The native environment doctor reports measured interpreter evidence and
+  performs no installation. `aptus diagnostics` excludes logs, project names,
+  dataset or model content, environment values, and unredacted home paths.
 
 ## 7. Security and data handling
 
@@ -210,10 +258,13 @@ For each claimed MLX-LM LoRA or QLoRA path:
 
 ## Current result
 
-Not passed. The uninterrupted MLX-LM pilot and full-duration adapter contracts
-are implemented, but no target Apple Silicon release evidence has completed
-these gates. No real CUDA pilot or full training evidence has been completed on
-an external CUDA host. Aptus v0.2 is not release-ready.
+Partially passed. The
+[2026-07-27 Apple Silicon record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
+proves two clean, independent MLX-LM workflows through measured preflight,
+pilot, fresh-process adapter reload, confirmed full training, final export, and
+`measured-run-pass`. No real CUDA pilot or full training evidence has completed
+on an external CUDA host. A default ad-hoc Mac build is not public notarization
+evidence. Aptus v0.2 remains unreleased until every claimed release gate passes.
 
 ## Related documentation
 

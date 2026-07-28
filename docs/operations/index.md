@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-07-27 MLX-LM target-host acceptance](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [Changelog](../../CHANGELOG.md)
 
 ## Experimental host work

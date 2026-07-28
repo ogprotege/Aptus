@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -32,6 +32,11 @@ compatible. Decide the semantic effect before editing code.
 | MLX artifact manifest | `aptus.mlx-artifact-manifest.v1` | generated MLX action owner and parent verifier |
 | GPU lease | `aptus.gpu-lease.v1` | host and portable lease implementations |
 | Validator behavior | `aptus-validator-v2` | `validation.py` |
+| HTTP API | `aptus.api.v1` | `api_contracts.py`, `api.py`, and generated OpenAPI |
+| Job record | `aptus.job-record.v1` | `execution.py` |
+| Project | `aptus.project.v1` | `projects.py` |
+| Project revision | `aptus.project-revision.v1` | `projects.py` |
+| Diagnostic report | `aptus.diagnostics.v1` | `diagnostics.py` |
 
 The documentation methodology names additional rule-set versions for candidate
 enumeration, precision, ranking, and preflight. Keep those labels aligned with
@@ -79,8 +84,9 @@ creates an unbound setting.
 
 ## Keep host and portable implementations aligned
 
-The bundle copies `plan_contract.py` and `runtime_lease.py`. It also embeds
-trainer, runner, preflight, and validator programs from `generation.py`.
+The bundle copies `plan_contract.py` and `runtime_lease.py`. It emits trainer,
+runner, preflight, validator, and MLX reload programs from package resources
+under `src/aptus/_bundle_programs/`.
 Host-side validation and `JobService` independently verify related evidence.
 
 A contract change may therefore touch:
@@ -117,9 +123,20 @@ to make it appear current.
 ## API and workbench changes
 
 FastAPI request models reject unknown fields. Additions and removals must be
-reflected in `api.py`, API tests, `web/src/types.ts`, request construction and
-normalization in `web/src/api.ts`, stage state, restoration logic, and the API
-reference.
+reflected in `api.py`, `api_contracts.py`, API tests, `web/src/types.ts`, request
+construction and normalization in `web/src/api.ts`, Swift decoders when
+applicable, stage state, restoration logic, and the API reference. Regenerate
+and check the versioned OpenAPI artifact:
+
+```bash
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py --check
+```
+
+The current TypeScript and Swift clients are hand-maintained and tested. Do not
+describe them as generated clients.
 
 If a field can be unavailable, preserve `null` or an explicit unknown state.
 Do not substitute total memory for free memory or provider declarations for user
@@ -152,6 +169,8 @@ persisted state. Do not mark success from child exit alone.
 - [ ] A fresh bundle was compiled and reviewed.
 - [ ] Reference and methodology pages were updated.
 - [ ] Target-host evidence was refreshed when runtime meaning changed.
+- [ ] `python tools/verify_versions.py` confirms package, web, desktop, and
+      OpenAPI version parity.
 
 ## Related documentation
 

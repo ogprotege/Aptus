@@ -3,14 +3,41 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import shutil
+import stat
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import __version__
+from .api_contracts import (
+    API_CONTRACT_VERSION,
+    BootstrapResponse,
+    CompileResponse,
+    ErrorResponse,
+    HardwareProbeResponse,
+    HealthResponse,
+    InferenceGenerateResponse,
+    InferenceModelsResponse,
+    InferenceServicesResponse,
+    JobResponse,
+    ModelInspectionResponse,
+    PlatformResponse,
+    ProfileResponse,
+    ProjectRecoveryResponse,
+    ProjectResponse,
+    ProjectRevisionResponse,
+    ProjectRevisionSummary,
+    ProjectSummaryResponse,
+    RuntimeConfiguredResponse,
+    RuntimeInventoryResponse,
+    TrainingPlanResponse,
+    ValidationResponse,
+)
 from .catalog import STACK_VERSIONS, TARGET_MODULES
 from .domain import (
     Backend,
@@ -28,8 +55,9 @@ from .integrations import (
     LocalInferenceError,
     discover_local_inference_services,
 )
+from .local_store import atomic_write_json, private_directory, read_json_object
 from .methods import method_descriptors, selectable_method_ids
-from .plan_contract import validate_bundle_manifest, validate_plan_payload
+from .plan_contract import sha256_file, validate_bundle_manifest, validate_plan_payload
 from .planning import NoFeasiblePlanError, plan_training
 from .profiling import (
     build_hardware_spec,
@@ -43,6 +71,7 @@ from .runtime_env import (
     runtime_inventory,
     validate_runtime_configuration,
 )
+from .projects import ProjectRepository
 
 
 class StrictModel(BaseModel):
@@ -104,15 +133,21 @@ class PlanRequest(StrictModel):
     target: TargetRequest
     dataset_path: str
     sample_limit: int | None = Field(default=512, gt=0)
+    project_id: str | None = Field(default=None, pattern=r"^project_[0-9a-f]{32}$")
+    project_name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class CompileRequest(StrictModel):
     plan_id: str
     output_dir: str
+    project_id: str = Field(pattern=r"^project_[0-9a-f]{32}$")
+    expected_project_revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
 
 
 class ValidateRequest(StrictModel):
     bundle_dir: str
+    project_id: str = Field(pattern=r"^project_[0-9a-f]{32}$")
+    expected_project_revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
     level: Literal[
         "contract", "static", "dependency", "model-data", "measured-preflight", "pilot"
     ] = "static"
@@ -121,6 +156,8 @@ class ValidateRequest(StrictModel):
 
 class JobRequest(StrictModel):
     bundle_dir: str
+    project_id: str = Field(pattern=r"^project_[0-9a-f]{32}$")
+    expected_project_revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
     action: Literal["dependency", "model-data", "preflight", "pilot", "train"] = (
         "preflight"
     )
@@ -156,13 +193,20 @@ class RuntimeConfigureRequest(StrictModel):
     interpreter_path: str = Field(min_length=1, max_length=4096)
 
 
+class ProjectCreateRequest(StrictModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class ProjectRecoverRequest(StrictModel):
+    revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
+
+
 class ApiContext:
     def __init__(self, state_dir: Path) -> None:
         from .execution import JobService
 
-        self.state_dir = state_dir.resolve()
-        self.plans_dir = self.state_dir / "plans"
-        self.plans_dir.mkdir(parents=True, exist_ok=True)
+        self.state_dir = private_directory(state_dir)
+        self.plans_dir = private_directory(self.state_dir / "plans")
         self.current_bundle_path = self.state_dir / "current-bundle.json"
         self.runtime_config_path = self.state_dir / "runtime-config.json"
         self._state_lock = threading.RLock()
@@ -175,7 +219,13 @@ class ApiContext:
             }
         )
         self.jobs = JobService(
-            state_dir / "jobs", runtime_environment=runtime_environment
+            self.state_dir / "jobs", runtime_environment=runtime_environment
+        )
+        self.projects = ProjectRepository(self.state_dir)
+        self.projects.import_legacy(
+            plans_dir=self.plans_dir,
+            current_bundle_path=self.current_bundle_path,
+            jobs=self.jobs.list(),
         )
 
     def _load_runtime_configuration(self) -> dict[str, str]:
@@ -209,21 +259,19 @@ class ApiContext:
     def configure_runtime(
         self, runtime_id: str, interpreter_path: Path
     ) -> dict[str, Any]:
-        from .execution import _atomic_write_json
-
         probe = validate_runtime_configuration(runtime_id, interpreter_path)
         key = runtime_environment_key(runtime_id)
         with self._state_lock:
             self.runtime_paths[runtime_id] = probe.path
             self.jobs.runtime_environment[key] = probe.path
-            _atomic_write_json(
+            atomic_write_json(
                 self.runtime_config_path,
                 {
                     "schema_version": "aptus.runtime-config.v1",
                     "runtimes": dict(sorted(self.runtime_paths.items())),
                 },
+                mode=0o600,
             )
-            self.runtime_config_path.chmod(0o600)
         return {
             "status": "ok",
             "runtime_id": runtime_id,
@@ -233,11 +281,9 @@ class ApiContext:
         }
 
     def save_plan(self, plan: TrainingPlan) -> None:
-        from .execution import _atomic_write_json
-
         path = self.plans_dir / f"{plan.plan_id}.json"
         with self._state_lock:
-            _atomic_write_json(path, to_primitive(plan))
+            atomic_write_json(path, to_primitive(plan), mode=0o600)
 
     def load_plan(self, plan_id: str) -> TrainingPlan | None:
         if not (
@@ -250,34 +296,48 @@ class ApiContext:
         with self._state_lock:
             if not path.is_file():
                 return None
+            if path.is_symlink():
+                raise PermissionError(f"Aptus saved plans cannot be symlinks: {path}")
             value = json.loads(path.read_text(encoding="utf-8"))
         return training_plan_from_primitive(value)
 
-    def save_bundle(self, bundle_dir: Path, archive_path: Path) -> None:
-        from .execution import _atomic_write_json
-
+    def save_bundle(
+        self, bundle_dir: Path, archive_path: Path, *, plan_id: str
+    ) -> None:
         with self._state_lock:
-            _atomic_write_json(
+            atomic_write_json(
                 self.current_bundle_path,
                 {
+                    "schema_version": "aptus.current-bundle.v1",
+                    "plan_id": plan_id,
                     "bundle_dir": str(bundle_dir.resolve()),
                     "archive_path": str(archive_path.resolve()),
                 },
+                mode=0o600,
             )
 
     def load_bundle_reference(self) -> dict[str, str] | None:
         with self._state_lock:
-            if not self.current_bundle_path.is_file():
+            if (
+                self.current_bundle_path.is_symlink()
+                or not self.current_bundle_path.is_file()
+            ):
                 return None
             try:
-                value = json.loads(self.current_bundle_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+                value = read_json_object(
+                    self.current_bundle_path, "Aptus current-bundle reference"
+                )
+            except (OSError, ValueError):
                 return None
-        if not isinstance(value, dict) or not isinstance(value.get("bundle_dir"), str):
+        schema_version = value.get("schema_version")
+        if schema_version not in {None, "aptus.current-bundle.v1"}:
+            return None
+        if not isinstance(value.get("bundle_dir"), str):
             return None
         return {
             "bundle_dir": value["bundle_dir"],
             "archive_path": str(value.get("archive_path", "")),
+            "plan_id": str(value.get("plan_id", "")),
         }
 
 
@@ -346,7 +406,14 @@ def create_app(
         raise ValueError("Desktop session tokens must contain at least 32 characters.")
 
     context = ApiContext((state_dir or Path(".aptus-state")).resolve())
-    app = FastAPI(title="Aptus API", version="0.2.0")
+    app = FastAPI(
+        title="Aptus API",
+        version=__version__,
+        responses={
+            status_code: {"model": ErrorResponse}
+            for status_code in (400, 403, 404, 409, 422, 502, 504)
+        },
+    )
     trusted_hosts = set(allowed_hosts or ())
     trusted_hosts.update({"127.0.0.1", "localhost", "[::1]", "testserver"})
     app.add_middleware(
@@ -501,12 +568,132 @@ def create_app(
             content = {"error": "http_error", "details": detail}
         return JSONResponse(status_code=error.status_code, content=content)
 
-    @app.get("/api/v1/health")
-    @app.get("/health", include_in_schema=False)
-    def health() -> dict[str, str]:
-        return {"status": "ok", "version": "0.2.0"}
+    def require_current_project_revision(
+        *,
+        project_id: str,
+        expected_revision_id: str,
+        plan_id: str | None = None,
+        bundle_dir: Path | None = None,
+    ) -> dict[str, Any]:
+        try:
+            project = context.projects.get(project_id)
+        except (KeyError, OSError, ValueError) as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "project_not_found", "project_id": project_id},
+            ) from error
+        actual_revision_id = project.get("latest_revision_id")
+        if actual_revision_id != expected_revision_id:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "project_revision_conflict",
+                    "project_id": project_id,
+                    "expected_project_revision_id": expected_revision_id,
+                    "actual_project_revision_id": actual_revision_id,
+                },
+            )
+        try:
+            revision = context.projects.revision(project_id, expected_revision_id)
+        except (KeyError, OSError, ValueError) as error:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "project_revision_not_found",
+                    "project_id": project_id,
+                    "revision_id": expected_revision_id,
+                },
+            ) from error
+        if plan_id is not None and revision.get("plan_id") != plan_id:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "project_plan_mismatch",
+                    "project_id": project_id,
+                    "expected_project_revision_id": expected_revision_id,
+                    "plan_id": plan_id,
+                },
+            )
+        if bundle_dir is not None:
+            recorded_bundle = revision.get("bundle")
+            recorded_path = (
+                recorded_bundle.get("bundle_dir")
+                if isinstance(recorded_bundle, dict)
+                else None
+            )
+            if not isinstance(recorded_path, str) or (
+                Path(recorded_path).resolve() != bundle_dir.resolve()
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "project_bundle_mismatch",
+                        "project_id": project_id,
+                        "expected_project_revision_id": expected_revision_id,
+                        "bundle_dir": str(bundle_dir.resolve()),
+                    },
+                )
+            try:
+                revision = context.projects.validate_revision_artifacts(
+                    project_id, expected_revision_id
+                )
+            except (KeyError, OSError, ValueError) as error:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "project_bundle_binding_mismatch",
+                        "project_id": project_id,
+                        "expected_project_revision_id": expected_revision_id,
+                        "bundle_dir": str(bundle_dir.resolve()),
+                        "message": str(error),
+                    },
+                ) from error
+        return revision
 
-    @app.get("/api/v1/bootstrap")
+    def create_current_project_revision(
+        *,
+        project_id: str,
+        expected_revision_id: str,
+        reason: str,
+        **changes: Any,
+    ) -> dict[str, Any]:
+        try:
+            return context.projects.create_revision(
+                project_id,
+                reason=reason,
+                base_revision_id=expected_revision_id,
+                expected_latest_revision_id=expected_revision_id,
+                **changes,
+            )
+        except ValueError as error:
+            try:
+                actual_revision_id = context.projects.get(project_id).get(
+                    "latest_revision_id"
+                )
+            except (KeyError, OSError, ValueError):
+                raise error
+            if actual_revision_id != expected_revision_id:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "project_revision_conflict",
+                        "project_id": project_id,
+                        "expected_project_revision_id": expected_revision_id,
+                        "actual_project_revision_id": actual_revision_id,
+                    },
+                ) from error
+            raise
+
+    @app.get("/api/v1/health", response_model=HealthResponse)
+    @app.get("/health", include_in_schema=False, response_model=HealthResponse)
+    def health() -> dict[str, str]:
+        return {
+            "status": "ok",
+            "version": __version__,
+            "api_contract_version": API_CONTRACT_VERSION,
+        }
+
+    @app.get("/api/v1/bootstrap", response_model=BootstrapResponse)
     def bootstrap() -> dict[str, Any]:
         preferred_backend = (
             Backend.MPS.value if sys.platform == "darwin" else Backend.CUDA.value
@@ -517,6 +704,8 @@ def create_app(
             else "transformers-peft-cuda"
         )
         method_catalog = [to_primitive(item) for item in method_descriptors()]
+        projects = context.projects.list()
+        current_project = context.projects.current()
         capabilities = {
             "backends": [Backend.CUDA.value, Backend.MPS.value],
             "known_backends": [item.value for item in Backend],
@@ -544,12 +733,13 @@ def create_app(
             ],
         }
         result = {
-            "version": "0.2.0",
+            "api_contract_version": API_CONTRACT_VERSION,
+            "version": __version__,
             **capabilities,
             "stack_versions": STACK_VERSIONS,
             "evidence": [to_primitive(item) for item in EVIDENCE_REGISTRY.values()],
             "calibrated": False,
-            "service": {"name": "aptus", "version": "0.2.0", "scope": "local-host"},
+            "service": {"name": "aptus", "version": __version__, "scope": "local-host"},
             "capabilities": capabilities,
             "defaults": {
                 "sample_limit": 512,
@@ -559,25 +749,86 @@ def create_app(
                 "task": "sft",
                 "packing": False,
             },
+            "projects": projects,
+            "project": current_project,
+            "project_history": (
+                context.projects.history(current_project["project_id"])
+                if current_project is not None
+                else []
+            ),
         }
+        current_revision = (
+            current_project.get("latest_revision")
+            if isinstance(current_project, dict)
+            else None
+        )
+        current_revision_job_ids = (
+            {
+                str(job_id)
+                for job_id in current_revision.get("job_ids", [])
+                if isinstance(job_id, str)
+            }
+            if isinstance(current_revision, dict)
+            else set()
+        )
+        current_revision_bundle = (
+            current_revision.get("bundle")
+            if isinstance(current_revision, dict)
+            else None
+        )
+        current_revision_bundle_dir = (
+            current_revision_bundle.get("bundle_dir")
+            if isinstance(current_revision_bundle, dict)
+            else None
+        )
+
+        def job_matches_current_revision(item: dict[str, Any]) -> bool:
+            if current_project is None:
+                return True
+            job_bundle_dir = item.get("bundle_dir")
+            if (
+                item.get("id") not in current_revision_job_ids
+                or not isinstance(current_revision_bundle_dir, str)
+                or not isinstance(job_bundle_dir, str)
+            ):
+                return False
+            return (
+                Path(job_bundle_dir).resolve()
+                == Path(current_revision_bundle_dir).resolve()
+            )
+
         jobs = context.jobs.list()
         active_job = next(
             (
                 item
                 for item in jobs
                 if item.get("state") in {"queued", "running", "cancelling"}
+                and job_matches_current_revision(item)
             ),
             None,
         )
-        if active_job is not None:
+        if active_job is not None and current_project is None:
             result["job"] = active_job
 
         saved_reference = context.load_bundle_reference()
-        references: list[dict[str, str]] = []
+        references: list[dict[str, Any]] = []
         if active_job is not None and isinstance(active_job.get("bundle_dir"), str):
             active_archive = ""
+            active_archive_sha256 = None
+            active_archive_size_bytes = None
+            if isinstance(
+                current_revision_bundle, dict
+            ) and current_revision_bundle.get("bundle_dir") == active_job.get(
+                "bundle_dir"
+            ):
+                active_archive = str(current_revision_bundle.get("archive_path") or "")
+                active_archive_sha256 = current_revision_bundle.get("archive_sha256")
+                active_archive_size_bytes = current_revision_bundle.get(
+                    "archive_size_bytes"
+                )
             if (
-                saved_reference is not None
+                not active_archive
+                and saved_reference is not None
                 and Path(saved_reference["bundle_dir"]).resolve()
                 == Path(active_job["bundle_dir"]).resolve()
             ):
@@ -586,10 +837,38 @@ def create_app(
                 {
                     "bundle_dir": active_job["bundle_dir"],
                     "archive_path": active_archive,
+                    "archive_sha256": active_archive_sha256,
+                    "archive_size_bytes": active_archive_size_bytes,
+                    "current_revision_bound": current_project is not None,
                 }
             )
-        if saved_reference is not None and all(
-            item["bundle_dir"] != saved_reference["bundle_dir"] for item in references
+        current_project_bundle = (
+            current_revision.get("bundle")
+            if isinstance(current_revision, dict)
+            else None
+        )
+        if isinstance(current_project_bundle, dict) and isinstance(
+            current_project_bundle.get("bundle_dir"), str
+        ):
+            project_reference = {
+                "bundle_dir": current_project_bundle["bundle_dir"],
+                "archive_path": str(current_project_bundle.get("archive_path") or ""),
+                "archive_sha256": current_project_bundle.get("archive_sha256"),
+                "archive_size_bytes": current_project_bundle.get("archive_size_bytes"),
+                "current_revision_bound": True,
+            }
+            if all(
+                item["bundle_dir"] != project_reference["bundle_dir"]
+                for item in references
+            ):
+                references.append(project_reference)
+        if (
+            current_project is None
+            and saved_reference is not None
+            and all(
+                item["bundle_dir"] != saved_reference["bundle_dir"]
+                for item in references
+            )
         ):
             references.append(saved_reference)
 
@@ -615,6 +894,40 @@ def create_app(
                 continue
             if not isinstance(manifest_payload, dict):
                 continue
+            if reference.get("current_revision_bound") is True:
+                expected_plan_id = (
+                    current_revision.get("plan_id")
+                    if isinstance(current_revision, dict)
+                    else None
+                )
+                expected_candidate_id = (
+                    current_revision.get("selected_candidate_id")
+                    if isinstance(current_revision, dict)
+                    else None
+                )
+                recommended = plan_payload.get("recommended")
+                loaded_candidate_id = (
+                    recommended.get("candidate_id")
+                    if isinstance(recommended, dict)
+                    else None
+                )
+                expected_fingerprint = (
+                    current_revision_bundle.get("artifact_fingerprint")
+                    if isinstance(current_revision_bundle, dict)
+                    else None
+                )
+                if (
+                    not isinstance(expected_plan_id, str)
+                    or plan_payload.get("plan_id") != expected_plan_id
+                    or manifest_payload.get("plan_id") != expected_plan_id
+                    or not isinstance(expected_candidate_id, str)
+                    or loaded_candidate_id != expected_candidate_id
+                    or manifest_payload.get("candidate_id") != expected_candidate_id
+                    or not isinstance(expected_fingerprint, str)
+                    or sha256_file(bundle_dir / "bundle-manifest.json")
+                    != expected_fingerprint
+                ):
+                    continue
             dataset_value = plan_payload.get("dataset", {})
             dataset_path = dataset_value.get("source_path")
             dataset_digest = dataset_value.get("source_sha256")
@@ -685,14 +998,31 @@ def create_app(
                     "prelaunch_capacity_check": authorization["capacity"],
                 }
             archive_path = Path(reference["archive_path"])
-            result["plan"] = plan_payload
+            archive_matches = bool(
+                reference["archive_path"]
+                and archive_path.is_file()
+                and not archive_path.is_symlink()
+                and isinstance(reference.get("archive_sha256"), str)
+                and isinstance(reference.get("archive_size_bytes"), int)
+                and not isinstance(reference.get("archive_size_bytes"), bool)
+                and archive_path.stat().st_size == reference["archive_size_bytes"]
+                and sha256_file(archive_path) == reference["archive_sha256"]
+            )
+            result["plan"] = {
+                **plan_payload,
+                **(
+                    {
+                        "project_id": current_revision["project_id"],
+                        "project_revision_id": current_revision["revision_id"],
+                    }
+                    if reference.get("current_revision_bound") is True
+                    and isinstance(current_revision, dict)
+                    else {}
+                ),
+            }
             result["bundle"] = {
                 "bundle_dir": str(bundle_dir),
-                "archive_path": (
-                    str(archive_path)
-                    if reference["archive_path"] and archive_path.is_file()
-                    else None
-                ),
+                "archive_path": (str(archive_path) if archive_matches else None),
                 "files": bundle_files(bundle_dir),
                 "runtime_contract": (
                     plan_payload.get("recommended", {}).get("runtime_contract")
@@ -700,24 +1030,52 @@ def create_app(
                     else None
                 ),
                 "report": report_payload,
+                **(
+                    {
+                        "project_id": current_revision["project_id"],
+                        "project_revision_id": current_revision["revision_id"],
+                    }
+                    if reference.get("current_revision_bound") is True
+                    and isinstance(current_revision, dict)
+                    else {}
+                ),
             }
             restored_bundle_dir = bundle_dir
             break
 
+        if (
+            active_job is not None
+            and current_project is not None
+            and restored_bundle_dir is not None
+            and isinstance(active_job.get("bundle_dir"), str)
+            and Path(active_job["bundle_dir"]).resolve() == restored_bundle_dir
+        ):
+            result["job"] = active_job
         if active_job is None and restored_bundle_dir is not None:
             matching_job = next(
                 (
                     item
                     for item in jobs
                     if item.get("bundle_dir") == str(restored_bundle_dir)
+                    and job_matches_current_revision(item)
                 ),
                 None,
             )
             if matching_job is not None:
                 result["job"] = matching_job
+        if "plan" not in result and isinstance(current_revision, dict):
+            plan_snapshot = current_revision.get("plan_snapshot")
+            if isinstance(plan_snapshot, dict) and not validate_plan_payload(
+                plan_snapshot, verify_dataset=False
+            ):
+                result["plan"] = {
+                    **plan_snapshot,
+                    "project_id": current_revision["project_id"],
+                    "project_revision_id": current_revision["revision_id"],
+                }
         return result
 
-    @app.get("/api/v1/hardware")
+    @app.get("/api/v1/hardware", response_model=HardwareProbeResponse)
     def inspect_hardware() -> dict[str, Any]:
         try:
             with context.jobs.validation_guard():
@@ -740,15 +1098,27 @@ def create_app(
             "hardware": to_primitive(hardware),
         }
 
-    @app.get("/api/v1/runtimes")
+    @app.get("/api/v1/runtimes", response_model=RuntimeInventoryResponse)
     def inspect_runtimes() -> dict[str, Any]:
         inventory = runtime_inventory(environment=context.jobs.runtime_environment)
         return {
             **inventory,
+            "interpreters": inventory.get("interpreters", []),
+            "configuration": inventory.get(
+                "configuration",
+                {
+                    runtime_id: runtime_environment_key(runtime_id)
+                    for runtime_id in (
+                        "mlx-lm",
+                        "pytorch-mps",
+                        "transformers-peft-cuda",
+                    )
+                },
+            ),
             "selected": dict(sorted(context.runtime_paths.items())),
         }
 
-    @app.post("/api/v1/runtimes/configure")
+    @app.post("/api/v1/runtimes/configure", response_model=RuntimeConfiguredResponse)
     def configure_runtime(request: RuntimeConfigureRequest) -> dict[str, Any]:
         try:
             return context.configure_runtime(
@@ -764,7 +1134,7 @@ def create_app(
                 },
             ) from error
 
-    @app.get("/api/v1/platform")
+    @app.get("/api/v1/platform", response_model=PlatformResponse)
     def inspect_platform() -> dict[str, Any]:
         try:
             profile = probe_apple_platform()
@@ -776,7 +1146,7 @@ def create_app(
             }
         return {"status": "ok", "platform": profile.to_dict()}
 
-    @app.get("/api/v1/inference/services")
+    @app.get("/api/v1/inference/services", response_model=InferenceServicesResponse)
     def inspect_inference_services() -> dict[str, Any]:
         return {
             "status": "ok",
@@ -792,11 +1162,11 @@ def create_app(
             timeout=request.timeout_seconds,
         )
 
-    @app.post("/api/v1/inference/models")
+    @app.post("/api/v1/inference/models", response_model=InferenceModelsResponse)
     def list_inference_models(request: InferenceServiceRequest) -> dict[str, Any]:
         return inference_client(request).list_models()
 
-    @app.post("/api/v1/inference/generate")
+    @app.post("/api/v1/inference/generate", response_model=InferenceGenerateResponse)
     def generate_with_inference_service(
         request: InferenceGenerateRequest,
     ) -> dict[str, Any]:
@@ -807,7 +1177,7 @@ def create_app(
             temperature=request.temperature,
         )
 
-    @app.post("/api/v1/models/inspect")
+    @app.post("/api/v1/models/inspect", response_model=ModelInspectionResponse)
     def inspect_model(request: ModelInspectRequest) -> dict[str, Any]:
         return inspect_huggingface_model(
             request.model_id,
@@ -815,7 +1185,7 @@ def create_app(
             timeout=request.timeout_seconds,
         )
 
-    @app.post("/api/v1/profile")
+    @app.post("/api/v1/profile", response_model=ProfileResponse)
     def profile(request: ProfileRequest) -> dict[str, Any]:
         return to_primitive(
             profile_dataset(
@@ -825,7 +1195,7 @@ def create_app(
             )
         )
 
-    @app.post("/api/v1/plan")
+    @app.post("/api/v1/plan", response_model=TrainingPlanResponse)
     def plan(request: PlanRequest) -> dict[str, Any]:
         try:
             if request.hardware.discovery == "local-scan":
@@ -839,9 +1209,24 @@ def create_app(
                 detail={"error": "active_job_conflict", "message": str(error)},
             ) from error
         context.save_plan(result)
-        return to_primitive(result)
+        plan_payload = to_primitive(result)
+        project_id, revision = context.projects.record_plan(
+            project_id=request.project_id,
+            project_name=(
+                request.project_name or f"{request.model.model_id} fine-tuning"
+            ),
+            facts=request.model_dump(
+                mode="json", exclude={"project_id", "project_name"}
+            ),
+            plan=plan_payload,
+        )
+        return {
+            **plan_payload,
+            "project_id": project_id,
+            "project_revision_id": revision["revision_id"],
+        }
 
-    @app.get("/api/v1/plans/{plan_id}")
+    @app.get("/api/v1/plans/{plan_id}", response_model=TrainingPlanResponse)
     def get_plan(plan_id: str) -> dict[str, Any]:
         result = context.load_plan(plan_id)
         if result is None:
@@ -850,22 +1235,41 @@ def create_app(
             )
         return to_primitive(result)
 
-    @app.post("/api/v1/compile")
+    @app.post("/api/v1/compile", response_model=CompileResponse)
     def compile_artifacts(request: CompileRequest) -> dict[str, Any]:
+        source_revision = require_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            plan_id=request.plan_id,
+        )
         plan_value = context.load_plan(request.plan_id)
         if plan_value is None:
             raise HTTPException(
                 status_code=404,
                 detail={"error": "plan_not_found", "plan_id": request.plan_id},
             )
+        plan_payload = to_primitive(plan_value)
+        if source_revision.get("plan_snapshot") != plan_payload:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "project_plan_snapshot_mismatch",
+                    "project_id": request.project_id,
+                    "expected_project_revision_id": request.expected_project_revision_id,
+                    "plan_id": request.plan_id,
+                },
+            )
         bundle_dir = Path(request.output_dir).resolve()
         archive_target = bundle_dir.with_suffix(".zip")
         if archive_target.exists():
             raise FileExistsError(f"Archive output already exists: {archive_target}")
+        bundle_preexisted = bundle_dir.is_dir() and not bundle_dir.is_symlink()
+        bundle_preexisting_mode = (
+            stat.S_IMODE(bundle_dir.stat().st_mode) if bundle_preexisted else None
+        )
         report = generate_bundle(plan_value, bundle_dir)
         archive = create_bundle_archive(bundle_dir)
-        context.save_bundle(bundle_dir, archive)
-        return {
+        response = {
             "bundle_dir": str(bundle_dir),
             "archive_path": str(archive),
             "files": bundle_files(bundle_dir),
@@ -874,8 +1278,74 @@ def create_app(
             ),
             "report": to_primitive(report),
         }
+        bundle_metadata = bundle_dir.stat()
+        archive_metadata = archive.stat()
+        artifact_fingerprint = response["report"].get("artifact_fingerprint")
+        archive_fingerprint = sha256_file(archive)
+        archive_size_bytes = archive_metadata.st_size
+        try:
+            revision = create_current_project_revision(
+                project_id=request.project_id,
+                expected_revision_id=request.expected_project_revision_id,
+                reason="bundle-compiled",
+                plan_id=request.plan_id,
+                bundle={
+                    "bundle_dir": str(bundle_dir),
+                    "archive_path": str(archive),
+                    "files": response["files"],
+                    "artifact_fingerprint": artifact_fingerprint,
+                    "archive_sha256": archive_fingerprint,
+                    "archive_size_bytes": archive_size_bytes,
+                },
+                validation={
+                    "state": response["report"].get("state"),
+                    "report": response["report"],
+                    "report_path": str(bundle_dir / "validation-report.json"),
+                },
+            )
+        except HTTPException as error:
+            detail = error.detail
+            if (
+                error.status_code == 409
+                and isinstance(detail, dict)
+                and detail.get("error") == "project_revision_conflict"
+            ):
+                archive_is_generated = False
+                if archive.is_file() and not archive.is_symlink():
+                    current_archive = archive.stat()
+                    archive_is_generated = bool(
+                        current_archive.st_dev == archive_metadata.st_dev
+                        and current_archive.st_ino == archive_metadata.st_ino
+                        and current_archive.st_size == archive_size_bytes
+                        and sha256_file(archive) == archive_fingerprint
+                    )
+                if archive_is_generated:
+                    archive.unlink()
+                bundle_is_generated = False
+                if bundle_dir.is_dir() and not bundle_dir.is_symlink():
+                    current_bundle = bundle_dir.stat()
+                    manifest_path = bundle_dir / "bundle-manifest.json"
+                    bundle_is_generated = bool(
+                        current_bundle.st_dev == bundle_metadata.st_dev
+                        and current_bundle.st_ino == bundle_metadata.st_ino
+                        and isinstance(artifact_fingerprint, str)
+                        and manifest_path.is_file()
+                        and not manifest_path.is_symlink()
+                        and sha256_file(manifest_path) == artifact_fingerprint
+                    )
+                if bundle_is_generated:
+                    shutil.rmtree(bundle_dir)
+                    if bundle_preexisted:
+                        bundle_dir.mkdir(parents=True, exist_ok=True)
+                        if bundle_preexisting_mode is not None:
+                            bundle_dir.chmod(bundle_preexisting_mode)
+            raise
+        response["project_id"] = revision["project_id"]
+        response["project_revision_id"] = revision["revision_id"]
+        context.save_bundle(bundle_dir, archive, plan_id=request.plan_id)
+        return response
 
-    @app.post("/api/v1/validate")
+    @app.post("/api/v1/validate", response_model=ValidationResponse)
     def validate(request: ValidateRequest) -> dict[str, Any]:
         if request.run and request.level in {
             "dependency",
@@ -910,10 +1380,25 @@ def create_app(
                 },
             )
         bundle_dir = Path(request.bundle_dir).resolve()
+        require_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            bundle_dir=bundle_dir,
+        )
         try:
             with context.jobs.validation_guard():
+                require_current_project_revision(
+                    project_id=request.project_id,
+                    expected_revision_id=request.expected_project_revision_id,
+                    bundle_dir=bundle_dir,
+                )
                 report = to_primitive(
                     validate_bundle(bundle_dir, level=request.level, run=request.run)
+                )
+                require_current_project_revision(
+                    project_id=request.project_id,
+                    expected_revision_id=request.expected_project_revision_id,
+                    bundle_dir=bundle_dir,
                 )
                 if report.get("state") in {
                     "pilot-pass",
@@ -935,9 +1420,24 @@ def create_app(
                     "message": str(error),
                 },
             ) from error
+        revision = create_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            reason="bundle-validated",
+            validation={
+                "state": report.get("state"),
+                "report": dict(report),
+                "report_path": str(bundle_dir / "validation-report.json"),
+            },
+        )
+        report = {
+            **report,
+            "project_id": revision["project_id"],
+            "project_revision_id": revision["revision_id"],
+        }
         return report
 
-    @app.post("/api/v1/jobs")
+    @app.post("/api/v1/jobs", response_model=JobResponse)
     def create_job(request: JobRequest) -> dict[str, Any]:
         if not execution_enabled:
             raise HTTPException(
@@ -951,11 +1451,48 @@ def create_app(
                     ),
                 },
             )
+        bundle_dir = Path(request.bundle_dir).resolve()
+        require_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            bundle_dir=bundle_dir,
+        )
+
+        def persist_job_revision(job_record: Mapping[str, Any]) -> dict[str, str]:
+            require_current_project_revision(
+                project_id=request.project_id,
+                expected_revision_id=request.expected_project_revision_id,
+                bundle_dir=bundle_dir,
+            )
+            revision = create_current_project_revision(
+                project_id=request.project_id,
+                expected_revision_id=request.expected_project_revision_id,
+                reason="job-submitted",
+                job_ids=[str(job_record["id"])],
+            )
+            return {
+                "project_id": str(revision["project_id"]),
+                "project_revision_id": str(revision["revision_id"]),
+            }
+
         try:
             return context.jobs.submit(
-                Path(request.bundle_dir),
+                bundle_dir,
                 action=request.action,
                 confirm_full_train=request.confirm_full_train,
+                admission_check=lambda: require_current_project_revision(
+                    project_id=request.project_id,
+                    expected_revision_id=request.expected_project_revision_id,
+                    bundle_dir=bundle_dir,
+                ),
+                expected_artifact_fingerprint=str(
+                    require_current_project_revision(
+                        project_id=request.project_id,
+                        expected_revision_id=request.expected_project_revision_id,
+                        bundle_dir=bundle_dir,
+                    )["bundle"]["artifact_fingerprint"]
+                ),
+                before_start=persist_job_revision,
             )
         except JobPrerequisiteError as error:
             raise HTTPException(
@@ -986,7 +1523,7 @@ def create_app(
                 },
             ) from error
 
-    @app.get("/api/v1/jobs/{job_id}")
+    @app.get("/api/v1/jobs/{job_id}", response_model=JobResponse)
     def get_job(job_id: str) -> dict[str, Any]:
         try:
             return context.jobs.get(job_id)
@@ -995,7 +1532,7 @@ def create_app(
                 status_code=404, detail={"error": "job_not_found", "job_id": job_id}
             ) from None
 
-    @app.post("/api/v1/jobs/{job_id}/cancel")
+    @app.post("/api/v1/jobs/{job_id}/cancel", response_model=JobResponse)
     def cancel_job(job_id: str) -> dict[str, Any]:
         try:
             return context.jobs.cancel(job_id)
@@ -1004,9 +1541,83 @@ def create_app(
                 status_code=404, detail={"error": "job_not_found", "job_id": job_id}
             ) from None
 
-    @app.get("/api/v1/jobs")
+    @app.get("/api/v1/jobs", response_model=list[JobResponse])
     def list_jobs() -> list[dict[str, Any]]:
         return context.jobs.list()
+
+    @app.post("/api/v1/projects", status_code=201, response_model=ProjectResponse)
+    def create_project(request: ProjectCreateRequest) -> dict[str, Any]:
+        project = context.projects.create(request.name)
+        return context.projects.get(project["project_id"])
+
+    @app.get("/api/v1/projects", response_model=list[ProjectSummaryResponse])
+    def list_projects() -> list[dict[str, Any]]:
+        return context.projects.list()
+
+    @app.get("/api/v1/projects/{project_id}", response_model=ProjectResponse)
+    def get_project(project_id: str) -> dict[str, Any]:
+        try:
+            return context.projects.get(project_id)
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "project_not_found", "project_id": project_id},
+            ) from None
+
+    @app.get(
+        "/api/v1/projects/{project_id}/revisions",
+        response_model=list[ProjectRevisionSummary],
+    )
+    def list_project_revisions(project_id: str) -> list[dict[str, Any]]:
+        try:
+            return context.projects.history(project_id)
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "project_not_found", "project_id": project_id},
+            ) from None
+
+    @app.get(
+        "/api/v1/projects/{project_id}/revisions/{revision_id}",
+        response_model=ProjectRevisionResponse,
+    )
+    def get_project_revision(project_id: str, revision_id: str) -> dict[str, Any]:
+        try:
+            return context.projects.revision(project_id, revision_id)
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "project_revision_not_found",
+                    "project_id": project_id,
+                    "revision_id": revision_id,
+                },
+            ) from None
+
+    @app.post(
+        "/api/v1/projects/{project_id}/recover",
+        response_model=ProjectRecoveryResponse,
+    )
+    def recover_project_revision(
+        project_id: str, request: ProjectRecoverRequest
+    ) -> dict[str, Any]:
+        try:
+            revision = context.projects.recover(project_id, request.revision_id)
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "project_revision_not_found",
+                    "project_id": project_id,
+                    "revision_id": request.revision_id,
+                },
+            ) from None
+        return {
+            "status": "recovered",
+            "project_id": project_id,
+            "revision": revision,
+            "training_authorization_current": False,
+        }
 
     resolved_static = _resolve_static_dir(static_dir)
     if resolved_static is not None:

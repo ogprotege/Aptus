@@ -5,8 +5,8 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when the method registry, planner, or compiler changes |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when the method registry, planner, or compiler changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
 marked supported can become viable when all facts and analytic gates pass. It
@@ -15,8 +15,9 @@ requires static, dependency, model-data, measured-preflight, and pilot evidence.
 MLX-LM uses the same state ladder with a runtime-specific uninterrupted pilot.
 A current `pilot-pass` can authorize explicit full-duration adapter training.
 
-No real CUDA or MLX-LM pilot has been recorded for this release. Aptus v0.2 is
-not release-ready.
+Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` in the
+[2026-07-27 acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
+No real CUDA target-host pilot has been recorded. Aptus v0.2 remains unreleased.
 
 ## CUDA method and placement matrix
 

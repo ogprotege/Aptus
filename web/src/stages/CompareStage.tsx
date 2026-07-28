@@ -5,6 +5,7 @@ import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { StageHeader } from "../components/StageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import {
+  candidateMemoryLanguage,
   candidateStatus,
   formatBytes,
   formatMethod,
@@ -18,7 +19,7 @@ interface CompareStageProps {
   selected: CandidatePlan | null;
   busy: string | null;
   demoMode: boolean;
-  onSelectCandidate: (candidate: CandidatePlan) => void;
+  onInspectCandidate: (candidate: CandidatePlan) => void;
   onCompile: () => Promise<void>;
   onReturnToFacts: () => void;
 }
@@ -28,7 +29,7 @@ export function CompareStage({
   selected,
   busy,
   demoMode,
-  onSelectCandidate,
+  onInspectCandidate,
   onCompile,
   onReturnToFacts,
 }: CompareStageProps) {
@@ -59,6 +60,7 @@ export function CompareStage({
   const evidenceById = new Map<string, EvidenceRecord>(
     (plan.evidence_records ?? []).map((record) => [record.evidence_id, record]),
   );
+  const recommendedMemoryLanguage = candidateMemoryLanguage(recommended);
 
   return (
     <>
@@ -86,7 +88,7 @@ export function CompareStage({
               <dd>{formatBytes(upper)}</dd>
             </div>
             <div>
-              <dt>Usable per device</dt>
+              <dt>{recommendedMemoryLanguage.recommendationLabel}</dt>
               <dd>{formatBytes(limit)}</dd>
             </div>
             <div>
@@ -112,8 +114,8 @@ export function CompareStage({
       <CandidateComparison
         candidates={plan.candidates}
         recommended={recommended}
-        selected={selected}
-        onSelect={onSelectCandidate}
+        inspected={selected}
+        onInspect={onInspectCandidate}
       />
 
       {inspected ? (
@@ -199,7 +201,7 @@ export function CompareStage({
       <div className="sticky-actions">
         <div>
           <strong>{recommended ? "Recommended plan ready to compile" : "Compilation blocked"}</strong>
-          <span>{recommended ? "Row selection only changes the inspected evidence. Compilation uses the recommended candidate shown above." : "A recommended viable candidate is required."}</span>
+          <span>{recommended ? "Inspecting an alternative only changes the evidence shown. Compilation uses the recommended candidate above." : "A recommended viable candidate is required."}</span>
         </div>
         <div className="action-buttons">
           <button type="button" className="button button-quiet" onClick={onReturnToFacts}>Edit facts</button>

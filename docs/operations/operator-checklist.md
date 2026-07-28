@@ -1,6 +1,6 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
@@ -31,6 +31,15 @@ authentication but sends its credential over plain HTTP. It does not add TLS,
 tenant isolation, filesystem scoping, or worker isolation.
 
 ## Before starting the local service
+
+Run the read-only environment check first:
+
+```bash
+aptus doctor --state-dir .aptus-state
+```
+
+Exit `0` means a compatible training interpreter was observed. Exit `2` means
+action is required. The doctor installs nothing.
 
 - [ ] Bind `aptus serve` to `127.0.0.1`, `localhost`, or `::1`.
 - [ ] Protect the printed workbench URL and bearer token as credentials.
@@ -99,10 +108,17 @@ With the default root:
 .aptus-state/
   plans/                 persisted API plans
   current-bundle.json    restorable bundle pointer
+  current-project.json   current named-project pointer
+  runtime-config.json    validated external interpreter choices
+  projects/              manifests and immutable revision records
   jobs/
     job_<id>.json        atomic managed job record
     job_<id>.log         complete managed job log
+  quarantine/            contained corrupt records and reason receipts
 ```
+
+Project recovery creates a new revision and never restores training
+authorization. Revalidate and reconfirm before a later train action.
 
 The bundle holds its own mutable validation report, pilot output, and run
 directories. On POSIX, a per-user lease directory is created under `/tmp`.

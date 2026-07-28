@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -22,6 +22,7 @@ operational evidence, future work, research inputs, and historical records.
 | Change the code | [Contributor index](contributing/index.md) | [Code map](architecture/code-map.md) |
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
+| Inspect the real MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
 | Review source research | [Research index](research/index.md) | [Retained Reference packet](../Reference/README.md) |
 
 ## Documentation status legend
@@ -91,6 +92,7 @@ Authority labels have a separate meaning:
 - [Reference index](reference/index.md)
 - [CLI reference](reference/cli.md)
 - [API reference](reference/api.md)
+- [Generated OpenAPI contract](reference/openapi.v1.json)
 - [Configuration and defaults](reference/configuration-defaults.md)
 - [Dataset schemas](reference/dataset-schemas.md)
 - [Method registry](reference/method-registry.md)
@@ -111,6 +113,7 @@ Authority labels have a separate meaning:
 - [State, storage, and retention](operations/state-storage-retention.md)
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
+- [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [Apple Silicon runtime and pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 
@@ -152,7 +155,7 @@ Authority labels have a separate meaning:
 | What is supported now? | [Capability matrix](reference/capability-matrix.md) and `src/aptus/methods/registry.py` |
 | What does a validation state prove? | [Validation states](reference/validation-states.md) |
 | What files belong to a bundle? | [Bundle manifest](reference/bundle-manifest.md) |
-| What does the API accept? | [API reference](reference/api.md) and strict models in `src/aptus/api.py` |
+| What does the API accept? | [API reference](reference/api.md), `src/aptus/api_contracts.py`, and the [generated OpenAPI contract](reference/openapi.v1.json) |
 | What does the CLI accept? | [CLI reference](reference/cli.md) and parser in `src/aptus/cli.py` |
 | How are candidates ranked? | [Ranking and uncertainty](methodology/ranking-uncertainty.md) |
 | How is memory estimated? | [Memory estimation](methodology/memory-estimation.md) |
@@ -164,7 +167,8 @@ Authority labels have a separate meaning:
 Repository tests are necessary but do not replace target-runtime evidence.
 Apple Silicon MLX-LM LoRA and QLoRA implement dependency, model-data, and
 measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
-full-duration adapter training from the pinned base model. Fresh-process adapter
+full-duration adapter training from the pinned base model. Two clean workflows
+reached `measured-run-pass` in the dated acceptance record. Fresh-process adapter
 reload and bounded generation prove that the emitted adapter can be loaded. They
 do not prove training resume. CUDA training remains an external-host path on
-this Mac. No MLX or CUDA full run is claimed for the release record.
+this Mac, with no qualifying target-host run recorded.

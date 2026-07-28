@@ -12,10 +12,10 @@ enum MLXRuntimeConfigurationState: Equatable {
 }
 
 final class DesktopShellModel: ObservableObject {
-    @Published var selection: DesktopDestination = .home
-    @Published var isWorkbenchPresented: Bool
+    @Published var selection: DesktopDestination
     @Published var workbenchErrorMessage: String?
     @Published var mlxRuntimeConfiguration: MLXRuntimeConfigurationState
+    @Published var mlxInterpreterCandidates: [MLXInterpreterCandidate]
     @Published var mlxRuntimeConfigurationErrorMessage: String?
     @Published var platformMemorySnapshotState: PlatformMemorySnapshotState
 
@@ -29,14 +29,13 @@ final class DesktopShellModel: ObservableObject {
 
     init(
         machine: MachineProfile = MachineProfiler.current(),
-        presentsWorkbenchImmediately: Bool = false,
         retryWorkbench: (() -> Void)? = nil,
         runtimeConfigurator: RuntimeConfiguring? = nil,
         runtimeInventoryLoader: RuntimeInventoryLoading? = nil,
         platformSnapshotLoader: PlatformSnapshotLoading? = nil
     ) {
         self.machine = machine
-        isWorkbenchPresented = presentsWorkbenchImmediately
+        selection = .workbench
         self.retryWorkbench = retryWorkbench
         self.runtimeConfigurator = runtimeConfigurator
         self.runtimeInventoryLoader = runtimeInventoryLoader
@@ -44,6 +43,7 @@ final class DesktopShellModel: ObservableObject {
         mlxRuntimeConfiguration = runtimeInventoryLoader == nil
             ? .notConfigured
             : .loading
+        mlxInterpreterCandidates = []
         mlxRuntimeConfigurationErrorMessage = nil
         platformMemorySnapshotState = platformSnapshotLoader == nil
             ? .unavailable
@@ -62,11 +62,10 @@ final class DesktopShellModel: ObservableObject {
             workbenchNeedsRetry = false
         }
         workbenchErrorMessage = nil
-        isWorkbenchPresented = true
+        selection = .workbench
     }
 
     func reportWorkbenchFailure(_ message: String) {
-        isWorkbenchPresented = false
         workbenchNeedsRetry = true
         workbenchErrorMessage = message
     }
@@ -96,13 +95,14 @@ final class DesktopShellModel: ObservableObject {
         let generation = runtimeStateGeneration
         mlxRuntimeConfiguration = .loading
         mlxRuntimeConfigurationErrorMessage = nil
-        runtimeInventoryLoader.loadPersistedMLXRuntime { [weak self] result in
+        runtimeInventoryLoader.loadMLXRuntimeInventory { [weak self] result in
             guard let self, self.runtimeStateGeneration == generation else {
                 return
             }
             switch result {
-            case let .success(selection):
-                switch selection {
+            case let .success(inventory):
+                self.mlxInterpreterCandidates = inventory.candidates
+                switch inventory.selection {
                 case .notConfigured:
                     self.mlxRuntimeConfiguration = .notConfigured
                 case let .configured(path):
@@ -119,6 +119,7 @@ final class DesktopShellModel: ObservableObject {
                     )
                 }
             case let .failure(error):
+                self.mlxInterpreterCandidates = []
                 self.mlxRuntimeConfiguration = .inventoryUnavailable(
                     message: error.localizedDescription
                 )
@@ -216,15 +217,6 @@ struct AptusDesktopShellView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Private local service connected")
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: model.openWorkbench) {
-                    Label("Workbench", systemImage: "slider.horizontal.3")
-                }
-                .help("Open the full Aptus workbench")
-            }
-        }
-        .sheet(isPresented: $model.isWorkbenchPresented) {
-            WorkbenchSheet(controller: workbenchController)
         }
         .alert(
             "Workbench unavailable",
@@ -233,7 +225,10 @@ struct AptusDesktopShellView: View {
                 set: { if !$0 { model.workbenchErrorMessage = nil } }
             )
         ) {
-            Button("OK", role: .cancel) {
+            Button("Retry Workbench") {
+                model.openWorkbench()
+            }
+            Button("Dismiss", role: .cancel) {
                 model.workbenchErrorMessage = nil
             }
         } message: {
@@ -273,10 +268,12 @@ struct AptusDesktopShellView: View {
         case .home:
             HomeView(
                 machine: model.machine,
-                memorySnapshotState: model.platformMemorySnapshotState
-            ) {
-                model.selection = .machine
-            }
+                memorySnapshotState: model.platformMemorySnapshotState,
+                startPlanning: model.openWorkbench,
+                reviewMachine: { model.selection = .machine }
+            )
+        case .workbench:
+            WorkbenchControllerHost(controller: workbenchController)
         case .machine:
             MachineView(
                 machine: model.machine,
@@ -287,16 +284,12 @@ struct AptusDesktopShellView: View {
             ModelsView(
                 machine: model.machine,
                 runtimeConfiguration: model.mlxRuntimeConfiguration,
+                interpreterCandidates: model.mlxInterpreterCandidates,
                 runtimeConfigurationErrorMessage: model.mlxRuntimeConfigurationErrorMessage,
                 chooseMLXPython: model.chooseMLXPython,
+                chooseCandidate: { model.configureMLXInterpreter(at: $0) },
                 openWorkbench: model.openWorkbench
             )
-        case .data:
-            DataView(openWorkbench: model.openWorkbench)
-        case .plans:
-            PlansView(openWorkbench: model.openWorkbench)
-        case .runs:
-            RunsView(openWorkbench: model.openWorkbench)
         }
     }
 
@@ -334,6 +327,7 @@ private struct SidebarBrandView: View {
 private struct HomeView: View {
     let machine: MachineProfile
     let memorySnapshotState: PlatformMemorySnapshotState
+    let startPlanning: () -> Void
     let reviewMachine: () -> Void
 
     var body: some View {
@@ -350,10 +344,16 @@ private struct HomeView: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Review This Mac", action: reviewMachine)
-                        .controlSize(.large)
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityHint("Opens the detected machine details")
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) {
+                            startPlanningButton
+                            reviewMachineButton
+                        }
+                        VStack(alignment: .leading, spacing: 10) {
+                            startPlanningButton
+                            reviewMachineButton
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(28)
@@ -384,6 +384,20 @@ private struct HomeView: View {
     private var availableHeadroomDescription: String {
         memorySnapshotState.snapshot?.availableMemoryDescription
             ?? memorySnapshotState.unavailableDescription
+    }
+
+    private var startPlanningButton: some View {
+        Button("Open Workbench", action: startPlanning)
+            .controlSize(.large)
+            .buttonStyle(.borderedProminent)
+            .accessibilityHint("Opens the fine-tuning workflow")
+    }
+
+    private var reviewMachineButton: some View {
+        Button("Review This Mac", action: reviewMachine)
+            .controlSize(.large)
+            .buttonStyle(.bordered)
+            .accessibilityHint("Opens the detected machine details")
     }
 
     private var installedMemoryDescription: String {
@@ -543,8 +557,10 @@ private struct MachineView: View {
 private struct ModelsView: View {
     let machine: MachineProfile
     let runtimeConfiguration: MLXRuntimeConfigurationState
+    let interpreterCandidates: [MLXInterpreterCandidate]
     let runtimeConfigurationErrorMessage: String?
     let chooseMLXPython: () -> Void
+    let chooseCandidate: (String) -> Void
     let openWorkbench: () -> Void
 
     var body: some View {
@@ -605,6 +621,7 @@ private struct ModelsView: View {
 
                 runtimeConfigurationStatus
                 runtimeConfigurationErrorStatus
+                environmentDoctor
 
                 HStack(spacing: 12) {
                     Button(runtimeActionTitle, action: chooseMLXPython)
@@ -624,6 +641,59 @@ private struct ModelsView: View {
                     Button("Open Model Workbench", action: openWorkbench)
                         .controlSize(.large)
                         .buttonStyle(.bordered)
+                }
+            }
+        }
+    }
+
+    private var environmentDoctor: some View {
+        SolidSection(title: "MLX environment doctor", systemImage: "stethoscope") {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Aptus asked the private local service to inspect a bounded set of likely Python executables. It did not install, upgrade, or change any package.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if interpreterCandidates.isEmpty {
+                    Text(environmentDoctorEmptyMessage)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(interpreterCandidates.enumerated()), id: \.element.id) { index, candidate in
+                            if index > 0 {
+                                Divider()
+                            }
+                            MLXInterpreterCandidateRow(
+                                candidate: candidate,
+                                isSelected: selectedRuntimePath == candidate.path,
+                                isBusy: runtimeConfiguration == .configuring,
+                                select: { chooseCandidate(candidate.path) }
+                            )
+                        }
+                    }
+                }
+
+                if shouldShowExternalEnvironmentRecipe {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("No reported interpreter passed the exact MLX-LM runtime contract")
+                            .font(.callout.weight(.semibold))
+                        Text("Create a separate environment outside any compiled bundle. Aptus will inspect it only after you select its Python executable.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(Self.externalEnvironmentRecipe)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                Color(nsColor: .textBackgroundColor),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            )
+                            .accessibilityLabel("MLX environment setup commands")
+                    }
                 }
             }
         }
@@ -655,7 +725,7 @@ private struct ModelsView: View {
             }
         case let .unavailable(path, reason):
             VStack(alignment: .leading, spacing: 5) {
-                Label("Persisted MLX-LM interpreter unavailable", systemImage: "exclamationmark.triangle")
+                Label("Persisted MLX-LM interpreter not ready", systemImage: "exclamationmark.triangle")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.orange)
                 Text(path)
@@ -714,6 +784,46 @@ private struct ModelsView: View {
         runtimeConfiguration == .loading || runtimeConfiguration == .configuring
     }
 
+    private var selectedRuntimePath: String? {
+        switch runtimeConfiguration {
+        case let .configured(path), let .unavailable(path, _):
+            path
+        case let .invalid(path, _):
+            path
+        case .loading, .notConfigured, .configuring, .inventoryUnavailable:
+            nil
+        }
+    }
+
+    private var environmentDoctorEmptyMessage: String {
+        switch runtimeConfiguration {
+        case .loading:
+            "Checking likely Python interpreters."
+        case .inventoryUnavailable:
+            "Interpreter evidence is unavailable until the private local service can answer the runtime inventory request."
+        default:
+            "The local service did not report a likely Python interpreter."
+        }
+    }
+
+    private var shouldShowExternalEnvironmentRecipe: Bool {
+        guard !interpreterCandidates.contains(where: \.compatible) else {
+            return false
+        }
+        switch runtimeConfiguration {
+        case .loading, .inventoryUnavailable:
+            return false
+        default:
+            return true
+        }
+    }
+
+    private static let externalEnvironmentRecipe = """
+    python3 -m venv /path/to/aptus-mlx-env
+    /path/to/aptus-mlx-env/bin/python -m pip install --upgrade pip
+    /path/to/aptus-mlx-env/bin/python -m pip install 'mlx==0.31.2' 'mlx-lm==0.31.3'
+    """
+
     private var mlxRuntimeStatus: String {
         switch runtimeConfiguration {
         case .loading:
@@ -758,91 +868,54 @@ private struct ModelsView: View {
     }
 }
 
-private struct DataView: View {
-    let openWorkbench: () -> Void
+private struct MLXInterpreterCandidateRow: View {
+    let candidate: MLXInterpreterCandidate
+    let isSelected: Bool
+    let isBusy: Bool
+    let select: () -> Void
 
     var body: some View {
-        DesktopScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                PageHeading(
-                    eyebrow: "LOCAL INPUT",
-                    title: "Data",
-                    message: "Profile a local dataset before planning. Aptus reads the file through the native picker and keeps the authenticated service on loopback."
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Label(
+                    candidate.compatible
+                        ? "Exact runtime contract passed"
+                        : (candidate.probePassed
+                            ? "Import passed, versions incompatible"
+                            : "Import probe failed"),
+                    systemImage: candidate.compatible
+                        ? "checkmark.circle.fill"
+                        : "exclamationmark.triangle.fill"
                 )
-                SolidSection(title: "Accepted inputs", systemImage: "doc.text.magnifyingglass") {
-                    VStack(alignment: .leading, spacing: 14) {
-                        FormatRow(format: "JSON or JSONL", detail: "Structured records and chat-style examples")
-                        Divider()
-                        FormatRow(format: "CSV", detail: "Tabular examples with explicit field mapping")
-                        Divider()
-                        FormatRow(format: "Text", detail: "Plain UTF-8 source material")
-                    }
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(candidate.compatible ? Color.green : Color.orange)
+                Spacer(minLength: 12)
+                if candidate.compatible {
+                    Button(isSelected ? "Selected" : "Use this Python", action: select)
+                        .buttonStyle(.bordered)
+                        .disabled(isSelected || isBusy)
+                        .accessibilityHint(
+                            "The private local service will validate the exact pinned MLX dependency contract before saving this interpreter."
+                        )
                 }
-                InformationCallout(
-                    systemImage: "lock.doc",
-                    title: "Selection stays explicit",
-                    message: "The workbench uses a native macOS file panel. Aptus does not scan folders or infer a training source without your choice."
-                )
-                Button("Choose Data in Workbench", action: openWorkbench)
-                    .controlSize(.large)
-                    .buttonStyle(.borderedProminent)
             }
-        }
-    }
-}
-
-private struct PlansView: View {
-    let openWorkbench: () -> Void
-
-    var body: some View {
-        DesktopScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                PageHeading(
-                    eyebrow: "COMPILE BEFORE RUN",
-                    title: "Plans",
-                    message: "Turn measured machine, model, and dataset facts into a reviewable training bundle."
-                )
-                SolidSection(title: "Plan sequence", systemImage: "list.number") {
-                    VStack(alignment: .leading, spacing: 16) {
-                        PlanStep(number: 1, title: "Profile", detail: "Record machine, dataset, and checkpoint facts.")
-                        PlanStep(number: 2, title: "Compare", detail: "Separate local Apple Silicon paths from remote CUDA targets.")
-                        PlanStep(number: 3, title: "Validate", detail: "Fail closed on unsupported or unverified combinations.")
-                        PlanStep(number: 4, title: "Compile", detail: "Write a portable bundle to a directory you choose.")
-                    }
+            Text(candidate.path)
+                .font(.caption.monospaced())
+                .textSelection(.enabled)
+            HStack(spacing: 8) {
+                Text(candidate.source)
+                if let pythonVersion = candidate.pythonVersion {
+                    Text("Python \(pythonVersion)")
                 }
-                Button("Build a Plan", action: openWorkbench)
-                    .controlSize(.large)
-                    .buttonStyle(.borderedProminent)
             }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            Text(candidate.reason)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-}
-
-private struct RunsView: View {
-    let openWorkbench: () -> Void
-
-    var body: some View {
-        DesktopScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                PageHeading(
-                    eyebrow: "EVIDENCE, NOT GUESSWORK",
-                    title: "Runs",
-                    message: "Review validation output and generated artifacts. Aptus does not label a run ready until its checks pass."
-                )
-                SolidSection(title: "No run selected", systemImage: "waveform.path.ecg") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Open the workbench to validate a compiled bundle or inspect a run.")
-                            .foregroundStyle(.secondary)
-                        Text("Finder actions remain available for artifacts that Aptus has verified exist.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Button("Open Runs Workbench", action: openWorkbench)
-                    .controlSize(.large)
-                    .buttonStyle(.borderedProminent)
-            }
-        }
+        .padding(.vertical, 12)
     }
 }
 
@@ -1009,61 +1082,6 @@ private struct MemoryFactRow: View {
                 .multilineTextAlignment(.trailing)
         }
         .padding(.vertical, 13)
-    }
-}
-
-private struct FormatRow: View {
-    let format: String
-    let detail: String
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
-            Text(format)
-                .font(.body.weight(.medium))
-                .frame(width: 130, alignment: .leading)
-            Text(detail)
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-private struct PlanStep: View {
-    let number: Int
-    let title: String
-    let detail: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Text("\(number)")
-                .font(.caption.weight(.bold))
-                .monospacedDigit()
-                .frame(width: 26, height: 26)
-                .background(Color.accentColor.opacity(0.12), in: Circle())
-                .accessibilityLabel("Step \(number)")
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.body.weight(.medium))
-                Text(detail)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-private struct WorkbenchSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let controller: WebViewController
-
-    var body: some View {
-        WorkbenchControllerHost(controller: controller)
-            .frame(minWidth: 1_040, minHeight: 700)
-            .navigationTitle("Aptus Workbench")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                }
-            }
     }
 }
 

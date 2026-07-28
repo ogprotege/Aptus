@@ -1,6 +1,6 @@
 # Reference
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a public contract changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a public contract changes
 
 Use this section to look up exact interfaces and product contracts.
 
@@ -8,6 +8,7 @@ Use this section to look up exact interfaces and product contracts.
 
 - [CLI](cli.md)
 - [API](api.md)
+- [Generated OpenAPI `aptus.api.v1`](openapi.v1.json)
 - [Configuration and defaults](configuration-defaults.md)
 
 ## Input and planning contracts

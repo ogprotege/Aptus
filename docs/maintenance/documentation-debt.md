@@ -4,9 +4,9 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-07-27
 >
-> **Next scheduled review:** At every documentation pull request and before 2026-10-22
+> **Next scheduled review:** At every documentation pull request and before 2026-10-27
 
 This log records documentation work that cannot be trusted to memory or scattered
 TODO comments. Status reflects the repository at the review date. Update an item
@@ -67,13 +67,13 @@ when its evidence, owner, or resolution changes.
 ### DOC-004: Enforce API and error-reference parity
 
 - **Priority:** P1
-- **Status:** In progress
-- **Evidence:** The manual API and error references now inventory emitted
-  routes, filesystem errors, lifecycle errors, fallback errors, and validation
-  channels. Documentation tests require every decorated route and statically
-  emitted API error code to appear in those references.
-- **Required result:** Add stable response models and descriptions to OpenAPI,
-  then compare documented status codes and response fields with that contract.
+- **Status:** Resolved
+- **Resolution:** Every success route has an explicit Pydantic response model,
+  the API reports contract identity `aptus.api.v1`, and
+  `docs/reference/openapi.v1.json` is generated and checked byte-for-byte against
+  the running application schema. Documentation tests require the project and
+  job routes in that artifact. React and Swift client types remain maintained,
+  tested boundaries rather than falsely labeled generated SDKs.
 - **Owner:** API and documentation maintainers
 
 ### DOC-005: Validate method-catalog overlap
@@ -144,28 +144,28 @@ when its evidence, owner, or resolution changes.
 ### DOC-011: Publish versioned target-host release evidence
 
 - **Priority:** P1
-- **Status:** Blocked
-- **Evidence:** [Release gates](../operations/release-gates.md) correctly state
-  that no qualifying CUDA or MLX pilot and full-run release evidence has been
-  recorded on the applicable target hardware.
-- **Required result:** Add a dated, immutable release-evidence record that binds
-  code revision, package versions, model and dataset identities, hardware,
-  plans, validation reports, pilots, full runs, job-control checks, and known
-  failures.
-- **Blocker:** Access to approved CUDA or Apple Silicon target hosts and
-  authorized model and dataset inputs
+- **Status:** In progress
+- **Evidence:** The
+  [2026-07-27 MLX-LM acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+  binds a clean commit, exact runtime, public model revision, synthetic dataset,
+  plans, bundles, two measured preflights, pilots, full runs, reloads, exports,
+  timings, memory, and hashes. Both clean repetitions reached
+  `measured-run-pass`.
+- **Required result:** Add equivalent qualifying evidence for every claimed CUDA
+  method and placement, plus the final desktop distribution evidence.
+- **Blocker:** Access to approved CUDA target hosts and public notarization
+  credentials for a public Mac artifact
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
 
 - **Priority:** P1
 - **Status:** In progress
-- **Evidence:** Bundle `README.md`, `decision-report.md`, `runbook.md`, and
-  generated script help come from large templates in `src/aptus/generation.py`.
-  Generated guidance now explains the external-environment rule, evidence
-  boundary, model-data behavior, ordered actions, and recovery boundary.
-  Assertions cover these critical instructions, but not every executable method
-  and placement.
+- **Evidence:** Portable CUDA and MLX program sources now live as packaged
+  resources with emitted-byte and manifest parity tests across source, wheel,
+  and frozen layouts. Bundle `README.md`, `decision-report.md`, and `runbook.md`
+  guidance still comes from compiler templates. Assertions cover critical
+  instructions, but not every executable method and placement.
 - **Required result:** Generate representative bundles for all executable
   methods and placements, then test command order, evidence boundaries,
   platform notes, file names, and successor links.

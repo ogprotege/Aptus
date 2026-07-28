@@ -13,6 +13,12 @@ bundle. It covers compiler-created inputs, code, configuration, and evidence.
 It does not cover the manifest file itself or the explicitly allowed mutable
 runtime paths.
 
+The bundle fingerprint is the SHA-256 of the manifest bytes. A compiled project
+revision stores that fingerprint as `artifact_fingerprint`. It stores the ZIP
+separately by SHA-256 and exact byte size because the archive is not a bundle
+manifest entry. Validation, jobs, bootstrap, and project recovery compare the
+revision's recorded identity with the exact bundle they use.
+
 ## Manifest object
 
 | Field | Type | Meaning |

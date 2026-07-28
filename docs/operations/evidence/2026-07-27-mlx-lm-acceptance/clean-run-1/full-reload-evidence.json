@@ -1,0 +1,29 @@
+{
+  "adapter_manifest_sha256": "e86b0dd197cd6febadfb0ccdcc85fbb9c95bd035ff83a30a8178cee16191c884",
+  "candidate_id": "cand_f222b24ca5b139b67436",
+  "compute_backend": "mps",
+  "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+  "execution_semantics": "uninterrupted",
+  "fresh_process_observed": true,
+  "generation_max_tokens": 4,
+  "generation_text_sha256": "b8a36d0a0bdb2d671c21e1621c6d50a184f337d826d6c2ddf28b045371db7f31",
+  "generation_tokens": 4,
+  "measured_peak_bytes": 312377106,
+  "method": "qlora",
+  "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+  "parent_pid": 16459,
+  "plan_id": "plan_df3b75050e6ea520a9c0",
+  "resume_supported": false,
+  "schema_version": "aptus.mlx-reload-evidence.v1",
+  "training_runtime": "mlx-lm",
+  "unified_memory_admission": {
+    "available_unified_memory_bytes": 35433971712,
+    "point_estimate_bytes": 2372989999,
+    "required_available_bytes": 13047862262,
+    "reserve_bytes": 8589934592,
+    "schema_version": "aptus.mlx-unified-memory-admission.v1",
+    "upper_estimate_bytes": 4457927670
+  },
+  "verified_at": "2026-07-27T23:25:45.893146+00:00",
+  "verifier_pid": 16470
+}

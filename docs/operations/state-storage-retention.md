@@ -1,6 +1,6 @@
 # State, Storage, and Retention
 
-> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a persistent path changes
+> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a persistent path changes
 
 Aptus writes plans, bundles, data copies, runtime evidence, logs, CUDA
 checkpoints, MLX adapter weight snapshots, and exports. It does not currently
@@ -12,7 +12,7 @@ retention requirements.
 
 | Location | Contents | Mutability | Sensitivity |
 | --- | --- | --- | --- |
-| Selected state root, default `.aptus-state/` | Persisted plans, current-bundle pointer, jobs, logs, and locks | Mutable control-plane state | Paths, errors, commands, and runtime evidence |
+| Selected state root, default `.aptus-state/` | Named projects and revisions, plans, current pointers, runtime choice, jobs, logs, quarantine, and locks | Mutable control-plane state with immutable revisions | Paths, facts, errors, commands, and runtime evidence |
 | Compiled bundle | Cleartext source copy, canonical data, pilot data, plan, generated code, pins, manifest, and reports | Compiler inputs immutable; named runtime paths mutable | Training data and operational metadata |
 | Bundle ZIP | Second copy of all compiler-managed bundle material | Immutable archive | Same sensitivity as bundle inputs |
 | `pilot-output/` | Pilot metrics, CUDA continuation checkpoints, MLX adapter artifacts and reload evidence, export evidence, and run contracts | Runtime output | Model, data, and hardware evidence |
@@ -26,11 +26,36 @@ The API state root contains:
 .aptus-state/
   plans/plan_*.json
   current-bundle.json
+  current-project.json
+  runtime-config.json
+  legacy-project-import.json
+  projects/
+    project_*/
+      project.json
+      revisions/revision_*.json
   jobs/
     .jobs.lock
     job_*.json
     job_*.log
+  quarantine/
+    jobs/
+    projects/
 ```
+
+On POSIX, state directories use mode 0700 and JSON records use mode 0600.
+Writers use flush, `fsync`, and atomic replacement. Loaders reject symlinks and
+wrong-owner state roots. Project revisions are immutable and content hashed.
+
+Schema-less legacy jobs migrate to `aptus.job-record.v1` with durable
+authorization cleared. Legacy plans, the current bundle pointer, and matching
+jobs import once into named project history without deleting their source
+records. The versioned import receipt makes this idempotent.
+
+Malformed or unsupported job and project state moves into private quarantine
+with an `aptus.quarantine-receipt.v1` reason file. Project manifests can repair
+their head to the latest safe immutable revision. Quarantine is intended for
+inspection and recovery. Do not delete it until the cause and retention needs
+are understood.
 
 On POSIX, the shared lease root is
 `/tmp/aptus-gpu-lease-<user-identity-hash>/`. Do not delete an active lease to
@@ -71,6 +96,11 @@ though a completion-time attestation remains in the job record. Aptus 0.2 has
 no deep historical re-verification or automatic garbage-collection command.
 MLX weight snapshots are not resumable checkpoints. Preserve them as evidence
 or adapter artifacts, not as restart state.
+
+Use `aptus diagnostics --output aptus-diagnostics.zip` for a bounded support
+packet. It reports counts and runtime facts, not logs, project names, dataset or
+model content, environment values, or unredacted home paths. Review it before
+sharing.
 
 ## Recommended retention classes
 

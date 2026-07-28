@@ -1,0 +1,18 @@
+MLX-LM dependencies and Apple silicon platform are present.
+Pilot and full runs are uninterrupted from scratch; crash-resume remains unsupported.
+Loading configuration file /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/config/mlx-lm.yaml
+Loading pretrained model
+Loading datasets
+Training
+Trainable parameters: 0.890% (4.399M/494.033M)
+Starting training..., iters: 2
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00,  5.88it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00,  5.88it/s]
+Iter 1: Val loss 4.899, Val took 0.180s
+Iter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 0.702, Tokens/sec 23.157, Trained Tokens 33, Peak mem 0.483 GB
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 46.13it/s]
+Iter 2: Val loss 3.819, Val took 0.024s
+Iter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 5.997, Tokens/sec 149.929, Trained Tokens 58, Peak mem 0.506 GB
+Saved final weights to /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/pilot-output/bounded-smoke_47477b36bc15461899ad6313b9306a50/adapters/adapters.safetensors.
+MLX-LM bounded-smoke training completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/pilot-output/bounded-smoke_47477b36bc15461899ad6313b9306a50/training-metrics.json
+Aptus MLX-LM bounded-smoke completed: /private/tmp/aptus-mlx-clean-acceptance-20260727.9gos44/run-1/bundle/pilot-output/bounded-smoke_47477b36bc15461899ad6313b9306a50
+Aptus MLX-LM measured-preflight validation passed.

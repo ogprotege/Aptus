@@ -1,0 +1,4 @@
+# Unified diffs require one-character context and added-line markers, including
+# on otherwise blank lines. Do not treat those structural markers as content
+# whitespace errors.
+*.patch -whitespace

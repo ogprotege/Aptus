@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when `src/aptus/cli.py` changes |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON
 to standard output unless an explicit output file is described below. JSON is
@@ -27,6 +27,8 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `validate` | Validate one evidence level | `static`, direct | Validation report and lock; runtime artifacts when executed |
 | `run` | Submit a managed runtime action and wait | `preflight` | State records, log, report, and runtime artifacts |
 | `jobs` | List or inspect managed jobs | List all | May reconcile stale persisted state |
+| `doctor` | Inspect training-runtime readiness without changing it | Read `.aptus-state` and probe likely interpreters | Optional JSON output file; no installation |
+| `diagnostics` | Create a privacy-bounded support archive | Summarize `.aptus-state` | New mode-0600 ZIP |
 | `hardware` | Inspect local hardware | Local probe | None |
 | `inspect hardware` | Alias for `hardware` | Local probe | None |
 | `inspect model` | Inspect bounded provider metadata | 10-second timeout | Provider network requests only |
@@ -211,6 +213,43 @@ With an ID, it prints one reconciled record and its current validation report.
 Reading a job is not a pure file read. Reconciliation can mark an unattached or
 stale active record failed when its recorded process is no longer valid.
 
+Job records use `aptus.job-record.v1`. Schema-less legacy records migrate with
+durable authorization cleared. Corrupt, symlinked, or unsupported records move
+to private quarantine with a reason receipt instead of blocking healthy jobs.
+
+## `aptus doctor`
+
+```bash
+aptus doctor [--state-dir .aptus-state] [--output REPORT.json]
+```
+
+The doctor is read-only. It inventories likely exact Python interpreters,
+runtime import and exact-pin compatibility results, configured runtime keys,
+and bounded local-state counts. On Apple Silicon its preferred runtime is
+`mlx-lm`. Only a compatible interpreter yields
+`status: ready` and exit `0`. Otherwise the report uses `status:
+action-required`, prints exact next steps, and exits `2`. The report always sets
+`installation_performed: false`. Reports omit interpreter paths, include only
+short path fingerprints, and replace the state path with `$HOME` or a
+fingerprint. Runtime error bodies are reduced to presence flags. With `--output`,
+the ordinary JSON writer creates or replaces the named report.
+
+## `aptus diagnostics`
+
+```bash
+aptus diagnostics [--state-dir .aptus-state] --output aptus-diagnostics.zip
+```
+
+The command creates a new, no-clobber mode-0600 ZIP. It contains `README.txt`,
+`diagnostics.json`, and a SHA-256 `manifest.json`. The diagnostic payload covers
+the Aptus and Python versions, bounded host and Apple platform facts, disk
+capacity, runtime doctor results, job state/action counts, project and revision
+counts, and quarantine counts.
+
+The archive excludes logs, dataset and model content, project names,
+environment values, and unredacted home paths. Review `diagnostics.json` before
+sharing it. An existing output path is an error and is never overwritten.
+
 ## `aptus hardware` and `aptus inspect hardware`
 
 Both commands probe the local host and print this envelope:
@@ -286,7 +325,7 @@ isolation.
 | ---: | --- |
 | `0` | Command succeeded, report was not invalid, or managed job completed |
 | `1` | Validation report is `invalid`, or managed job ended outside `completed` |
-| `2` | Argument, input, inspection, JSON, filesystem, or command error |
+| `2` | Argument, input, inspection, JSON, filesystem, command error, or doctor action required |
 | `130` | The CLI handled an interrupt by requesting job cancellation |
 
 Argument-parser usage errors also exit `2`.

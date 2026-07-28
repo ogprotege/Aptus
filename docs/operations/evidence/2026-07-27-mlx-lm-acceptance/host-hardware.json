@@ -1,0 +1,39 @@
+{
+  "hardware": {
+    "cuda_version": null,
+    "devices": [
+      {
+        "backend": "mps",
+        "compute_capability": null,
+        "driver_version": null,
+        "free_vram_bytes": null,
+        "name": "Apple M5 Pro (shared unified memory)",
+        "provenance": {
+          "detail": "This compatibility device represents Apple shared unified memory, not dedicated VRAM. total_vram_bytes is the Metal recommended working-set ceiling when measurable, otherwise the measured unified-memory capacity. free_vram_bytes is intentionally omitted because host free RAM is not free VRAM. CUDA and bitsandbytes flags do not establish MLX or MPS support; use probe_apple_platform for runtime capability facts.",
+          "digest": null,
+          "kind": "measured",
+          "observed_at": "2026-07-27T23:13:45.765044+00:00",
+          "source": "local Darwin arm64 host"
+        },
+        "supports_4bit": false,
+        "supports_8bit": false,
+        "supports_bf16": false,
+        "total_vram_bytes": 55662788608
+      }
+    ],
+    "disk_free_bytes": 351716163584,
+    "host_ram_bytes": 68719476736,
+    "host_ram_free_bytes": 37531107328,
+    "interconnect": null,
+    "provenance": {
+      "detail": "Host RAM and disk availability were measured on the server running Aptus. The MPS compatibility device uses shared unified memory, not dedicated VRAM. Host available memory is recorded only as host RAM headroom.",
+      "digest": null,
+      "kind": "measured",
+      "observed_at": "2026-07-27T23:13:45.765044+00:00",
+      "source": "local Darwin arm64 host; checkout path redacted"
+    },
+    "reserve_per_device_bytes": 2147483648
+  },
+  "scope": "server-local",
+  "status": "ok"
+}

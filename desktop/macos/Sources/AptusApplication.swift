@@ -4,15 +4,15 @@ final class ApplicationTerminationCoordinator {
     private(set) var replyPending = false
 
     func requestTermination(
-        stop: (@escaping () -> Void) -> Void,
+        stop: (@escaping (BackendShutdownResult) -> Void) -> Void,
         reply: @escaping (Bool) -> Void
     ) -> NSApplication.TerminateReply {
         guard !replyPending else { return .terminateLater }
         replyPending = true
-        stop { [weak self] in
+        stop { [weak self] result in
             guard let self, self.replyPending else { return }
             self.replyPending = false
-            reply(true)
+            reply(result == .success)
         }
         return .terminateLater
     }
@@ -103,7 +103,10 @@ final class AptusApplication: NSObject, NSApplicationDelegate {
                 [.posixPermissions: 0o600],
                 ofItemAtPath: probeURL.path
             )
-            DispatchQueue.main.async {
+            // AppKit enters a nested event loop while a `.terminateLater` reply is
+            // pending. Schedule through the run loop so the backend's main-queue
+            // termination handler can still execute inside that loop.
+            RunLoop.main.perform(inModes: [.default]) {
                 NSApplication.shared.terminate(nil)
             }
         } catch {

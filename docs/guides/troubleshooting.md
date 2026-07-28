@@ -1,6 +1,19 @@
 # Troubleshooting
 
-> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or after a new failure class
+> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a new failure class
+
+Begin with the read-only report:
+
+```bash
+aptus doctor --state-dir .aptus-state
+```
+
+For a shareable support packet, create a new no-clobber archive and inspect its
+JSON before sending it:
+
+```bash
+aptus diagnostics --state-dir .aptus-state --output aptus-diagnostics.zip
+```
 
 ## No feasible candidate
 
@@ -103,6 +116,23 @@ another Aptus service instance.
 `cancelling` means process-group termination is still being reconciled.
 `verifying` means the child exited and parent-owned artifact verification is in
 progress. Neither state is safe to relabel or overwrite.
+
+## A project or job record was quarantined
+
+Aptus moves a malformed, symlinked, or unsupported persistent record into the
+state root's private `quarantine/` tree and writes a reason receipt. Other
+healthy state remains usable. Preserve the quarantined file, inspect the reason,
+and recover from a known-good project revision or backup. Do not rename the file
+back into the active tree without correcting and validating its contract.
+
+## The Mac app refuses to quit or restart
+
+The native host refuses application termination when its backend process tree
+still has an active survivor. This is intentional containment. Wait for the
+process to exit, then request Quit again so the controller can retry cleanup.
+The backend log contains an `aptus-shutdown-timeout` diagnostic with process
+identity, observed state, and signal attempts. Do not delete the session
+directory or launch a second copy to bypass the failed shutdown.
 
 ## A run exited zero but failed
 

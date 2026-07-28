@@ -5,7 +5,7 @@ import XCTest
 final class AptusApplicationTests: XCTestCase {
     func testTerminationCoordinatorWaitsForBackendStopBeforeReplying() {
         let coordinator = ApplicationTerminationCoordinator()
-        var stopCompletion: (() -> Void)?
+        var stopCompletion: ((BackendShutdownResult) -> Void)?
         var duplicateStopRequested = false
         let replied = expectation(description: "Application termination reply sent")
 
@@ -26,7 +26,38 @@ final class AptusApplicationTests: XCTestCase {
         XCTAssertEqual(duplicateResult, .terminateLater)
         XCTAssertFalse(duplicateStopRequested)
 
-        stopCompletion?()
+        stopCompletion?(.success)
+        wait(for: [replied], timeout: 1)
+        XCTAssertFalse(coordinator.replyPending)
+    }
+
+    func testTerminationCoordinatorRefusesQuitWhenBackendStopFails() {
+        let coordinator = ApplicationTerminationCoordinator()
+        var stopCompletion: ((BackendShutdownResult) -> Void)?
+        let replied = expectation(description: "Application termination refusal sent")
+        let survivor = BackendProcessObservation(
+            identity: BackendProcessIdentity(pid: 42, startSeconds: 10, startMicroseconds: 20),
+            parentPID: 1,
+            state: .sleeping
+        )
+        let failure = BackendShutdownFailure(
+            rootPID: 42,
+            activeProcesses: [survivor],
+            rootProcessRunning: true,
+            signalAttempts: [],
+            terminationHandlerObserved: false
+        )
+
+        let result = coordinator.requestTermination(
+            stop: { stopCompletion = $0 },
+            reply: { shouldTerminate in
+                XCTAssertFalse(shouldTerminate)
+                replied.fulfill()
+            }
+        )
+
+        XCTAssertEqual(result, .terminateLater)
+        stopCompletion?(.failure(failure))
         wait(for: [replied], timeout: 1)
         XCTAssertFalse(coordinator.replyPending)
     }

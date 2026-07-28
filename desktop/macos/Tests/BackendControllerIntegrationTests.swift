@@ -11,10 +11,6 @@ final class BackendControllerIntegrationTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .standardizedFileURL
-        let python = repository.appendingPathComponent(".venv/bin/python")
-        guard FileManager.default.isExecutableFile(atPath: python.path) else {
-            throw XCTSkip("The repository Python environment is unavailable.")
-        }
         let desktopModule = repository.appendingPathComponent("src/aptus/desktop.py")
         guard FileManager.default.fileExists(atPath: desktopModule.path) else {
             throw XCTSkip("The Aptus desktop Python entrypoint is unavailable.")
@@ -30,10 +26,47 @@ final class BackendControllerIntegrationTests: XCTestCase {
             sessionIdentifier: "session"
         )
         let bootstrap = "import runpy,sys; sys.path.insert(0, sys.argv.pop(1)); runpy.run_module('aptus.desktop', run_name='__main__')"
-        let executable = BackendExecutable(
-            url: python,
-            leadingArguments: ["-I", "-c", bootstrap, repository.appendingPathComponent("src").path]
-        )
+        let sourcePath = repository.appendingPathComponent("src").path
+        let environment = ProcessInfo.processInfo.environment
+        let configuredPython: URL?
+        if let rawConfiguredPython = environment["APTUS_DESKTOP_TEST_PYTHON"] {
+            let candidate = URL(fileURLWithPath: rawConfiguredPython)
+            configuredPython = FileManager.default.isExecutableFile(atPath: candidate.path)
+                ? candidate
+                : nil
+        } else {
+            configuredPython = nil
+        }
+        let executable: BackendExecutable
+        if let configuredPython {
+            executable = BackendExecutable(
+                url: configuredPython,
+                leadingArguments: ["-I", "-c", bootstrap, sourcePath]
+            )
+        } else {
+            let pathCandidates = environment["PATH"]?
+                .split(separator: ":")
+                .map { URL(fileURLWithPath: String($0)).appendingPathComponent("uv") } ?? []
+            let knownCandidates = [
+                FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(".local/bin/uv"),
+                URL(fileURLWithPath: "/opt/homebrew/bin/uv"),
+                URL(fileURLWithPath: "/usr/local/bin/uv"),
+            ]
+            guard let uv = (pathCandidates + knownCandidates).first(where: {
+                FileManager.default.isExecutableFile(atPath: $0.path)
+            }) else {
+                throw XCTSkip("uv is unavailable for the isolated development backend.")
+            }
+            executable = BackendExecutable(
+                url: uv,
+                leadingArguments: [
+                    "run", "--isolated", "--python", "3.12", "--locked", "--extra", "server",
+                    "--project", repository.path,
+                    "python", "-I", "-c", bootstrap, sourcePath,
+                ]
+            )
+        }
         let controller = BackendController(
             pathsFactory: { paths },
             executableResolver: { executable }
@@ -48,8 +81,8 @@ final class BackendControllerIntegrationTests: XCTestCase {
                 XCTAssertTrue(FileManager.default.fileExists(atPath: paths.readyFile.path))
                 ready.fulfill()
                 controller.stop()
-                XCTAssertFalse(FileManager.default.fileExists(atPath: paths.sessionDirectory.path))
             case .stopped:
+                XCTAssertFalse(FileManager.default.fileExists(atPath: paths.sessionDirectory.path))
                 stopped.fulfill()
             case let .failed(message):
                 XCTFail(message)
@@ -124,6 +157,67 @@ final class BackendControllerIntegrationTests: XCTestCase {
         XCTAssertEqual(resolutionCount, 2)
     }
 
+    func testUnexpectedRootExitRetainsDescendantOwnershipAcrossOneThousandPolls() throws {
+        let fixture = try makeSleepingFixture(prefix: "aptus-native-unexpected-tree")
+        defer { fixture.cleanup() }
+        let shutdown = InjectedShutdownHarness()
+        shutdown.survivorDiscoverable = false
+        let controller = BackendController(
+            pathsFactory: { fixture.paths },
+            executableResolver: { fixture.executable },
+            shutdownGraceInterval: 1,
+            shutdownForceInterval: 1,
+            shutdownEnvironment: shutdown.environment
+        )
+        let failed = expectation(description: "Unexpected root exit preserved the failed state")
+        controller.onStateChange = { state in
+            if case .failed = state {
+                failed.fulfill()
+            }
+        }
+
+        controller.start()
+        let rootPID = try XCTUnwrap(shutdown.capturedRootPID)
+
+        // The representative child appears after launch. One ownership poll must
+        // retain its immutable identity before the root and its live tree vanish.
+        shutdown.survivorDiscoverable = true
+        shutdown.fire()
+        shutdown.rootTreeDiscoverable = false
+        XCTAssertEqual(Darwin.kill(rootPID, SIGKILL), 0)
+        wait(for: [failed], timeout: 1)
+
+        for _ in 0 ..< 1_000 {
+            shutdown.fire()
+        }
+        guard case .failed = controller.state else {
+            return XCTFail("Unexpected-exit cleanup must preserve the root failure state.")
+        }
+        XCTAssertTrue(shutdown.survivorVisible)
+        XCTAssertTrue(shutdown.forceTerminatedIdentities.isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
+
+        shutdown.forceTerminationRemovesSurvivor = true
+        shutdown.advance(seconds: 1.1)
+        shutdown.fire()
+        shutdown.fire()
+
+        XCTAssertFalse(shutdown.survivorVisible)
+        XCTAssertTrue(shutdown.forceTerminatedIdentities.contains(shutdown.survivorObservation.identity))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
+        guard case .failed = controller.state else {
+            return XCTFail("Successful descendant containment must not erase the root failure.")
+        }
+
+        let stopped = expectation(description: "Preserved failure can be dismissed after containment")
+        controller.stop { result in
+            XCTAssertEqual(result, .success)
+            stopped.fulfill()
+        }
+        wait(for: [stopped], timeout: 1)
+        XCTAssertEqual(controller.state, .stopped)
+    }
+
     func testStartupValidationFailureRemainsFailedAfterChildTermination() throws {
         let temporary = FileManager.default.temporaryDirectory
             .appendingPathComponent("aptus-native-failure-\(UUID().uuidString)", isDirectory: true)
@@ -194,9 +288,10 @@ final class BackendControllerIntegrationTests: XCTestCase {
 
         let stopped = expectation(description: "Forced process-tree shutdown completed")
         let startedAt = Date()
-        controller.stop {
-            XCTAssertFalse(self.isProcessAlive(pids.parent))
-            XCTAssertFalse(self.isProcessAlive(pids.child))
+        controller.stop { result in
+            XCTAssertEqual(result, .success)
+            XCTAssertFalse(self.isProcessActive(pids.parent))
+            XCTAssertFalse(self.isProcessActive(pids.child))
             XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
             stopped.fulfill()
         }
@@ -274,10 +369,11 @@ final class BackendControllerIntegrationTests: XCTestCase {
         }
         var inventory: Set<BackendProcessIdentity> = [rootIdentity, childIdentity]
         let stopped = expectation(description: "Late-fork process tree stopped")
-        controller.stop {
+        controller.stop { result in
+            XCTAssertEqual(result, .success)
             XCTAssertTrue(BackendProcessTree.living(inventory).isEmpty)
             for pid in fixture.allRecordedPIDs() {
-                XCTAssertFalse(self.isProcessAlive(pid), "Process \(pid) survived shutdown.")
+                XCTAssertFalse(self.isProcessActive(pid), "Process \(pid) survived shutdown.")
             }
             stopped.fulfill()
         }
@@ -296,6 +392,140 @@ final class BackendControllerIntegrationTests: XCTestCase {
 
         wait(for: [stopped], timeout: 2)
         XCTAssertEqual(controller.state, .stopped)
+    }
+
+    func testInjectedShutdownTimeoutRetainsOwnershipUntilSuccessfulRetry() throws {
+        let fixture = try makeSleepingFixture(prefix: "aptus-native-injected-timeout")
+        defer { fixture.cleanup() }
+        let shutdown = InjectedShutdownHarness()
+        let controller = BackendController(
+            pathsFactory: { fixture.paths },
+            executableResolver: { fixture.executable },
+            shutdownGraceInterval: 1,
+            shutdownForceInterval: 1,
+            shutdownEnvironment: shutdown.environment
+        )
+        let failed = expectation(description: "Typed shutdown failure returned")
+        var failure: BackendShutdownFailure?
+
+        controller.start()
+        controller.stop { result in
+            guard case let .failure(value) = result else {
+                return XCTFail("An injected survivor must return a failed shutdown result.")
+            }
+            failure = value
+            failed.fulfill()
+        }
+        shutdown.advance(seconds: 1.1)
+        shutdown.fire()
+        for _ in 0 ..< 1_000 {
+            shutdown.fire()
+        }
+        XCTAssertEqual(controller.state, .stopping)
+
+        shutdown.advance(seconds: 1.0)
+        shutdown.fire()
+        wait(for: [failed], timeout: 1)
+
+        let observedFailure = try XCTUnwrap(failure)
+        XCTAssertEqual(observedFailure.activeProcesses, [shutdown.survivorObservation])
+        XCTAssertFalse(observedFailure.signalAttempts.isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
+        guard case .failed = controller.state else {
+            return XCTFail("The controller must expose the failed shutdown state.")
+        }
+
+        shutdown.survivorVisible = false
+        let stopped = expectation(description: "Retained shutdown ownership cleaned up on retry")
+        controller.stop { result in
+            XCTAssertEqual(result, .success)
+            stopped.fulfill()
+        }
+        shutdown.fire()
+        wait(for: [stopped], timeout: 1)
+        XCTAssertEqual(controller.state, .stopped)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
+    }
+
+    func testRestartDoesNotLaunchReplacementAfterInjectedShutdownTimeout() throws {
+        let fixture = try makeSleepingFixture(prefix: "aptus-native-injected-restart")
+        defer { fixture.cleanup() }
+        let shutdown = InjectedShutdownHarness()
+        var resolutionCount = 0
+        let controller = BackendController(
+            pathsFactory: { fixture.paths },
+            executableResolver: {
+                resolutionCount += 1
+                return fixture.executable
+            },
+            shutdownGraceInterval: 1,
+            shutdownForceInterval: 1,
+            shutdownEnvironment: shutdown.environment
+        )
+
+        controller.start()
+        controller.restart()
+        shutdown.advance(seconds: 2.1)
+        shutdown.fire()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+
+        XCTAssertEqual(resolutionCount, 1)
+        guard case .failed = controller.state else {
+            return XCTFail("A failed restart shutdown must remain failed.")
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fixture.paths.sessionDirectory.path))
+
+        shutdown.survivorVisible = false
+        let stopped = expectation(description: "Failed restart ownership released after explicit retry")
+        controller.stop { result in
+            XCTAssertEqual(result, .success)
+            stopped.fulfill()
+        }
+        shutdown.fire()
+        wait(for: [stopped], timeout: 1)
+        XCTAssertEqual(resolutionCount, 1)
+    }
+
+    func testProcessStateAndIdentityDistinguishZombieAndPIDReuse() {
+        let original = BackendProcessIdentity(
+            pid: 42,
+            startSeconds: 100,
+            startMicroseconds: 200
+        )
+        let reusedPID = BackendProcessIdentity(
+            pid: 42,
+            startSeconds: 101,
+            startMicroseconds: 1
+        )
+        let zombie = BackendProcessObservation(
+            identity: original,
+            parentPID: 1,
+            state: BackendProcessState(rawValue: 5)
+        )
+
+        XCTAssertEqual(zombie.state, .zombie)
+        XCTAssertFalse(zombie.state.requiresContainment)
+        XCTAssertNotEqual(original, reusedPID)
+        XCTAssertEqual(Set([original, reusedPID]).count, 2)
+    }
+
+    private func makeSleepingFixture(prefix: String) throws -> SleepingFixture {
+        let temporary = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
+        let paths = try ApplicationPaths(
+            applicationSupportRoot: temporary.appendingPathComponent("support"),
+            logsRoot: temporary.appendingPathComponent("logs"),
+            cachesRoot: temporary.appendingPathComponent("caches"),
+            sessionIdentifier: "session"
+        )
+        return SleepingFixture(
+            root: temporary,
+            paths: paths,
+            executable: BackendExecutable(
+                url: URL(fileURLWithPath: "/bin/sleep"),
+                leadingArguments: ["30"]
+            )
+        )
     }
 
     private func makeTermResistantFixture(prefix: String) throws -> TermResistantFixture {
@@ -412,6 +642,150 @@ final class BackendControllerIntegrationTests: XCTestCase {
 
     private func isProcessAlive(_ pid: pid_t) -> Bool {
         Darwin.kill(pid, 0) == 0 || errno == EPERM
+    }
+
+    private func isProcessActive(_ pid: pid_t) -> Bool {
+        BackendProcessTree.observation(for: pid)?.state.requiresContainment == true
+    }
+}
+
+private final class InjectedShutdownHarness {
+    private let scheduler = ManualShutdownScheduler()
+    private var currentNanoseconds: UInt64 = 1_000_000
+    private var rootIdentity: BackendProcessIdentity?
+    private let survivorIdentity = BackendProcessIdentity(
+        pid: 999_999,
+        startSeconds: 123,
+        startMicroseconds: 456
+    )
+    var rootTreeDiscoverable = true
+    var survivorDiscoverable = true
+    var survivorVisible = true
+    var forceTerminationRemovesSurvivor = false
+    private(set) var forceTerminatedIdentities: Set<BackendProcessIdentity> = []
+
+    var capturedRootPID: pid_t? {
+        rootIdentity?.pid
+    }
+
+    var survivorObservation: BackendProcessObservation {
+        BackendProcessObservation(
+            identity: survivorIdentity,
+            parentPID: rootIdentity?.pid ?? 1,
+            state: .sleeping
+        )
+    }
+
+    lazy var environment = BackendShutdownEnvironment(
+        now: { [unowned self] in
+            DispatchTime(uptimeNanoseconds: self.currentNanoseconds)
+        },
+        identities: { [unowned self] rootPID in
+            let root = BackendProcessIdentity(
+                pid: rootPID,
+                startSeconds: 100,
+                startMicroseconds: 200
+            )
+            self.rootIdentity = root
+            guard self.rootTreeDiscoverable else { return [] }
+            return self.survivorDiscoverable
+                ? [root, self.survivorIdentity]
+                : [root]
+        },
+        expanding: { $0 },
+        activeObservations: { [unowned self] identities in
+            guard self.survivorVisible, identities.contains(self.survivorIdentity) else {
+                return []
+            }
+            return [self.survivorObservation]
+        },
+        suspend: { identities in
+            Self.signalAttempts(identities, signal: SIGSTOP)
+        },
+        forceTerminate: { [unowned self] identities in
+            self.forceTerminatedIdentities.formUnion(identities)
+            let attempts = Self.signalAttempts(identities, signal: SIGKILL)
+            if self.forceTerminationRemovesSurvivor,
+               identities.contains(self.survivorIdentity) {
+                self.survivorVisible = false
+            }
+            return attempts
+        },
+        forceTerminateRoot: { pid in
+            BackendSignalAttempt(
+                pid: pid,
+                expectedIdentity: nil,
+                signal: SIGKILL,
+                disposition: .delivered
+            )
+        },
+        identity: { [unowned self] pid in
+            self.rootIdentity?.pid == pid ? self.rootIdentity : nil
+        },
+        schedulePolling: { [unowned self] handler in
+            self.scheduler.schedule(handler)
+        }
+    )
+
+    func advance(seconds: TimeInterval) {
+        currentNanoseconds += UInt64(seconds * 1_000_000_000)
+    }
+
+    func fire() {
+        scheduler.fire()
+    }
+
+    private static func signalAttempts(
+        _ identities: Set<BackendProcessIdentity>,
+        signal: Int32
+    ) -> [BackendSignalAttempt] {
+        identities.map { identity in
+            BackendSignalAttempt(
+                pid: identity.pid,
+                expectedIdentity: identity,
+                signal: signal,
+                disposition: .delivered
+            )
+        }
+    }
+}
+
+private final class ManualShutdownScheduler {
+    private var polls: [ManualShutdownPoll] = []
+
+    func schedule(_ handler: @escaping () -> Void) -> BackendShutdownPolling {
+        let poll = ManualShutdownPoll(handler: handler)
+        polls.append(poll)
+        return poll
+    }
+
+    func fire() {
+        for poll in polls where !poll.cancelled {
+            poll.handler()
+        }
+    }
+}
+
+private final class ManualShutdownPoll: BackendShutdownPolling {
+    let handler: () -> Void
+    private(set) var cancelled = false
+
+    init(handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+
+    func cancel() {
+        cancelled = true
+    }
+}
+
+private struct SleepingFixture {
+    let root: URL
+    let paths: ApplicationPaths
+    let executable: BackendExecutable
+
+    func cleanup() {
+        try? FileManager.default.removeItem(at: root)
     }
 }
 

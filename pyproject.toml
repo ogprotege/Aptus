@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aptus"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Evidence-backed fine-tuning planning, compilation, validation, and local execution"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,8 +39,19 @@ aptus-desktop = "aptus.desktop:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.dynamic]
+version = { attr = "aptus.__version__" }
+
 [tool.setuptools.package-data]
-aptus = ["_web/index.html", "_web/assets/*"]
+aptus = [
+  "_bundle_programs/cuda/*.py",
+  "_bundle_programs/mlx/*.py",
+  "_web/index.html",
+  "_web/assets/*",
+]
+
+[tool.ruff]
+extend-exclude = ["src/aptus/_bundle_programs"]
 
 [tool.coverage.run]
 source = ["aptus"]

@@ -1,6 +1,6 @@
 # Generated Code and Bundle Changes
 
-> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 A compiled bundle is a portable product artifact. Its Python programs,
 configuration, data copies, reports, and manifest must agree with the selected
@@ -8,20 +8,22 @@ plan. Change the generator source, never a compiled bundle in place.
 
 ## Generated sources
 
-[`src/aptus/generation.py`](../../src/aptus/generation.py) owns runtime-specific
-embedded programs:
+Canonical runtime programs are package resources under
+[`src/aptus/_bundle_programs/`](../../src/aptus/_bundle_programs/).
+[`src/aptus/generation.py`](../../src/aptus/generation.py) selects and emits
+those exact bytes:
 
-| Source constant | Bundle file | Responsibility |
+| Resource | Bundle file | Responsibility |
 |---|---|---|
-| `TRAIN_SCRIPT` | `train.py` | Model/data preparation, pilot and full training, census, splitting, checkpoints, metrics, and export |
-| `RUN_SCRIPT` | `run.py` | Portable full-run parent, launch, recovery, aggregate exit, artifact verification, and promotion |
-| `PREFLIGHT_SCRIPT` | `preflight.py` | Selected-method synthetic CUDA work and measured census |
-| `VALIDATE_SCRIPT` | `validate.py` | Portable validation ladder and two-phase pilot orchestration |
-| `MLX_TRAIN_SCRIPT` | `train.py` | Exact-target MLX adapter updates for smoke, pilot, and full actions |
-| `MLX_RUN_SCRIPT` | `run.py` | Owned uninterrupted MLX action outputs, artifact sealing, and full-run export |
-| `MLX_RELOAD_SCRIPT` | `reload.py` | Fresh-process adapter reload and one-to-four-token generation |
-| `MLX_PREFLIGHT_SCRIPT` | `preflight.py` | MLX cumulative runtime action orchestration |
-| `MLX_VALIDATE_SCRIPT` | `validate.py` | MLX validation ladder, attestations, and fail-closed evidence checks |
+| `_bundle_programs/cuda/train.py` | `train.py` | Model/data preparation, pilot and full training, census, splitting, checkpoints, metrics, and export |
+| `_bundle_programs/cuda/run.py` | `run.py` | Portable full-run parent, launch, recovery, aggregate exit, artifact verification, and promotion |
+| `_bundle_programs/cuda/preflight.py` | `preflight.py` | Selected-method synthetic CUDA work and measured census |
+| `_bundle_programs/cuda/validate.py` | `validate.py` | Portable validation ladder and two-phase pilot orchestration |
+| `_bundle_programs/mlx/train.py` | `train.py` | Exact-target MLX adapter updates for smoke, pilot, and full actions |
+| `_bundle_programs/mlx/run.py` | `run.py` | Owned uninterrupted MLX action outputs, artifact sealing, and full-run export |
+| `_bundle_programs/mlx/reload.py` | `reload.py` | Fresh-process adapter reload and one-to-four-token generation |
+| `_bundle_programs/mlx/preflight.py` | `preflight.py` | MLX cumulative runtime action orchestration |
+| `_bundle_programs/mlx/validate.py` | `validate.py` | MLX validation ladder, attestations, and fail-closed evidence checks |
 
 The compiler also copies current package sources into:
 
@@ -54,7 +56,7 @@ and output directories are mutable exclusions with separate evidence contracts.
 
 1. Identify the owning contract, generated consumer, and host verifier.
 2. Add a failing test for the intended behavior and at least one invalid form.
-3. Edit the source template or compiler helper.
+3. Edit the packaged program resource or compiler helper.
 4. Update copied/shared contract code when needed.
 5. Compile a fresh fixture into an absent or empty path.
 6. Run contract and static validation.
@@ -141,7 +143,10 @@ PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
 ```
 
 Then run the complete repository gate. Compiler changes also require a clean
-wheel build and installed-wheel smoke. Runtime-semantic changes require the
+wheel build and installed-wheel smoke. `tests.aptus.test_packaging` verifies
+wheel package-data declarations and frozen-sidecar collection. Generation tests
+compare emitted program bytes and manifest hashes with the packaged resources.
+Runtime-semantic changes require the
 applicable real CUDA pilots before a release support claim.
 
 ## Review the generated diff

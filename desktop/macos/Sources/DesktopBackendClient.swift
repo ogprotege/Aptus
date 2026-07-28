@@ -13,6 +13,23 @@ enum PersistedMLXRuntimeSelection: Equatable {
     case invalid(path: String?, reason: String)
 }
 
+struct MLXInterpreterCandidate: Equatable, Identifiable {
+    let path: String
+    let source: String
+    let pythonVersion: String?
+    let probePassed: Bool
+    let compatible: Bool
+    let reason: String
+    let packageVersions: [String: String]
+
+    var id: String { path }
+}
+
+struct MLXRuntimeInventory: Equatable {
+    let selection: PersistedMLXRuntimeSelection
+    let candidates: [MLXInterpreterCandidate]
+}
+
 protocol RuntimeConfiguring: AnyObject {
     func configureRuntime(
         runtimeID: String,
@@ -22,8 +39,8 @@ protocol RuntimeConfiguring: AnyObject {
 }
 
 protocol RuntimeInventoryLoading: AnyObject {
-    func loadPersistedMLXRuntime(
-        completion: @escaping (Result<PersistedMLXRuntimeSelection, Error>) -> Void
+    func loadMLXRuntimeInventory(
+        completion: @escaping (Result<MLXRuntimeInventory, Error>) -> Void
     )
 }
 
@@ -292,8 +309,8 @@ final class DesktopBackendClient: RuntimeConfiguring,
         }.resume()
     }
 
-    func loadPersistedMLXRuntime(
-        completion: @escaping (Result<PersistedMLXRuntimeSelection, Error>) -> Void
+    func loadMLXRuntimeInventory(
+        completion: @escaping (Result<MLXRuntimeInventory, Error>) -> Void
     ) {
         let request: URLRequest
         do {
@@ -340,8 +357,8 @@ final class DesktopBackendClient: RuntimeConfiguring,
                 return
             }
             do {
-                let selection = try Self.persistedMLXRuntimeSelection(from: payload)
-                self.complete(.success(selection), completion: completion)
+                let inventory = try Self.mlxRuntimeInventory(from: payload)
+                self.complete(.success(inventory), completion: completion)
             } catch {
                 self.complete(.failure(error), completion: completion)
             }
@@ -476,19 +493,10 @@ final class DesktopBackendClient: RuntimeConfiguring,
         from payload: [String: Any]?
     ) throws -> PersistedMLXRuntimeSelection {
         guard payload?["schema_version"] as? String == "aptus.runtime-inventory.v1",
-              let selected = payload?["selected"] as? [String: Any],
-              let available = payload?["available"] as? [String: Any],
-              let rawAvailablePaths = available["mlx-lm"] as? [Any] else {
+              let selected = payload?["selected"] as? [String: Any] else {
             throw DesktopBackendClientError.invalidRuntimeInventory
         }
-
-        var availablePaths: [String] = []
-        for value in rawAvailablePaths {
-            guard let path = value as? String, !path.isEmpty else {
-                throw DesktopBackendClientError.invalidRuntimeInventory
-            }
-            availablePaths.append(path)
-        }
+        let compatiblePaths = try compatibleMLXPaths(from: payload)
 
         guard let rawSelectedPath = selected["mlx-lm"] else {
             return .notConfigured
@@ -511,7 +519,7 @@ final class DesktopBackendClient: RuntimeConfiguring,
                 reason: "The persisted MLX-LM interpreter path is not a canonical absolute path."
             )
         }
-        if availablePaths.contains(selectedPath) {
+        if compatiblePaths.contains(selectedPath) {
             return .configured(path: selectedPath)
         }
         return .unavailable(
@@ -521,6 +529,113 @@ final class DesktopBackendClient: RuntimeConfiguring,
                 payload: payload
             )
         )
+    }
+
+    static func mlxRuntimeInventory(
+        from payload: [String: Any]?
+    ) throws -> MLXRuntimeInventory {
+        let selection = try persistedMLXRuntimeSelection(from: payload)
+        guard let rawInterpreters = payload?["interpreters"] as? [Any] else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+
+        var candidates: [MLXInterpreterCandidate] = []
+        var seenPaths = Set<String>()
+        for rawInterpreter in rawInterpreters {
+            guard let interpreter = rawInterpreter as? [String: Any],
+                  let path = interpreter["path"] as? String,
+                  isCanonicalAbsolutePath(path),
+                  seenPaths.insert(path).inserted,
+                  let source = interpreter["source"] as? String,
+                  !source.isEmpty else {
+                throw DesktopBackendClientError.invalidRuntimeInventory
+            }
+
+            let pythonVersion = try optionalRuntimeString(
+                interpreter["python_version"]
+            )
+            let interpreterError = try optionalRuntimeString(interpreter["error"])
+            let runtimes = interpreter["runtimes"] as? [String: Any]
+            let mlx = runtimes?["mlx-lm"] as? [String: Any]
+            let packageVersions = try runtimePackageVersions(from: mlx?["versions"])
+
+            let probePassed: Bool
+            let compatible: Bool
+            let reason: String
+            if let interpreterError, !interpreterError.isEmpty {
+                probePassed = false
+                compatible = false
+                reason = boundedRuntimeMessage(interpreterError)
+            } else if let mlx {
+                guard let available = strictBoolean(mlx["available"]) else {
+                    throw DesktopBackendClientError.invalidRuntimeInventory
+                }
+                guard let exactContract = strictBoolean(mlx["compatible"]) else {
+                    throw DesktopBackendClientError.invalidRuntimeInventory
+                }
+                guard !exactContract || available else {
+                    throw DesktopBackendClientError.invalidRuntimeInventory
+                }
+                probePassed = available
+                compatible = exactContract
+                if available && exactContract {
+                    reason = successfulMLXProbeReason(
+                        packageVersions: packageVersions
+                    )
+                } else if available,
+                          let compatibilityReason = try optionalRuntimeString(
+                              mlx["compatibility_reason"]
+                          ),
+                          !compatibilityReason.isEmpty {
+                    reason = boundedRuntimeMessage(compatibilityReason)
+                } else if let unavailableReason = try optionalRuntimeString(mlx["reason"]),
+                          !unavailableReason.isEmpty {
+                    reason = boundedRuntimeMessage(unavailableReason)
+                } else {
+                    reason = "The interpreter did not pass the MLX-LM import probe."
+                }
+            } else {
+                probePassed = false
+                compatible = false
+                reason = "The interpreter did not return an MLX-LM probe result."
+            }
+
+            candidates.append(MLXInterpreterCandidate(
+                path: path,
+                source: boundedRuntimeMessage(source),
+                pythonVersion: pythonVersion.map(boundedRuntimeMessage),
+                probePassed: probePassed,
+                compatible: compatible,
+                reason: reason,
+                packageVersions: packageVersions
+            ))
+        }
+        let advertisedCompatiblePaths = try compatibleMLXPaths(from: payload)
+        let measuredCompatiblePaths = Set(
+            candidates.lazy.filter(\.compatible).map(\.path)
+        )
+        guard advertisedCompatiblePaths == measuredCompatiblePaths else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        return MLXRuntimeInventory(selection: selection, candidates: candidates)
+    }
+
+    private static func compatibleMLXPaths(
+        from payload: [String: Any]?
+    ) throws -> Set<String> {
+        guard let compatible = payload?["compatible"] as? [String: Any],
+              let rawCompatiblePaths = compatible["mlx-lm"] as? [Any] else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        var paths = Set<String>()
+        for value in rawCompatiblePaths {
+            guard let path = value as? String,
+                  isCanonicalAbsolutePath(path),
+                  paths.insert(path).inserted else {
+                throw DesktopBackendClientError.invalidRuntimeInventory
+            }
+        }
+        return paths
     }
 
     private static func isCanonicalAbsolutePath(_ path: String) -> Bool {
@@ -546,16 +661,76 @@ final class DesktopBackendClient: RuntimeConfiguring,
             return boundedRuntimeMessage(error)
         }
         if let runtimes = interpreter["runtimes"] as? [String: Any],
-           let mlx = runtimes["mlx-lm"] as? [String: Any],
-           let reason = mlx["reason"] as? String,
-           !reason.isEmpty {
-            return boundedRuntimeMessage(reason)
+           let mlx = runtimes["mlx-lm"] as? [String: Any] {
+            if let reason = mlx["compatibility_reason"] as? String,
+               !reason.isEmpty {
+                return boundedRuntimeMessage(reason)
+            }
+            if let reason = mlx["reason"] as? String,
+               !reason.isEmpty {
+                return boundedRuntimeMessage(reason)
+            }
         }
-        return "The persisted interpreter did not pass the MLX-LM availability probe."
+        return "The persisted interpreter did not pass the exact MLX-LM runtime contract."
     }
 
     private static func boundedRuntimeMessage(_ message: String) -> String {
         String(message.prefix(500))
+    }
+
+    private static func optionalRuntimeString(_ value: Any?) throws -> String? {
+        if value == nil || value is NSNull {
+            return nil
+        }
+        guard let string = value as? String else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        return string
+    }
+
+    private static func strictBoolean(_ value: Any?) -> Bool? {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) == CFBooleanGetTypeID() else {
+            return nil
+        }
+        return number.boolValue
+    }
+
+    private static func runtimePackageVersions(
+        from value: Any?
+    ) throws -> [String: String] {
+        if value == nil || value is NSNull {
+            return [:]
+        }
+        guard let rawVersions = value as? [String: Any] else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        var versions: [String: String] = [:]
+        for (package, rawVersion) in rawVersions {
+            if rawVersion is NSNull {
+                continue
+            }
+            guard !package.isEmpty,
+                  let version = rawVersion as? String,
+                  !version.isEmpty else {
+                throw DesktopBackendClientError.invalidRuntimeInventory
+            }
+            versions[package] = boundedRuntimeMessage(version)
+        }
+        return versions
+    }
+
+    private static func successfulMLXProbeReason(
+        packageVersions: [String: String]
+    ) -> String {
+        let mlxVersion = packageVersions["mlx"]
+        let mlxLMVersion = packageVersions["mlx-lm"]
+        switch (mlxVersion, mlxLMVersion) {
+        case let (.some(mlx), .some(mlxLM)):
+            return "MLX \(mlx) and MLX-LM \(mlxLM) passed the exact Aptus runtime contract. Selection revalidates the contract before saving."
+        default:
+            return "MLX-LM passed the exact Aptus runtime contract. Selection revalidates the contract before saving."
+        }
     }
 
     private static func unsignedInteger(_ value: Any?) -> UInt64? {

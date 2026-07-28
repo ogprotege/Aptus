@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when `src/aptus/api.py` changes |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when `src/aptus/api.py` changes |
 
 The FastAPI service is an authenticated single-user local interface when
 started by `aptus serve`. The default origin is `http://127.0.0.1:8787`.
@@ -18,6 +18,22 @@ Default Host-header validation accepts `127.0.0.1`, `localhost`, `[::1]`, and
 `testserver`. The CLI can explicitly allow all hosts for non-loopback serving.
 Session authentication remains active in that mode, but TLS, tenant isolation,
 filesystem scoping, and worker isolation do not appear automatically.
+
+Every success route has an explicit Pydantic response model. The HTTP contract
+identity is `aptus.api.v1`. Health and bootstrap return that identity as
+`api_contract_version`; clients must reject an unknown nonempty value. The
+generated OpenAPI artifact is checked in at
+[`openapi.v1.json`](openapi.v1.json). Regenerate or verify it with:
+
+```bash
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py
+uv run --isolated --python 3.12 --locked --extra server --extra test \
+  python tools/generate_openapi.py --check
+```
+
+The OpenAPI artifact is generated. The current React TypeScript types and Swift
+native decoders are maintained client boundaries with tests, not generated SDKs.
 
 ## Authentication
 
@@ -80,6 +96,12 @@ has no application authentication. The caller owns its security boundary.
 | `GET /api/v1/jobs` | List persisted jobs | Reconciles each job |
 | `GET /api/v1/jobs/{job_id}` | Read one reconciled job | Can reconcile stale state |
 | `POST /api/v1/jobs/{job_id}/cancel` | Request cancellation | Updates job and terminates owned work |
+| `POST /api/v1/projects` | Create a named project | Writes a private project manifest |
+| `GET /api/v1/projects` | List healthy named projects | Can quarantine an unreadable project manifest |
+| `GET /api/v1/projects/{project_id}` | Read a project and latest immutable revision | Can repair a manifest to its latest safe revision |
+| `GET /api/v1/projects/{project_id}/revisions` | List immutable revision summaries | None |
+| `GET /api/v1/projects/{project_id}/revisions/{revision_id}` | Read one content-hashed revision | None |
+| `POST /api/v1/projects/{project_id}/recover` | Append a new revision from an older verified revision | Writes a new revision with authorization false |
 | `GET /{full_path:path}` | Hidden workbench asset and SPA fallback | Reads the packaged or selected static build |
 
 ## Service and state
@@ -91,7 +113,8 @@ Response:
 ```json
 {
   "status": "ok",
-  "version": "0.2.0"
+  "version": "0.2.0",
+  "api_contract_version": "aptus.api.v1"
 }
 ```
 
@@ -101,7 +124,7 @@ Response:
 
 Bootstrap always returns:
 
-- top-level `version`, `service`, `calibrated`, `stack_versions`, `defaults`,
+- top-level `api_contract_version`, `version`, `service`, `calibrated`, `stack_versions`, `defaults`,
   and `evidence`;
 - top-level compatibility copies of the capability fields;
 - `capabilities.backends`, which contains `cuda` and `mps`;
@@ -111,6 +134,7 @@ Bootstrap always returns:
 - `capabilities.method_catalog`, which contains all 11 descriptors;
 - training-runtime IDs, inference-service IDs, objectives, supported model
   families, and validation levels.
+- `projects`, the current `project` when present, and its `project_history`.
 
 On macOS, bootstrap selects `mps`, `mlx-lm`, and an 8 GiB reserve as the new
 workspace defaults. Other hosts retain `cuda`, `transformers-peft-cuda`, and a
@@ -119,12 +143,16 @@ workspace defaults. Other hosts retain `cuda`, `transformers-peft-cuda`, and a
 When restorable state exists, the response can also contain:
 
 - `job`, chosen from the active job or latest matching bundle job;
-- `plan`, loaded from the restorable bundle;
+- `plan`, loaded from the current project's latest valid revision or restorable bundle;
 - `bundle.bundle_dir`, `archive_path`, current file list, and report.
 
-A standalone plan that was never compiled is not restored automatically.
-Bootstrap validates the plan, manifest, and copied dataset digest before
-returning a bundle. It does not deep-hash large pilot or completed-run trees.
+A standalone project plan can be restored from the current immutable revision.
+Bootstrap returns a current-project bundle only when its resolved path, plan ID,
+selected candidate, and manifest fingerprint match that exact revision. It also
+validates the manifest and copied dataset digest. An active or completed job
+must appear in the revision's job IDs and use the same resolved bundle path.
+An identical plan or bundle from another project cannot enter the restored
+surface. Bootstrap does not deep-hash large pilot or completed-run trees.
 For a historical pilot or run, `authorization_current` is false unless an
 active admitted train job carries the matching cached capacity check. Train
 submission remains the authoritative deep authorization transaction.
@@ -165,16 +193,21 @@ non-Apple host returns `status: unsupported`.
 ### `GET /api/v1/runtimes`
 
 Returns `aptus.runtime-inventory.v1`. Every record identifies the exact Python
-executable, source, Python version, package versions, and measured availability
-for `mlx-lm`, `pytorch-mps`, and `transformers-peft-cuda`. The endpoint can use
+executable, source, Python version, package versions, measured import
+availability, and executable compatibility for `mlx-lm`, `pytorch-mps`, and
+`transformers-peft-cuda`. The `available` mapping reports successful capability
+probes. The separate `compatible` mapping reports interpreters Aptus can use.
+For MLX-LM, compatibility requires the exact reviewed `mlx` and `mlx-lm` pins.
+The endpoint can use
 the explicit `APTUS_MLX_PYTHON`, `APTUS_PYTORCH_PYTHON`, and
 `APTUS_CUDA_PYTHON` paths. It never treats LM Studio or oMLX as a training
 interpreter.
 
 `POST /api/v1/runtimes/configure` accepts `runtime_id` and an
 `interpreter_path`. Aptus executes a bounded capability probe, requires the
-selected runtime to be available, resolves the canonical executable path, and
-persists it in the private state directory. Finder-launched Mac builds use this
+selected runtime to be compatible, preserves its absolute command path without
+resolving a virtual-environment symlink, and persists it in the private state
+directory. Finder-launched Mac builds use this
 route because they cannot depend on shell startup environment variables.
 
 ## Local inference services
@@ -248,6 +281,8 @@ Top-level request:
 | `target` | object | Yes | None |
 | `dataset_path` | string | Yes | None |
 | `sample_limit` | integer or null | No | `512` |
+| `project_id` | string or null | No | Existing `project_` plus 32 lowercase hex |
+| `project_name` | string or null | No | Name for a new project; 1 to 120 characters |
 
 `model` fields:
 
@@ -306,9 +341,12 @@ pinned model revision.
 | `packing` | boolean | No | False; true is rejected by planning |
 | `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
 
-Success persists and returns one full `aptus.training-plan.v2` object. When no
-candidate is viable, the response is `422 no_feasible_plan` and still includes
-the complete rejected candidate matrix.
+Success persists and returns one full `aptus.training-plan.v2` object plus
+`project_id` and `project_revision_id`. Supplying `project_id` appends to that
+project. Otherwise Aptus creates a named project, using `project_name` or a
+model-derived default. When no candidate is viable, the response is
+`422 no_feasible_plan` and still includes the complete rejected candidate
+matrix.
 
 ### `GET /api/v1/plans/{plan_id}`
 
@@ -323,7 +361,9 @@ plan is rehydrated through the strict domain contract before it is returned.
 ```json
 {
   "plan_id": "plan_0123456789abcdef0123",
-  "output_dir": "/absolute/new-bundle"
+  "output_dir": "/absolute/new-bundle",
+  "project_id": "project_...",
+  "expected_project_revision_id": "revision_..."
 }
 ```
 
@@ -338,18 +378,32 @@ suffix is `.zip`. The bundle and archive are no-clobber. Success writes
   "archive_path": "/absolute/new-bundle.zip",
   "files": [],
   "runtime_contract": {},
-  "report": {}
+  "report": {},
+  "project_id": "project_...",
+  "project_revision_id": "revision_..."
 }
 ```
 
 The file list is the current directory tree, including mutable files that are
-not part of the immutable manifest.
+not part of the immutable manifest. Compile requires the exact project and
+current revision that own the plan. The persisted plan must equal the
+revision's immutable plan snapshot. A mismatch returns
+`409 project_plan_snapshot_mismatch`. Success appends a revision that records
+the bundle-manifest fingerprint plus the ZIP SHA-256 and byte size, then returns
+the new project identities.
+
+Project attachment uses a compare-and-swap. If the project advances during
+compilation, Aptus returns `409 project_revision_conflict`. It removes only the
+unchanged bundle and ZIP created by that request. A replacement at either path
+is preserved.
 
 ### `POST /api/v1/validate`
 
 | Field | Type | Required | Default |
 | --- | --- | ---: | --- |
 | `bundle_dir` | string | Yes | None |
+| `project_id` | project ID | Yes | None |
+| `expected_project_revision_id` | revision ID | Yes | None |
 | `level` | validation level | No | `static` |
 | `run` | boolean | No | False |
 
@@ -358,6 +412,12 @@ validation guard. Runtime levels with `run: false` return the direct static
 report plus `RUNTIME_NOT_EXECUTED`. Runtime levels with `run: true` return
 `409 runtime_validation_requires_job` and a `suggested_action`. Runtime work
 must use jobs so it is serialized and cancellable.
+Validation requires the exact project and current revision that own the bundle.
+It rejects a changed saved plan snapshot, plan ID, candidate, resolved bundle
+path, manifest content, or recorded manifest fingerprint. A path that belongs
+to the revision but fails this deeper identity check returns
+`409 project_bundle_binding_mismatch`. Success appends an immutable revision
+and returns `project_id` and `project_revision_id`.
 
 ## Jobs
 
@@ -366,6 +426,8 @@ must use jobs so it is serialized and cancellable.
 | Field | Type | Required | Default |
 | --- | --- | ---: | --- |
 | `bundle_dir` | string | Yes | None |
+| `project_id` | project ID | Yes | None |
+| `expected_project_revision_id` | revision ID | Yes | None |
 | `action` | `dependency`, `model-data`, `preflight`, `pilot`, or `train` | No | `preflight` |
 | `confirm_full_train` | boolean | No | False |
 
@@ -384,6 +446,16 @@ VRAM, host RAM, disk, checkpoint contracts, and export contracts. MLX admission
 verifies the owned uninterrupted pilot, current available unified memory above
 measured peak plus reserve, and current disk against planned and measured
 adapter artifacts. The queued record is written only after admission succeeds.
+The request must name the exact project and current revision that own the
+bundle. Aptus verifies the saved plan snapshot, plan ID, selected candidate,
+resolved path, manifest, and project-bound fingerprint. It persists the job
+association before starting the worker. If that project write fails, the worker
+never starts. The permit launcher repeats the manifest fingerprint and file
+checks from the bundle working directory immediately before execution.
+An exact-path bundle whose deeper identity changed returns
+`409 project_bundle_binding_mismatch` before launch.
+Successful submission appends a revision and returns its project identities
+with the job.
 
 MLX `pilot` means an uninterrupted exact-model run with at least two optimizer
 updates plus fresh-process adapter reload and one-to-four-token generation. MLX
@@ -406,6 +478,56 @@ the completion-time recursive hash verification.
 Returns terminal records unchanged. For active work, cancellation succeeds only
 through the owning `JobService`. The parent completion-verification phase is not
 cancellable. A missing ID returns `404 job_not_found`.
+
+Job responses use `aptus.job-record.v1`. A schema-less legacy record migrates on
+read with durable authorization cleared. Corrupt, symlinked, or unsupported job
+records move to a private quarantine with a reason receipt. Healthy records
+continue to load.
+
+## Projects and immutable revisions
+
+### `POST /api/v1/projects`
+
+Accepts `{ "name": "Project name" }`. The name must contain 1 to 120
+characters. Success returns `201` with an `aptus.project.v1` project object.
+
+### `GET /api/v1/projects`
+
+Returns healthy project summaries in most-recently-updated order. Each summary
+contains its ID, name, timestamps, latest revision identity, revision count, and
+latest revision summary when one exists.
+
+### Project detail and history
+
+`GET /api/v1/projects/{project_id}` returns the manifest and latest full
+revision. `GET /api/v1/projects/{project_id}/revisions` returns ordered summary
+records. `GET /api/v1/projects/{project_id}/revisions/{revision_id}` returns one
+`aptus.project-revision.v1` record.
+
+A revision binds its parent, ordinal, reason, available facts and plan snapshot,
+selected candidate, bundle, durable validation summary, job IDs, and
+`content_sha256`. Revisions are append-only. Validation persistence removes
+current authorization and capacity fields. `training_authorization.current` is
+always false on disk.
+
+### `POST /api/v1/projects/{project_id}/recover`
+
+Accepts `{ "revision_id": "revision_..." }`. Aptus verifies any referenced
+local plan and bundle, then appends a new revision derived from the requested
+one. It does not rewrite the source revision. Success returns:
+
+```json
+{
+  "status": "recovered",
+  "project_id": "project_...",
+  "revision": {},
+  "training_authorization_current": false
+}
+```
+
+Recovery is not training resume. Revalidate current evidence and submit a new
+explicitly confirmed train action. Missing projects or revisions return the
+corresponding `project_not_found` or `project_revision_not_found` error.
 
 ## Error envelopes
 
@@ -434,8 +556,8 @@ then inspect the remaining fields.
 | ---: | --- |
 | `400` | `invalid_request`, `filesystem_error`, `runtime_configuration_invalid`, local-inference configuration errors |
 | `403` | `path_forbidden`, `desktop_session_required` |
-| `404` | `path_not_found`, `plan_not_found`, `job_not_found`, route `not_found` |
-| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable` |
+| `404` | `path_not_found`, `plan_not_found`, `job_not_found`, `project_not_found`, `project_revision_not_found`, route `not_found` |
+| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
 | `422` | `request_validation`, `no_feasible_plan` |
 | `502`, `504` | Bounded local-inference service or timeout errors |
 

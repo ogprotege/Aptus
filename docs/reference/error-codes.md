@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | API clients, CLI operators, UI developers, and support engineers |
 | Authority | Normative inventory of host API errors and host validator findings in v0.2 |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when API handlers or validation findings change |
+| Last reviewed | 2026-07-27 |
+| Next review | 2026-10-27, or sooner when API handlers or validation findings change |
 
 API errors, managed-job errors, and validation findings are separate channels.
 An API error describes why a request failed. A failed job can carry a runtime
@@ -50,12 +50,19 @@ Lifecycle conflicts use structured fields:
 | `404` | `path_not_found` | A required filesystem path does not exist |
 | `404` | `plan_not_found` | The requested content-addressed plan is not persisted |
 | `404` | `job_not_found` | The requested job record is not persisted |
+| `404` | `project_not_found` | The requested named project is unavailable or its manifest was quarantined |
+| `404` | `project_revision_not_found` | The requested immutable project revision is unavailable |
 | `404` | `not_found` | A static-enabled request under `/api/` matched no route |
 | `409` | `path_conflict` | A no-clobber destination already exists |
 | `409` | `active_job_conflict` | A guarded operation conflicts with active Aptus work |
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
+| `409` | `project_revision_conflict` | The named project advanced after the caller loaded its expected revision |
+| `409` | `project_plan_mismatch` | The requested plan does not belong to the named project revision |
+| `409` | `project_plan_snapshot_mismatch` | The persisted plan no longer equals the immutable plan snapshot that authorized compilation |
+| `409` | `project_bundle_mismatch` | The requested bundle does not belong to the named project revision |
+| `409` | `project_bundle_binding_mismatch` | The bundle path matches the revision, but its plan, candidate, manifest, or recorded fingerprint binding changed |
 | `422` | `request_validation` | The strict Pydantic request model rejected shape, type, range, or extra fields |
 | `422` | `no_feasible_plan` | All 12 candidate rows were rejected |
 | varies | `http_error` | FastAPI emitted a non-object HTTP error detail |

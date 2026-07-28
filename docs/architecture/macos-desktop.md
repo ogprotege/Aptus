@@ -1,12 +1,12 @@
 # macOS Desktop Host
 
-> **Status:** Active | **Audience:** Contributors and release operators | **Authority:** Architecture | **Applies to:** Aptus 0.2 | **Owner:** Desktop | **Last reviewed:** 2026-07-22 | **Review by:** Every desktop packaging change
+> **Status:** Active | **Audience:** Contributors and release operators | **Authority:** Architecture | **Applies to:** Aptus 0.2 | **Owner:** Desktop | **Last reviewed:** 2026-07-27 | **Review by:** Every desktop packaging change
 
 Aptus for Mac is a native Apple Silicon product. It does not implement a second
 planner, compiler, or validation model. AppKit owns application lifecycle and
-the main window. SwiftUI owns the Home, Machine, Models, Data, Plans, and Runs
-shell. A bundled Python sidecar serves the FastAPI contracts and Aptus core.
-The authenticated React workbench remains a contained transitional surface.
+the main window. SwiftUI owns the Home, Workbench, Machine, and Models shell. A
+bundled Python sidecar serves the FastAPI contracts and Aptus core. The
+authenticated React workbench is inline in the Workbench destination.
 
 ```text
 AppKit application and window lifecycle
@@ -27,7 +27,7 @@ FastAPI, runtime dispatch, planner, compiler, validator, and jobs
 ## Ownership
 
 The native host owns startup, failure recovery, shutdown, application paths,
-private session creation, the six native destinations, file and folder panels,
+private session creation, four native destinations, file and folder panels,
 Finder actions, and navigation policy. React owns the complete five-stage
 workbench workflow. Python remains authoritative for facts, feasibility,
 runtime selection, compilation, validation, jobs, leases, and evidence.
@@ -55,11 +55,21 @@ modal file requests time out after five minutes. Native rejections use
 `AptusDesktopError` with a stable `code`. Exact-origin malformed requests with
 a valid identifier receive an `invalid_request` response.
 
-The native `Choose MLX Python` panel is not part of the JavaScript bridge. It
+The native MLX runtime panel is not part of the JavaScript bridge. It
 shows hidden virtual-environment folders, accepts one executable, and sends the
 exact path to `POST /api/v1/runtimes/configure` with the private session cookie.
-The sidecar probes the runtime before persisting the canonical path. This avoids
+The sidecar probes the runtime before persisting its absolute command path. It
+preserves a virtual environment's `bin/python` symlink so later execution keeps
+that environment's package context. This avoids
 relying on shell environment variables that Finder does not inherit.
+
+The same Models destination renders a read-only environment doctor from
+`GET /api/v1/runtimes`. Each likely interpreter shows its path, source, Python
+version, import-probe result, and failure reason. Passing rows offer
+**Use this Python**, which still calls the backend configuration endpoint and
+its pinned validation. When none pass, the view shows the external virtual-
+environment commands for `mlx==0.31.2` and `mlx-lm==0.31.3`. It installs
+nothing.
 
 ## Process and session boundary
 
@@ -77,6 +87,15 @@ token never enters the readiness file, URL, JavaScript, state directory, or log.
 
 Native API calls use an ephemeral URL session, the same exact origin and cookie,
 bounded responses, and no redirects. They cannot change the endpoint origin.
+
+Shutdown is a containment transaction. The controller captures PID plus process
+start identity, expands descendants, waits for graceful termination, then
+freezes and force-terminates survivors. Zombies do not block completion and PID
+reuse cannot receive an old process's signal. If active descendants survive the
+deadline, the controller returns a typed failure and retains its process, path,
+and session ownership. Restart is blocked, and application termination is
+refused, until an explicit retry confirms success. Diagnostics record the signal
+order and observed process states.
 
 ## Storage
 
@@ -134,9 +153,17 @@ and product boundaries without requiring macOS 26 effects.
 `desktop/macos/build.sh` runs the product suite in isolated Python 3.12, rebuilds
 and tests the web assets, creates a relocatable arm64 Python sidecar with
 PyInstaller, generates the Xcode project, and runs native tests. It assembles
-the app, creates the icon set, signs nested code and the outer bundle,
-and emits a DMG. Local builds are ad-hoc signed. Public distribution still
-requires Developer ID signing, notarization, and clean-machine verification.
+the app, creates the icon set, signs nested code and the outer bundle, runs an
+authenticated launch probe, and emits `Aptus.app`, `Aptus.app.zip`, a DMG,
+`SHA256SUMS`, and `COMMIT`. Local builds are ad-hoc signed by default.
+
+Set `APTUS_REQUIRE_CLEAN_CHECKOUT=1` to reject a dirty release checkout. For a
+public artifact, set `APTUS_CODESIGN_IDENTITY` to a Developer ID Application
+identity and `APTUS_NOTARY_PROFILE` to a valid `notarytool` keychain profile.
+The build submits, staples, validates, and assesses both the app and DMG. Set
+`APTUS_REQUIRE_NOTARIZATION=1` to make missing signing or notarization inputs a
+hard error. Public distribution still requires a real accepted notarization and
+clean-machine verification.
 
 ## Related documentation
 

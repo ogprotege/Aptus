@@ -1,0 +1,20 @@
+download README.md
+README.md bytes=748 seconds=0.160699 status=200
+download added_tokens.json
+added_tokens.json bytes=605 seconds=0.138206 status=200
+download config.json
+config.json bytes=783 seconds=0.138969 status=200
+download merges.txt
+merges.txt bytes=1671853 seconds=0.354132 status=200
+download model.safetensors
+model.safetensors bytes=278064920 seconds=28.221145 status=200
+download model.safetensors.index.json
+model.safetensors.index.json bytes=44209 seconds=0.277610 status=200
+download special_tokens_map.json
+special_tokens_map.json bytes=613 seconds=0.175246 status=200
+download tokenizer.json
+tokenizer.json bytes=7031673 seconds=0.408017 status=200
+download tokenizer_config.json
+tokenizer_config.json bytes=7308 seconds=0.181577 status=200
+download vocab.json
+vocab.json bytes=2776833 seconds=0.277277 status=200

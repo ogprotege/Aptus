@@ -6,9 +6,9 @@ final class DesktopShellTests: XCTestCase {
     func testNativeNavigationUsesTheRequiredProductOrder() {
         XCTAssertEqual(
             DesktopDestination.allCases.map(\.title),
-            ["Home", "Machine", "Models", "Data", "Plans", "Runs"]
+            ["Home", "Workbench", "Machine", "Models"]
         )
-        XCTAssertEqual(Set(DesktopDestination.allCases.map(\.systemImage)).count, 6)
+        XCTAssertEqual(Set(DesktopDestination.allCases.map(\.systemImage)).count, 4)
         XCTAssertTrue(DesktopDestination.allCases.allSatisfy {
             !$0.accessibilitySummary.isEmpty
         })
@@ -43,17 +43,7 @@ final class DesktopShellTests: XCTestCase {
         )
     }
 
-    func testWorkbenchAutopresentsOnlyForPackagedLaunchProbe() {
-        XCTAssertFalse(DesktopLaunchPolicy.presentsWorkbenchImmediately(environment: [:]))
-        XCTAssertFalse(DesktopLaunchPolicy.presentsWorkbenchImmediately(environment: [
-            "APTUS_DESKTOP_LAUNCH_PROBE_FILE": "   ",
-        ]))
-        XCTAssertTrue(DesktopLaunchPolicy.presentsWorkbenchImmediately(environment: [
-            "APTUS_DESKTOP_LAUNCH_PROBE_FILE": "/tmp/aptus-probe/result.json",
-        ]))
-    }
-
-    func testShellModelPresentsAndRecoversTheContainedWorkbench() {
+    func testShellModelUsesAndRecoversThePrimaryWorkbenchDestination() {
         var retryCount = 0
         let model = DesktopShellModel(
             machine: MachineProfile(
@@ -69,22 +59,38 @@ final class DesktopShellTests: XCTestCase {
             ),
             retryWorkbench: { retryCount += 1 }
         )
-        XCTAssertFalse(model.isWorkbenchPresented)
+        XCTAssertEqual(model.selection, .workbench)
 
+        model.selection = .machine
         model.openWorkbench()
-        XCTAssertTrue(model.isWorkbenchPresented)
+        XCTAssertEqual(model.selection, .workbench)
 
         model.reportWorkbenchFailure("Local test failure")
-        XCTAssertFalse(model.isWorkbenchPresented)
+        XCTAssertEqual(model.selection, .workbench)
         XCTAssertEqual(model.workbenchErrorMessage, "Local test failure")
 
+        model.selection = .models
         model.openWorkbench()
-        XCTAssertTrue(model.isWorkbenchPresented)
+        XCTAssertEqual(model.selection, .workbench)
         XCTAssertNil(model.workbenchErrorMessage)
         XCTAssertEqual(retryCount, 1)
 
         model.openWorkbench()
         XCTAssertEqual(retryCount, 1)
+    }
+
+    func testWorkbenchIsEmbeddedAndDuplicateWorkflowDestinationsAreRemoved() throws {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/DesktopShell.swift")
+        let contents = try String(contentsOf: source, encoding: .utf8)
+
+        XCTAssertTrue(contents.contains("case .workbench:\n            WorkbenchControllerHost"))
+        XCTAssertFalse(contents.contains("WorkbenchSheet"))
+        XCTAssertFalse(contents.contains("DataView"))
+        XCTAssertFalse(contents.contains("PlansView"))
+        XCTAssertFalse(contents.contains("RunsView"))
     }
 
     func testMachineProfileLabelsMeasuredMemoryWithoutInventingCapacity() {
@@ -159,6 +165,8 @@ final class DesktopShellTests: XCTestCase {
         }
         XCTAssertTrue(contents.contains("Primary local Aptus training runtime"))
         XCTAssertTrue(contents.contains("Compiler unavailable"))
+        XCTAssertTrue(contents.contains("No reported interpreter passed the exact MLX-LM runtime contract"))
+        XCTAssertFalse(contents.contains("No reported interpreter passed the MLX-LM import probe"))
     }
 
     func testCurrentMachineProfileReportsOnlyObservedCoreFacts() {

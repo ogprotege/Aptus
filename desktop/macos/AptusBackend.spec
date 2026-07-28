@@ -25,6 +25,19 @@ hiddenimports = sorted(
     )
 )
 datas = collect_data_files("aptus", includes=["_web/**"])
+bundle_program_root = APTUS_SOURCE / "aptus" / "_bundle_programs"
+datas.extend(
+    (
+        str(path),
+        "aptus/_bundle_programs/"
+        + path.relative_to(bundle_program_root).parent.as_posix(),
+    )
+    for path in sorted(bundle_program_root.rglob("*.py"))
+)
+datas.extend(
+    (str(APTUS_SOURCE / "aptus" / name), "aptus")
+    for name in ("plan_contract.py", "runtime_lease.py")
+)
 
 analysis = Analysis(
     [str(Path(SPECPATH) / "backend_entry.py")],

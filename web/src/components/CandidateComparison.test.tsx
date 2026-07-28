@@ -5,19 +5,20 @@ import { CandidateComparison } from "./CandidateComparison";
 
 describe("CandidateComparison", () => {
   it("uses a semantic table and lets the user inspect an alternative", () => {
-    const onSelect = vi.fn();
+    const onInspect = vi.fn();
     render(
       <CandidateComparison
         candidates={EXAMPLE_PLAN.candidates}
         recommended={EXAMPLE_PLAN.recommended}
-        selected={EXAMPLE_PLAN.recommended}
-        onSelect={onSelect}
+        inspected={EXAMPLE_PLAN.recommended}
+        onInspect={onInspect}
       />,
     );
     expect(screen.getByRole("table")).toBeInTheDocument();
-    const qloraButtons = screen.getAllByRole("button", { name: /QLoRA/i });
+    expect(screen.getByText(/Compilation still uses the recommendation/i)).toBeInTheDocument();
+    const qloraButtons = screen.getAllByRole("button", { name: /Inspect QLoRA candidate evidence/i });
     fireEvent.click(qloraButtons[0]);
-    expect(onSelect).toHaveBeenCalledWith(
+    expect(onInspect).toHaveBeenCalledWith(
       EXAMPLE_PLAN.candidates.find(
         (candidate) => candidate.method === "qlora" && candidate.distribution === "single",
       ),
@@ -37,8 +38,8 @@ describe("CandidateComparison", () => {
       <CandidateComparison
         candidates={[candidate]}
         recommended={candidate}
-        selected={candidate}
-        onSelect={vi.fn()}
+        inspected={candidate}
+        onInspect={vi.fn()}
       />,
     );
 

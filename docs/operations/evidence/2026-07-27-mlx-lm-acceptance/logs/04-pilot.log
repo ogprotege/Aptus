@@ -1,0 +1,34 @@
+MLX-LM dependencies and Apple silicon platform are present.
+Pilot and full runs are uninterrupted from scratch; crash-resume remains unsupported.
+Loading configuration file /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/config/mlx-lm.yaml
+Loading pretrained model
+Loading datasets
+Training
+Trainable parameters: 0.890% (4.399M/494.033M)
+Starting training..., iters: 2
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 30.58it/s]
+Iter 1: Val loss 4.899, Val took 0.040s
+Iter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 8.643, Tokens/sec 285.231, Trained Tokens 33, Peak mem 0.516 GB
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 49.31it/s]
+Iter 2: Val loss 3.819, Val took 0.022s
+Iter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 10.009, Tokens/sec 250.216, Trained Tokens 58, Peak mem 0.524 GB
+Saved final weights to /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/bounded-smoke_03181cbba3de4e76899b6eaa8d5b577f/adapters/adapters.safetensors.
+MLX-LM bounded-smoke training completed: /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/bounded-smoke_03181cbba3de4e76899b6eaa8d5b577f/training-metrics.json
+Aptus MLX-LM bounded-smoke completed: /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/bounded-smoke_03181cbba3de4e76899b6eaa8d5b577f
+Loading configuration file /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/config/mlx-lm.yaml
+Loading pretrained model
+Loading datasets
+Training
+Trainable parameters: 0.890% (4.399M/494.033M)
+Starting training..., iters: 2
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 30.07it/s]
+Iter 1: Val loss 4.899, Val took 0.042s
+Iter 1: Train loss 3.853, Learning Rate 2.000e-04, It/sec 8.731, Tokens/sec 288.107, Trained Tokens 33, Peak mem 0.516 GB
+Calculating loss...:   0%|          | 0/1 [00:00<?, ?it/s]Calculating loss...: 100%|██████████| 1/1 [00:00<00:00, 48.25it/s]
+Iter 2: Val loss 3.819, Val took 0.022s
+Iter 2: Train loss 3.154, Learning Rate 2.000e-04, It/sec 10.243, Tokens/sec 256.069, Trained Tokens 58, Peak mem 0.525 GB
+Saved final weights to /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/pilot_0e1194ba3f15438b95b153cc8534de89/adapters/adapters.safetensors.
+MLX-LM pilot training completed: /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/pilot_0e1194ba3f15438b95b153cc8534de89/training-metrics.json
+Fresh-process MLX adapter reload passed: /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/pilot_0e1194ba3f15438b95b153cc8534de89/reload-evidence.json
+Aptus MLX-LM pilot completed: /private/tmp/aptus-mlx-acceptance-20260727.esidAb/bundle/pilot-output/pilot_0e1194ba3f15438b95b153cc8534de89
+Aptus MLX-LM pilot validation passed.

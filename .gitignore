@@ -27,6 +27,7 @@ coverage/
 
 # Disposable audit environments
 /.audit-sandboxes/
+/graphify-out/
 
 # Generated macOS desktop build products
 /desktop/macos/.build/

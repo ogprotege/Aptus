@@ -581,8 +581,10 @@ export function FactsStage({
                 {profileFacts.slice(0, 4).map((fact, index) => (
                   <div key={`${fact.key ?? fact.label ?? "fact"}-${index}`}>
                     <dt>{fact.label ?? fact.key ?? "Profile fact"}</dt>
-                    <dd>{String(fact.value ?? "Unknown")}{fact.unit ? ` ${fact.unit}` : ""}</dd>
-                    <ProvenanceBadge kind={fact.provenance} />
+                    <dd>
+                      <span>{String(fact.value ?? "Unknown")}{fact.unit ? ` ${fact.unit}` : ""}</span>
+                      <ProvenanceBadge kind={fact.provenance} />
+                    </dd>
                   </div>
                 ))}
               </dl>

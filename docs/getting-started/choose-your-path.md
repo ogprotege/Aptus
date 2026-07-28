@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its CUDA compiler covers the complete
@@ -106,10 +106,11 @@ an engineering preview until the applicable
 
 All three interfaces use the same Python contracts.
 
-Choose the Mac app for the AppKit lifecycle, SwiftUI Home, Machine, Models,
-Data, Plans, and Runs shell, exact MLX Python selection, authenticated private
-backend, Finder actions, local MLX-LM gates, and explicit CUDA-host handoff. The
-full React workbench remains available as a contained transitional sheet.
+Choose the Mac app for the AppKit lifecycle, SwiftUI Home, Workbench, Machine,
+and Models shell, exact MLX Python selection, authenticated private backend,
+Finder actions, local MLX-LM gates, and explicit CUDA-host handoff. The full
+React workbench is inline and owns one Facts, Compare, Compile, Validate, and Run
+workflow with immutable project history.
 
 Choose the workbench when you want guided fact entry, candidate cards, evidence
 disclosures, and job monitoring. `aptus serve` prints a new authenticated

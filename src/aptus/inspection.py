@@ -7,6 +7,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from . import __version__
 from .catalog import TARGET_MODULES
 
 
@@ -74,7 +75,8 @@ def _fetch_json(
     url: str, *, timeout: float, transport: Transport | None
 ) -> tuple[dict[str, Any], str | None]:
     request = Request(
-        url, headers={"Accept": "application/json", "User-Agent": "aptus/0.2.0"}
+        url,
+        headers={"Accept": "application/json", "User-Agent": f"aptus/{__version__}"},
     )
     response = (transport or urlopen)(request, timeout=timeout)
     with response:

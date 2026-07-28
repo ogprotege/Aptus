@@ -142,6 +142,28 @@ export function memoryLimit(candidate: CandidatePlan | null): number | null {
   return candidate?.memory?.limit_bytes ?? null;
 }
 
+export function candidateMemoryLanguage(candidate: CandidatePlan | null) {
+  const runtime = candidate?.runtime_contract?.training_runtime?.toLowerCase();
+  const backend = candidate?.runtime_contract?.compute_backend?.toLowerCase();
+  const usesUnifiedMemory = runtime === "mlx-lm" || backend === "mlx" || backend === "mps";
+
+  return usesUnifiedMemory
+    ? {
+        eyebrow: "Unified-memory feasibility",
+        budgetDescription: "usable unified-memory headroom",
+        recommendationLabel: "Usable unified memory",
+        fitLineLabel: "UNIFIED LIMIT",
+        reserveLabel: "Aptus reserve",
+      }
+    : {
+        eyebrow: "Per-device VRAM feasibility",
+        budgetDescription: "usable per-device VRAM",
+        recommendationLabel: "Usable device VRAM",
+        fitLineLabel: "VRAM LIMIT",
+        reserveLabel: "Device reserve",
+      };
+}
+
 export function planRationale(plan: TrainingPlan): string[] {
   return plan.rationale.length
     ? plan.rationale

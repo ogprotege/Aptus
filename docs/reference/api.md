@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-07-27 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-27, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -488,6 +488,15 @@ and returns `project_id` and `project_revision_id`.
 
 ## Jobs
 
+A service can be started with local execution disabled. In that mode the
+planning, compilation, and static-validation surfaces stay available, but every
+endpoint that would run work on this host fails closed with
+`403 desktop_execution_disabled`: `POST /api/v1/jobs`, and `POST /api/v1/validate`
+whenever `run` is true and the requested level is `dependency`, `model-data`,
+`measured-preflight`, or `pilot`. `GET /api/v1/bootstrap` reports the current
+mode as `local_execution_enabled`. Read that field before offering an execution
+action rather than discovering the mode from a rejected request.
+
 ### `POST /api/v1/jobs`
 
 | Field | Type | Required | Default |
@@ -625,7 +634,7 @@ then inspect the remaining fields.
 | HTTP status | Emitted errors |
 | ---: | --- |
 | `400` | `invalid_request`, `filesystem_error`, `runtime_configuration_invalid`, local-inference configuration errors |
-| `403` | `path_forbidden`, `desktop_session_required` |
+| `403` | `path_forbidden`, `desktop_session_required`, `desktop_execution_disabled` |
 | `404` | `path_not_found`, `plan_not_found`, `job_not_found`, `project_not_found`, `project_revision_not_found`, route `not_found` |
 | `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable`, `replan_required`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
 | `422` | `request_validation`, `no_feasible_plan` |

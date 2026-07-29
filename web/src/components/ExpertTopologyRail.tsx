@@ -48,6 +48,9 @@ export function ExpertTopologyRail({
         ? "Unsupported"
         : "Support unknown";
   const routedText = `Any ${topology.experts_per_token} of ${topology.expert_count} routed experts`;
+  const supportedMethods = (compatibility?.supported_methods ?? []).join(", ") || "the allowlisted method";
+  const supportedDistribution = compatibility?.distribution ?? "the allowlisted placement";
+  const pilotBoundary = compatibility?.reason ?? "Every exact bundle must still pass its pilot.";
 
   return (
     <section className="moe-topology-panel" aria-labelledby={titleId}>
@@ -112,8 +115,8 @@ export function ExpertTopologyRail({
       {status === "conditional" ? (
         <p className={`moe-support-copy${runtimeMatches ? "" : " support-mismatch"}`}>
           {runtimeMatches
-            ? `${supportedRuntime ?? "The selected runtime"} supports ${(compatibility?.supported_methods ?? []).join(", ") || "the allowlisted method"} on ${compatibility?.distribution ?? "the allowlisted placement"}. ${compatibility?.reason ?? "Every exact bundle must still pass its pilot."}`
-            : `The conditional path requires ${supportedRuntime}. The current ${selectedRuntime} target remains unsupported for this model.`}
+            ? `${supportedRuntime ?? "The selected runtime"} supports ${supportedMethods} on ${supportedDistribution}. ${pilotBoundary}`
+            : `The conditional path requires ${supportedRuntime} with ${supportedMethods} on ${supportedDistribution}. The current ${selectedRuntime} target remains unsupported for this model. ${pilotBoundary}`}
         </p>
       ) : compatibility?.reason ? (
         <p className="moe-support-copy support-mismatch">{compatibility.reason}</p>

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-07-27 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-27, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON
@@ -78,7 +78,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `--eight-bit` | No | False | Declares eight-bit capability |
 | `--host-ram-gib NUMBER` | Yes | None | Positive total host RAM |
 | `--host-ram-free-gib NUMBER` | No | `null` | Current free host RAM; planner uses total when omitted |
-| `--reserve-gib NUMBER` | No | `2.0` | Non-negative reserve subtracted from each device |
+| `--reserve-gib NUMBER` | No | `2.0` | Non-negative reserve subtracted from each device. Raised to at least `8.0` when `--backend mps` is selected |
 | `--disk-free-gib NUMBER` | No | `null` | Current free disk; analytic disk rejection is skipped when omitted |
 
 Manual facts are recorded as `user-attested`. Repeating one set of values for

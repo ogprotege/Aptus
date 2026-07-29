@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -116,6 +116,7 @@ Authority labels have a separate meaning:
 - [Release evidence template](operations/release-evidence-template.md)
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
+- [2026-07-28 Qwen3 MoE admission and performance evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Apple Silicon runtime and pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 

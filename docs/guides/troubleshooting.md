@@ -1,6 +1,6 @@
 # Troubleshooting
 
-> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a new failure class
+> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or after a new failure class
 
 Begin with the read-only report:
 
@@ -58,6 +58,32 @@ training row. Provider inspection does not guarantee that the training runtime
 can load the revision. Also inspect the trainable census. Full training rejects
 any frozen model tensor, while LoRA-based paths reject trainable tensors outside
 the compiled LoRA parameter scope.
+
+On `mlx-lm`, model-data can also refuse on memory before it loads the model at
+all. See the next section before re-pulling the model or re-checking credentials.
+
+## MLX model-data refuses before the model loads
+
+MLX-LM model-data validation measures the pinned snapshot's safetensors shards
+and live available unified memory *before* any weight loads. It adds any packed
+size in excess of the planned resident bytes to both the point and upper
+estimates, then requires
+
+```text
+available >= max(adjusted point, adjusted upper) + max(plan reserve, 8 GiB)
+```
+
+If that fails, the action stops with `required=`, `available=`, and `shortfall=`
+byte counts in the job log, and writes no evidence. This is a fail-closed refusal,
+not a crash: no weights were loaded and nothing was overwritten.
+
+Read the three byte counts from the log, then either free unified memory and
+re-run model-data, or replan a smaller candidate. Increasing `--reserve-gib` does
+not help, because the reserve is added to the requirement. A passing action binds
+`aptus.mlx-unified-memory-admission.v2` inside `model-data-evidence.json`.
+
+The recorded 2026-07-28 Qwen3 30B-A3B attempt stopped here, 18.932 GiB short. See
+[Qwen3 MoE admission evidence](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md).
 
 ## Preflight or pilot runs out of memory
 

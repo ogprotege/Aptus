@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
@@ -67,8 +67,9 @@ acceptance remain open.
 - A versioned runtime contract on every candidate. It binds compute backend,
   training runtime, compiler, estimator, evidence requirement, and export kind.
 - A separate MLX-LM unified-memory estimator and compiler for single-device
-  LoRA and QLoRA. MLX-LM QLoRA requires explicit four-bit capability facts and
-  pinned MLX model metadata. It never substitutes bitsandbytes.
+  LoRA and QLoRA. MLX-LM QLoRA requires four-bit quantization metadata in the
+  pinned MLX model revision, verified at model-data validation rather than from
+  a device capability flag. It never substitutes bitsandbytes.
 - A narrow Qwen3 MoE MLX-LM QLoRA path. The plan records expert count, experts
   per token, expert width, sparse cadence, dense-only layers, total resident
   parameters, backend-derived active parameters, and sparse-layer count.

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Operators, validator maintainers, UI developers, and auditors |
 | Authority | Normative evidence-ladder reference for Aptus v0.2 |
-| Last reviewed | 2026-07-22 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-22, or sooner when validation or generated runtime code changes |
 
 A validation level is work requested from a validator. A validation state is
@@ -129,9 +129,19 @@ model structure while preparing the method, but it performs no training update.
 The model-data action enforces the census but does not persist a separate census
 object in the validation report. Later measured levels persist it in metrics.
 
-For `mlx-lm`, model-data validation loads the exact pinned revision through
-MLX-LM and tokenizes every row in the compiler-produced `data/mlx/train.jsonl`
-and `data/mlx/valid.jsonl` files. MLX QLoRA also requires explicit four-bit MLX
+For `mlx-lm`, model-data validation first scans the pinned snapshot's safetensors
+shards and compares live available unified memory against the packed-checkpoint-
+adjusted candidate estimate. It adds any observed packed size in excess of the
+planned resident bytes to both the point and upper estimates, and requires
+available unified memory of at least `max(adjusted point, adjusted upper)` plus
+`max(plan reserve, 8 GiB)`. If that requirement is not met it fails closed before
+any weights load, reporting exact required, available, and shortfall byte counts.
+A passing measurement records `aptus.mlx-unified-memory-admission.v2` inside the
+immutable `model-data-evidence.json` artifact.
+
+Only after admission passes does it load the exact pinned revision through MLX-LM
+and tokenize every row in the compiler-produced `data/mlx/train.jsonl` and
+`data/mlx/valid.jsonl` files. MLX QLoRA also requires explicit four-bit MLX
 quantization metadata in the pinned model configuration. It does not use a CUDA
 device capability flag or bitsandbytes.
 

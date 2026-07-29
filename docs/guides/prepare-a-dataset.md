@@ -1,6 +1,6 @@
 # Prepare a Dataset
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners and data reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Data contracts | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners and data reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Data contracts | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22
 
 Aptus 0.2 accepts supervised fine-tuning data from local JSONL, JSON, CSV, or
 text files. Preparation has two separate goals: make every row structurally
@@ -15,7 +15,7 @@ remain necessary for the second.
 | `.jsonl` | One JSON object per nonblank line |
 | `.json` | One object, a list of objects, or an object whose `train` field is a list |
 | `.csv` | A header row followed by records parsed by Python's `csv.DictReader` |
-| `.txt` | One line becomes one `{"text": "..."}` row |
+| `.txt` | One line becomes one `{"text": "..."}` row. Not compilable for `mlx-lm`; see [Whole-text supervision](#whole-text-supervision) |
 
 Every usable row must match one of the schemas below. A file can contain more
 than one accepted schema. Aptus records such a profile as `mixed`.
@@ -35,6 +35,15 @@ than one accepted schema. Aptus records such a profile as `mixed`.
 ```
 
 Whole-text rows train on every retained token.
+
+**Whole-text rows do not compile for `mlx-lm`.** Pinned MLX-LM 0.31.3 cannot
+combine full-text supervision with the bundle's required prompt masking, so the
+compiler refuses both `text` and `content`-only rows for that runtime. This is a
+compile-time refusal: an Apple Silicon target cannot produce a bundle from a
+whole-text corpus at all, including any dataset built from a `.txt` container.
+For an Apple Silicon target, use prompt/completion, instruction/output, or
+messages rows. Whole-text supervision remains supported on
+`transformers-peft-cuda`.
 
 ### Prompt and completion
 

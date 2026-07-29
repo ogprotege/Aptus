@@ -1,6 +1,6 @@
 # Preflight and Calibration
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a runtime gate changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-22 or when a runtime gate changes
 
 Methodology version: `aptus-preflight-v2`.
 
@@ -24,6 +24,16 @@ performs k-bit preparation when required, injects PEFT LoRA for adapter methods,
 and computes the plan-bound trainable census. It then releases the model. The
 MLX-LM gate verifies load and tokenization compatibility without an optimizer
 step.
+
+Before loading anything, the MLX-LM gate also enforces a live unified-memory
+admission check and the exact model-architecture contract. It measures the pinned
+snapshot's safetensors bytes, adds any excess over the planned resident bytes to
+the point and upper estimates, and refuses unless available unified memory is at
+least that adjusted estimate plus `max(user reserve, 8 GiB)`. A refusal here
+reports exact required, available, and shortfall byte counts and writes no
+evidence; a pass binds `aptus.mlx-unified-memory-admission.v2`. This is the first
+live-memory gate in the MLX ladder, and it can stop the run before any weights
+are read.
 
 This gate does not construct the optimizer, run a batch, compute a loss, mutate
 weights, or take an optimizer step. Its temporary allocation is not recorded as

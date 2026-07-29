@@ -303,20 +303,16 @@ struct AptusDesktopShellView: View {
 }
 
 private struct SidebarBrandView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         HStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 3.6, style: .circular)
-                    .fill(Color(nsColor: AptusPalette.brandTeal))
-                    .padding(2)
-                Image(nsImage: AptusMarkAsset.templateImage)
-                    .resizable()
-                    .renderingMode(.template)
-                    .foregroundStyle(.white)
-                    .scaledToFit()
-            }
-            .frame(width: 28, height: 28)
-            .accessibilityHidden(true)
+            Image(nsImage: AptusMarkAsset.image(for: colorScheme))
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Aptus")
                     .font(.headline)
@@ -1098,18 +1094,6 @@ private struct WorkbenchControllerHost: NSViewControllerRepresentable {
     }
 
     func updateNSViewController(_ nsViewController: WebViewController, context: Context) {}
-}
-
-private enum AptusMarkAsset {
-    static let templateImage: NSImage = {
-        let source = Bundle.main.image(forResource: "AptusMark")
-            ?? NSImage(systemSymbolName: "a.circle", accessibilityDescription: "Aptus")
-            ?? NSImage(size: NSSize(width: 32, height: 32))
-        guard let copy = source.copy() as? NSImage else { return source }
-        copy.isTemplate = true
-        copy.accessibilityDescription = "Aptus"
-        return copy
-    }()
 }
 
 private extension View {

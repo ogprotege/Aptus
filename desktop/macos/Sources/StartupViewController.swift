@@ -21,7 +21,7 @@ final class StartupViewController: NSViewController {
     private let logButton = NSButton(title: "Show Backend Log", target: nil, action: nil)
     private weak var rootSurface: NSView?
     private weak var cardSurface: NSView?
-    private weak var markSurface: NSView?
+    private weak var markImageView: NSImageView?
     private var statusColor = AptusPalette.circuitTeal
 
     override func loadView() {
@@ -33,22 +33,11 @@ final class StartupViewController: NSViewController {
         let markCanvas = NSView()
         markCanvas.translatesAutoresizingMaskIntoConstraints = false
 
-        let markBackground = NSView()
-        markBackground.wantsLayer = true
-        markBackground.layer?.cornerRadius = 18.3
-        markBackground.translatesAutoresizingMaskIntoConstraints = false
-        markSurface = markBackground
-
         let mark = NSImageView()
-        if let source = Bundle.main.image(forResource: "AptusMark"),
-           let image = source.copy() as? NSImage {
-            image.isTemplate = true
-            mark.image = image
-        }
-        mark.contentTintColor = .white
+        mark.image = AptusMarkAsset.image(for: root.effectiveAppearance)
         mark.imageScaling = .scaleProportionallyUpOrDown
         mark.translatesAutoresizingMaskIntoConstraints = false
-        markCanvas.addSubview(markBackground)
+        markImageView = mark
         markCanvas.addSubview(mark)
 
         let eyebrow = NSTextField(labelWithString: "LOCAL FINE-TUNING WORKBENCH")
@@ -117,11 +106,6 @@ final class StartupViewController: NSViewController {
             markCanvas.widthAnchor.constraint(equalToConstant: 142),
             markCanvas.heightAnchor.constraint(equalToConstant: 142),
 
-            markBackground.leadingAnchor.constraint(equalTo: markCanvas.leadingAnchor, constant: 10),
-            markBackground.trailingAnchor.constraint(equalTo: markCanvas.trailingAnchor, constant: -10),
-            markBackground.topAnchor.constraint(equalTo: markCanvas.topAnchor, constant: 10),
-            markBackground.bottomAnchor.constraint(equalTo: markCanvas.bottomAnchor, constant: -10),
-
             mark.leadingAnchor.constraint(equalTo: markCanvas.leadingAnchor),
             mark.trailingAnchor.constraint(equalTo: markCanvas.trailingAnchor),
             mark.topAnchor.constraint(equalTo: markCanvas.topAnchor),
@@ -178,7 +162,7 @@ final class StartupViewController: NSViewController {
             rootSurface?.layer?.backgroundColor = AptusPalette.cloud.cgColor
             cardSurface?.layer?.backgroundColor = AptusPalette.porcelain.cgColor
             cardSurface?.layer?.borderColor = AptusPalette.hairline.cgColor
-            markSurface?.layer?.backgroundColor = AptusPalette.brandTeal.cgColor
+            markImageView?.image = AptusMarkAsset.image(for: view.effectiveAppearance)
             statusRule.layer?.backgroundColor = statusColor.cgColor
         }
     }

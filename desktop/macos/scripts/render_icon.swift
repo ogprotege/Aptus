@@ -13,7 +13,7 @@ enum IconError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .usage:
-            return "Usage: render_icon.swift SOURCE.svg OUTPUT.icns [PREVIEW.png]"
+            return "Usage: render_icon.swift SOURCE.svg SMALL_SOURCE.svg OUTPUT.icns [PREVIEW.png]"
         case let .sourceUnreadable(path):
             return "The SVG icon could not be read: \(path)"
         case let .bitmapCreation(size):
@@ -26,61 +26,16 @@ enum IconError: LocalizedError {
     }
 }
 
-private enum TileGeometry {
+private enum AppIconSurface {
     static let canvas: CGFloat = 1_024
     static let inset: CGFloat = 72
     static let cornerRadius: CGFloat = 132
     static let color = NSColor(
-        srgbRed: 0x0C / 255,
-        green: 0x6E / 255,
-        blue: 0x77 / 255,
+        srgbRed: 0x17 / 255,
+        green: 0x25 / 255,
+        blue: 0x2B / 255,
         alpha: 1
     )
-}
-
-func reversedGlyph(source: NSImage, pixels: Int) throws -> NSImage {
-    guard let representation = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: pixels,
-        pixelsHigh: pixels,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-    ) else {
-        throw IconError.bitmapCreation(pixels)
-    }
-    representation.size = NSSize(width: pixels, height: pixels)
-    let bounds = NSRect(x: 0, y: 0, width: pixels, height: pixels)
-
-    NSGraphicsContext.saveGraphicsState()
-    guard let context = NSGraphicsContext(bitmapImageRep: representation) else {
-        NSGraphicsContext.restoreGraphicsState()
-        throw IconError.bitmapCreation(pixels)
-    }
-    NSGraphicsContext.current = context
-    context.imageInterpolation = .high
-    NSColor.clear.setFill()
-    bounds.fill()
-    source.draw(
-        in: bounds,
-        from: .zero,
-        operation: .sourceOver,
-        fraction: 1,
-        respectFlipped: true,
-        hints: [.interpolation: NSImageInterpolation.high]
-    )
-    NSColor.white.setFill()
-    bounds.fill(using: .sourceAtop)
-    context.flushGraphics()
-    NSGraphicsContext.restoreGraphicsState()
-
-    let image = NSImage(size: NSSize(width: pixels, height: pixels))
-    image.addRepresentation(representation)
-    return image
 }
 
 func render(source: NSImage, pixels: Int, output: URL) throws {
@@ -110,20 +65,19 @@ func render(source: NSImage, pixels: Int, output: URL) throws {
     NSColor.clear.setFill()
     bounds.fill()
 
-    let scale = CGFloat(pixels) / TileGeometry.canvas
+    let scale = CGFloat(pixels) / AppIconSurface.canvas
     let tileRect = bounds.insetBy(
-        dx: TileGeometry.inset * scale,
-        dy: TileGeometry.inset * scale
+        dx: AppIconSurface.inset * scale,
+        dy: AppIconSurface.inset * scale
     )
-    TileGeometry.color.setFill()
+    AppIconSurface.color.setFill()
     NSBezierPath(
         roundedRect: tileRect,
-        xRadius: TileGeometry.cornerRadius * scale,
-        yRadius: TileGeometry.cornerRadius * scale
+        xRadius: AppIconSurface.cornerRadius * scale,
+        yRadius: AppIconSurface.cornerRadius * scale
     ).fill()
 
-    let glyph = try reversedGlyph(source: source, pixels: pixels)
-    glyph.draw(
+    source.draw(
         in: bounds,
         from: .zero,
         operation: .sourceOver,
@@ -140,14 +94,18 @@ func render(source: NSImage, pixels: Int, output: URL) throws {
 }
 
 do {
-    guard (3 ... 4).contains(CommandLine.arguments.count) else { throw IconError.usage }
+    guard (4 ... 5).contains(CommandLine.arguments.count) else { throw IconError.usage }
     let sourceURL = URL(fileURLWithPath: CommandLine.arguments[1]).standardizedFileURL
-    let outputURL = URL(fileURLWithPath: CommandLine.arguments[2]).standardizedFileURL
-    let previewURL = CommandLine.arguments.count == 4
-        ? URL(fileURLWithPath: CommandLine.arguments[3]).standardizedFileURL
+    let smallSourceURL = URL(fileURLWithPath: CommandLine.arguments[2]).standardizedFileURL
+    let outputURL = URL(fileURLWithPath: CommandLine.arguments[3]).standardizedFileURL
+    let previewURL = CommandLine.arguments.count == 5
+        ? URL(fileURLWithPath: CommandLine.arguments[4]).standardizedFileURL
         : nil
     guard let source = NSImage(contentsOf: sourceURL) else {
         throw IconError.sourceUnreadable(sourceURL.path)
+    }
+    guard let smallSource = NSImage(contentsOf: smallSourceURL) else {
+        throw IconError.sourceUnreadable(smallSourceURL.path)
     }
 
     let manager = FileManager.default
@@ -156,21 +114,21 @@ do {
         try manager.removeItem(at: iconset)
     }
     try manager.createDirectory(at: iconset, withIntermediateDirectories: true)
-    let outputs: [(name: String, pixels: Int)] = [
-        ("icon_16x16.png", 16),
-        ("icon_16x16@2x.png", 32),
-        ("icon_32x32.png", 32),
-        ("icon_32x32@2x.png", 64),
-        ("icon_128x128.png", 128),
-        ("icon_128x128@2x.png", 256),
-        ("icon_256x256.png", 256),
-        ("icon_256x256@2x.png", 512),
-        ("icon_512x512.png", 512),
-        ("icon_512x512@2x.png", 1_024),
+    let outputs: [(name: String, pixels: Int, usesSmallMaster: Bool)] = [
+        ("icon_16x16.png", 16, true),
+        ("icon_16x16@2x.png", 32, true),
+        ("icon_32x32.png", 32, false),
+        ("icon_32x32@2x.png", 64, false),
+        ("icon_128x128.png", 128, false),
+        ("icon_128x128@2x.png", 256, false),
+        ("icon_256x256.png", 256, false),
+        ("icon_256x256@2x.png", 512, false),
+        ("icon_512x512.png", 512, false),
+        ("icon_512x512@2x.png", 1_024, false),
     ]
     for item in outputs {
         try render(
-            source: source,
+            source: item.usesSmallMaster ? smallSource : source,
             pixels: item.pixels,
             output: iconset.appendingPathComponent(item.name)
         )

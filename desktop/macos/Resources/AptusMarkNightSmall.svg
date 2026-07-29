@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aptus calibrated A mark, small night</title>
+  <desc id="desc">An optically strengthened small-size version of the Aptus calibrated A.</desc>
+  <path d="M226 806 L460 244 C470 217 489 202 512 202 C535 202 554 217 564 244 L798 806" fill="none" stroke="#EDF3F4" stroke-width="96" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 608 H768" fill="none" stroke="#72D0D4" stroke-width="64" stroke-linecap="round"/>
+</svg>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">Aptus calibrated A mark</title>
-  <desc id="desc">A sharp graphite letter A crossed by the teal fit line, designed to reverse out of the Aptus tile.</desc>
-  <path d="M268 780 L512 302 L756 780" fill="none" stroke="#20343B" stroke-width="76" stroke-linejoin="miter" stroke-linecap="butt" stroke-miterlimit="12"/>
-  <path d="M356 606 L668 606 L692 654 L332 654 Z" fill="#0C6E77"/>
+  <desc id="desc">A centered graphite letter A whose teal crossbar is the fit line.</desc>
+  <path d="M226 806 L460 244 C470 217 489 202 512 202 C535 202 554 217 564 244 L798 806" fill="none" stroke="#20343B" stroke-width="88" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 608 H768" fill="none" stroke="#0C6E77" stroke-width="64" stroke-linecap="round"/>
 </svg>

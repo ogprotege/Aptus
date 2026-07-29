@@ -26,6 +26,8 @@ targets:
       - path: Sources
       - path: Resources/AptusMark.svg
         buildPhase: resources
+      - path: Resources/AptusMarkNight.svg
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aptus.desktop

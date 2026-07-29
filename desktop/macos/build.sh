@@ -211,7 +211,8 @@ fi
 
 xcrun swift \
   "$SCRIPT_DIR/scripts/render_icon.swift" \
-  "$SCRIPT_DIR/Resources/AptusMark.svg" \
+  "$SCRIPT_DIR/Resources/AptusMarkNight.svg" \
+  "$SCRIPT_DIR/Resources/AptusMarkNightSmall.svg" \
   "$OUTPUT_APP/Contents/Resources/AppIcon.icns"
 
 if [[ -x "$OUTPUT_APP/Contents/Resources/backend/aptus-desktop" ]]; then

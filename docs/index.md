@@ -117,6 +117,7 @@ Authority labels have a separate meaning:
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
 - [2026-07-28 Qwen3 MoE admission and performance evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
+- [2026-07-28 documentation drift audit](operations/evidence/2026-07-29-documentation-drift-audit/README.md)
 - [Apple Silicon runtime and pilot matrix](operations/apple-silicon-pilot.md)
 - [Security policy](../SECURITY.md)
 

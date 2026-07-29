@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-07-27 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-27, or sooner when the method registry, planner, or compiler changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -44,7 +44,7 @@ branches.
 | Full | No compiler | Unsupported | Unsupported | None |
 | LoRA | Conditional through uninterrupted pilot and full-duration adapter training | Unsupported | Unsupported | MLX-LM adapter |
 | int8-LoRA | No compiler | Unsupported | Unsupported | None |
-| QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with explicit four-bit capability facts and MLX model metadata | Unsupported | Unsupported | MLX-LM adapter |
+| QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with explicit four-bit quantization metadata in the pinned MLX model revision; no device four-bit capability fact is required | Unsupported | Unsupported | MLX-LM adapter |
 
 MLX-LM uses the `mps` compute backend and `aptus-memory-mlx-v2` estimator. Its
 LoRA and QLoRA candidates always remain conditional and pilot-required. Its

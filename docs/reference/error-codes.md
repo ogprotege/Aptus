@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | API clients, CLI operators, UI developers, and support engineers |
 | Authority | Normative inventory of host API errors and host validator findings in v0.2 |
-| Last reviewed | 2026-07-27 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-27, or sooner when API handlers or validation findings change |
 
 API errors, managed-job errors, and validation findings are separate channels.
@@ -163,6 +163,8 @@ Host validation sets report state to `invalid` when any finding has severity
 | `RUNTIME_ATTESTATION_INVALID` | error | Runtime validation did not publish a readable bound report |
 | `PREFLIGHT_METRICS_INVALID` | error | Runtime-specific measured-preflight metrics are missing, malformed, non-positive, or misbound |
 | `PREFLIGHT_METRICS_UNBOUND` | error | The report digest or embedded metrics do not match the measured file |
+| `PILOT_METRICS_INVALID` | error | MLX `pilot-output/metrics.json` is missing, malformed, non-positive, or misbound |
+| `PILOT_METRICS_UNBOUND` | error | The runtime validation report does not bind the exact MLX pilot metrics |
 
 The self-contained runtime validator can stop before the host wrapper converts a
 specific generated-script exception into one of these finding codes. In that

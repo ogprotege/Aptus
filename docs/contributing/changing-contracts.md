@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -31,6 +31,12 @@ compatible. Decide the semantic effect before editing code.
 | MLX final export | `aptus.mlx-final-export.v1` | generated MLX runtime and parent verifier |
 | MLX reload evidence | `aptus.mlx-reload-evidence.v1` | fresh reload process and parent verifier |
 | MLX artifact manifest | `aptus.mlx-artifact-manifest.v1` | generated MLX action owner and parent verifier |
+| Model architecture contract | `aptus.model-architecture-contract.v1` | `plan_contract.py` and generated MLX runtime |
+| MLX model load binding | `aptus.mlx-model-load-binding.v3` | generated MLX runtime and parent verifier |
+| MLX model parameter census | `aptus.mlx-model-parameter-census.v1` | generated MLX runtime and parent verifier |
+| MLX packed checkpoint | `aptus.mlx-packed-checkpoint.v1` | generated MLX runtime and parent verifier |
+| MLX unified-memory admission | `aptus.mlx-unified-memory-admission.v2` | generated MLX runtime and parent verifier |
+| MLX model-data evidence | `aptus.mlx-model-data-evidence.v1` | generated MLX validator and parent verifier |
 | GPU lease | `aptus.gpu-lease.v1` | host and portable lease implementations |
 | Validator behavior | `aptus-validator-v2` | `validation.py` |
 | HTTP API | `aptus.api.v1` | `api_contracts.py`, `api.py`, and generated OpenAPI |

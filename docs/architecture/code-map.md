@@ -1,6 +1,6 @@
 # Code Map
 
-> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27
 
 Aptus has four execution surfaces: the native macOS host, the Python
 application, the React workbench, and the self-contained Python programs
@@ -39,7 +39,7 @@ that protect it.
 | [`integrations.py`](../../src/aptus/integrations.py) | Bounded loopback LM Studio and oMLX inference clients | Training, remote endpoints, or automatic service discovery beyond declared origins |
 | [`inspection.py`](../../src/aptus/inspection.py) | Bounded provider metadata inspection, family aliasing, MoE topology extraction, and exact compatibility reporting | License or training permission |
 | [`planning.py`](../../src/aptus/planning.py) | Candidate enumeration, feasibility, memory use, Pareto marking, and deterministic ranking | Universal optimality or measured fit |
-| [`plan_contract.py`](../../src/aptus/plan_contract.py) | Canonical candidate/plan identities and bundle-manifest verification | Runtime artifact success |
+| [`plan_contract.py`](../../src/aptus/plan_contract.py) | Canonical candidate/plan identities, bundle-manifest verification, the portable MLX unified-memory formula, and the model-architecture and quantization-layout contracts enforced by the generated MLX programs and train admission | Runtime artifact success |
 | [`generation.py`](../../src/aptus/generation.py) | Runtime-dispatched artifact compilers and packaged-resource emission | In-place bundle mutation or child-owned success promotion |
 | [`attestation.py`](../../src/aptus/attestation.py) | Strict trainable-parameter census validation shared by host code | Method preparation itself |
 | [`validation.py`](../../src/aptus/validation.py) | Host-side validation ladder and report persistence | Cancellable runtime execution through the direct API path |
@@ -91,13 +91,15 @@ binding helpers so host and managed checks agree.
 
 ## The generated-runtime boundary
 
-The compiler emits four executable programs from runtime-specific constants in
-[`generation.py`](../../src/aptus/generation.py):
+The compiler copies executable programs out of the packaged
+`_bundle_programs/<runtime>/` resources, reading each through
+`importlib.resources` in
+[`generation.py`](../../src/aptus/generation.py). They are package data, not
+string constants, so a change belongs in the resource file rather than in a
+generator literal. The `_BUNDLE_PROGRAMS` mapping declares the per-runtime set:
 
-- `TRAIN_SCRIPT` becomes `train.py`;
-- `RUN_SCRIPT` becomes `run.py`;
-- `PREFLIGHT_SCRIPT` becomes `preflight.py`;
-- `VALIDATE_SCRIPT` becomes `validate.py`.
+- CUDA emits four: `train.py`, `run.py`, `preflight.py`, `validate.py`;
+- MLX-LM emits five: the same four plus `reload.py`.
 
 Every compiler copies the current `plan_contract.py` and `runtime_lease.py` into
 the bundle. The MLX-LM compiler emits its own bounded validator, runner,

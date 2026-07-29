@@ -1,6 +1,6 @@
 # State, Storage, and Retention
 
-> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a persistent path changes
+> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or when a persistent path changes
 
 Aptus writes plans, bundles, data copies, runtime evidence, logs, CUDA
 checkpoints, MLX adapter weight snapshots, and exports. It does not currently
@@ -70,6 +70,8 @@ runtime path is explicitly part of the contract.
 The allowed mutable roots are:
 
 - `.validation-report.lock`;
+- `model-data-evidence.json`, written by the MLX model-data gate and absent for
+  CUDA bundles;
 - `validation-report.json`;
 - `preflight-metrics.json`;
 - `pilot-output/`; and

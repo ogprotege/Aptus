@@ -1,6 +1,6 @@
 # Data and Identity Flow
 
-> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27
 
 Aptus binds decisions and runtime evidence to exact content. It uses separate
 identities for projects, revisions, source data, candidates, plans, bundles,
@@ -148,6 +148,7 @@ matching path or matching plan ID alone is insufficient.
 These mutable paths are intentionally outside the compiler file list:
 
 - `.validation-report.lock`;
+- `model-data-evidence.json`;
 - `validation-report.json`;
 - `preflight-metrics.json`;
 - `pilot-output/`;

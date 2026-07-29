@@ -1,6 +1,6 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
@@ -173,10 +173,20 @@ not supply a resume argument.
       set.
 - [ ] Every canonical row transforms with non-empty supervision.
 - [ ] Credentials remained in the underlying model stack, not the bundle.
+- [ ] For `mlx-lm`, live unified-memory admission passed before the model
+      loaded, and `model-data-evidence.json` binds
+      `aptus.mlx-unified-memory-admission.v2`.
 
 Model-data validation does not enter training mode and does not prove
 accelerator fit. MLX QLoRA must obtain four-bit eligibility from the pinned
 model metadata, not a CUDA-style device flag.
+
+On `mlx-lm` this action measures the packed safetensors shards and compares live
+available unified memory against the packed-checkpoint-adjusted candidate
+estimate plus `max(plan reserve, 8 GiB)`. If the shortfall is positive it refuses
+before any weight load and reports exact required, available, and shortfall byte
+counts. Treat that refusal as a legitimate fail-closed outcome and record it: the
+2026-07-28 Qwen3 30B-A3B attempt stopped here.
 
 ## Measured preflight action
 

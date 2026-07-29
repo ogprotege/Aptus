@@ -1,6 +1,6 @@
 # Execution Orchestrator
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when job semantics change
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when job semantics change
 
 The orchestrator turns runtime validation and training into persisted,
 cancellable local jobs. It is a single-user local process manager, not a remote
@@ -23,8 +23,12 @@ uninterrupted training process and a separate fresh adapter-reload process. The
 service rejects an action until the preceding validation state is recorded. Higher validation
 levels also rerun lower levels inside the submitted job as defense-in-depth.
 Earlier passed actions remain available for an explicit recheck; only forward
-skips are rejected. Train launches the runtime-selected `run.py` or CUDA
-interpreter-bound Accelerate command.
+skips are rejected. Train has three launch shapes: MLX train launches `run.py`;
+single-distribution CUDA train launches `train.py` directly under the resolved
+interpreter; and distributed CUDA train launches `train.py` through the
+interpreter-bound `accelerate.commands.accelerate_cli launch --config_file
+config/accelerate.yaml`. For managed CUDA jobs the parent that owns completion
+verification is `JobService`, not `run.py`.
 
 Full training requires `confirm_full_train=true`. `resume_from` is rejected.
 

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Bundle operators, compiler maintainers, and security reviewers |
 | Authority | Normative reference for `aptus.bundle.v2` and its mutable runtime boundary |
-| Last reviewed | 2026-07-22 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-22, or sooner when generation or manifest validation changes |
 
 `bundle-manifest.json` is the immutable integrity root for a compiled Aptus
@@ -130,8 +130,8 @@ roots.
 
 ### `preflight.py`
 
-Despite its filename, `preflight.py` is not only the synthetic check. It is a
-cumulative level orchestrator:
+In a CUDA bundle, despite its filename, `preflight.py` is not only the synthetic
+check. It is a cumulative `--level` orchestrator:
 
 1. contract validation;
 2. Python static parsing;
@@ -139,6 +139,11 @@ cumulative level orchestrator:
 4. `train.py --preflight-model-data`;
 5. runtime-specific measured preflight; and
 6. runtime-specific pilot.
+
+The MLX-LM bundle ships a different `preflight.py`. It takes no arguments and
+only asserts Apple silicon macOS plus the pinned `mlx` and `mlx-lm` versions.
+`validate.py` owns the MLX level ladder and spawns `preflight.py` as one step
+within it.
 
 The selected-method synthetic CUDA check is specifically
 `train.py --synthetic-preflight`. Calling `preflight.py --level pilot` executes
@@ -176,11 +181,18 @@ The manifest permits only these unmanifested files and prefixes:
 
 ```text
 .validation-report.lock
+model-data-evidence.json
 validation-report.json
 preflight-metrics.json
 pilot-output/
 runs/
 ```
+
+`model-data-evidence.json` is written into the bundle root by the MLX model-data
+gate. It binds `aptus.mlx-model-data-evidence.v1`, and the validation report
+binds its SHA-256 under `bindings.model_data_evidence`. It is absent until that
+gate passes, and absent entirely for CUDA bundles. The compiled `bundle.zip` is
+written before model-data runs, so the archive never contains it.
 
 Any other unmanifested file invalidates the bundle. This includes a virtual
 environment, dependency cache, editor backup, `__pycache__`, or manually added

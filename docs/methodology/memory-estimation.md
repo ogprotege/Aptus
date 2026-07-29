@@ -1,6 +1,6 @@
 # Memory Estimation
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when the formula version changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when the formula version changes
 
 Methodology versions: `aptus-memory-v2` for the CUDA compiler and
 `aptus-memory-mlx-v2` for the MLX-LM compiler.
@@ -119,10 +119,33 @@ When intermediate size is absent, the estimator uses $i=4h$.
 
 The `aptus-memory-mlx-v2` estimator applies only to single-device MLX-LM LoRA
 and QLoRA. It models one shared Apple memory pool and does not add a second
-CUDA-style host staging pool. For LoRA, base weights use $2P$ bytes. For QLoRA,
-base weights use $0.5P$ bytes and quantization metadata uses $0.0625P$ bytes.
-MLX QLoRA means an already four-bit pinned MLX model. It does not imply
-bitsandbytes or NF4.
+CUDA-style host staging pool. For LoRA, base weights use $2P$ bytes. MLX QLoRA
+means an already four-bit pinned MLX model. It does not imply bitsandbytes or
+NF4.
+
+QLoRA base weights and quantization metadata have two branches.
+
+When the candidate binds no `quantization_layout`, the estimator keeps the named
+analytical prior: base weights use $0.5P$ bytes and quantization metadata uses
+$0.0625P$ bytes.
+
+When a layout is bound, both are priced from it instead. Let $b_d$ and $g_d$ be
+the default bits and group size, let each router-gate override $o$ carry $b_o$
+and $g_o$, and let each override cover $P_o = h \cdot E$ parameters for hidden
+size $h$ and expert count $E$. With $P_d = P - \sum_o P_o$:
+
+$$
+W = \frac{P_d\,b_d + \sum_o P_o\,b_o}{8}
+$$
+
+$$
+Q = \frac{4 P_d}{g_d} + \sum_o \frac{4 P_o}{g_o}
+$$
+
+The metadata term stores one half-precision scale and one bias per group. A
+layout with eight-bit router-gate overrides therefore costs strictly more than
+$0.5P$. The reviewed Qwen3 MoE layout is four-bit group-64 by default with one
+eight-bit group-64 override per layer.
 
 Adapter weights and gradients each use $4P_t$ bytes. AdamW state uses $8P_t$
 bytes. The dense activation prior is:
@@ -284,11 +307,30 @@ and VRAM balances.
 
 Predicted CUDA fit still requires an exact real-model pilot. CUDA synthetic
 measured preflight checks the selected method and kernel, not planned-model fit.
-MLX measured preflight runs a bounded real-input compiler smoke, but it does not
-prove pilot or full-run fit. The MLX pilot runs uninterrupted from the pinned
+
+For MLX-LM the first live memory gate is model-data, not preflight. That gate
+measures the pinned snapshot's safetensors bytes, computes
+
+$$
+\text{adjustment} = \max\left(0,\ S_{\text{observed}} - (W + Q)\right)
+$$
+
+where $S_{\text{observed}}$ is the measured safetensors byte count of the pinned
+snapshot. It then refuses unless current available unified memory satisfies:
+
+$$
+\text{available} \ge \max\left(M_{\text{point}} + \text{adjustment},\ M_{\text{upper}} + \text{adjustment}\right) + \max\left(R_{\text{user}},\ 8\ \mathrm{GiB}\right)
+$$
+
+The 8 GiB floor is a hard minimum independent of the planner's user reserve, and
+the refusal happens before the model is loaded. A passing measurement is bound as
+`aptus.mlx-unified-memory-admission.v2`.
+
+MLX measured preflight then runs a bounded real-input compiler smoke, but it does
+not prove pilot or full-run fit. The MLX pilot runs uninterrupted from the pinned
 base and rechecks live unified-memory admission. Train admission later requires
-current available memory above the measured pilot peak plus reserve. Neither
-gate guarantees future headroom or crash resume.
+current available memory above the measured pilot peak plus reserve. None of
+these gates guarantees future headroom or crash resume.
 
 ## Host RAM and staging-disk checks
 

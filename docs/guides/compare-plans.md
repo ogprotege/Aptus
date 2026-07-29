@@ -1,6 +1,6 @@
 # Compare Plans
 
-> **Status:** Active | **Authority:** Explanatory planning guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when ranking changes
+> **Status:** Active | **Authority:** Explanatory planning guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22 or when ranking changes
 
 Aptus enumerates a bounded candidate matrix. It applies explicit support rules,
 estimates resources, and ranks viable candidates. Viable means `feasible` or
@@ -20,8 +20,13 @@ support status and reason.
 
 ## Current support rules
 
-- CUDA is required. Full fine-tuning requires BF16. Adapter methods select BF16
-  when declared and can select FP16 otherwise, subject to the exact pilot.
+- Full fine-tuning and int8-LoRA require CUDA. Full fine-tuning requires BF16.
+  Adapter methods select BF16 when declared and can select FP16 otherwise,
+  subject to the exact pilot.
+- LoRA and QLoRA also compile on one Apple unified-memory device through the
+  `mlx-lm` runtime, at single placement only. There, QLoRA eligibility comes
+  from explicit four-bit MLX quantization metadata in the pinned model revision,
+  not from a device four-bit capability fact.
 - Full, LoRA, int8-LoRA, and QLoRA can be considered on one device or DDP when
   their capability and memory checks pass.
 - LoRA FSDP is conditional.

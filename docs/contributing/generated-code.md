@@ -1,6 +1,6 @@
 # Generated Code and Bundle Changes
 
-> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
 
 A compiled bundle is a portable product artifact. Its Python programs,
 configuration, data copies, reports, and manifest must agree with the selected
@@ -22,7 +22,7 @@ those exact bytes:
 | `_bundle_programs/mlx/train.py` | `train.py` | Exact-target MLX adapter updates for smoke, pilot, and full actions |
 | `_bundle_programs/mlx/run.py` | `run.py` | Owned uninterrupted MLX action outputs, artifact sealing, and full-run export |
 | `_bundle_programs/mlx/reload.py` | `reload.py` | Fresh-process adapter reload and one-to-four-token generation |
-| `_bundle_programs/mlx/preflight.py` | `preflight.py` | MLX cumulative runtime action orchestration |
+| `_bundle_programs/mlx/preflight.py` | `preflight.py` | Apple-silicon platform and pinned `mlx`/`mlx-lm` version gate, spawned by `validate.py`; takes no arguments and owns no level ladder |
 | `_bundle_programs/mlx/validate.py` | `validate.py` | MLX validation ladder, attestations, and fail-closed evidence checks |
 
 The compiler also copies current package sources into:

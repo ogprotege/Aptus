@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -58,8 +58,10 @@ original mode only when the Aptus-created directory still owns the path.
   applicable.
 - `config/mlx-lm.yaml`: MLX-LM LoRA or QLoRA configuration for MLX bundles.
 - `validate.py`: portable validation parent.
-- `preflight.py`: cumulative runtime-validation orchestrator for dependency,
-  model-data, measured-preflight, and pilot levels.
+- `preflight.py`: for CUDA, the cumulative `--level` orchestrator for dependency,
+  model-data, measured-preflight, and pilot levels. For MLX-LM, an
+  argument-free Apple-silicon and pinned-dependency gate that `validate.py`
+  spawns as a subprocess; the MLX level sequencing lives in `validate.py`.
 - `train.py`: runtime-specific measured preflight, pilot, and full-training
   child implementation. CUDA measured preflight is synthetic. MLX measured
   preflight performs one bounded adapter update on the pinned model and data.

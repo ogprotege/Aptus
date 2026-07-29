@@ -1,6 +1,6 @@
 # Choose a Fine-Tuning Method
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22
 
 Aptus compares a bounded method catalog against explicit model, dataset,
 hardware, and target facts. Method choice is one part of a candidate. Precision,
@@ -12,13 +12,15 @@ must agree with it.
 | Method | What trains | Base storage | Current placements | Output | Main tradeoff |
 |---|---|---|---|---|---|
 | Full | Every model parameter | Unquantized | Single CUDA device or DDP | Complete model safetensors | Highest trainable state, host RAM, checkpoint, and export cost |
-| LoRA | Injected low-rank matrices on inspected targets | Unquantized frozen base | Single, DDP, and conditional FSDP | PEFT adapter safetensors | Lower trainable state, but the full unquantized base must still load |
-| int8-LoRA | LoRA adapters | Frozen bitsandbytes INT8 base | Single or DDP | PEFT adapter safetensors | Lower base storage with an exact INT8 kernel and compute-capability gate |
-| QLoRA | LoRA adapters | Frozen NF4 double-quantized base | Single or DDP | PEFT adapter safetensors | Lowest current base-storage path, with four-bit kernel and quantization constraints |
+| LoRA | Injected low-rank matrices on inspected targets | Unquantized frozen base | Single CUDA device, DDP, conditional FSDP, or one Apple unified-memory device | PEFT adapter safetensors on CUDA, MLX-LM adapter on Apple | Lower trainable state, but the full unquantized base must still load |
+| int8-LoRA | LoRA adapters | Frozen bitsandbytes INT8 base | Single CUDA device or DDP | PEFT adapter safetensors | Lower base storage with an exact INT8 kernel and compute-capability gate |
+| QLoRA | LoRA adapters | Frozen runtime-native four-bit base: NF4 double-quantized on CUDA, MLX four-bit on Apple | Single CUDA device, DDP, or one Apple unified-memory device | PEFT adapter safetensors on CUDA, MLX-LM adapter on Apple | Lowest current base-storage path, with four-bit kernel and quantization constraints |
 
-Every row still needs a CUDA backend, a supported model family, exact batch
+Every row still needs a supported backend, a supported model family, exact batch
 arithmetic, resource checks, model-data validation, measured preflight, and the
-selected real-model pilot. “Supported” in the catalog means a guarded compiler
+selected real-model pilot. Full and int8-LoRA require CUDA. LoRA and QLoRA also
+compile on one Apple unified-memory device through the `mlx-lm` runtime, at
+single placement only. “Supported” in the catalog means a guarded compiler
 path exists. It does not mean a particular model and device combination has
 already passed.
 
@@ -45,7 +47,8 @@ validated trainable set.
 
 LoRA avoids quantized base loading, which can simplify compatibility. It still
 loads the unquantized base and therefore may not fit when QLoRA does. LoRA FSDP
-is conditional and must pass the exact multi-rank pilot.
+is conditional and must pass the exact multi-rank pilot. LoRA also compiles on
+one Apple unified-memory device through `mlx-lm`, at single placement only.
 
 ### Choose int8-LoRA only for a verified eight-bit path
 
@@ -55,10 +58,17 @@ replicates the model on each device, so device memory is not pooled.
 
 ### Choose QLoRA when base-weight memory is the primary constraint
 
-Every participating CUDA device must declare four-bit support. Runtime
+On CUDA, every participating device must declare four-bit support. Runtime
 validation requires compute capability 6.0 or newer. The compiler selects an
 NF4 base with double quantization and LoRA adapters. Quantized FSDP is outside
 the current contract.
+
+The device four-bit requirement does not apply to `mlx-lm`. On Apple Silicon,
+QLoRA eligibility belongs to the pinned model revision rather than a CUDA-style
+device capability bit: the generated model-data gate requires explicit four-bit
+MLX quantization metadata in that revision before work can advance. The reviewed
+Qwen3 MoE slice is executable only as single-device MLX-LM QLoRA with
+attention-only adapters.
 
 QLoRA reduces base storage. It does not guarantee faster training, equal final
 quality, or a fit. Quantization metadata, adapters, optimizer state,

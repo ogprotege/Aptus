@@ -1,6 +1,6 @@
 # Model, Dataset, and Hardware Facts
 
-> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when fact contracts change
+> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22 or when fact contracts change
 
 A plan is only as credible as its facts. Aptus records provenance and refuses to
 infer permission or unsupported hardware capability.
@@ -108,8 +108,15 @@ device backed by shared unified memory. It does not call that pool dedicated
 VRAM or copy host availability into `free_vram_bytes`. The hardware profile
 records current available host memory separately. MLX planning uses the lesser
 of that live value and the Metal compatibility capacity, then subtracts the
-reserve. A local API scan raises an explicitly selected Apple runtime reserve to
-at least 8 GiB.
+reserve.
+
+The 8 GiB Apple reserve floor is not limited to a local scan. It applies to
+manually declared facts as well: the CLI raises `--reserve-gib` to at least 8.0
+whenever `--backend mps` is selected, and the API raises the declared reserve
+whenever the backend is `mps`, the selected training runtime is `mlx-lm` or
+`pytorch-mps`, or a local scan runs on Darwin. A declared value below 8 GiB is
+therefore not the value the planner uses, so recompute any hand-checked Apple
+fit against the floor rather than the declared reserve.
 
 The `mlx-lm` runtime compiles conditional single-device LoRA and QLoRA bundles.
 The generated bundle can pass dependency, model-data, measured-preflight,

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Users comparing methods, planner and compiler maintainers, and research reviewers |
 | Authority | Normative v0.2 reference for method identity, lifecycle, selection, compilation, and release gates |
-| Last reviewed | 2026-07-22 |
+| Last reviewed | 2026-07-28 |
 | Next review | 2026-10-22, or sooner when `src/aptus/methods/` changes |
 
 The method registry is Aptus's product boundary between knowing about a
@@ -47,6 +47,7 @@ Every API descriptor uses schema `aptus.method-descriptor.v1` and contains:
 | `export_kind` | Verified artifact contract, or `null` |
 | `supported_backends` | Backends admitted by the descriptor |
 | `supported_distributions` | Distribution modes admitted by the descriptor |
+| `runtime_bindings` | Per-runtime contracts that determine executability. Each binds training runtime, compute backend, compiler, estimator, export kind, and supported distributions |
 | `evidence_ids` | Evidence registry records supporting the method description |
 | `pilot_requirement` | Minimum implementation evidence required for release or execution |
 | `blocker` | Required reason a non-selectable method cannot execute |
@@ -62,9 +63,14 @@ all plan requests and persisted artifacts.
 | Method | Parameter scope | Base storage | Compiler | Export | Backend | Distribution |
 | --- | --- | --- | --- | --- | --- | --- |
 | `full` | All parameters | Unquantized | `transformers.full.v2` | `full-model-safetensors` | CUDA | `single`, `ddp` |
-| `lora` | Frozen base plus adapter | Unquantized | `transformers.peft-lora.v2` | `peft-adapter-safetensors` | CUDA | `single`, `ddp`, `fsdp` |
+| `lora` | Frozen base plus adapter | Unquantized | `transformers.peft-lora.v2` | `peft-adapter-safetensors` | CUDA, MPS | `single`, `ddp`, `fsdp` |
 | `int8-lora` | Frozen base plus adapter | Bitsandbytes INT8 | `transformers.peft-int8-lora.v2` | `peft-adapter-safetensors` | CUDA | `single`, `ddp` |
-| `qlora` | Frozen base plus adapter | Bitsandbytes NF4 with double quantization | `transformers.peft-qlora.v2` | `peft-adapter-safetensors` | CUDA | `single`, `ddp` |
+| `qlora` | Frozen base plus adapter | Runtime-native four-bit | `transformers.peft-qlora.v2` | `peft-adapter-safetensors` | CUDA, MPS | `single`, `ddp` |
+
+The Compiler, Export, and Distribution columns describe the CUDA runtime
+binding. `lora` and `qlora` each carry a second `mlx-lm` binding on the `mps`
+backend, with compilers `mlx-lm.lora.v1` and `mlx-lm.qlora.v1`, estimator
+`aptus-memory-mlx-v2`, export kind `mlx-lm-adapter`, and `single` placement only.
 
 ### Full fine-tuning
 
@@ -87,7 +93,10 @@ Registered alias: `full-parameter`.
 
 LoRA freezes the base model and trains low-rank adapters on model-family target
 modules. The current target catalog covers `llama`, `mistral`, `gemma`, and
-`qwen` projection names.
+`qwen` projection names, each using the dense causal-LM target tuple. It also
+registers a fifth family, `qwen3_moe`, whose targets are attention-only
+(`q_proj`, `k_proj`, `v_proj`, `o_proj`) so that adapters never attach to routed
+expert or router-gate modules.
 
 Additional v0.2 gates:
 
@@ -114,14 +123,20 @@ Registered alias: `8bit-lora`.
 
 ### QLoRA
 
-QLoRA trains LoRA adapters through a frozen NF4 double-quantized base.
+QLoRA trains LoRA adapters through a frozen runtime-native four-bit base: an NF4
+double-quantized base on `transformers-peft-cuda`, and a four-bit MLX base on
+`mlx-lm`.
 
 Additional v0.2 gates:
 
-- every participating device must explicitly support the four-bit path;
+- every participating CUDA device must explicitly support the four-bit path.
+  This gate does not apply to `mlx-lm`, where eligibility comes from explicit
+  four-bit MLX quantization metadata in the pinned model revision, checked at
+  model-data validation;
 - FSDP is outside the verified compiler matrix;
-- single-device QLoRA uses reentrant gradient checkpointing;
-- distributed QLoRA uses non-reentrant gradient checkpointing; and
+- single-device CUDA QLoRA uses reentrant gradient checkpointing;
+- distributed CUDA QLoRA uses non-reentrant gradient checkpointing. Gradient
+  checkpointing selection applies to `transformers-peft-cuda` only; and
 - exact kernel capability, target inspection, measured preflight, and a
   bounded pilot are mandatory.
 
@@ -241,6 +256,7 @@ artifact contract.
 | --- | --- |
 | `full-model-safetensors` | Complete model weights and reloadable model metadata |
 | `peft-adapter-safetensors` | Adapter weights and reloadable PEFT adapter metadata over the pinned base revision |
+| `mlx-lm-adapter` | MLX-LM adapter weights and reloadable adapter metadata over the pinned MLX base revision. Written for every `mlx-lm` candidate |
 
 An export directory existing is not enough. Pilot and full-run checks parse the
 expected configuration or adapter metadata and verify the artifact type,

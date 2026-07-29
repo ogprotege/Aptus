@@ -201,7 +201,7 @@ describe("provider model inspection", () => {
 
     expect(merged.active_parameters_b).toBe(3.3);
     expect(merged.sparse_layer_count).toBe(48);
-    expect(moeCompatibilityFromPlan(plan, merged)).toMatchObject({
+    expect(moeCompatibilityFromPlan(plan, merged)).toEqual({
       status: "conditional",
       family: "qwen3_moe",
       supported_runtime: "mlx-lm",
@@ -209,6 +209,7 @@ describe("provider model inspection", () => {
       distribution: "single",
       evidence_requirement: "pilot-required",
       adapter_scope: "attention-only",
+      reason: "The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
     });
 
     const unreviewedLayoutPlan = structuredClone(plan);
@@ -216,9 +217,15 @@ describe("provider model inspection", () => {
       default_group_size: number;
     };
     unreviewedLayout.default_group_size = 32;
-    expect(moeCompatibilityFromPlan(unreviewedLayoutPlan, merged)).toMatchObject({
+    expect(moeCompatibilityFromPlan(unreviewedLayoutPlan, merged)).toEqual({
       status: "unsupported",
+      family: "qwen3_moe",
+      supported_runtime: null,
+      supported_methods: [],
+      distribution: null,
       evidence_requirement: "implementation-required",
+      adapter_scope: null,
+      reason: "The current plan does not bind this topology to the exact conditional Qwen3 MoE path.",
     });
   });
 
@@ -269,8 +276,12 @@ describe("provider model inspection", () => {
       },
       compatibility: {
         status: "unsupported",
+        family: "unknown_moe",
+        supported_runtime: null,
         supported_methods: [],
+        distribution: null,
         evidence_requirement: "implementation-required",
+        adapter_scope: null,
         reason: "The provider topology is incomplete.",
       },
     });

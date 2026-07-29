@@ -242,6 +242,9 @@ describe("desktop workbench readiness", () => {
 
     expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
       .toBeInTheDocument();
+    expect(screen.getByText(
+      "mlx-lm supports qlora on single. The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+    )).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();
 
@@ -266,6 +269,9 @@ describe("desktop workbench readiness", () => {
 
     expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
       .toBeInTheDocument();
+    expect(screen.getByText(
+      "mlx-lm supports qlora on single. The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+    )).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();
   });

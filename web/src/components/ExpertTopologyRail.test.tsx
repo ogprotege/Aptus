@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { MALFORMED_COMPATIBILITY_REASON } from "../lib/modelCompatibility";
 import type { ModelCompatibility } from "../types";
 import { ExpertTopologyRail } from "./ExpertTopologyRail";
 
@@ -25,15 +26,6 @@ const TOPOLOGY = {
   shared_expert_intermediate_size: 768,
 };
 
-function expectConditionalEvidence(copy: HTMLElement) {
-  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.supported_runtime);
-  for (const method of CONDITIONAL_COMPATIBILITY.supported_methods) {
-    expect(copy.textContent).toContain(method);
-  }
-  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.distribution);
-  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.reason);
-}
-
 describe("ExpertTopologyRail", () => {
   it("exposes the topology and support state without accessibility violations", async () => {
     const { container } = render(
@@ -57,6 +49,7 @@ describe("ExpertTopologyRail", () => {
           supported_methods: ["qlora"],
           distribution: "single",
           evidence_requirement: "pilot-required",
+          adapter_scope: "attention-only",
           reason: "Exact pilot evidence is required.",
         }}
         selectedRuntime="mlx-lm"
@@ -83,7 +76,9 @@ describe("ExpertTopologyRail", () => {
     );
 
     const copy = screen.getByText(/mlx-lm supports/i);
-    expectConditionalEvidence(copy);
+    expect(copy.textContent).toBe(
+      `mlx-lm supports qlora on single. ${CONDITIONAL_COMPATIBILITY.reason}`,
+    );
   });
 
   it("states the runtime, method, placement, and pilot boundary when the target runtime differs", () => {
@@ -100,7 +95,39 @@ describe("ExpertTopologyRail", () => {
     );
 
     const copy = screen.getByText(/conditional path requires/i);
-    expectConditionalEvidence(copy);
-    expect(copy.textContent).toContain("transformers-peft-cuda");
+    expect(copy.textContent).toBe(
+      "The conditional path requires mlx-lm with qlora on single. "
+      + "The current transformers-peft-cuda target remains unsupported for this model. "
+      + CONDITIONAL_COMPATIBILITY.reason,
+    );
+  });
+
+  it("fails closed when conditional evidence is incomplete or contradictory", () => {
+    const malformedCompatibility = {
+      status: "conditional",
+      family: "qwen3_moe",
+      supported_runtime: null,
+      supported_methods: ["qlora"],
+      distribution: null,
+      evidence_requirement: "implementation-required",
+      adapter_scope: null,
+      reason: "Decoy evidence mentions mlx-lm, qlora, and single.",
+    } as unknown as ModelCompatibility;
+
+    render(
+      <ExpertTopologyRail
+        topology={TOPOLOGY}
+        totalParametersB={30.5}
+        activeParametersB={3.3}
+        sparseLayerCount={48}
+        quantizationBits={4}
+        compatibility={malformedCompatibility}
+        selectedRuntime="mlx-lm"
+      />,
+    );
+
+    expect(screen.getByText("Unsupported")).toBeInTheDocument();
+    expect(screen.getByText(MALFORMED_COMPATIBILITY_REASON)).toBeInTheDocument();
+    expect(screen.queryByText(/supports|conditional path requires/i)).not.toBeInTheDocument();
   });
 });

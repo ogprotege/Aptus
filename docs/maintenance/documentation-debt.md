@@ -217,15 +217,20 @@ when its evidence, owner, or resolution changes.
 - **Priority:** P1
 - **Status:** Resolved
 - **Resolution:** `ExpertTopologyRail` remains the single presentation owner for
-  compatibility evidence. A second visible copy would duplicate policy prose and
-  create another drift boundary. Its branch-level regression tests now assert
-  runtime, supported methods, distribution, and reason in both the runtime-match
-  and runtime-mismatch states. The web type now uses the generated OpenAPI schema,
-  so required evidence fields cannot silently become optional at the client
-  boundary.
+  compatibility evidence. Post-merge review found that PR #20's substring check
+  for `single` could pass against `single-device` inside the reason, even if the
+  placement clause disappeared. The corrected tests assert each complete support
+  or mismatch sentence and assert the reason separately. The API now uses three
+  closed, status-discriminated variants. The producer, API response boundary,
+  browser ingestion path, and presentation component all fail closed when a
+  conditional result is incomplete or contradictory.
 - **Verification:**
-  `web/src/components/ExpertTopologyRail.test.tsx` pins the four-field parity
-  contract. Any future compatibility surface must preserve the same fields.
+  `test_model_compatibility_contract_rejects_contradictory_evidence`,
+  `test_model_inspection_response_rejects_malformed_compatibility`,
+  `test_model_compatibility_reference_matches_discriminated_contract`, and
+  `web/src/components/ExpertTopologyRail.test.tsx` pin the corrected contract.
+  Any future compatibility surface must preserve the same fields and fail-closed
+  behavior.
 - **Owner:** Workbench maintainers
 
 ## Resolved in the 2026-07-22 governance batch

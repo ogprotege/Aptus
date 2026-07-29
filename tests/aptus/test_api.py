@@ -16,7 +16,7 @@ from aptus.api import (
     _resolve_static_dir,
     create_app,
 )
-from aptus.api_contracts import ModelInspectionResponse
+from aptus.api_contracts import ModelCompatibilityResponse, ModelInspectionResponse
 from aptus.catalog import reviewed_qwen3_moe_quantization_layout
 from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.execution import ActiveJobError, JobPrerequisiteError
@@ -72,12 +72,152 @@ class ApiContractTests(unittest.TestCase):
                     "supported_methods": [],
                     "distribution": None,
                     "evidence_requirement": "implementation-required",
+                    "adapter_scope": None,
                     "reason": "The provider topology is incomplete.",
                 },
             }
         )
 
         self.assertIsNone(response.facts.moe.experts_per_token)
+
+    def test_model_compatibility_contract_accepts_only_coherent_variants(self) -> None:
+        variants = (
+            {
+                "status": "conditional",
+                "family": "qwen3_moe",
+                "supported_runtime": "mlx-lm",
+                "supported_methods": ["qlora"],
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": "attention-only",
+                "reason": "A measured pilot remains required.",
+            },
+            {
+                "status": "recognized",
+                "family": "llama",
+                "supported_runtime": None,
+                "supported_methods": [],
+                "distribution": None,
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": None,
+                "reason": "The planner decides the executable path.",
+            },
+            {
+                "status": "unsupported",
+                "family": None,
+                "supported_runtime": None,
+                "supported_methods": [],
+                "distribution": None,
+                "evidence_requirement": "implementation-required",
+                "adapter_scope": None,
+                "reason": "No reviewed policy matches this model.",
+            },
+        )
+
+        for payload in variants:
+            with self.subTest(status=payload["status"]):
+                validated = ModelCompatibilityResponse.model_validate(payload)
+                self.assertEqual(validated.model_dump(), payload)
+
+    def test_model_compatibility_contract_rejects_contradictory_evidence(
+        self,
+    ) -> None:
+        conditional = {
+            "status": "conditional",
+            "family": "qwen3_moe",
+            "supported_runtime": "mlx-lm",
+            "supported_methods": ["qlora"],
+            "distribution": "single",
+            "evidence_requirement": "pilot-required",
+            "adapter_scope": "attention-only",
+            "reason": "A measured pilot remains required.",
+        }
+        recognized = {
+            "status": "recognized",
+            "family": "llama",
+            "supported_runtime": None,
+            "supported_methods": [],
+            "distribution": None,
+            "evidence_requirement": "pilot-required",
+            "adapter_scope": None,
+            "reason": "The planner decides the executable path.",
+        }
+        unsupported = {
+            "status": "unsupported",
+            "family": None,
+            "supported_runtime": None,
+            "supported_methods": [],
+            "distribution": None,
+            "evidence_requirement": "implementation-required",
+            "adapter_scope": None,
+            "reason": "No reviewed policy matches this model.",
+        }
+        invalid_variants = {
+            "null runtime": {**conditional, "supported_runtime": None},
+            "empty runtime": {**conditional, "supported_runtime": ""},
+            "empty methods": {**conditional, "supported_methods": []},
+            "empty method name": {**conditional, "supported_methods": [""]},
+            "null distribution": {**conditional, "distribution": None},
+            "empty distribution": {**conditional, "distribution": ""},
+            "implementation evidence": {
+                **conditional,
+                "evidence_requirement": "implementation-required",
+            },
+            "missing adapter scope": {
+                key: value
+                for key, value in conditional.items()
+                if key != "adapter_scope"
+            },
+            "empty adapter scope": {**conditional, "adapter_scope": ""},
+            "empty family": {**conditional, "family": ""},
+            "empty reason": {**conditional, "reason": ""},
+            "unknown field": {**conditional, "unreviewed": True},
+            "recognized runtime claim": {
+                **recognized,
+                "supported_runtime": "mlx-lm",
+            },
+            "recognized method claim": {
+                **recognized,
+                "supported_methods": ["lora"],
+            },
+            "recognized distribution claim": {
+                **recognized,
+                "distribution": "single",
+            },
+            "recognized adapter claim": {
+                **recognized,
+                "adapter_scope": "attention-only",
+            },
+            "recognized implementation evidence": {
+                **recognized,
+                "evidence_requirement": "implementation-required",
+            },
+            "unsupported runtime claim": {
+                **unsupported,
+                "supported_runtime": "mlx-lm",
+            },
+            "unsupported method claim": {
+                **unsupported,
+                "supported_methods": ["qlora"],
+            },
+            "unsupported distribution claim": {
+                **unsupported,
+                "distribution": "single",
+            },
+            "unsupported adapter claim": {
+                **unsupported,
+                "adapter_scope": "attention-only",
+            },
+            "unsupported pilot evidence": {
+                **unsupported,
+                "evidence_requirement": "pilot-required",
+            },
+        }
+
+        for case, payload in invalid_variants.items():
+            with self.subTest(case=case):
+                with self.assertRaises(ValidationError):
+                    ModelCompatibilityResponse.model_validate(payload)
 
     def test_plan_store_survives_context_restart(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -638,6 +778,43 @@ class ApiEndpointTests(unittest.TestCase):
         )
         self.assertEqual(result["compatibility"]["status"], "conditional")
         self.assertEqual(result["compatibility"]["adapter_scope"], "attention-only")
+
+    def test_model_inspection_response_rejects_malformed_compatibility(self) -> None:
+        inspection = {
+            "status": "ok",
+            "model_id": "provider/malformed",
+            "requested_revision": "main",
+            "compatibility": {
+                "status": "conditional",
+                "family": "qwen3_moe",
+                "supported_runtime": None,
+                "supported_methods": ["qlora"],
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": "attention-only",
+                "reason": "The producer omitted the executable runtime.",
+            },
+        }
+        with patch(
+            "aptus.inspection.inspect_huggingface_model",
+            return_value=inspection,
+        ):
+            client = TestClient(
+                create_app(
+                    state_dir=self.root / "malformed-inspection-state",
+                    static_dir=self.root / "web",
+                ),
+                raise_server_exceptions=False,
+            )
+        try:
+            response = client.post(
+                "/api/v1/models/inspect",
+                json={"model_id": "provider/malformed", "revision": "main"},
+            )
+        finally:
+            client.close()
+
+        self.assertEqual(response.status_code, 500, response.text)
 
     def test_mutating_workflow_requests_require_exact_project_identity(self) -> None:
         for path, payload in (

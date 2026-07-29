@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { StatusBadge } from "./StatusBadge";
 import type { ModelCompatibility, MoETopology } from "../types";
+import { normalizeModelCompatibility } from "../lib/modelCompatibility";
 
 interface ExpertTopologyRailProps {
   topology: MoETopology;
@@ -30,9 +31,10 @@ export function ExpertTopologyRail({
 }: ExpertTopologyRailProps) {
   const titleId = useId();
   const captionId = useId();
-  const supportedRuntime = compatibility?.supported_runtime ?? null;
-  const runtimeMatches = supportedRuntime === null || supportedRuntime === selectedRuntime;
-  const status = compatibility?.status ?? "unknown";
+  const normalizedCompatibility = normalizeModelCompatibility(compatibility);
+  const supportedRuntime = normalizedCompatibility?.supported_runtime ?? null;
+  const status = normalizedCompatibility?.status ?? "unknown";
+  const runtimeMatches = status === "conditional" && supportedRuntime === selectedRuntime;
   const title = status === "conditional"
     ? runtimeMatches
       ? "Exact MoE path recognized"
@@ -48,9 +50,9 @@ export function ExpertTopologyRail({
         ? "Unsupported"
         : "Support unknown";
   const routedText = `Any ${topology.experts_per_token} of ${topology.expert_count} routed experts`;
-  const supportedMethods = (compatibility?.supported_methods ?? []).join(", ") || "the allowlisted method";
-  const supportedDistribution = compatibility?.distribution ?? "the allowlisted placement";
-  const pilotBoundary = compatibility?.reason ?? "Every exact bundle must still pass its pilot.";
+  const supportedMethods = (normalizedCompatibility?.supported_methods ?? []).join(", ") || "the allowlisted method";
+  const supportedDistribution = normalizedCompatibility?.distribution ?? "the allowlisted placement";
+  const pilotBoundary = normalizedCompatibility?.reason ?? "Every exact bundle must still pass its pilot.";
 
   return (
     <section className="moe-topology-panel" aria-labelledby={titleId}>
@@ -118,8 +120,8 @@ export function ExpertTopologyRail({
             ? `${supportedRuntime ?? "The selected runtime"} supports ${supportedMethods} on ${supportedDistribution}. ${pilotBoundary}`
             : `The conditional path requires ${supportedRuntime} with ${supportedMethods} on ${supportedDistribution}. The current ${selectedRuntime} target remains unsupported for this model. ${pilotBoundary}`}
         </p>
-      ) : compatibility?.reason ? (
-        <p className="moe-support-copy support-mismatch">{compatibility.reason}</p>
+      ) : normalizedCompatibility?.reason ? (
+        <p className="moe-support-copy support-mismatch">{normalizedCompatibility.reason}</p>
       ) : null}
 
       <p className="moe-memory-boundary">

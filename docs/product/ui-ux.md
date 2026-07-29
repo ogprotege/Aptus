@@ -83,6 +83,8 @@ experts selected per token, total experts, optional shared-expert presence,
 sparse-layer count, expert width, checkpoint precision, total resident
 parameters, and backend-derived active parameters. It also displays the exact
 runtime, method, placement, and pilot boundary from the compatibility result.
+The rail presents support only for a structurally complete conditional result.
+Malformed or contradictory evidence renders a fail-closed unsupported state.
 Changing any inspection-derived model identity or shape fact clears the topology
 until the operator inspects again. Changing total parameters or training
 permission does not erase inspection because those facts remain user-attested.

@@ -124,8 +124,8 @@ review the output diff.
 | [`types.ts`](../../web/src/types.ts) | Browser-side API and view models |
 | [`stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
 | [`components/`](../../web/src/components) | Shared candidate, evidence, artifact, job, and navigation components |
-| [`components/ExpertTopologyRail.tsx`](../../web/src/components/ExpertTopologyRail.tsx) | Static accessible MoE routing and residency explanation |
-| [`lib/`](../../web/src/lib) | Hardware, model-inspection, and plan view helpers |
+| [`components/ExpertTopologyRail.tsx`](../../web/src/components/ExpertTopologyRail.tsx) | Static accessible MoE routing, residency, and fail-closed compatibility presentation |
+| [`lib/`](../../web/src/lib) | Hardware, model-inspection, compatibility normalization, and plan view helpers |
 | [`demo.ts`](../../web/src/demo.ts) | Clearly labeled non-executed example state |
 | [`styles.css`](../../web/src/styles.css) | Visual tokens, layout, responsive behavior, focus, and motion policy |
 | [`desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete feature detection for native pickers and Finder actions |

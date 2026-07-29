@@ -280,8 +280,19 @@ explicit user facts. `facts` can include exact `model_type`, `architecture`,
 `quantization_bits`, `quantization_layout`, and a `moe` topology with expert
 count, experts per token, expert width, sparse cadence, dense-only layer
 indices, and optional shared expert width. The separate `compatibility` object
-returns `status`, `family`, `supported_runtime`, `supported_methods`,
-`distribution`, `evidence_requirement`, optional `adapter_scope`, and `reason`.
+uses a closed, status-discriminated contract:
+
+- `conditional` requires nonempty family, runtime, methods, distribution,
+  adapter scope, and reason fields. Its evidence requirement is exactly
+  `pilot-required`.
+- `recognized` carries no executable runtime, method, distribution, or adapter
+  claim. It identifies a known dense family and leaves execution selection to
+  the planner.
+- `unsupported` carries no executable runtime, method, distribution, or adapter
+  claim. Its evidence requirement is exactly `implementation-required`.
+
+Malformed combinations fail closed at the producer, API, and browser client.
+They cannot be presented as execution support.
 
 Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
 sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a

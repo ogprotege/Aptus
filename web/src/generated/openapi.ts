@@ -519,6 +519,31 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** ConditionalModelCompatibilityResponse */
+        ConditionalModelCompatibilityResponse: {
+            /** Adapter Scope */
+            adapter_scope: string;
+            /** Distribution */
+            distribution: string;
+            /**
+             * Evidence Requirement
+             * @constant
+             */
+            evidence_requirement: "pilot-required";
+            /** Family */
+            family: string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            status: "conditional";
+            /** Supported Methods */
+            supported_methods: string[];
+            /** Supported Runtime */
+            supported_runtime: string;
+        };
         /** ErrorResponse */
         ErrorResponse: {
             /** Details */
@@ -814,30 +839,7 @@ export interface components {
          */
         Method: "full" | "lora" | "int8-lora" | "qlora";
         /** ModelCompatibilityResponse */
-        ModelCompatibilityResponse: {
-            /** Adapter Scope */
-            adapter_scope?: string | null;
-            /** Distribution */
-            distribution?: string | null;
-            /**
-             * Evidence Requirement
-             * @enum {string}
-             */
-            evidence_requirement: "pilot-required" | "implementation-required";
-            /** Family */
-            family?: string | null;
-            /** Reason */
-            reason: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "conditional" | "recognized" | "unsupported";
-            /** Supported Methods */
-            supported_methods: string[];
-            /** Supported Runtime */
-            supported_runtime?: string | null;
-        };
+        ModelCompatibilityResponse: components["schemas"]["ConditionalModelCompatibilityResponse"] | components["schemas"]["RecognizedModelCompatibilityResponse"] | components["schemas"]["UnsupportedModelCompatibilityResponse"];
         /** ModelFactsRequest */
         ModelFactsRequest: {
             /** Architecture */
@@ -1246,6 +1248,31 @@ export interface components {
             /** Module Path */
             module_path: string;
         };
+        /** RecognizedModelCompatibilityResponse */
+        RecognizedModelCompatibilityResponse: {
+            /** Adapter Scope */
+            adapter_scope: null;
+            /** Distribution */
+            distribution: null;
+            /**
+             * Evidence Requirement
+             * @constant
+             */
+            evidence_requirement: "pilot-required";
+            /** Family */
+            family: string;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            status: "recognized";
+            /** Supported Methods */
+            supported_methods: string[];
+            /** Supported Runtime */
+            supported_runtime: null;
+        };
         /** ReplanRequiredResponse */
         ReplanRequiredResponse: {
             /** Found Schema */
@@ -1411,6 +1438,31 @@ export interface components {
          * @enum {string}
          */
         TrainingRuntime: "transformers-peft-cuda" | "mlx-lm" | "pytorch-mps";
+        /** UnsupportedModelCompatibilityResponse */
+        UnsupportedModelCompatibilityResponse: {
+            /** Adapter Scope */
+            adapter_scope: null;
+            /** Distribution */
+            distribution: null;
+            /**
+             * Evidence Requirement
+             * @constant
+             */
+            evidence_requirement: "implementation-required";
+            /** Family */
+            family: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            status: "unsupported";
+            /** Supported Methods */
+            supported_methods: string[];
+            /** Supported Runtime */
+            supported_runtime: null;
+        };
         /** ValidateRequest */
         ValidateRequest: {
             /** Bundle Dir */

@@ -137,6 +137,7 @@ describe("FactsStage", () => {
             supported_methods: ["qlora"],
             distribution: "single",
             evidence_requirement: "pilot-required",
+            adapter_scope: "attention-only",
             reason: "Exact model-data and pilot evidence are required.",
           },
         }}

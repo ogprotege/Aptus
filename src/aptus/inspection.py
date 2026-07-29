@@ -8,6 +8,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from . import __version__
+from .api_contracts import ModelCompatibilityResponse
 from .catalog import (
     DENSE_CAUSAL_LM_TARGET_MODULES,
     QWEN3_MOE_ARCHITECTURE,
@@ -348,59 +349,76 @@ def _compatibility(
             or quantization_error is not None
             or quantization_layout != reviewed_layout
         ):
-            return {
-                "status": "unsupported",
+            return _validated_compatibility(
+                {
+                    "status": "unsupported",
+                    "family": QWEN3_MOE_FAMILY,
+                    "supported_runtime": None,
+                    "supported_methods": [],
+                    "distribution": None,
+                    "evidence_requirement": "implementation-required",
+                    "adapter_scope": None,
+                    "reason": (
+                        "The exact Qwen3 MoE identity was recognized, but this revision "
+                        "does not match the reviewed four-bit default, eight-bit "
+                        "router-gate overrides, and "
+                        "no-shared-expert topology."
+                    ),
+                }
+            )
+        return _validated_compatibility(
+            {
+                "status": "conditional",
                 "family": QWEN3_MOE_FAMILY,
+                "supported_runtime": "mlx-lm",
+                "supported_methods": ["qlora"],
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": "attention-only",
+                "reason": (
+                    "This exact mixed-precision Qwen3 MoE artifact can enter the "
+                    "single-device MLX-LM QLoRA path with attention-only adapters. "
+                    "Measured preflight and a real-model pilot remain mandatory."
+                ),
+            }
+        )
+    if family in {"gemma", "llama", "mistral", "qwen"}:
+        return _validated_compatibility(
+            {
+                "status": "recognized",
+                "family": family,
                 "supported_runtime": None,
                 "supported_methods": [],
                 "distribution": None,
-                "evidence_requirement": "implementation-required",
+                "evidence_requirement": "pilot-required",
+                "adapter_scope": None,
                 "reason": (
-                    "The exact Qwen3 MoE identity was recognized, but this revision "
-                    "does not match the reviewed four-bit default, eight-bit "
-                    "router-gate overrides, and "
-                    "no-shared-expert topology."
+                    "The provider identity maps to an existing dense Aptus family; "
+                    "the planner still decides the executable runtime and method."
                 ),
             }
-        return {
-            "status": "conditional",
-            "family": QWEN3_MOE_FAMILY,
-            "supported_runtime": "mlx-lm",
-            "supported_methods": ["qlora"],
-            "distribution": "single",
-            "evidence_requirement": "pilot-required",
-            "adapter_scope": "attention-only",
-            "reason": (
-                "This exact mixed-precision Qwen3 MoE artifact can enter the "
-                "single-device MLX-LM QLoRA path with attention-only adapters. "
-                "Measured preflight and a real-model pilot remain mandatory."
-            ),
-        }
-    if family in {"gemma", "llama", "mistral", "qwen"}:
-        return {
-            "status": "recognized",
+        )
+    return _validated_compatibility(
+        {
+            "status": "unsupported",
             "family": family,
             "supported_runtime": None,
             "supported_methods": [],
             "distribution": None,
-            "evidence_requirement": "pilot-required",
+            "evidence_requirement": "implementation-required",
+            "adapter_scope": None,
             "reason": (
-                "The provider identity maps to an existing dense Aptus family; "
-                "the planner still decides the executable runtime and method."
+                "No exact Aptus model-family compatibility policy matches this provider "
+                "model type and architecture."
             ),
         }
-    return {
-        "status": "unsupported",
-        "family": family,
-        "supported_runtime": None,
-        "supported_methods": [],
-        "distribution": None,
-        "evidence_requirement": "implementation-required",
-        "reason": (
-            "No exact Aptus model-family compatibility policy matches this provider "
-            "model type and architecture."
-        ),
-    }
+    )
+
+
+def _validated_compatibility(payload: dict[str, Any]) -> dict[str, Any]:
+    """Seal every compatibility producer, including the CLI path."""
+
+    return ModelCompatibilityResponse.model_validate(payload).model_dump()
 
 
 def inspect_huggingface_model(

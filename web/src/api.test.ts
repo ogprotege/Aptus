@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 import { EXAMPLE_DRAFT } from "./demo";
+import { MALFORMED_COMPATIBILITY_REASON } from "./lib/modelCompatibility";
 
 const REVIEWED_QWEN3_LAYOUT = {
   default_bits: 4,
@@ -422,6 +423,45 @@ describe("typed API client", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/models/inspect");
     expect(JSON.parse(String(init.body))).toEqual({ model_id: "org/model", revision: "main" });
+  });
+
+  it("fails closed when provider compatibility evidence is malformed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            status: "ok",
+            model_id: "org/model",
+            requested_revision: "main",
+            compatibility: {
+              status: "conditional",
+              family: "qwen3_moe",
+              supported_runtime: null,
+              supported_methods: ["qlora"],
+              distribution: "single",
+              evidence_requirement: "pilot-required",
+              adapter_scope: "attention-only",
+              reason: "Incomplete producer data.",
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    const inspection = await api.inspectModel("org/model", "main");
+
+    expect(inspection.compatibility).toEqual({
+      status: "unsupported",
+      family: null,
+      supported_runtime: null,
+      supported_methods: [],
+      distribution: null,
+      evidence_requirement: "implementation-required",
+      adapter_scope: null,
+      reason: MALFORMED_COMPATIBILITY_REASON,
+    });
   });
 
   it("returns the validation report attached to a refreshed job", async () => {

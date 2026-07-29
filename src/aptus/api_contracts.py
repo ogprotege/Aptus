@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
+
+from .domain import AdapterProfile, Backend, Distribution, Method, TrainingRuntime
+from .methods.registry import method_descriptor, runtime_binding
 
 
 API_CONTRACT_VERSION = "aptus.api.v1"
 
-_NonEmptyCompatibilityText = Annotated[str, Field(min_length=1)]
+_NonEmptyCompatibilityText = Annotated[
+    str,
+    Field(min_length=1, pattern=r"^\S(?:[\s\S]*\S)?$"),
+]
 
 
 class ResponseModel(BaseModel):
@@ -251,22 +257,51 @@ class ModelInspectionFactsResponse(ClosedResponseModel):
 class ConditionalModelCompatibilityResponse(ClosedResponseModel):
     status: Literal["conditional"]
     family: _NonEmptyCompatibilityText
-    supported_runtime: _NonEmptyCompatibilityText
-    supported_methods: list[_NonEmptyCompatibilityText] = Field(min_length=1)
-    distribution: _NonEmptyCompatibilityText
+    supported_runtime: TrainingRuntime
+    supported_methods: list[Method] = Field(min_length=1)
+    compute_backend: Backend
+    distribution: Distribution
     evidence_requirement: Literal["pilot-required"]
-    adapter_scope: _NonEmptyCompatibilityText
+    adapter_profile_id: AdapterProfile
     reason: _NonEmptyCompatibilityText
+
+    @model_validator(mode="after")
+    def require_registered_execution_bindings(self) -> Self:
+        if len(set(self.supported_methods)) != len(self.supported_methods):
+            raise ValueError("Conditional compatibility methods must be unique.")
+        for method in self.supported_methods:
+            if method_descriptor(method).parameterization != "lora":
+                raise ValueError(
+                    "Conditional compatibility adapter profiles require adapter "
+                    "methods."
+                )
+            binding = runtime_binding(
+                method,
+                training_runtime=self.supported_runtime,
+                compute_backend=self.compute_backend,
+            )
+            if binding is None:
+                raise ValueError(
+                    "Conditional compatibility requires a registered method, "
+                    "runtime, and compute-backend binding."
+                )
+            if self.distribution.value not in binding.supported_distributions:
+                raise ValueError(
+                    "Conditional compatibility distribution is not supported by "
+                    "the registered runtime binding."
+                )
+        return self
 
 
 class RecognizedModelCompatibilityResponse(ClosedResponseModel):
     status: Literal["recognized"]
     family: _NonEmptyCompatibilityText
     supported_runtime: None
-    supported_methods: list[str] = Field(max_length=0)
+    supported_methods: list[Method] = Field(max_length=0)
+    compute_backend: None
     distribution: None
     evidence_requirement: Literal["pilot-required"]
-    adapter_scope: None
+    adapter_profile_id: None
     reason: _NonEmptyCompatibilityText
 
 
@@ -274,10 +309,11 @@ class UnsupportedModelCompatibilityResponse(ClosedResponseModel):
     status: Literal["unsupported"]
     family: _NonEmptyCompatibilityText | None
     supported_runtime: None
-    supported_methods: list[str] = Field(max_length=0)
+    supported_methods: list[Method] = Field(max_length=0)
+    compute_backend: None
     distribution: None
     evidence_requirement: Literal["implementation-required"]
-    adapter_scope: None
+    adapter_profile_id: None
     reason: _NonEmptyCompatibilityText
 
 

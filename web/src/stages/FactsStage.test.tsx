@@ -134,10 +134,11 @@ describe("FactsStage", () => {
             status: "conditional",
             family: "qwen3_moe",
             supported_runtime: "mlx-lm",
+            compute_backend: "mps",
             supported_methods: ["qlora"],
             distribution: "single",
             evidence_requirement: "pilot-required",
-            adapter_scope: "attention-only",
+            adapter_profile_id: "attention-qkvo.v1",
             reason: "Exact model-data and pilot evidence are required.",
           },
         }}
@@ -153,7 +154,11 @@ describe("FactsStage", () => {
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("4-bit group 64; 1 override")).toBeInTheDocument();
     expect(screen.getByText(/all checkpoint weights must remain resident/i)).toBeInTheDocument();
-    expect(screen.getByText(/mlx-lm supports qlora on single/i)).toBeInTheDocument();
+    expect(screen.getByText(
+      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, "
+      + "backend mps, method qlora, placement single, adapter profile attention-qkvo.v1. "
+      + "Evidence requirement: pilot-required. Exact model-data and pilot evidence are required.",
+    )).toBeInTheDocument();
   });
 
   it("clears stale provider topology when an inspected model fact changes", async () => {

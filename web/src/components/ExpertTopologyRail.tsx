@@ -11,6 +11,7 @@ interface ExpertTopologyRailProps {
   quantizationBits?: number | null;
   compatibility?: ModelCompatibility | null;
   selectedRuntime: string;
+  selectedBackend: string;
 }
 
 function parameterLabel(value: number | null | undefined): string {
@@ -28,30 +29,38 @@ export function ExpertTopologyRail({
   quantizationBits,
   compatibility,
   selectedRuntime,
+  selectedBackend,
 }: ExpertTopologyRailProps) {
   const titleId = useId();
   const captionId = useId();
   const normalizedCompatibility = normalizeModelCompatibility(compatibility);
   const supportedRuntime = normalizedCompatibility?.supported_runtime ?? null;
+  const supportedBackend = normalizedCompatibility?.compute_backend ?? null;
   const status = normalizedCompatibility?.status ?? "unknown";
-  const runtimeMatches = status === "conditional" && supportedRuntime === selectedRuntime;
+  const pathMatches = status === "conditional"
+    && supportedRuntime === selectedRuntime
+    && supportedBackend === selectedBackend;
   const title = status === "conditional"
-    ? runtimeMatches
+    ? pathMatches
       ? "Exact MoE path recognized"
-      : "MoE path recognized; target runtime differs"
+      : "MoE path recognized; selected target differs"
     : status === "unsupported"
       ? "MoE topology recognized; execution unsupported"
       : "Pinned MoE topology";
-  const statusLabel = status === "conditional" && runtimeMatches
+  const statusLabel = status === "conditional" && pathMatches
     ? "Pilot required"
     : status === "conditional"
-      ? "Runtime mismatch"
+      ? "Target mismatch"
       : status === "unsupported"
         ? "Unsupported"
         : "Support unknown";
   const routedText = `Any ${topology.experts_per_token} of ${topology.expert_count} routed experts`;
-  const supportedMethods = (normalizedCompatibility?.supported_methods ?? []).join(", ") || "the allowlisted method";
+  const supportedMethodValues = normalizedCompatibility?.supported_methods ?? [];
+  const supportedMethods = supportedMethodValues.join(", ") || "the allowlisted method";
+  const methodLabel = supportedMethodValues.length === 1 ? "method" : "methods";
   const supportedDistribution = normalizedCompatibility?.distribution ?? "the allowlisted placement";
+  const adapterProfileId = normalizedCompatibility?.adapter_profile_id ?? "the allowlisted adapter profile";
+  const evidenceRequirement = normalizedCompatibility?.evidence_requirement ?? "pilot-required";
   const pilotBoundary = normalizedCompatibility?.reason ?? "Every exact bundle must still pass its pilot.";
 
   return (
@@ -61,7 +70,7 @@ export function ExpertTopologyRail({
           <p className="eyebrow">Sparse model contract</p>
           <h3 id={titleId}>{title}</h3>
         </div>
-        <StatusBadge state={status === "conditional" && !runtimeMatches ? "warning" : status} label={statusLabel} />
+        <StatusBadge state={status === "conditional" && !pathMatches ? "warning" : status} label={statusLabel} />
       </header>
 
       <figure className="expert-topology" aria-describedby={captionId}>
@@ -115,10 +124,10 @@ export function ExpertTopologyRail({
       </dl>
 
       {status === "conditional" ? (
-        <p className={`moe-support-copy${runtimeMatches ? "" : " support-mismatch"}`}>
-          {runtimeMatches
-            ? `${supportedRuntime ?? "The selected runtime"} supports ${supportedMethods} on ${supportedDistribution}. ${pilotBoundary}`
-            : `The conditional path requires ${supportedRuntime} with ${supportedMethods} on ${supportedDistribution}. The current ${selectedRuntime} target remains unsupported for this model. ${pilotBoundary}`}
+        <p className={`moe-support-copy${pathMatches ? "" : " support-mismatch"}`}>
+          {pathMatches
+            ? `This artifact is eligible for the reviewed pilot path: runtime ${supportedRuntime}, backend ${supportedBackend}, ${methodLabel} ${supportedMethods}, placement ${supportedDistribution}, adapter profile ${adapterProfileId}. Evidence requirement: ${evidenceRequirement}. ${pilotBoundary}`
+            : `The reviewed pilot path requires runtime ${supportedRuntime}, backend ${supportedBackend}, ${methodLabel} ${supportedMethods}, placement ${supportedDistribution}, and adapter profile ${adapterProfileId}. The selected target uses runtime ${selectedRuntime} and backend ${selectedBackend}; it does not match this path. Evidence requirement: ${evidenceRequirement}. ${pilotBoundary}`}
         </p>
       ) : normalizedCompatibility?.reason ? (
         <p className="moe-support-copy support-mismatch">{normalizedCompatibility.reason}</p>

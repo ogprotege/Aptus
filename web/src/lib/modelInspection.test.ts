@@ -205,11 +205,12 @@ describe("provider model inspection", () => {
       status: "conditional",
       family: "qwen3_moe",
       supported_runtime: "mlx-lm",
+      compute_backend: "mps",
       supported_methods: ["qlora"],
       distribution: "single",
       evidence_requirement: "pilot-required",
-      adapter_scope: "attention-only",
-      reason: "The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+      adapter_profile_id: "attention-qkvo.v1",
+      reason: "The current v3 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
     });
 
     const unreviewedLayoutPlan = structuredClone(plan);
@@ -221,10 +222,11 @@ describe("provider model inspection", () => {
       status: "unsupported",
       family: "qwen3_moe",
       supported_runtime: null,
+      compute_backend: null,
       supported_methods: [],
       distribution: null,
       evidence_requirement: "implementation-required",
-      adapter_scope: null,
+      adapter_profile_id: null,
       reason: "The current plan does not bind this topology to the exact conditional Qwen3 MoE path.",
     });
   });
@@ -278,10 +280,11 @@ describe("provider model inspection", () => {
         status: "unsupported",
         family: "unknown_moe",
         supported_runtime: null,
+        compute_backend: null,
         supported_methods: [],
         distribution: null,
         evidence_requirement: "implementation-required",
-        adapter_scope: null,
+        adapter_profile_id: null,
         reason: "The provider topology is incomplete.",
       },
     });

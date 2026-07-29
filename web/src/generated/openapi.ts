@@ -402,6 +402,11 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AdapterProfile
+         * @enum {string}
+         */
+        AdapterProfile: "attention-qkvo.v1";
+        /**
          * Backend
          * @enum {string}
          */
@@ -521,10 +526,9 @@ export interface components {
         };
         /** ConditionalModelCompatibilityResponse */
         ConditionalModelCompatibilityResponse: {
-            /** Adapter Scope */
-            adapter_scope: string;
-            /** Distribution */
-            distribution: string;
+            adapter_profile_id: components["schemas"]["AdapterProfile"];
+            compute_backend: components["schemas"]["Backend"];
+            distribution: components["schemas"]["Distribution"];
             /**
              * Evidence Requirement
              * @constant
@@ -540,10 +544,14 @@ export interface components {
              */
             status: "conditional";
             /** Supported Methods */
-            supported_methods: string[];
-            /** Supported Runtime */
-            supported_runtime: string;
+            supported_methods: components["schemas"]["Method"][];
+            supported_runtime: components["schemas"]["TrainingRuntime"];
         };
+        /**
+         * Distribution
+         * @enum {string}
+         */
+        Distribution: "single" | "ddp" | "fsdp";
         /** ErrorResponse */
         ErrorResponse: {
             /** Details */
@@ -1250,8 +1258,10 @@ export interface components {
         };
         /** RecognizedModelCompatibilityResponse */
         RecognizedModelCompatibilityResponse: {
-            /** Adapter Scope */
-            adapter_scope: null;
+            /** Adapter Profile Id */
+            adapter_profile_id: null;
+            /** Compute Backend */
+            compute_backend: null;
             /** Distribution */
             distribution: null;
             /**
@@ -1269,7 +1279,7 @@ export interface components {
              */
             status: "recognized";
             /** Supported Methods */
-            supported_methods: string[];
+            supported_methods: components["schemas"]["Method"][];
             /** Supported Runtime */
             supported_runtime: null;
         };
@@ -1440,8 +1450,10 @@ export interface components {
         TrainingRuntime: "transformers-peft-cuda" | "mlx-lm" | "pytorch-mps";
         /** UnsupportedModelCompatibilityResponse */
         UnsupportedModelCompatibilityResponse: {
-            /** Adapter Scope */
-            adapter_scope: null;
+            /** Adapter Profile Id */
+            adapter_profile_id: null;
+            /** Compute Backend */
+            compute_backend: null;
             /** Distribution */
             distribution: null;
             /**
@@ -1459,7 +1471,7 @@ export interface components {
              */
             status: "unsupported";
             /** Supported Methods */
-            supported_methods: string[];
+            supported_methods: components["schemas"]["Method"][];
             /** Supported Runtime */
             supported_runtime: null;
         };

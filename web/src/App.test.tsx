@@ -243,7 +243,12 @@ describe("desktop workbench readiness", () => {
     expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
       .toBeInTheDocument();
     expect(screen.getByText(
-      "mlx-lm supports qlora on single. The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
+      + "method qlora, placement single, adapter profile attention-qkvo.v1. "
+      + "Evidence requirement: pilot-required. The current v3 plan preserves the reviewed "
+      + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
+      + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
+      + "mandatory.",
     )).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();
@@ -270,7 +275,12 @@ describe("desktop workbench readiness", () => {
     expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
       .toBeInTheDocument();
     expect(screen.getByText(
-      "mlx-lm supports qlora on single. The current v3 plan binds this exact topology to single-device MLX-LM QLoRA with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
+      + "method qlora, placement single, adapter profile attention-qkvo.v1. "
+      + "Evidence requirement: pilot-required. The current v3 plan preserves the reviewed "
+      + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
+      + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
+      + "mandatory.",
     )).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();

@@ -311,6 +311,7 @@ export function FactsStage({
                   ? modelInspection?.compatibility
                   : moeCompatibility}
                 selectedRuntime={draft.target.runtime}
+                selectedBackend={selectedBackend}
               />
             ) : null}
             <div className="field-row">

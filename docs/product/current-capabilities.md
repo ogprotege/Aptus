@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
@@ -22,11 +22,13 @@ acceptance remain open.
   compilation, followed by tokenizer-specific transformation in the selected
   runtime gates.
 - Bounded provider model-metadata inspection at an immutable revision.
-- Exact inspection compatibility for `qwen3_moe` checkpoints with
+- Exact inspection policy matching for `qwen3_moe` checkpoints with
   `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
   router-gate override per layer, a complete reviewed routed-expert topology,
-  and no shared expert. Inspection returns an explicit conditional or
-  unsupported result. It never relies on a family prefix.
+  and no shared expert. Inspection returns eligibility for one reviewed pilot
+  path or an unsupported result. The eligible tuple binds `mlx-lm`, `mps`,
+  QLoRA, `single`, and adapter profile `attention-qkvo.v1`. It never relies on
+  a family prefix or treats inspection as passing runtime evidence.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory
@@ -123,10 +125,10 @@ acceptance remain open.
   runtime-neutral memory metrics.
 - The Qwen3 MoE row is conditional only when model type, architecture,
   four-bit group-64 defaults, one eight-bit group-64 router-gate override per
-  layer, topology, runtime, method, placement, and adapter scope all match the
-  exact contract. All checkpoint weights remain resident. Active parameters
-  describe per-token computation and never replace total parameters in the
-  base-weight memory budget.
+  layer, topology, runtime, compute backend, method, placement, and adapter
+  profile all match the exact contract. All checkpoint weights remain resident.
+  Active parameters describe per-token computation and never replace total
+  parameters in the base-weight memory budget.
 - The MLX-LM pilot is one uninterrupted exact-model and exact-data run from the
   pinned base. It requires at least two completed optimizer updates, finite
   train and validation losses, exact target coverage, positive MLX peak and

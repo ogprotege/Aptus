@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2027-01-27 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -39,9 +39,13 @@ inspection measures the local server host.
 
 Inspection keeps raw `model_type` and architecture identities. For the exact
 Qwen3 MoE row, it also returns checkpoint precision, routed-expert topology,
-and a structured compatibility decision. Total parameters and training
-permission remain user attestations. The backend derives active parameters and
-sparse-layer count only after it has the complete model contract.
+and a structured compatibility decision. A conditional decision binds known
+runtime, compute-backend, method, distribution, and adapter-profile IDs. The
+method registry validates the runtime, backend, method, and distribution
+binding and confirms that the profile is paired with an adapter method. Total
+parameters and training permission remain user attestations. The backend derives
+active parameters and sparse-layer count only after it has the complete model
+contract.
 
 Apple platform inspection is a separate contract. It reports operating system,
 chip, CPU, unified memory, current memory and swap pressure, Metal guidance, and

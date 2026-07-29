@@ -9,12 +9,13 @@ const CONDITIONAL_COMPATIBILITY = {
   status: "conditional",
   family: "qwen3_moe",
   supported_runtime: "mlx-lm",
+  compute_backend: "mps",
   supported_methods: ["qlora"],
   distribution: "single",
   evidence_requirement: "pilot-required",
-  adapter_scope: "attention-only",
+  adapter_profile_id: "attention-qkvo.v1",
   reason:
-    "This exact mixed-precision Qwen3 MoE artifact can enter the single-device MLX-LM QLoRA path with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
+    "The model identity, mixed-precision layout, routed-expert topology, and attention-only q/k/v/o target policy match the reviewed Qwen3 MoE slice. Measured preflight and a real-model pilot remain mandatory.",
 } satisfies ModelCompatibility;
 
 const TOPOLOGY = {
@@ -27,7 +28,7 @@ const TOPOLOGY = {
 };
 
 describe("ExpertTopologyRail", () => {
-  it("exposes the topology and support state without accessibility violations", async () => {
+  it("exposes the topology and path eligibility without accessibility violations", async () => {
     const { container } = render(
       <ExpertTopologyRail
         topology={{
@@ -46,13 +47,15 @@ describe("ExpertTopologyRail", () => {
           status: "conditional",
           family: "qwen3_moe",
           supported_runtime: "mlx-lm",
+          compute_backend: "mps",
           supported_methods: ["qlora"],
           distribution: "single",
           evidence_requirement: "pilot-required",
-          adapter_scope: "attention-only",
+          adapter_profile_id: "attention-qkvo.v1",
           reason: "Exact pilot evidence is required.",
         }}
         selectedRuntime="mlx-lm"
+        selectedBackend="mps"
       />,
     );
 
@@ -62,7 +65,7 @@ describe("ExpertTopologyRail", () => {
     expect(results.violations).toEqual([]);
   });
 
-  it("states the runtime, method, placement, and pilot boundary when the target runtime matches", () => {
+  it("states the exact reviewed path and evidence boundary when the selected target matches", () => {
     render(
       <ExpertTopologyRail
         topology={TOPOLOGY}
@@ -72,16 +75,20 @@ describe("ExpertTopologyRail", () => {
         quantizationBits={4}
         compatibility={CONDITIONAL_COMPATIBILITY}
         selectedRuntime="mlx-lm"
+        selectedBackend="mps"
       />,
     );
 
-    const copy = screen.getByText(/mlx-lm supports/i);
+    const copy = screen.getByText(/eligible for the reviewed pilot path/i);
     expect(copy.textContent).toBe(
-      `mlx-lm supports qlora on single. ${CONDITIONAL_COMPATIBILITY.reason}`,
+      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, "
+      + "backend mps, method qlora, placement single, adapter profile attention-qkvo.v1. "
+      + "Evidence requirement: pilot-required. "
+      + CONDITIONAL_COMPATIBILITY.reason,
     );
   });
 
-  it("states the runtime, method, placement, and pilot boundary when the target runtime differs", () => {
+  it("states the full reviewed path and selected target when the runtime differs", () => {
     render(
       <ExpertTopologyRail
         topology={TOPOLOGY}
@@ -91,13 +98,40 @@ describe("ExpertTopologyRail", () => {
         quantizationBits={4}
         compatibility={CONDITIONAL_COMPATIBILITY}
         selectedRuntime="transformers-peft-cuda"
+        selectedBackend="cuda"
       />,
     );
 
-    const copy = screen.getByText(/conditional path requires/i);
+    const copy = screen.getByText(/reviewed pilot path requires/i);
     expect(copy.textContent).toBe(
-      "The conditional path requires mlx-lm with qlora on single. "
-      + "The current transformers-peft-cuda target remains unsupported for this model. "
+      "The reviewed pilot path requires runtime mlx-lm, backend mps, method qlora, "
+      + "placement single, and adapter profile attention-qkvo.v1. "
+      + "The selected target uses runtime transformers-peft-cuda and backend cuda; "
+      + "it does not match this path. Evidence requirement: pilot-required. "
+      + CONDITIONAL_COMPATIBILITY.reason,
+    );
+  });
+
+  it("fails the selected-target match when only the backend differs", () => {
+    render(
+      <ExpertTopologyRail
+        topology={TOPOLOGY}
+        totalParametersB={30.5}
+        activeParametersB={3.3}
+        sparseLayerCount={48}
+        quantizationBits={4}
+        compatibility={CONDITIONAL_COMPATIBILITY}
+        selectedRuntime="mlx-lm"
+        selectedBackend="cuda"
+      />,
+    );
+
+    expect(screen.getByText("Target mismatch")).toBeInTheDocument();
+    expect(screen.getByText(/reviewed pilot path requires/i).textContent).toBe(
+      "The reviewed pilot path requires runtime mlx-lm, backend mps, method qlora, "
+      + "placement single, and adapter profile attention-qkvo.v1. "
+      + "The selected target uses runtime mlx-lm and backend cuda; "
+      + "it does not match this path. Evidence requirement: pilot-required. "
       + CONDITIONAL_COMPATIBILITY.reason,
     );
   });
@@ -107,10 +141,11 @@ describe("ExpertTopologyRail", () => {
       status: "conditional",
       family: "qwen3_moe",
       supported_runtime: null,
+      compute_backend: "mps",
       supported_methods: ["qlora"],
       distribution: null,
       evidence_requirement: "implementation-required",
-      adapter_scope: null,
+      adapter_profile_id: "attention-qkvo.v1",
       reason: "Decoy evidence mentions mlx-lm, qlora, and single.",
     } as unknown as ModelCompatibility;
 
@@ -123,11 +158,14 @@ describe("ExpertTopologyRail", () => {
         quantizationBits={4}
         compatibility={malformedCompatibility}
         selectedRuntime="mlx-lm"
+        selectedBackend="mps"
       />,
     );
 
     expect(screen.getByText("Unsupported")).toBeInTheDocument();
     expect(screen.getByText(MALFORMED_COMPATIBILITY_REASON)).toBeInTheDocument();
-    expect(screen.queryByText(/supports|conditional path requires/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/eligible for the reviewed pilot path|reviewed pilot path requires/i),
+    ).not.toBeInTheDocument();
   });
 });

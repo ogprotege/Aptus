@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -82,9 +82,13 @@ routing rail from token to router to the selected expert bank. It displays
 experts selected per token, total experts, optional shared-expert presence,
 sparse-layer count, expert width, checkpoint precision, total resident
 parameters, and backend-derived active parameters. It also displays the exact
-runtime, method, placement, and pilot boundary from the compatibility result.
-The rail presents support only for a structurally complete conditional result.
-Malformed or contradictory evidence renders a fail-closed unsupported state.
+runtime, compute backend, method, placement, adapter profile, and pilot boundary
+from the compatibility result. When the selected runtime and backend match, the
+rail says that the artifact is eligible for the reviewed pilot path. It does not
+claim that the runtime supports the artifact or that any validation gate passed.
+A runtime or backend mismatch names the complete required tuple and blocks the
+current target. Malformed, contradictory, or unknown evidence renders a
+fail-closed unsupported state.
 Changing any inspection-derived model identity or shape fact clears the topology
 until the operator inspects again. Changing total parameters or training
 permission does not erase inspection because those facts remain user-attested.

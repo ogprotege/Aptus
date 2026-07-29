@@ -1,6 +1,13 @@
 {
   "components": {
     "schemas": {
+      "AdapterProfile": {
+        "enum": [
+          "attention-qkvo.v1"
+        ],
+        "title": "AdapterProfile",
+        "type": "string"
+      },
       "Backend": {
         "enum": [
           "cuda",
@@ -335,15 +342,14 @@
       "ConditionalModelCompatibilityResponse": {
         "additionalProperties": false,
         "properties": {
-          "adapter_scope": {
-            "minLength": 1,
-            "title": "Adapter Scope",
-            "type": "string"
+          "adapter_profile_id": {
+            "$ref": "#/components/schemas/AdapterProfile"
+          },
+          "compute_backend": {
+            "$ref": "#/components/schemas/Backend"
           },
           "distribution": {
-            "minLength": 1,
-            "title": "Distribution",
-            "type": "string"
+            "$ref": "#/components/schemas/Distribution"
           },
           "evidence_requirement": {
             "const": "pilot-required",
@@ -352,11 +358,13 @@
           },
           "family": {
             "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
             "title": "Family",
             "type": "string"
           },
           "reason": {
             "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
             "title": "Reason",
             "type": "string"
           },
@@ -367,17 +375,14 @@
           },
           "supported_methods": {
             "items": {
-              "minLength": 1,
-              "type": "string"
+              "$ref": "#/components/schemas/Method"
             },
             "minItems": 1,
             "title": "Supported Methods",
             "type": "array"
           },
           "supported_runtime": {
-            "minLength": 1,
-            "title": "Supported Runtime",
-            "type": "string"
+            "$ref": "#/components/schemas/TrainingRuntime"
           }
         },
         "required": [
@@ -385,13 +390,23 @@
           "family",
           "supported_runtime",
           "supported_methods",
+          "compute_backend",
           "distribution",
           "evidence_requirement",
-          "adapter_scope",
+          "adapter_profile_id",
           "reason"
         ],
         "title": "ConditionalModelCompatibilityResponse",
         "type": "object"
+      },
+      "Distribution": {
+        "enum": [
+          "single",
+          "ddp",
+          "fsdp"
+        ],
+        "title": "Distribution",
+        "type": "string"
       },
       "ErrorResponse": {
         "additionalProperties": true,
@@ -2520,8 +2535,12 @@
       "RecognizedModelCompatibilityResponse": {
         "additionalProperties": false,
         "properties": {
-          "adapter_scope": {
-            "title": "Adapter Scope",
+          "adapter_profile_id": {
+            "title": "Adapter Profile Id",
+            "type": "null"
+          },
+          "compute_backend": {
+            "title": "Compute Backend",
             "type": "null"
           },
           "distribution": {
@@ -2535,11 +2554,13 @@
           },
           "family": {
             "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
             "title": "Family",
             "type": "string"
           },
           "reason": {
             "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
             "title": "Reason",
             "type": "string"
           },
@@ -2550,7 +2571,7 @@
           },
           "supported_methods": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Method"
             },
             "maxItems": 0,
             "title": "Supported Methods",
@@ -2566,9 +2587,10 @@
           "family",
           "supported_runtime",
           "supported_methods",
+          "compute_backend",
           "distribution",
           "evidence_requirement",
-          "adapter_scope",
+          "adapter_profile_id",
           "reason"
         ],
         "title": "RecognizedModelCompatibilityResponse",
@@ -2951,8 +2973,12 @@
       "UnsupportedModelCompatibilityResponse": {
         "additionalProperties": false,
         "properties": {
-          "adapter_scope": {
-            "title": "Adapter Scope",
+          "adapter_profile_id": {
+            "title": "Adapter Profile Id",
+            "type": "null"
+          },
+          "compute_backend": {
+            "title": "Compute Backend",
             "type": "null"
           },
           "distribution": {
@@ -2968,6 +2994,7 @@
             "anyOf": [
               {
                 "minLength": 1,
+                "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
                 "type": "string"
               },
               {
@@ -2978,6 +3005,7 @@
           },
           "reason": {
             "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
             "title": "Reason",
             "type": "string"
           },
@@ -2988,7 +3016,7 @@
           },
           "supported_methods": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Method"
             },
             "maxItems": 0,
             "title": "Supported Methods",
@@ -3004,9 +3032,10 @@
           "family",
           "supported_runtime",
           "supported_methods",
+          "compute_backend",
           "distribution",
           "evidence_requirement",
-          "adapter_scope",
+          "adapter_profile_id",
           "reason"
         ],
         "title": "UnsupportedModelCompatibilityResponse",

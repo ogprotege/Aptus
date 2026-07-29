@@ -66,6 +66,10 @@ class Method(StrEnum):
     QLORA = "qlora"
 
 
+class AdapterProfile(StrEnum):
+    ATTENTION_QKVO_V1 = "attention-qkvo.v1"
+
+
 class Distribution(StrEnum):
     SINGLE = "single"
     DDP = "ddp"

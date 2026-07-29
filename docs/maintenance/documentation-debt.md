@@ -233,6 +233,28 @@ when its evidence, owner, or resolution changes.
   behavior.
 - **Owner:** Workbench maintainers
 
+### DOC-019: Close compatibility vocabulary and inspection claim boundaries
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** Conditional model compatibility now uses known runtime,
+  compute-backend, method, distribution, and adapter-profile IDs. It carries an
+  explicit `compute_backend`, identifies the reviewed attention target policy as
+  `attention-qkvo.v1`, and validates each execution tuple against the typed
+  method registry. A profile cannot be paired with full fine-tuning. Unknown IDs
+  fail closed at the Python and browser boundaries. Known but unregistered
+  runtime, backend, method, and distribution tuples fail at the producer and API
+  response boundary. Inspection presentation says that an exact match is
+  eligible for the reviewed pilot path and does not claim that the runtime has
+  passed validation.
+- **Verification:**
+  `test_model_compatibility_contract_rejects_contradictory_evidence`,
+  `test_model_compatibility_reference_matches_discriminated_contract`,
+  `web/src/lib/modelCompatibility.test.ts`, and
+  `web/src/components/ExpertTopologyRail.test.tsx` pin the vocabulary,
+  fail-closed normalization, backend binding, and complete eligibility copy.
+- **Owner:** API, planner-registry, workbench, and documentation maintainers
+
 ## Resolved in the 2026-07-22 governance batch
 
 ### DOC-013: Separate raw Reference material from current authority

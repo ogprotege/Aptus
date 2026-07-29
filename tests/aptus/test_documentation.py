@@ -190,6 +190,170 @@ class DocumentationTests(unittest.TestCase):
                     failures.append(f"{document.relative_to(REPOSITORY)}: {contract}")
         self.assertEqual(failures, [], "Stale contract references found")
 
+    def test_documentation_drift_audit_closeout_invariants(self) -> None:
+        def normalized(relative_path: str) -> str:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        requirements = {
+            "docs/reference/validation-states.md": (
+                "aptus.mlx-model-data-evidence.v1",
+                "aptus.mlx-unified-memory-admission.v2",
+                "2026-07-28-qwen3-moe-admission/README.md",
+                "18.932 GiB",
+                "validation report binds the artifact's current SHA-256",
+            ),
+            "docs/operations/operator-checklist.md": (
+                "packed-checkpoint admission and `model-data-evidence.json`",
+                "aptus.mlx-model-data-evidence.v1",
+                "aptus.mlx-unified-memory-admission.v2",
+                "before any weight load",
+                "validation report binds the artifact's current SHA-256",
+            ),
+            "docs/methodology/preflight-calibration.md": (
+                "model type, architecture class, expert topology, and canonical "
+                "quantization layout",
+                "aptus.mlx-model-data-evidence.v1",
+                "aptus.mlx-unified-memory-admission.v2",
+                "2026-07-28-qwen3-moe-admission/README.md",
+                "validation report seals the current contents by binding the "
+                "artifact's SHA-256",
+            ),
+        }
+        failures: list[str] = []
+        for relative_path, claims in requirements.items():
+            text = normalized(relative_path)
+            failures.extend(
+                f"{relative_path}: {claim}" for claim in claims if claim not in text
+            )
+            if "immutable `model-data-evidence.json`" in text:
+                failures.append(
+                    f"{relative_path}: mutable runtime artifact called immutable"
+                )
+        self.assertEqual(failures, [], "MLX model-data closeout claims are incomplete")
+
+        source = (REPOSITORY / "src/aptus/_bundle_programs/mlx/validate.py").read_text(
+            encoding="utf-8"
+        )
+        model_data = source[source.index("def require_model_data(plan: dict)") :]
+        ordered_steps = (
+            "require_method_model(plan, candidate, model_path)",
+            "require_unified_memory_admission(plan, model_path)",
+            "model, tokenizer, config = load(",
+            'evidence_path = ROOT / "model-data-evidence.json"',
+        )
+        positions = [model_data.index(step) for step in ordered_steps]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_qwen3_documentation_slice_is_complete(self) -> None:
+        def normalized(relative_path: str) -> str:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        index = normalized("docs/index.md")
+        for claim in (
+            "Inspect the Qwen3 MoE admission attempt",
+            "operations/evidence/2026-07-28-qwen3-moe-admission/README.md",
+            "exact `qwen3_moe` MLX-LM QLoRA row remains conditional",
+            "only safe-refusal evidence",
+            "stopped before model loading",
+        ):
+            self.assertIn(claim, index)
+
+        changing_contracts = normalized("docs/contributing/changing-contracts.md")
+        for contract in (
+            "aptus.model-architecture-contract.v1",
+            "aptus.mlx-model-load-binding.v3",
+            "aptus.mlx-model-parameter-census.v1",
+            "aptus.mlx-packed-checkpoint.v1",
+            "aptus.mlx-unified-memory-admission.v2",
+            "aptus.mlx-model-data-evidence.v1",
+        ):
+            self.assertIn(contract, changing_contracts)
+
+        code_map = normalized("docs/architecture/code-map.md")
+        for claim in (
+            "exact Qwen3 MoE identity",
+            "portable MLX unified-memory formula",
+            "model-architecture and quantization-layout contracts",
+        ):
+            self.assertIn(claim, code_map)
+
+        registry = normalized("docs/reference/method-registry.md")
+        for claim in (
+            "`qwen3_moe`, whose targets are attention-only",
+            "`mlx-lm.qlora.v1`",
+            "`aptus-memory-mlx-v2`",
+            "`mlx-lm-adapter`",
+            "exact MoE model identity, architecture, and expert-topology policy",
+            "canonical quantization-layout equality for the reviewed Qwen3 MoE slice",
+        ):
+            self.assertIn(claim, registry)
+
+    def test_bundle_manifest_distinguishes_runtime_validation_ownership(self) -> None:
+        manifest = " ".join(
+            (REPOSITORY / "docs/reference/bundle-manifest.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        required_claims = (
+            "CUDA cumulative `--level` executor and lease-bound action owner",
+            "MLX argument-free Apple silicon and pinned-dependency gate with no lease",
+            "In a CUDA bundle it binds selected device visibility, acquires the "
+            "portable execution lease",
+            "invokes `preflight.py --level <requested>` under the inherited lease token",
+            "In an MLX-LM bundle, `validate.py` owns `--level`",
+            "does not acquire the execution lease itself",
+            "invokes the argument-free `preflight.py`",
+            "`run.py --bounded-smoke` or `run.py --pilot`",
+            "The MLX-LM bundle ships a different `preflight.py`. It takes no "
+            "arguments, acquires no execution lease",
+            "lease-owning MLX `run.py`",
+        )
+        missing = [claim for claim in required_claims if claim not in manifest]
+        self.assertEqual(
+            missing, [], "Bundle reference conflates CUDA and MLX ownership"
+        )
+        for stale_claim in (
+            "Cumulative level executor used by validate.py",
+            "It acquires the portable lease, invokes preflight.py at the requested level",
+        ):
+            self.assertNotIn(stale_claim, manifest)
+
+        cuda_validate = (
+            REPOSITORY / "src/aptus/_bundle_programs/cuda/validate.py"
+        ).read_text(encoding="utf-8")
+        cuda_preflight = (
+            REPOSITORY / "src/aptus/_bundle_programs/cuda/preflight.py"
+        ).read_text(encoding="utf-8")
+        mlx_validate = (
+            REPOSITORY / "src/aptus/_bundle_programs/mlx/validate.py"
+        ).read_text(encoding="utf-8")
+        mlx_preflight = (
+            REPOSITORY / "src/aptus/_bundle_programs/mlx/preflight.py"
+        ).read_text(encoding="utf-8")
+        mlx_run = (REPOSITORY / "src/aptus/_bundle_programs/mlx/run.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("portable_execution_lease", cuda_validate)
+        self.assertIn('str(ROOT / "preflight.py")', cuda_validate)
+        self.assertIn('"--level"', cuda_validate)
+        self.assertIn("portable_execution_lease", cuda_preflight)
+        self.assertIn('parser.add_argument("--level"', cuda_preflight)
+
+        self.assertNotIn("portable_execution_lease", mlx_validate)
+        self.assertIn('parser.add_argument(\n        "--level"', mlx_validate)
+        self.assertIn('"--bounded-smoke"', mlx_validate)
+        self.assertIn('"--pilot"', mlx_validate)
+        self.assertIn(
+            'subprocess.run([sys.executable, str(ROOT / "preflight.py")], cwd=ROOT)',
+            mlx_validate,
+        )
+        self.assertNotIn("argparse", mlx_preflight)
+        self.assertNotIn("portable_execution_lease", mlx_preflight)
+        self.assertIn("portable_execution_lease", mlx_run)
+
     def test_maintained_docs_have_review_metadata(self) -> None:
         failures: list[str] = []
         for document in maintained_documentation():

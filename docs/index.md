@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -24,6 +24,7 @@ operational evidence, future work, research inputs, and historical records.
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
 | Inspect the real MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the Qwen3 MoE admission attempt | [2026-07-28 Qwen3 MoE evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md) | [Capability matrix](reference/capability-matrix.md) |
 | Review source research | [Research index](research/index.md) | [Retained Reference packet](../Reference/README.md) |
 
 ## Documentation status legend
@@ -174,5 +175,8 @@ measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
 full-duration adapter training from the pinned base model. Two clean workflows
 reached `measured-run-pass` in the dated acceptance record. Fresh-process adapter
 reload and bounded generation prove that the emitted adapter can be loaded. They
-do not prove training resume. CUDA training remains an external-host path on
-this Mac, with no qualifying target-host run recorded.
+do not prove training resume. The exact `qwen3_moe` MLX-LM QLoRA row remains
+conditional and has only safe-refusal evidence: the recorded 30B attempt stopped
+before model loading when live unified-memory admission failed. CUDA training
+remains an external-host path on this Mac, with no qualifying target-host run
+recorded.

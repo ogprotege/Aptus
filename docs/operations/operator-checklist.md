@@ -1,6 +1,6 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
@@ -134,7 +134,7 @@ starting a competing accelerator action.
 | Order | Managed command | Required successful state | Inspect before continuing |
 |---:|---|---|---|
 | 1 | `aptus run BUNDLE --action dependency` | `dependency-pass` | Direct pins, Python/platform binding, installed distribution closure |
-| 2 | `aptus run BUNDLE --action model-data` | `model-data-pass` | Pinned model structure, tokenizer, target modules, every canonical row, trainable scope |
+| 2 | `aptus run BUNDLE --action model-data` | `model-data-pass` | Pinned model structure, tokenizer, target modules, every canonical row, trainable scope; for MLX-LM, packed-checkpoint admission and `model-data-evidence.json` |
 | 3 | `aptus run BUNDLE --action preflight` | `measured-preflight-pass` | CUDA synthetic evidence or MLX bounded real-input smoke, runtime memory, and bindings |
 | 4 | `aptus run BUNDLE --action pilot` | `pilot-pass` | CUDA: two fresh phases and checkpoint continuation. MLX: uninterrupted two-update run and fresh-process adapter generation |
 | 5 | `aptus run BUNDLE --action train --confirm-full-train` | `measured-run-pass` after parent verification | Current admission, runtime-specific full metrics, final export, and immutable evidence |
@@ -174,8 +174,10 @@ not supply a resume argument.
 - [ ] Every canonical row transforms with non-empty supervision.
 - [ ] Credentials remained in the underlying model stack, not the bundle.
 - [ ] For `mlx-lm`, live unified-memory admission passed before the model
-      loaded, and `model-data-evidence.json` binds
-      `aptus.mlx-unified-memory-admission.v2`.
+      loaded. The completed action wrote mutable runtime artifact
+      `model-data-evidence.json` under `aptus.mlx-model-data-evidence.v1`,
+      containing an `aptus.mlx-unified-memory-admission.v2` record. The
+      validation report binds the artifact's current SHA-256.
 
 Model-data validation does not enter training mode and does not prove
 accelerator fit. MLX QLoRA must obtain four-bit eligibility from the pinned

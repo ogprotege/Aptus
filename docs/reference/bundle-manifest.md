@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Bundle operators, compiler maintainers, and security reviewers |
 | Authority | Normative reference for `aptus.bundle.v2` and its mutable runtime boundary |
-| Last reviewed | 2026-07-28 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-22, or sooner when generation or manifest validation changes |
 
 `bundle-manifest.json` is the immutable integrity root for a compiled Aptus
@@ -113,7 +113,7 @@ manifested.
 | `runtime_lease.py` | Self-contained per-user host execution lease |
 | `reload.py` | MLX-only fresh-process adapter reload and one-to-four-token generation verifier |
 | `validate.py` | Public portable validator and report writer |
-| `preflight.py` | Cumulative level executor used by `validate.py` |
+| `preflight.py` | CUDA cumulative `--level` executor and lease-bound action owner; MLX argument-free Apple silicon and pinned-dependency gate with no lease |
 | `train.py` | Runtime-specific model-data, preflight, pilot, and training implementation |
 | `run.py` | Runtime-specific action owner, verifier, and full-run parent |
 | `data/mlx/*` | MLX-only disjoint, in-split-padded train and validation data plus `aptus.mlx-split.v1` counts |
@@ -122,16 +122,26 @@ manifested.
 
 ### `validate.py`
 
-`validate.py` is the public portable validation command. It acquires the
-portable lease, invokes `preflight.py` at the requested level, then writes a
-bound `validation-report.json`. CUDA additionally binds selected device
-visibility. A pilot pass also triggers safe cleanup of stale Aptus-owned pilot
-roots.
+`validate.py` is the public portable validation command. In a CUDA bundle it
+binds selected device visibility, acquires the portable execution lease, and
+invokes `preflight.py --level <requested>` under the inherited lease token. When
+that child succeeds, `validate.py` writes a bound `validation-report.json`.
+CUDA pilot orchestration also performs marker- and attestation-guarded cleanup
+of stale Aptus-owned pilot roots.
+
+In an MLX-LM bundle, `validate.py` owns `--level` and the cumulative validation
+ladder but does not acquire the execution lease itself. For dependency and
+higher levels it invokes the argument-free `preflight.py` platform-and-pin
+gate. It performs model-data validation directly and invokes
+`run.py --bounded-smoke` or `run.py --pilot` for measured work. Those `run.py`
+processes acquire the portable execution lease before launching `train.py`.
+The MLX validator verifies the resulting evidence and writes the bound
+`validation-report.json`.
 
 ### `preflight.py`
 
-In a CUDA bundle, despite its filename, `preflight.py` is not only the synthetic
-check. It is a cumulative `--level` orchestrator:
+In a CUDA bundle, `preflight.py` parses `--level`, enters the portable execution
+lease, and executes the requested level cumulatively:
 
 1. contract validation;
 2. Python static parsing;
@@ -140,16 +150,18 @@ check. It is a cumulative `--level` orchestrator:
 5. runtime-specific measured preflight; and
 6. runtime-specific pilot.
 
-The MLX-LM bundle ships a different `preflight.py`. It takes no arguments and
-only asserts Apple silicon macOS plus the pinned `mlx` and `mlx-lm` versions.
-`validate.py` owns the MLX level ladder and spawns `preflight.py` as one step
-within it.
+When CUDA `validate.py` launches this program, `preflight.py` reuses the
+inherited lease token.
+
+The MLX-LM bundle ships a different `preflight.py`. It takes no arguments,
+acquires no execution lease, and only asserts Apple silicon macOS plus the
+pinned `mlx` and `mlx-lm` versions. MLX `validate.py` owns the level ladder.
+Its measured actions run through the lease-owning MLX `run.py`.
 
 The selected-method synthetic CUDA check is specifically
 `train.py --synthetic-preflight`. Calling `preflight.py --level pilot` executes
-every lower level first. The MLX orchestrator uses `run.py --bounded-smoke` and
-`run.py --pilot`; its pilot is one uninterrupted training process plus a fresh
-adapter-reload process.
+every lower level first. The MLX pilot is one uninterrupted training process
+plus a fresh adapter-reload process.
 
 ### `train.py`
 

@@ -281,6 +281,48 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("eligible for the reviewed pilot path", ui_contract)
         self.assertIn("`attention-qkvo.v1`", capabilities)
 
+    def test_model_compatibility_policy_has_one_host_authority(self) -> None:
+        policy = (REPOSITORY / "src/aptus/model_compatibility.py").read_text(
+            encoding="utf-8"
+        )
+        inspection = (REPOSITORY / "src/aptus/inspection.py").read_text(
+            encoding="utf-8"
+        )
+        planning = (REPOSITORY / "src/aptus/planning.py").read_text(encoding="utf-8")
+        api_contracts = (REPOSITORY / "src/aptus/api_contracts.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("MODEL_COMPATIBILITY_POLICIES", policy)
+        self.assertIn("def evaluate_model_compatibility(", policy)
+        self.assertIn("def validate_execution_path_selection(", policy)
+        self.assertIn("def validate_registered_compatibility_path(", policy)
+        self.assertIn("def compatibility_response_v1(", policy)
+        self.assertIn("runtime_contract_for", policy)
+        self.assertIn("evaluate_model_compatibility", inspection)
+        self.assertIn("compatibility_response_v1", inspection)
+        self.assertNotIn("def _compatibility_response_v1(", inspection)
+        self.assertNotIn("from .api_contracts import", inspection)
+        self.assertIn("evaluate_model_compatibility", planning)
+        self.assertIn("model_policy_rejection_reasons", planning)
+        self.assertIn("def _estimate_candidate_with_policy(", planning)
+        self.assertNotIn("is_exact_qwen3_moe", planning)
+        self.assertNotIn("has_reviewed_qwen3_moe_quantization_layout", planning)
+        self.assertIn("validate_registered_compatibility_path", api_contracts)
+        self.assertNotIn("runtime_binding", api_contracts)
+
+        code_map = (REPOSITORY / "docs/architecture/code-map.md").read_text(
+            encoding="utf-8"
+        )
+        system = " ".join(
+            (REPOSITORY / "docs/architecture/system.md")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+        self.assertIn("model_compatibility.py", code_map)
+        self.assertIn("same host-side model policy registry", system)
+        self.assertIn("method registry constructs its runtime contract", system)
+
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []
         anchor_cache: dict[Path, set[str]] = {}

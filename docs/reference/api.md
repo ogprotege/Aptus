@@ -286,8 +286,10 @@ uses a closed, status-discriminated contract:
   `supported_runtime`, one or more known `supported_methods`, a known
   `compute_backend`, a known `distribution`, and a known
   `adapter_profile_id`. Its evidence requirement is exactly `pilot-required`.
-  Every runtime, backend, method, and distribution tuple must resolve
-  server-side through the typed method registry.
+  Every family, runtime, backend, method, distribution, and adapter-profile
+  tuple must resolve server-side through the host compatibility registry. Its
+  path validator derives the complete runtime contract from the typed method
+  registry.
 - `recognized` carries no executable runtime, backend, method, distribution, or
   adapter-profile claim. It identifies a known dense family and leaves
   execution selection to the planner.
@@ -301,12 +303,19 @@ IDs are `cuda`, `rocm`, `mps`, and `cpu`. Method IDs are `full`, `lora`,
 The closed adapter-profile vocabulary contains `attention-qkvo.v1`, which binds
 the attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` target policy.
 Unknown IDs and malformed combinations fail closed at the producer, API, and
-browser client. A known but unregistered runtime, backend, method, and distribution
-tuple fails at the producer and API response boundary. The browser validates
-the closed IDs, runtime-backend pairing, adapter-method applicability, and
-response shape without copying the method registry into a second policy
-authority. Invalid evidence cannot be presented as eligible for the reviewed
-pilot path.
+browser client. A known tuple that is not registered for the stated model family
+fails at the producer and API response boundary. The browser validates the
+closed IDs, runtime-backend pairing, adapter-method applicability, and response
+shape without copying the method registry into a second policy authority.
+Invalid evidence cannot be presented as eligible for the reviewed pilot path.
+
+Provider inspection and candidate planning call the same host-side policy
+evaluator. The API model delegates model-family path coherence to the same
+registry instead of maintaining its own runtime-binding rules. The v1 response
+remains a single flattened path shape. Its producer rejects a future
+heterogeneous path set rather than selecting or dropping one path silently.
+Policy identity, version, provenance receipts, and plan binding are not part of
+v1.
 
 Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
 sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a
@@ -314,7 +323,9 @@ four-bit group-64 default layout, one eight-bit group-64 router-gate override
 per layer, a complete reviewed topology, and no shared expert. It reports
 conditional eligibility for the reviewed single-device `mlx-lm` on `mps` QLoRA
 pilot path with adapter profile `attention-qkvo.v1`. Prefix matching never
-admits MoE or multimodal variants.
+admits MoE or multimodal variants. Sparse model-type and architecture markers
+remain unsupported when provider topology is absent, even if their normalized
+family has a dense policy.
 
 ### `POST /api/v1/profile`
 

@@ -21,6 +21,7 @@ from aptus.catalog import reviewed_qwen3_moe_quantization_layout
 from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.execution import ActiveJobError, JobPrerequisiteError
 from aptus.local_store import atomic_write_json
+from aptus.model_compatibility import validate_registered_compatibility_path
 from aptus.profiling import build_hardware_spec
 from aptus.runtime_env import RuntimeInterpreter
 
@@ -122,6 +123,55 @@ class ApiContractTests(unittest.TestCase):
             with self.subTest(status=payload["status"]):
                 validated = ModelCompatibilityResponse.model_validate(payload)
                 self.assertEqual(validated.model_dump(mode="json"), payload)
+
+    def test_conditional_response_delegates_to_the_domain_path_validator(self) -> None:
+        payload = {
+            "status": "conditional",
+            "family": "qwen3_moe",
+            "supported_runtime": "mlx-lm",
+            "supported_methods": ["qlora"],
+            "compute_backend": "mps",
+            "distribution": "single",
+            "evidence_requirement": "pilot-required",
+            "adapter_profile_id": "attention-qkvo.v1",
+            "reason": "A measured pilot remains required.",
+        }
+
+        with patch(
+            "aptus.api_contracts.validate_registered_compatibility_path",
+            wraps=validate_registered_compatibility_path,
+        ) as validate:
+            ModelCompatibilityResponse.model_validate(payload)
+
+        validate.assert_called_once()
+        self.assertEqual(
+            validate.call_args.kwargs["evidence_requirement"],
+            "pilot-required",
+        )
+
+    def test_conditional_response_rejects_unregistered_model_policy_claims(
+        self,
+    ) -> None:
+        base = {
+            "status": "conditional",
+            "family": "qwen3_moe",
+            "supported_runtime": "mlx-lm",
+            "supported_methods": ["qlora"],
+            "compute_backend": "mps",
+            "distribution": "single",
+            "evidence_requirement": "pilot-required",
+            "adapter_profile_id": "attention-qkvo.v1",
+            "reason": "A measured pilot remains required.",
+        }
+        claims = (
+            {**base, "supported_methods": ["lora"]},
+            {**base, "family": "llama"},
+        )
+
+        for claim in claims:
+            with self.subTest(claim=claim):
+                with self.assertRaisesRegex(ValueError, "registered for the model"):
+                    ModelCompatibilityResponse.model_validate(claim)
 
     def test_model_compatibility_contract_rejects_contradictory_evidence(
         self,

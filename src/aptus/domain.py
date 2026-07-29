@@ -70,6 +70,13 @@ class AdapterProfile(StrEnum):
     ATTENTION_QKVO_V1 = "attention-qkvo.v1"
 
 
+class ModelPolicyDecisionKind(StrEnum):
+    PATH_MATCHED = "path-matched"
+    FAMILY_RECOGNIZED = "family-recognized"
+    BLOCKED = "blocked"
+    UNKNOWN = "unknown"
+
+
 class Distribution(StrEnum):
     SINGLE = "single"
     DDP = "ddp"
@@ -474,6 +481,133 @@ class ModelSpec:
             * self.moe.expert_intermediate_size
         )
         return self.parameters - inactive_expert_parameters
+
+
+@dataclass(frozen=True)
+class ModelCompatibilitySubject:
+    """Normalized model facts evaluated against host compatibility policy."""
+
+    family: str | None
+    model_type: str | None
+    architecture: str | None
+    layers: int | None
+    quantization_bits: int | None
+    quantization_layout: QuantizationLayout | None
+    moe: MoETopology | None
+    fact_errors: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.fact_errors, tuple):
+            raise ValueError("Compatibility subject fact errors must be immutable.")
+        text_values = (self.family, self.model_type, self.architecture)
+        if any(
+            value is not None and not isinstance(value, str) for value in text_values
+        ):
+            raise ValueError("Compatibility subject identities must be text.")
+        if any(
+            value is not None and (not value.strip() or value != value.strip())
+            for value in text_values
+        ):
+            raise ValueError("Compatibility subject identities must be unpadded.")
+        if self.layers is not None and (
+            not isinstance(self.layers, int)
+            or isinstance(self.layers, bool)
+            or self.layers <= 0
+        ):
+            raise ValueError("Compatibility subject layers must be positive.")
+        if self.quantization_bits is not None and (
+            not isinstance(self.quantization_bits, int)
+            or isinstance(self.quantization_bits, bool)
+            or not 1 <= self.quantization_bits <= 16
+        ):
+            raise ValueError(
+                "Compatibility subject quantization_bits must be between 1 and 16."
+            )
+        if any(
+            not isinstance(item, str) or not item.strip() or item != item.strip()
+            for item in self.fact_errors
+        ):
+            raise ValueError("Compatibility subject fact errors must be unpadded.")
+        if len(set(self.fact_errors)) != len(self.fact_errors):
+            raise ValueError("Compatibility subject fact errors must be unique.")
+
+
+@dataclass(frozen=True)
+class ModelPolicyPath:
+    """One fully bound execution path emitted by model policy evaluation."""
+
+    method: Method
+    distribution: Distribution
+    adapter_profile_id: AdapterProfile | None
+    target_modules: tuple[str, ...]
+    runtime_contract: RuntimeContract
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.method, Method):
+            raise ValueError("Model policy path method must be a known ID.")
+        if not isinstance(self.distribution, Distribution):
+            raise ValueError("Model policy path distribution must be a known ID.")
+        if self.adapter_profile_id is not None and not isinstance(
+            self.adapter_profile_id, AdapterProfile
+        ):
+            raise ValueError("Model policy path adapter profile must be a known ID.")
+        if not isinstance(self.runtime_contract, RuntimeContract):
+            raise ValueError("Model policy paths require a runtime contract.")
+        if not isinstance(self.target_modules, tuple):
+            raise ValueError("Model policy path target modules must be immutable.")
+        if self.method == Method.FULL and self.adapter_profile_id is not None:
+            raise ValueError("Full fine-tuning cannot carry an adapter profile.")
+        if self.method != Method.FULL and self.adapter_profile_id is None:
+            raise ValueError("Adapter model policy paths require an adapter profile.")
+        if not self.target_modules:
+            raise ValueError("Model policy paths require target modules.")
+        if any(
+            not module.strip() or module != module.strip()
+            for module in self.target_modules
+        ):
+            raise ValueError("Model policy path target modules must be unpadded.")
+        if len(set(self.target_modules)) != len(self.target_modules):
+            raise ValueError("Model policy path target modules must be unique.")
+
+
+@dataclass(frozen=True)
+class ModelPolicyDecision:
+    """Artifact-policy result kept separate from candidate and evidence states."""
+
+    kind: ModelPolicyDecisionKind
+    family: str | None
+    paths: tuple[ModelPolicyPath, ...]
+    reason: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, ModelPolicyDecisionKind):
+            raise ValueError("Model policy decision kind must be a known ID.")
+        if not isinstance(self.paths, tuple):
+            raise ValueError("Model policy decision paths must be immutable.")
+        if self.family is not None and not isinstance(self.family, str):
+            raise ValueError("Model policy decision family must be text.")
+        if not isinstance(self.reason, str):
+            raise ValueError("Model policy decision reason must be text.")
+        if not self.reason.strip() or self.reason != self.reason.strip():
+            raise ValueError("Model policy decision reason must be unpadded.")
+        if self.family is not None and (
+            not self.family.strip() or self.family != self.family.strip()
+        ):
+            raise ValueError("Model policy decision family must be unpadded.")
+        if self.kind == ModelPolicyDecisionKind.PATH_MATCHED:
+            if self.family is None:
+                raise ValueError("A path-matched decision requires a family.")
+            if not self.paths:
+                raise ValueError("A path-matched decision requires at least one path.")
+            if len(set(self.paths)) != len(self.paths):
+                raise ValueError("Model policy decision paths must be unique.")
+        elif self.paths:
+            raise ValueError("Only a path-matched decision may carry paths.")
+        if (
+            self.kind == ModelPolicyDecisionKind.FAMILY_RECOGNIZED
+            and self.family is None
+        ):
+            raise ValueError("A family-recognized decision requires a family.")
 
 
 @dataclass(frozen=True)

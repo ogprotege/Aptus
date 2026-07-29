@@ -22,13 +22,22 @@ acceptance remain open.
   compilation, followed by tokenizer-specific transformation in the selected
   runtime gates.
 - Bounded provider model-metadata inspection at an immutable revision.
-- Exact inspection policy matching for `qwen3_moe` checkpoints with
+- One host-side model compatibility registry shared by provider inspection,
+  sparse candidate admission, and API execution-path validation. It derives
+  compiler, estimator, export, and evidence-requirement identities from the
+  method registry instead of copying them.
+- Exact policy matching for `qwen3_moe` checkpoints with
   `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
   router-gate override per layer, a complete reviewed routed-expert topology,
   and no shared expert. Inspection returns eligibility for one reviewed pilot
   path or an unsupported result. The eligible tuple binds `mlx-lm`, `mps`,
   QLoRA, `single`, and adapter profile `attention-qkvo.v1`. It never relies on
-  a family prefix or treats inspection as passing runtime evidence.
+  a family prefix or treats inspection as passing runtime evidence. Sparse
+  near-matches are blocked before dense-family recognition, including sparse
+  model-type or architecture markers whose topology is missing. Conditional API
+  claims must match a registered path for the stated model family. The internal
+  policy decision remains transient in v0.2, so it does not yet provide an
+  inspection receipt or a persisted plan binding.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory

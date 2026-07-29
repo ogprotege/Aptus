@@ -2,8 +2,8 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #21, merge `3c776e9`, plus
-> the current typed-compatibility-vocabulary follow-up
+> **Applies to:** Repository documentation through PR #22, merge `e7ce942`, plus
+> the current host compatibility-policy follow-up
 >
 > **Last reviewed:** 2026-07-29
 >
@@ -27,11 +27,14 @@ without rewriting the immutable audit record. PR #20 added compatibility-copy
 coverage, but post-merge review found its placement assertion could pass against
 `single-device` in the reason even if the visible placement clause disappeared.
 PR #21 corrected that assertion, introduced a status-discriminated API contract,
-sealed the producer, and added browser fail-closed normalization. The current
-follow-up closes the remaining open vocabulary. Conditional compatibility now
+sealed the producer, and added browser fail-closed normalization. PR #22 closed
+the remaining open vocabulary. Conditional compatibility now
 uses known runtime, compute-backend, method, distribution, and adapter-profile
 IDs, validates the tuple against the method registry, and describes only
-eligibility for a reviewed pilot path. PR #15 preserved and indexed the
+eligibility for a reviewed pilot path. The current Phase 2 follow-up introduces
+one host-side policy registry for provider inspection, sparse candidate
+admission, and API execution-path validation. It preserves the v1 API, v3 plan
+identity, portable contract, and evidence boundary. PR #15 preserved and indexed the
 historical audit without making it current authority.
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it
 stopped before model loading. It is not a passing pilot or training result. The
@@ -50,7 +53,7 @@ status, and response field from one source.
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, a status-discriminated compatibility contract with closed execution IDs, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; host model-policy decisions now have one named authority shared by inspection and planning |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
@@ -165,7 +168,7 @@ For the merged compatibility-contract correction in PR #21:
 - the generated TypeScript compatibility type is a three-variant union keyed by
   `status`, rather than one permissive object with contradictory combinations.
 
-The current Phase 1 candidate adds closed execution vocabularies, explicit
+Merged PR #22 added closed execution vocabularies, explicit
 compute-backend and adapter-profile identity, method-registry tuple validation,
 adapter-method validation, and pilot-eligibility wording. The final local gate
 passed all 363 Python tests, including 15 documentation tests, all 84 React
@@ -175,6 +178,24 @@ checking, the production web build, packaged-app launch, strict ad-hoc signing,
 ZIP integrity, DMG verification, and artifact checksums also passed. An
 independent adversarial re-review found no remaining Phase 1 defect. These
 checks do not claim target-host pilot evidence or public notarization.
+
+The current Phase 2 candidate adds immutable model-policy subject, path, and
+decision types plus one host-side registry. Provider inspection and candidate
+planning call the same evaluator. API model-family path validation and the CLI
+response projector seal claims against that registry, and runtime contracts are
+constructed from the method registry. Sparse identity markers, contradictory
+facts, unregistered family paths, forged decisions, catalog-target drift, and
+invalid runtime bindings now fail closed.
+
+The final local gate passed all 386 Python tests, including 16 documentation
+tests, all 84 React tests, and all 81 native tests. Ruff formatting and lint,
+Python bytecode compilation, OpenAPI and maintained-client parity, version
+parity, TypeScript checking, the production web build, packaged-app launch,
+strict ad-hoc signing, ZIP creation, and DMG creation also passed. The checked
+OpenAPI JSON and generated TypeScript hashes remain unchanged. Dense CUDA and
+Qwen3 MoE plan and candidate identities match the merged Phase 1 baseline. The
+final independent adversarial pass found no remaining code or schema blocker.
+These checks do not claim target-host pilot evidence or public notarization.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature

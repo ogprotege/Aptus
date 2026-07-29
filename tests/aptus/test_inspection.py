@@ -2,7 +2,14 @@ import json
 import unittest
 from urllib.error import URLError
 
-from aptus.inspection import inspect_huggingface_model
+from aptus.inspection import (
+    _compatibility_subject,
+    inspect_huggingface_model,
+)
+from aptus.model_compatibility import (
+    compatibility_response_v1,
+    evaluate_model_compatibility,
+)
 from tests.aptus.helpers import (
     QWEN3_MOE_MODEL_ID,
     QWEN3_MOE_REVISION,
@@ -234,6 +241,120 @@ class ModelInspectionTests(unittest.TestCase):
                 type(method) is str
                 for method in result["compatibility"]["supported_methods"]
             )
+        )
+        subject = _compatibility_subject(
+            family=result["facts"]["family"],
+            model_type=result["facts"]["model_type"],
+            architecture=result["facts"]["architecture"],
+            layers=result["facts"]["layers"],
+            quantization_bits=result["facts"]["quantization_bits"],
+            quantization_layout=result["facts"]["quantization_layout"],
+            quantization_error=None,
+            moe=result["facts"]["moe"],
+            moe_error=None,
+        )
+        self.assertEqual(
+            compatibility_response_v1(evaluate_model_compatibility(subject)),
+            result["compatibility"],
+        )
+
+    def test_dense_family_with_sparse_topology_does_not_bypass_policy(self) -> None:
+        commit = "f" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "llama",
+                        "architectures": ["LlamaForCausalLM"],
+                        "num_hidden_layers": 2,
+                        "num_experts": 8,
+                        "num_experts_per_tok": 2,
+                        "moe_intermediate_size": 256,
+                        "decoder_sparse_step": 1,
+                        "mlp_only_layers": [],
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            "org/model",
+            "main",
+            transport=transport,
+        )
+
+        self.assertEqual(result["facts"]["family"], "llama")
+        self.assertEqual(result["compatibility"]["status"], "unsupported")
+
+    def test_sparse_identity_without_topology_does_not_bypass_policy(self) -> None:
+        cases = (
+            ("qwen2", "Qwen2MoeForCausalLM", "qwen"),
+            ("mistral", "MixtralForCausalLM", "mistral"),
+        )
+
+        for model_type, architecture, expected_family in cases:
+            with self.subTest(architecture=architecture):
+                commit = "f" * 40
+                transport = SequenceTransport(
+                    [
+                        FakeResponse(
+                            {
+                                "model_type": model_type,
+                                "architectures": [architecture],
+                                "num_hidden_layers": 32,
+                            },
+                            {"X-Repo-Commit": commit},
+                        ),
+                        FakeResponse({}, {"X-Repo-Commit": commit}),
+                    ]
+                )
+
+                result = inspect_huggingface_model(
+                    "org/model",
+                    "main",
+                    transport=transport,
+                )
+
+                self.assertEqual(result["facts"]["family"], expected_family)
+                self.assertEqual(
+                    result["compatibility"]["status"],
+                    "unsupported",
+                )
+
+    def test_qwen_near_identity_with_fact_error_is_not_labeled_exact(self) -> None:
+        commit = "f" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "qwen3_moe",
+                        "architectures": ["NotQwen"],
+                        "num_hidden_layers": 32,
+                        "quantization": {"bits": "four", "group_size": 64},
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            "org/model",
+            "main",
+            transport=transport,
+        )
+
+        self.assertEqual(result["compatibility"]["status"], "unsupported")
+        self.assertEqual(
+            result["compatibility"]["reason"],
+            "No exact Aptus model-family compatibility policy matches this "
+            "provider model type and architecture.",
+        )
+        self.assertNotIn(
+            "exact Qwen3 MoE identity was recognized",
+            result["compatibility"]["reason"],
         )
 
     def test_qwen3_moe_inspection_rejects_malformed_topology(self) -> None:

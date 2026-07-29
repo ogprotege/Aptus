@@ -8,23 +8,21 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from . import __version__
-from .api_contracts import ModelCompatibilityResponse
 from .catalog import (
     DENSE_CAUSAL_LM_TARGET_MODULES,
-    QWEN3_MOE_ARCHITECTURE,
     QWEN3_MOE_FAMILY,
     QWEN3_MOE_MODEL_TYPE,
-    QWEN3_MOE_TARGET_MODULES,
     TARGET_MODULES,
-    reviewed_qwen3_moe_quantization_layout,
 )
 from .domain import (
-    AdapterProfile,
-    Backend,
-    Distribution,
-    Method,
-    TrainingRuntime,
-    to_primitive,
+    ModelCompatibilitySubject,
+    MoETopology,
+    QuantizationLayout,
+    QuantizationOverride,
+)
+from .model_compatibility import (
+    compatibility_response_v1,
+    evaluate_model_compatibility,
 )
 
 
@@ -56,20 +54,10 @@ def _catalog_family(model_type: Any, architecture: Any) -> tuple[Any, str | None
     raw_model_type = model_type.strip()
     normalized = raw_model_type.lower()
     if normalized == QWEN3_MOE_MODEL_TYPE:
-        if architecture != QWEN3_MOE_ARCHITECTURE:
-            return raw_model_type, (
-                "Provider model_type 'qwen3_moe' was not admitted to the executable "
-                f"catalog because architecture {architecture!r} is not the exact "
-                f"reviewed {QWEN3_MOE_ARCHITECTURE} architecture."
-            )
-        if TARGET_MODULES.get(QWEN3_MOE_FAMILY) != QWEN3_MOE_TARGET_MODULES:
-            return raw_model_type, (
-                "Provider model_type 'qwen3_moe' was not admitted because its "
-                "attention-only target-module catalog policy has changed."
-            )
         return QWEN3_MOE_FAMILY, (
-            "Provider model_type 'qwen3_moe' matched the exact reviewed "
-            "Qwen3MoeForCausalLM identity and attention-only adapter policy."
+            "Provider model_type 'qwen3_moe' was routed to exact Aptus model-policy "
+            "evaluation. Raw provider identifiers remain in the model_type and "
+            "architecture evidence fields."
         )
     if normalized in TARGET_MODULES:
         return normalized, None
@@ -317,7 +305,7 @@ def _moe_topology_error(moe: dict[str, Any] | None, layers: Any) -> str | None:
     return None
 
 
-def _compatibility(
+def _compatibility_subject(
     *,
     family: Any,
     model_type: Any,
@@ -328,109 +316,73 @@ def _compatibility(
     quantization_error: str | None,
     moe: dict[str, Any] | None,
     moe_error: str | None,
-) -> dict[str, Any]:
-    exact_qwen3_moe = (
-        family == QWEN3_MOE_FAMILY
-        and model_type == QWEN3_MOE_MODEL_TYPE
-        and architecture == QWEN3_MOE_ARCHITECTURE
-    )
-    required_moe_values = (
-        "expert_count",
-        "experts_per_token",
-        "expert_intermediate_size",
-        "decoder_sparse_step",
-        "mlp_only_layers",
-    )
-    if exact_qwen3_moe:
-        reviewed_layout = (
-            to_primitive(reviewed_qwen3_moe_quantization_layout(layers))
-            if isinstance(layers, int) and not isinstance(layers, bool) and layers > 0
+) -> ModelCompatibilitySubject:
+    fact_errors: list[str] = []
+    layout_value: QuantizationLayout | None = None
+    if quantization_error is not None:
+        fact_errors.append(f"quantization: {quantization_error}")
+    elif quantization_layout is not None:
+        try:
+            layout_value = QuantizationLayout(
+                default_bits=quantization_layout["default_bits"],
+                default_group_size=quantization_layout["default_group_size"],
+                module_overrides=tuple(
+                    QuantizationOverride(
+                        module_path=item["module_path"],
+                        bits=item["bits"],
+                        group_size=item["group_size"],
+                    )
+                    for item in quantization_layout["module_overrides"]
+                ),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            fact_errors.append(f"quantization: {error}")
+
+    moe_value: MoETopology | None = None
+    if moe_error is not None:
+        fact_errors.append(f"moe: {moe_error}")
+    elif moe is not None:
+        try:
+            moe_value = MoETopology(
+                expert_count=moe["expert_count"],
+                experts_per_token=moe["experts_per_token"],
+                expert_intermediate_size=moe["expert_intermediate_size"],
+                decoder_sparse_step=moe["decoder_sparse_step"],
+                mlp_only_layers=tuple(moe["mlp_only_layers"]),
+                shared_expert_intermediate_size=moe.get(
+                    "shared_expert_intermediate_size"
+                ),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            fact_errors.append(f"moe: {error}")
+
+    def exact_text(value: Any) -> str | None:
+        return (
+            value
+            if isinstance(value, str) and value.strip() and value == value.strip()
             else None
         )
-        if (
-            not isinstance(moe, dict)
-            or any(moe.get(name) is None for name in required_moe_values)
-            or moe_error is not None
-            or moe.get("shared_expert_intermediate_size") is not None
-            or quantization_bits != 4
-            or quantization_error is not None
-            or quantization_layout != reviewed_layout
-        ):
-            return _validated_compatibility(
-                {
-                    "status": "unsupported",
-                    "family": QWEN3_MOE_FAMILY,
-                    "supported_runtime": None,
-                    "supported_methods": [],
-                    "compute_backend": None,
-                    "distribution": None,
-                    "evidence_requirement": "implementation-required",
-                    "adapter_profile_id": None,
-                    "reason": (
-                        "The exact Qwen3 MoE identity was recognized, but this revision "
-                        "does not match the reviewed four-bit default, eight-bit "
-                        "router-gate overrides, and "
-                        "no-shared-expert topology."
-                    ),
-                }
-            )
-        return _validated_compatibility(
-            {
-                "status": "conditional",
-                "family": QWEN3_MOE_FAMILY,
-                "supported_runtime": TrainingRuntime.MLX_LM,
-                "supported_methods": [Method.QLORA],
-                "compute_backend": Backend.MPS,
-                "distribution": Distribution.SINGLE,
-                "evidence_requirement": "pilot-required",
-                "adapter_profile_id": AdapterProfile.ATTENTION_QKVO_V1,
-                "reason": (
-                    "The model identity, mixed-precision layout, routed-expert "
-                    "topology, and attention-only q/k/v/o target policy match the "
-                    "reviewed Qwen3 MoE slice. "
-                    "Measured preflight and a real-model pilot remain mandatory."
-                ),
-            }
-        )
-    if family in {"gemma", "llama", "mistral", "qwen"}:
-        return _validated_compatibility(
-            {
-                "status": "recognized",
-                "family": family,
-                "supported_runtime": None,
-                "supported_methods": [],
-                "compute_backend": None,
-                "distribution": None,
-                "evidence_requirement": "pilot-required",
-                "adapter_profile_id": None,
-                "reason": (
-                    "The provider identity maps to an existing dense Aptus family; "
-                    "the planner still decides the executable runtime and method."
-                ),
-            }
-        )
-    return _validated_compatibility(
-        {
-            "status": "unsupported",
-            "family": family,
-            "supported_runtime": None,
-            "supported_methods": [],
-            "compute_backend": None,
-            "distribution": None,
-            "evidence_requirement": "implementation-required",
-            "adapter_profile_id": None,
-            "reason": (
-                "No exact Aptus model-family compatibility policy matches this provider "
-                "model type and architecture."
-            ),
-        }
+
+    return ModelCompatibilitySubject(
+        family=exact_text(family),
+        model_type=exact_text(model_type),
+        architecture=exact_text(architecture),
+        layers=(
+            layers
+            if isinstance(layers, int) and not isinstance(layers, bool) and layers > 0
+            else None
+        ),
+        quantization_bits=(
+            quantization_bits
+            if isinstance(quantization_bits, int)
+            and not isinstance(quantization_bits, bool)
+            and 1 <= quantization_bits <= 16
+            else None
+        ),
+        quantization_layout=layout_value,
+        moe=moe_value,
+        fact_errors=tuple(fact_errors),
     )
-
-
-def _validated_compatibility(payload: dict[str, Any]) -> dict[str, Any]:
-    """Seal every compatibility producer, including the CLI path."""
-
-    return ModelCompatibilityResponse.model_validate(payload).model_dump(mode="json")
 
 
 def inspect_huggingface_model(
@@ -583,6 +535,17 @@ def inspect_huggingface_model(
             "observed_at": observed_at,
             "resolved_revision": resolved.lower(),
         }
+    compatibility_subject = _compatibility_subject(
+        family=family,
+        model_type=raw_model_type,
+        architecture=architecture,
+        layers=facts["layers"],
+        quantization_bits=quantization_bits,
+        quantization_layout=quantization_layout,
+        quantization_error=quantization_error,
+        moe=moe,
+        moe_error=moe_error,
+    )
     return {
         "status": "ok",
         "model_id": model_id,
@@ -591,16 +554,8 @@ def inspect_huggingface_model(
         "facts": facts,
         "provenance": provenance,
         "warnings": warnings,
-        "compatibility": _compatibility(
-            family=family,
-            model_type=raw_model_type,
-            architecture=architecture,
-            layers=facts["layers"],
-            quantization_bits=quantization_bits,
-            quantization_layout=quantization_layout,
-            quantization_error=quantization_error,
-            moe=moe,
-            moe_error=moe_error,
+        "compatibility": compatibility_response_v1(
+            evaluate_model_compatibility(compatibility_subject)
         ),
         "explicit_user_facts_required": ["parameters", "training_allowed"],
     }

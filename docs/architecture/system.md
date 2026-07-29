@@ -39,13 +39,21 @@ inspection measures the local server host.
 
 Inspection keeps raw `model_type` and architecture identities. For the exact
 Qwen3 MoE row, it also returns checkpoint precision, routed-expert topology,
-and a structured compatibility decision. A conditional decision binds known
-runtime, compute-backend, method, distribution, and adapter-profile IDs. The
-method registry validates the runtime, backend, method, and distribution
-binding and confirms that the profile is paired with an adapter method. Total
-parameters and training permission remain user attestations. The backend derives
-active parameters and sparse-layer count only after it has the complete model
-contract.
+and a structured compatibility decision. Normalized inspection facts and typed
+planning facts call the same host-side model policy registry. Its internal
+decision distinguishes a matched path, a recognized dense family, a blocked
+sparse near-match, and an unknown family. The unchanged public v1 response maps
+those states to `conditional`, `recognized`, and `unsupported`.
+Sparse model-type and architecture markers remain blocked when topology is
+missing. They cannot inherit a dense-family recognition through normalization.
+
+A matched path binds known runtime, compute-backend, method, distribution,
+adapter-profile, and target-module values. The method registry constructs its
+runtime contract and remains authoritative for compiler, estimator, export, and
+evidence-requirement identities. The API accepts a `conditional` claim only when
+that complete tuple is registered for the named model family. Total parameters
+and training permission remain user attestations. The backend derives active
+parameters and sparse-layer count only after it has the complete model contract.
 
 Apple platform inspection is a separate contract. It reports operating system,
 chip, CPU, unified memory, current memory and swap pressure, Metal guidance, and
@@ -74,7 +82,15 @@ single-device LoRA and QLoRA. PyTorch MPS is a known runtime without a compiler.
 For `mps` planning, device free VRAM remains unknown. The MLX estimator uses
 current free host RAM as the live unified-memory headroom cap when available.
 
-Sparse planning is narrower than general MLX-LM support. It accepts only an
+The planner evaluates the model policy once per plan and intersects every
+candidate with the emitted paths. Policy matching does not decide hardware fit,
+memory fit, ranking, or evidence readiness. The Phase 2 decision remains
+transient, so `aptus.training-plan.v3` identities and persisted fields do not
+change. A later schema migration will bind versioned policy provenance into the
+plan.
+
+The host policy registry keeps sparse planning narrower than general MLX-LM
+support. It emits one path only for an
 exact `qwen3_moe` and `Qwen3MoeForCausalLM` identity with four-bit group-64
 defaults, one eight-bit group-64 router-gate override per layer, no shared
 expert, QLoRA, `single`, and attention-only adapter targets. The v3 plan carries

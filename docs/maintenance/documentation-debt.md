@@ -215,14 +215,17 @@ when its evidence, owner, or resolution changes.
 ### DOC-018: Preserve compatibility-evidence presentation parity
 
 - **Priority:** P1
-- **Status:** In progress
-- **Evidence:** Root cause K is fixed and its regression covers the supported-
-  runtime match and mismatch branches. `compatibility` still reaches users only
-  through `ExpertTopologyRail`, so that component remains a single presentation
+- **Status:** Resolved
+- **Resolution:** `ExpertTopologyRail` remains the single presentation owner for
+  compatibility evidence. A second visible copy would duplicate policy prose and
+  create another drift boundary. Its branch-level regression tests now assert
+  runtime, supported methods, distribution, and reason in both the runtime-match
+  and runtime-mismatch states. The web type now uses the generated OpenAPI schema,
+  so required evidence fields cannot silently become optional at the client
   boundary.
-- **Required result:** Keep branch-level tests that assert runtime, supported
-  methods, distribution, and reason in both match and mismatch states. Any new
-  compatibility surface must preserve the same four fields.
+- **Verification:**
+  `web/src/components/ExpertTopologyRail.test.tsx` pins the four-field parity
+  contract. Any future compatibility surface must preserve the same fields.
 - **Owner:** Workbench maintainers
 
 ## Resolved in the 2026-07-22 governance batch

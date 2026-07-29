@@ -26,6 +26,7 @@ import type {
   ValidationReport,
 } from "./types";
 import type { components, paths } from "./generated/openapi";
+import { normalizeModelCompatibility } from "./lib/modelCompatibility";
 
 export type OpenApiBootstrapResponse = components["schemas"]["BootstrapResponse"];
 export type OpenApiCompileResponse = components["schemas"]["CompileResponse"];
@@ -527,11 +528,16 @@ export const api = {
     return normalizeProfile(response as unknown as Record<string, unknown>);
   },
 
-  inspectModel(modelId: string, revision: string) {
-    return request<OpenApiModelInspectionResponse>(API_PATHS.modelInspect, {
+  async inspectModel(modelId: string, revision: string) {
+    const response = await request<OpenApiModelInspectionResponse>(API_PATHS.modelInspect, {
       method: "POST",
       body: JSON.stringify({ model_id: modelId, revision }),
-    }) as Promise<ModelInspectionResponse>;
+    });
+    const payload = response as unknown as Record<string, unknown>;
+    return {
+      ...payload,
+      compatibility: normalizeModelCompatibility(payload.compatibility),
+    } as unknown as ModelInspectionResponse;
   },
 
   async plan(facts: FactDraft, projectId?: string | null) {

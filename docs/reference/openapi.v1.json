@@ -332,6 +332,67 @@
         "title": "CompileResponse",
         "type": "object"
       },
+      "ConditionalModelCompatibilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_scope": {
+            "minLength": 1,
+            "title": "Adapter Scope",
+            "type": "string"
+          },
+          "distribution": {
+            "minLength": 1,
+            "title": "Distribution",
+            "type": "string"
+          },
+          "evidence_requirement": {
+            "const": "pilot-required",
+            "title": "Evidence Requirement",
+            "type": "string"
+          },
+          "family": {
+            "minLength": 1,
+            "title": "Family",
+            "type": "string"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "const": "conditional",
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_methods": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Supported Methods",
+            "type": "array"
+          },
+          "supported_runtime": {
+            "minLength": 1,
+            "title": "Supported Runtime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "family",
+          "supported_runtime",
+          "supported_methods",
+          "distribution",
+          "evidence_requirement",
+          "adapter_scope",
+          "reason"
+        ],
+        "title": "ConditionalModelCompatibilityResponse",
+        "type": "object"
+      },
       "ErrorResponse": {
         "additionalProperties": true,
         "properties": {
@@ -1128,89 +1189,26 @@
         "type": "object"
       },
       "ModelCompatibilityResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "adapter_scope": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Adapter Scope"
+        "discriminator": {
+          "mapping": {
+            "conditional": "#/components/schemas/ConditionalModelCompatibilityResponse",
+            "recognized": "#/components/schemas/RecognizedModelCompatibilityResponse",
+            "unsupported": "#/components/schemas/UnsupportedModelCompatibilityResponse"
           },
-          "distribution": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Distribution"
-          },
-          "evidence_requirement": {
-            "enum": [
-              "pilot-required",
-              "implementation-required"
-            ],
-            "title": "Evidence Requirement",
-            "type": "string"
-          },
-          "family": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Family"
-          },
-          "reason": {
-            "title": "Reason",
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "conditional",
-              "recognized",
-              "unsupported"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "supported_methods": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Supported Methods",
-            "type": "array"
-          },
-          "supported_runtime": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Supported Runtime"
-          }
+          "propertyName": "status"
         },
-        "required": [
-          "status",
-          "supported_methods",
-          "evidence_requirement",
-          "reason"
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ConditionalModelCompatibilityResponse"
+          },
+          {
+            "$ref": "#/components/schemas/RecognizedModelCompatibilityResponse"
+          },
+          {
+            "$ref": "#/components/schemas/UnsupportedModelCompatibilityResponse"
+          }
         ],
-        "title": "ModelCompatibilityResponse",
-        "type": "object"
+        "title": "ModelCompatibilityResponse"
       },
       "ModelFactsRequest": {
         "additionalProperties": false,
@@ -2519,6 +2517,63 @@
         "title": "QuantizationOverrideRequest",
         "type": "object"
       },
+      "RecognizedModelCompatibilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_scope": {
+            "title": "Adapter Scope",
+            "type": "null"
+          },
+          "distribution": {
+            "title": "Distribution",
+            "type": "null"
+          },
+          "evidence_requirement": {
+            "const": "pilot-required",
+            "title": "Evidence Requirement",
+            "type": "string"
+          },
+          "family": {
+            "minLength": 1,
+            "title": "Family",
+            "type": "string"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "const": "recognized",
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_methods": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Supported Methods",
+            "type": "array"
+          },
+          "supported_runtime": {
+            "title": "Supported Runtime",
+            "type": "null"
+          }
+        },
+        "required": [
+          "status",
+          "family",
+          "supported_runtime",
+          "supported_methods",
+          "distribution",
+          "evidence_requirement",
+          "adapter_scope",
+          "reason"
+        ],
+        "title": "RecognizedModelCompatibilityResponse",
+        "type": "object"
+      },
       "ReplanRequiredResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2892,6 +2947,70 @@
         ],
         "title": "TrainingRuntime",
         "type": "string"
+      },
+      "UnsupportedModelCompatibilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_scope": {
+            "title": "Adapter Scope",
+            "type": "null"
+          },
+          "distribution": {
+            "title": "Distribution",
+            "type": "null"
+          },
+          "evidence_requirement": {
+            "const": "implementation-required",
+            "title": "Evidence Requirement",
+            "type": "string"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "const": "unsupported",
+            "title": "Status",
+            "type": "string"
+          },
+          "supported_methods": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 0,
+            "title": "Supported Methods",
+            "type": "array"
+          },
+          "supported_runtime": {
+            "title": "Supported Runtime",
+            "type": "null"
+          }
+        },
+        "required": [
+          "status",
+          "family",
+          "supported_runtime",
+          "supported_methods",
+          "distribution",
+          "evidence_requirement",
+          "adapter_scope",
+          "reason"
+        ],
+        "title": "UnsupportedModelCompatibilityResponse",
+        "type": "object"
       },
       "ValidateRequest": {
         "additionalProperties": false,

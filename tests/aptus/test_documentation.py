@@ -147,6 +147,87 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("project_id", required)
             self.assertIn("expected_project_revision_id", required)
 
+    def test_model_compatibility_reference_matches_discriminated_contract(
+        self,
+    ) -> None:
+        schema = json.loads(
+            (REPOSITORY / "docs/reference/openapi.v1.json").read_text(encoding="utf-8")
+        )
+        schemas = schema["components"]["schemas"]
+        compatibility = schemas["ModelCompatibilityResponse"]
+        expected_mapping = {
+            status: f"#/components/schemas/{name}"
+            for status, name in (
+                ("conditional", "ConditionalModelCompatibilityResponse"),
+                ("recognized", "RecognizedModelCompatibilityResponse"),
+                ("unsupported", "UnsupportedModelCompatibilityResponse"),
+            )
+        }
+        self.assertEqual(
+            compatibility["discriminator"],
+            {"propertyName": "status", "mapping": expected_mapping},
+        )
+        self.assertEqual(
+            {variant["$ref"] for variant in compatibility["oneOf"]},
+            set(expected_mapping.values()),
+        )
+
+        required = {
+            "status",
+            "family",
+            "supported_runtime",
+            "supported_methods",
+            "distribution",
+            "evidence_requirement",
+            "adapter_scope",
+            "reason",
+        }
+        conditional = schemas["ConditionalModelCompatibilityResponse"]
+        recognized = schemas["RecognizedModelCompatibilityResponse"]
+        unsupported = schemas["UnsupportedModelCompatibilityResponse"]
+        for variant in (conditional, recognized, unsupported):
+            self.assertFalse(variant["additionalProperties"])
+            self.assertEqual(set(variant["required"]), required)
+
+        self.assertEqual(conditional["properties"]["status"]["const"], "conditional")
+        for field in (
+            "family",
+            "supported_runtime",
+            "distribution",
+            "adapter_scope",
+            "reason",
+        ):
+            self.assertEqual(conditional["properties"][field]["type"], "string")
+            self.assertEqual(conditional["properties"][field]["minLength"], 1)
+        self.assertEqual(conditional["properties"]["supported_methods"]["minItems"], 1)
+        self.assertEqual(
+            conditional["properties"]["supported_methods"]["items"]["minLength"],
+            1,
+        )
+        self.assertEqual(
+            conditional["properties"]["evidence_requirement"]["const"],
+            "pilot-required",
+        )
+        for variant in (recognized, unsupported):
+            self.assertEqual(variant["properties"]["supported_runtime"]["type"], "null")
+            self.assertEqual(variant["properties"]["distribution"]["type"], "null")
+            self.assertEqual(variant["properties"]["adapter_scope"]["type"], "null")
+            self.assertEqual(variant["properties"]["supported_methods"]["maxItems"], 0)
+        self.assertEqual(
+            recognized["properties"]["evidence_requirement"]["const"],
+            "pilot-required",
+        )
+        self.assertEqual(
+            unsupported["properties"]["evidence_requirement"]["const"],
+            "implementation-required",
+        )
+
+        reference = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
+        self.assertIn("`conditional` requires", reference)
+        self.assertIn("`recognized` carries no executable runtime", reference)
+        self.assertIn("`unsupported` carries no executable runtime", reference)
+        self.assertIn("Malformed combinations fail closed", reference)
+
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []
         anchor_cache: dict[Path, set[str]] = {}

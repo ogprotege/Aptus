@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-07-28 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-27, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -282,24 +282,39 @@ count, experts per token, expert width, sparse cadence, dense-only layer
 indices, and optional shared expert width. The separate `compatibility` object
 uses a closed, status-discriminated contract:
 
-- `conditional` requires nonempty family, runtime, methods, distribution,
-  adapter scope, and reason fields. Its evidence requirement is exactly
-  `pilot-required`.
-- `recognized` carries no executable runtime, method, distribution, or adapter
-  claim. It identifies a known dense family and leaves execution selection to
-  the planner.
-- `unsupported` carries no executable runtime, method, distribution, or adapter
-  claim. Its evidence requirement is exactly `implementation-required`.
+- `conditional` requires an unpadded, nonempty family and reason, a known
+  `supported_runtime`, one or more known `supported_methods`, a known
+  `compute_backend`, a known `distribution`, and a known
+  `adapter_profile_id`. Its evidence requirement is exactly `pilot-required`.
+  Every runtime, backend, method, and distribution tuple must resolve
+  server-side through the typed method registry.
+- `recognized` carries no executable runtime, backend, method, distribution, or
+  adapter-profile claim. It identifies a known dense family and leaves
+  execution selection to the planner.
+- `unsupported` carries no executable runtime, backend, method, distribution,
+  or adapter-profile claim. Its evidence requirement is exactly
+  `implementation-required`.
 
-Malformed combinations fail closed at the producer, API, and browser client.
-They cannot be presented as execution support.
+Runtime IDs are `transformers-peft-cuda`, `mlx-lm`, and `pytorch-mps`. Backend
+IDs are `cuda`, `rocm`, `mps`, and `cpu`. Method IDs are `full`, `lora`,
+`int8-lora`, and `qlora`. Distribution IDs are `single`, `ddp`, and `fsdp`.
+The closed adapter-profile vocabulary contains `attention-qkvo.v1`, which binds
+the attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` target policy.
+Unknown IDs and malformed combinations fail closed at the producer, API, and
+browser client. A known but unregistered runtime, backend, method, and distribution
+tuple fails at the producer and API response boundary. The browser validates
+the closed IDs, runtime-backend pairing, adapter-method applicability, and
+response shape without copying the method registry into a second policy
+authority. Invalid evidence cannot be presented as eligible for the reviewed
+pilot path.
 
 Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
 sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a
 four-bit group-64 default layout, one eight-bit group-64 router-gate override
 per layer, a complete reviewed topology, and no shared expert. It reports
-conditional single-device MLX-LM QLoRA with attention-only adapters. Prefix
-matching never admits MoE or multimodal variants.
+conditional eligibility for the reviewed single-device `mlx-lm` on `mps` QLoRA
+pilot path with adapter profile `attention-qkvo.v1`. Prefix matching never
+admits MoE or multimodal variants.
 
 ### `POST /api/v1/profile`
 

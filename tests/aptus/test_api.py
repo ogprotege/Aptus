@@ -70,9 +70,10 @@ class ApiContractTests(unittest.TestCase):
                     "family": "unknown_moe",
                     "supported_runtime": None,
                     "supported_methods": [],
+                    "compute_backend": None,
                     "distribution": None,
                     "evidence_requirement": "implementation-required",
-                    "adapter_scope": None,
+                    "adapter_profile_id": None,
                     "reason": "The provider topology is incomplete.",
                 },
             }
@@ -87,9 +88,10 @@ class ApiContractTests(unittest.TestCase):
                 "family": "qwen3_moe",
                 "supported_runtime": "mlx-lm",
                 "supported_methods": ["qlora"],
+                "compute_backend": "mps",
                 "distribution": "single",
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
                 "reason": "A measured pilot remains required.",
             },
             {
@@ -97,9 +99,10 @@ class ApiContractTests(unittest.TestCase):
                 "family": "llama",
                 "supported_runtime": None,
                 "supported_methods": [],
+                "compute_backend": None,
                 "distribution": None,
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": None,
+                "adapter_profile_id": None,
                 "reason": "The planner decides the executable path.",
             },
             {
@@ -107,9 +110,10 @@ class ApiContractTests(unittest.TestCase):
                 "family": None,
                 "supported_runtime": None,
                 "supported_methods": [],
+                "compute_backend": None,
                 "distribution": None,
                 "evidence_requirement": "implementation-required",
-                "adapter_scope": None,
+                "adapter_profile_id": None,
                 "reason": "No reviewed policy matches this model.",
             },
         )
@@ -117,7 +121,7 @@ class ApiContractTests(unittest.TestCase):
         for payload in variants:
             with self.subTest(status=payload["status"]):
                 validated = ModelCompatibilityResponse.model_validate(payload)
-                self.assertEqual(validated.model_dump(), payload)
+                self.assertEqual(validated.model_dump(mode="json"), payload)
 
     def test_model_compatibility_contract_rejects_contradictory_evidence(
         self,
@@ -127,9 +131,10 @@ class ApiContractTests(unittest.TestCase):
             "family": "qwen3_moe",
             "supported_runtime": "mlx-lm",
             "supported_methods": ["qlora"],
+            "compute_backend": "mps",
             "distribution": "single",
             "evidence_requirement": "pilot-required",
-            "adapter_scope": "attention-only",
+            "adapter_profile_id": "attention-qkvo.v1",
             "reason": "A measured pilot remains required.",
         }
         recognized = {
@@ -137,9 +142,10 @@ class ApiContractTests(unittest.TestCase):
             "family": "llama",
             "supported_runtime": None,
             "supported_methods": [],
+            "compute_backend": None,
             "distribution": None,
             "evidence_requirement": "pilot-required",
-            "adapter_scope": None,
+            "adapter_profile_id": None,
             "reason": "The planner decides the executable path.",
         }
         unsupported = {
@@ -147,30 +153,95 @@ class ApiContractTests(unittest.TestCase):
             "family": None,
             "supported_runtime": None,
             "supported_methods": [],
+            "compute_backend": None,
             "distribution": None,
             "evidence_requirement": "implementation-required",
-            "adapter_scope": None,
+            "adapter_profile_id": None,
             "reason": "No reviewed policy matches this model.",
         }
         invalid_variants = {
             "null runtime": {**conditional, "supported_runtime": None},
             "empty runtime": {**conditional, "supported_runtime": ""},
+            "unknown runtime": {
+                **conditional,
+                "supported_runtime": "future-runtime",
+            },
             "empty methods": {**conditional, "supported_methods": []},
             "empty method name": {**conditional, "supported_methods": [""]},
+            "unknown method": {
+                **conditional,
+                "supported_methods": ["future-method"],
+            },
+            "duplicate method": {
+                **conditional,
+                "supported_methods": ["qlora", "qlora"],
+            },
+            "unregistered method runtime binding": {
+                **conditional,
+                "supported_methods": ["full"],
+            },
+            "adapter profile on non-adapter method": {
+                **conditional,
+                "supported_runtime": "transformers-peft-cuda",
+                "supported_methods": ["full"],
+                "compute_backend": "cuda",
+                "distribution": "single",
+            },
+            "missing backend": {
+                key: value
+                for key, value in conditional.items()
+                if key != "compute_backend"
+            },
+            "null backend": {**conditional, "compute_backend": None},
+            "empty backend": {**conditional, "compute_backend": ""},
+            "unknown backend": {
+                **conditional,
+                "compute_backend": "future-backend",
+            },
+            "unregistered runtime backend binding": {
+                **conditional,
+                "compute_backend": "cuda",
+            },
             "null distribution": {**conditional, "distribution": None},
             "empty distribution": {**conditional, "distribution": ""},
+            "unknown distribution": {
+                **conditional,
+                "distribution": "future-distribution",
+            },
+            "unsupported registered distribution": {
+                **conditional,
+                "distribution": "ddp",
+            },
             "implementation evidence": {
                 **conditional,
                 "evidence_requirement": "implementation-required",
             },
-            "missing adapter scope": {
+            "missing adapter profile": {
                 key: value
                 for key, value in conditional.items()
-                if key != "adapter_scope"
+                if key != "adapter_profile_id"
             },
-            "empty adapter scope": {**conditional, "adapter_scope": ""},
+            "null adapter profile": {
+                **conditional,
+                "adapter_profile_id": None,
+            },
+            "empty adapter profile": {
+                **conditional,
+                "adapter_profile_id": "",
+            },
+            "unknown adapter profile": {
+                **conditional,
+                "adapter_profile_id": "future-profile.v1",
+            },
             "empty family": {**conditional, "family": ""},
+            "blank family": {**conditional, "family": "   "},
+            "padded family": {**conditional, "family": " qwen3_moe"},
             "empty reason": {**conditional, "reason": ""},
+            "blank reason": {**conditional, "reason": "\t"},
+            "padded reason": {
+                **conditional,
+                "reason": "A measured pilot remains required. ",
+            },
             "unknown field": {**conditional, "unreviewed": True},
             "recognized runtime claim": {
                 **recognized,
@@ -180,13 +251,17 @@ class ApiContractTests(unittest.TestCase):
                 **recognized,
                 "supported_methods": ["lora"],
             },
+            "recognized backend claim": {
+                **recognized,
+                "compute_backend": "mps",
+            },
             "recognized distribution claim": {
                 **recognized,
                 "distribution": "single",
             },
             "recognized adapter claim": {
                 **recognized,
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
             },
             "recognized implementation evidence": {
                 **recognized,
@@ -200,13 +275,17 @@ class ApiContractTests(unittest.TestCase):
                 **unsupported,
                 "supported_methods": ["qlora"],
             },
+            "unsupported backend claim": {
+                **unsupported,
+                "compute_backend": "mps",
+            },
             "unsupported distribution claim": {
                 **unsupported,
                 "distribution": "single",
             },
             "unsupported adapter claim": {
                 **unsupported,
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
             },
             "unsupported pilot evidence": {
                 **unsupported,
@@ -742,9 +821,10 @@ class ApiEndpointTests(unittest.TestCase):
                 "family": "qwen3_moe",
                 "supported_runtime": "mlx-lm",
                 "supported_methods": ["qlora"],
+                "compute_backend": "mps",
                 "distribution": "single",
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
                 "reason": "Exact model-data and pilot evidence are required.",
             },
             "explicit_user_facts_required": ["parameters", "training_allowed"],
@@ -777,7 +857,11 @@ class ApiEndpointTests(unittest.TestCase):
             len(result["facts"]["quantization_layout"]["module_overrides"]), 48
         )
         self.assertEqual(result["compatibility"]["status"], "conditional")
-        self.assertEqual(result["compatibility"]["adapter_scope"], "attention-only")
+        self.assertEqual(result["compatibility"]["compute_backend"], "mps")
+        self.assertEqual(
+            result["compatibility"]["adapter_profile_id"],
+            "attention-qkvo.v1",
+        )
 
     def test_model_inspection_response_rejects_malformed_compatibility(self) -> None:
         inspection = {
@@ -789,9 +873,10 @@ class ApiEndpointTests(unittest.TestCase):
                 "family": "qwen3_moe",
                 "supported_runtime": None,
                 "supported_methods": ["qlora"],
+                "compute_backend": "mps",
                 "distribution": "single",
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
                 "reason": "The producer omitted the executable runtime.",
             },
         }

@@ -2,8 +2,8 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #20, merge `fc923ac`, plus
-> the current compatibility-contract correction
+> **Applies to:** Repository documentation through PR #21, merge `3c776e9`, plus
+> the current typed-compatibility-vocabulary follow-up
 >
 > **Last reviewed:** 2026-07-29
 >
@@ -26,9 +26,13 @@ and E. PR #19 closed those locations and added semantic regression checks
 without rewriting the immutable audit record. PR #20 added compatibility-copy
 coverage, but post-merge review found its placement assertion could pass against
 `single-device` in the reason even if the visible placement clause disappeared.
-The current correction uses exact branch assertions, a status-discriminated API
-contract, producer validation, and browser fail-closed normalization. PR #15
-preserved and indexed the historical audit without making it current authority.
+PR #21 corrected that assertion, introduced a status-discriminated API contract,
+sealed the producer, and added browser fail-closed normalization. The current
+follow-up closes the remaining open vocabulary. Conditional compatibility now
+uses known runtime, compute-backend, method, distribution, and adapter-profile
+IDs, validates the tuple against the method registry, and describes only
+eligibility for a reviewed pilot path. PR #15 preserved and indexed the
+historical audit without making it current authority.
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it
 stopped before model loading. It is not a passing pilot or training result. The
 release itself remains blocked until qualifying CUDA target-host evidence and a
@@ -45,12 +49,12 @@ status, and response field from one source.
 | Product boundaries | Good | Current capabilities, claim language, roadmap, and release gates distinguish implemented, conditional, unsupported, and future work |
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
-| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, a status-discriminated compatibility contract, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
+| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, a status-discriminated compatibility contract with closed execution IDs, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
 | Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, compatibility-schema semantics including known IDs and explicit backend identity, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
 | Release evidence | Partial | Two clean MLX-LM workflows reached `measured-run-pass`, and 10 of 10 local desktop engineering builds passed at their tested commit; CUDA target-host and public notarized distribution evidence remain open |
 
 ## Freshness and classification
@@ -83,9 +87,10 @@ not become a one-time cleanup.
    Tests cover the parser's commands, subcommands, and long options, but not yet
    every structured value.
 2. Generated OpenAPI JSON and TypeScript schema and path types have stale-file
-   checks. Model compatibility now has semantic schema tests and React runtime
-   normalization. Other React normalization code and Swift response decoders
-   remain maintained client boundaries that require contract tests.
+   checks. Model compatibility has semantic schema tests for its discriminated
+   variants, known execution IDs, compute backend, adapter profile, and React
+   runtime normalization. Other React normalization code and Swift response
+   decoders remain maintained client boundaries that require contract tests.
 3. Generated bundle guidance is operationally important but embedded in large
    source templates. Representative output needs stronger contract testing.
 
@@ -126,7 +131,7 @@ links or audit reproduction paths.
 
 ## Validation result
 
-For the current compatibility-contract correction against PR #20:
+For the merged compatibility-contract correction in PR #21:
 
 - changed-file local links were checked against the repository;
 - the repository documentation tests passed for links and anchors, balanced
@@ -160,11 +165,22 @@ For the current compatibility-contract correction against PR #20:
 - the generated TypeScript compatibility type is a three-variant union keyed by
   `status`, rather than one permissive object with contradictory combinations.
 
-The implementation candidate separately passed the full Python, web, and native
-test gates, generated-contract checks, packaged launch, app-signature checks,
-and DMG verification. Two clean real MLX workflows and ten consecutive desktop
-engineering builds supply bounded runtime and packaging evidence. These checks
-do not replace CUDA target-host acceptance or public notarization.
+The current Phase 1 candidate adds closed execution vocabularies, explicit
+compute-backend and adapter-profile identity, method-registry tuple validation,
+adapter-method validation, and pilot-eligibility wording. The final local gate
+passed all 363 Python tests, including 15 documentation tests, all 84 React
+tests, and all 81 native tests. Ruff formatting and lint, Python bytecode
+compilation, OpenAPI and maintained-client parity, version parity, TypeScript
+checking, the production web build, packaged-app launch, strict ad-hoc signing,
+ZIP integrity, DMG verification, and artifact checksums also passed. An
+independent adversarial re-review found no remaining Phase 1 defect. These
+checks do not claim target-host pilot evidence or public notarization.
+
+The PR #21 implementation candidate separately passed the full Python, web, and
+native test gates, generated-contract checks, packaged launch, app-signature
+checks, and DMG verification. Two clean real MLX workflows and ten consecutive
+desktop engineering builds supply bounded runtime and packaging evidence. These
+checks do not replace CUDA target-host acceptance or public notarization.
 
 ## Recommended actions by impact
 

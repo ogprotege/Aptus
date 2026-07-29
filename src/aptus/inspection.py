@@ -18,7 +18,14 @@ from .catalog import (
     TARGET_MODULES,
     reviewed_qwen3_moe_quantization_layout,
 )
-from .domain import to_primitive
+from .domain import (
+    AdapterProfile,
+    Backend,
+    Distribution,
+    Method,
+    TrainingRuntime,
+    to_primitive,
+)
 
 
 Transport = Callable[..., Any]
@@ -355,9 +362,10 @@ def _compatibility(
                     "family": QWEN3_MOE_FAMILY,
                     "supported_runtime": None,
                     "supported_methods": [],
+                    "compute_backend": None,
                     "distribution": None,
                     "evidence_requirement": "implementation-required",
-                    "adapter_scope": None,
+                    "adapter_profile_id": None,
                     "reason": (
                         "The exact Qwen3 MoE identity was recognized, but this revision "
                         "does not match the reviewed four-bit default, eight-bit "
@@ -370,14 +378,16 @@ def _compatibility(
             {
                 "status": "conditional",
                 "family": QWEN3_MOE_FAMILY,
-                "supported_runtime": "mlx-lm",
-                "supported_methods": ["qlora"],
-                "distribution": "single",
+                "supported_runtime": TrainingRuntime.MLX_LM,
+                "supported_methods": [Method.QLORA],
+                "compute_backend": Backend.MPS,
+                "distribution": Distribution.SINGLE,
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": AdapterProfile.ATTENTION_QKVO_V1,
                 "reason": (
-                    "This exact mixed-precision Qwen3 MoE artifact can enter the "
-                    "single-device MLX-LM QLoRA path with attention-only adapters. "
+                    "The model identity, mixed-precision layout, routed-expert "
+                    "topology, and attention-only q/k/v/o target policy match the "
+                    "reviewed Qwen3 MoE slice. "
                     "Measured preflight and a real-model pilot remain mandatory."
                 ),
             }
@@ -389,9 +399,10 @@ def _compatibility(
                 "family": family,
                 "supported_runtime": None,
                 "supported_methods": [],
+                "compute_backend": None,
                 "distribution": None,
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": None,
+                "adapter_profile_id": None,
                 "reason": (
                     "The provider identity maps to an existing dense Aptus family; "
                     "the planner still decides the executable runtime and method."
@@ -404,9 +415,10 @@ def _compatibility(
             "family": family,
             "supported_runtime": None,
             "supported_methods": [],
+            "compute_backend": None,
             "distribution": None,
             "evidence_requirement": "implementation-required",
-            "adapter_scope": None,
+            "adapter_profile_id": None,
             "reason": (
                 "No exact Aptus model-family compatibility policy matches this provider "
                 "model type and architecture."
@@ -418,7 +430,7 @@ def _compatibility(
 def _validated_compatibility(payload: dict[str, Any]) -> dict[str, Any]:
     """Seal every compatibility producer, including the CLI path."""
 
-    return ModelCompatibilityResponse.model_validate(payload).model_dump()
+    return ModelCompatibilityResponse.model_validate(payload).model_dump(mode="json")
 
 
 def inspect_huggingface_model(

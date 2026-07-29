@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-07-27 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-07-29 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -11,6 +11,8 @@ Use:
 - “recommended within the enumerated v0.2 candidate set”;
 - “analytic point estimate”;
 - “heuristic upper envelope”;
+- “eligible for the reviewed pilot path” when inspection binds the complete
+  known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
 - “unsupported by the current compiler contract.”
 
@@ -20,7 +22,12 @@ Do not use:
 - “guaranteed to fit”;
 - “perfect configuration”;
 - “automatic best method”;
+- “the runtime supports this method” based only on model inspection;
 - “zero-risk training.”
+
+Inspection eligibility identifies a reviewed artifact and execution tuple. It
+does not establish candidate feasibility, dependency readiness, model-data
+validation, available capacity, or pilot success.
 
 ## Runtime claims
 

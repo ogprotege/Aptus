@@ -8,7 +8,7 @@ from collections import deque
 from pathlib import Path
 from urllib.parse import unquote
 
-from aptus.domain import Method
+from aptus.domain import Backend, Distribution, Method, TrainingRuntime
 from aptus.cli import _parser
 from aptus.methods.registry import method_descriptors
 from tools.generate_openapi import render_openapi
@@ -177,9 +177,10 @@ class DocumentationTests(unittest.TestCase):
             "family",
             "supported_runtime",
             "supported_methods",
+            "compute_backend",
             "distribution",
             "evidence_requirement",
-            "adapter_scope",
+            "adapter_profile_id",
             "reason",
         }
         conditional = schemas["ConditionalModelCompatibilityResponse"]
@@ -190,19 +191,46 @@ class DocumentationTests(unittest.TestCase):
             self.assertEqual(set(variant["required"]), required)
 
         self.assertEqual(conditional["properties"]["status"]["const"], "conditional")
-        for field in (
-            "family",
-            "supported_runtime",
-            "distribution",
-            "adapter_scope",
-            "reason",
-        ):
+        for field in ("family", "reason"):
             self.assertEqual(conditional["properties"][field]["type"], "string")
             self.assertEqual(conditional["properties"][field]["minLength"], 1)
+            self.assertEqual(
+                conditional["properties"][field]["pattern"],
+                r"^\S(?:[\s\S]*\S)?$",
+            )
         self.assertEqual(conditional["properties"]["supported_methods"]["minItems"], 1)
+
+        def allowed_values(property_schema: dict[str, object]) -> set[str]:
+            resolved = property_schema
+            reference = resolved.get("$ref")
+            if isinstance(reference, str):
+                resolved = schemas[reference.rsplit("/", 1)[-1]]
+            values = resolved.get("enum")
+            if isinstance(values, list):
+                return {str(value) for value in values}
+            if "const" in resolved:
+                return {str(resolved["const"])}
+            self.fail(f"Compatibility property has no closed vocabulary: {resolved}")
+
         self.assertEqual(
-            conditional["properties"]["supported_methods"]["items"]["minLength"],
-            1,
+            allowed_values(conditional["properties"]["supported_runtime"]),
+            {item.value for item in TrainingRuntime},
+        )
+        self.assertEqual(
+            allowed_values(conditional["properties"]["compute_backend"]),
+            {item.value for item in Backend},
+        )
+        self.assertEqual(
+            allowed_values(conditional["properties"]["supported_methods"]["items"]),
+            {item.value for item in Method},
+        )
+        self.assertEqual(
+            allowed_values(conditional["properties"]["distribution"]),
+            {item.value for item in Distribution},
+        )
+        self.assertEqual(
+            allowed_values(conditional["properties"]["adapter_profile_id"]),
+            {"attention-qkvo.v1"},
         )
         self.assertEqual(
             conditional["properties"]["evidence_requirement"]["const"],
@@ -210,8 +238,11 @@ class DocumentationTests(unittest.TestCase):
         )
         for variant in (recognized, unsupported):
             self.assertEqual(variant["properties"]["supported_runtime"]["type"], "null")
+            self.assertEqual(variant["properties"]["compute_backend"]["type"], "null")
             self.assertEqual(variant["properties"]["distribution"]["type"], "null")
-            self.assertEqual(variant["properties"]["adapter_scope"]["type"], "null")
+            self.assertEqual(
+                variant["properties"]["adapter_profile_id"]["type"], "null"
+            )
             self.assertEqual(variant["properties"]["supported_methods"]["maxItems"], 0)
         self.assertEqual(
             recognized["properties"]["evidence_requirement"]["const"],
@@ -223,10 +254,32 @@ class DocumentationTests(unittest.TestCase):
         )
 
         reference = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
+        normalized_reference = " ".join(reference.split())
         self.assertIn("`conditional` requires", reference)
         self.assertIn("`recognized` carries no executable runtime", reference)
         self.assertIn("`unsupported` carries no executable runtime", reference)
-        self.assertIn("Malformed combinations fail closed", reference)
+        self.assertIn("`compute_backend`", reference)
+        self.assertIn("`adapter_profile_id`", reference)
+        self.assertIn("`attention-qkvo.v1`", reference)
+        self.assertIn(
+            "Unknown IDs and malformed combinations fail closed",
+            reference,
+        )
+        self.assertIn("without copying the method registry", reference)
+        self.assertIn("eligible for the reviewed pilot path", normalized_reference)
+
+        claim_language = (REPOSITORY / "docs/product/claim-language.md").read_text(
+            encoding="utf-8"
+        )
+        ui_contract = (REPOSITORY / "docs/product/ui-ux.md").read_text(encoding="utf-8")
+        capabilities = (REPOSITORY / "docs/product/current-capabilities.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("eligible for the reviewed pilot path", claim_language)
+        self.assertIn("based only on model inspection", claim_language)
+        self.assertIn("selected runtime and backend match", ui_contract)
+        self.assertIn("eligible for the reviewed pilot path", ui_contract)
+        self.assertIn("`attention-qkvo.v1`", capabilities)
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

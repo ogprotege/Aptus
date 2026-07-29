@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-27 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-29 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -90,6 +90,11 @@ All notable changes are recorded here.
 
 ### Changed
 
+- Model-inspection compatibility now binds known runtime, compute-backend,
+  method, distribution, and adapter-profile IDs, rejects unregistered method
+  tuples and non-adapter/profile contradictions, and describes a matching
+  artifact as eligible for the reviewed pilot path rather than claiming runtime
+  support.
 - The workflow rail announces completed and failed-run stage states to
   assistive technology, with dedicated accessibility tests.
 - Workbench micro-interactions use shared 150 ms motion tokens on buttons,

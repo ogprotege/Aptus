@@ -210,15 +210,30 @@ class ModelInspectionTests(unittest.TestCase):
                 "family": "qwen3_moe",
                 "supported_runtime": "mlx-lm",
                 "supported_methods": ["qlora"],
+                "compute_backend": "mps",
                 "distribution": "single",
                 "evidence_requirement": "pilot-required",
-                "adapter_scope": "attention-only",
+                "adapter_profile_id": "attention-qkvo.v1",
                 "reason": (
-                    "This exact mixed-precision Qwen3 MoE artifact can enter the "
-                    "single-device MLX-LM QLoRA path with attention-only adapters. "
+                    "The model identity, mixed-precision layout, routed-expert "
+                    "topology, and attention-only q/k/v/o target policy match the "
+                    "reviewed Qwen3 MoE slice. "
                     "Measured preflight and a real-model pilot remain mandatory."
                 ),
             },
+        )
+        for field in (
+            "supported_runtime",
+            "compute_backend",
+            "distribution",
+            "adapter_profile_id",
+        ):
+            self.assertIs(type(result["compatibility"][field]), str)
+        self.assertTrue(
+            all(
+                type(method) is str
+                for method in result["compatibility"]["supported_methods"]
+            )
         )
 
     def test_qwen3_moe_inspection_rejects_malformed_topology(self) -> None:

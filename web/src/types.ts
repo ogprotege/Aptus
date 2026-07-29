@@ -1,3 +1,5 @@
+import type { components } from "./generated/openapi";
+
 export type ProvenanceKind =
   | "measured"
   | "provider-declared"
@@ -74,17 +76,7 @@ export interface ModelInspectionFactProvenance {
   resolved_revision?: string;
 }
 
-export interface ModelCompatibility {
-  status: "conditional" | "recognized" | "unsupported";
-  family?: string | null;
-  supported_runtime?: string | null;
-  supported_methods?: string[];
-  distribution?: string | null;
-  evidence_requirement?: string | null;
-  adapter_scope?: string | null;
-  reason?: string | null;
-  [key: string]: unknown;
-}
+export type ModelCompatibility = components["schemas"]["ModelCompatibilityResponse"];
 
 export interface ModelInspectionResponse {
   status: "ok" | "unavailable" | "unsupported" | string;

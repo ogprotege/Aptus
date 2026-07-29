@@ -90,10 +90,6 @@ not become a one-time cleanup.
    policy therefore lacks a guaranteed private reporting route.
 2. Production npm dependencies have no known advisory, but four high-severity
    transitive advisories remain in the OpenAPI generator development chain.
-3. `compatibility` evidence still has one presentation owner,
-   `ExpertTopologyRail`. Root cause K's mismatch regression asserts runtime,
-   method, distribution, and reason. The matching branch is rendered and
-   accessibility-checked, but does not yet assert the same four-field parity.
 
 The [documentation debt log](documentation-debt.md) records owners, acceptance
 criteria, and status for each finding.

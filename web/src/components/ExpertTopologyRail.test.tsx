@@ -1,10 +1,11 @@
 import axe from "axe-core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { ModelCompatibility } from "../types";
 import { ExpertTopologyRail } from "./ExpertTopologyRail";
 
 const CONDITIONAL_COMPATIBILITY = {
-  status: "conditional" as const,
+  status: "conditional",
   family: "qwen3_moe",
   supported_runtime: "mlx-lm",
   supported_methods: ["qlora"],
@@ -13,7 +14,7 @@ const CONDITIONAL_COMPATIBILITY = {
   adapter_scope: "attention-only",
   reason:
     "This exact mixed-precision Qwen3 MoE artifact can enter the single-device MLX-LM QLoRA path with attention-only adapters. Measured preflight and a real-model pilot remain mandatory.",
-};
+} satisfies ModelCompatibility;
 
 const TOPOLOGY = {
   expert_count: 128,
@@ -23,6 +24,15 @@ const TOPOLOGY = {
   mlp_only_layers: [],
   shared_expert_intermediate_size: 768,
 };
+
+function expectConditionalEvidence(copy: HTMLElement) {
+  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.supported_runtime);
+  for (const method of CONDITIONAL_COMPATIBILITY.supported_methods) {
+    expect(copy.textContent).toContain(method);
+  }
+  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.distribution);
+  expect(copy.textContent).toContain(CONDITIONAL_COMPATIBILITY.reason);
+}
 
 describe("ExpertTopologyRail", () => {
   it("exposes the topology and support state without accessibility violations", async () => {
@@ -59,7 +69,24 @@ describe("ExpertTopologyRail", () => {
     expect(results.violations).toEqual([]);
   });
 
-  it("states the method, placement, and pilot boundary when the target runtime differs", () => {
+  it("states the runtime, method, placement, and pilot boundary when the target runtime matches", () => {
+    render(
+      <ExpertTopologyRail
+        topology={TOPOLOGY}
+        totalParametersB={30.5}
+        activeParametersB={3.3}
+        sparseLayerCount={48}
+        quantizationBits={4}
+        compatibility={CONDITIONAL_COMPATIBILITY}
+        selectedRuntime="mlx-lm"
+      />,
+    );
+
+    const copy = screen.getByText(/mlx-lm supports/i);
+    expectConditionalEvidence(copy);
+  });
+
+  it("states the runtime, method, placement, and pilot boundary when the target runtime differs", () => {
     render(
       <ExpertTopologyRail
         topology={TOPOLOGY}
@@ -73,10 +100,7 @@ describe("ExpertTopologyRail", () => {
     );
 
     const copy = screen.getByText(/conditional path requires/i);
-    expect(copy.textContent).toContain("mlx-lm");
-    expect(copy.textContent).toContain("qlora");
-    expect(copy.textContent).toContain("single");
+    expectConditionalEvidence(copy);
     expect(copy.textContent).toContain("transformers-peft-cuda");
-    expect(copy.textContent).toContain("a real-model pilot remain mandatory");
   });
 });

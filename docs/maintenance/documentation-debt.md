@@ -255,6 +255,36 @@ when its evidence, owner, or resolution changes.
   fail-closed normalization, backend binding, and complete eligibility copy.
 - **Owner:** API, planner-registry, workbench, and documentation maintainers
 
+### DOC-020: Establish one host model-compatibility policy authority
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** Immutable subject, path, and decision types now feed one
+  host-side model compatibility registry. Provider inspection and sparse
+  candidate admission call the same evaluator. The API response model delegates
+  model-family path coherence to the same registry. The model policy selects
+  method, runtime, backend, distribution, adapter profile, and target modules,
+  while the method registry remains authoritative for compiler, estimator,
+  export, and evidence-requirement identities. Sparse near-matches and sparse
+  identity markers with missing topology cannot fall through as recognized
+  dense families.
+- **Boundary:** Phase 2 intentionally preserves `aptus.api.v1`,
+  `aptus.training-plan.v3`, candidate and plan identities, the handwritten
+  portable contract, and browser reconstruction. Versioned receipts and plan
+  bindings belong to Phase 3. Portable snapshots belong to Phase 4. Browser
+  simplification belongs to Phase 5.
+- **Verification:**
+  `test_exact_qwen_policy_emits_one_registry_bound_path`,
+  `test_qwen_policy_mutations_fail_at_the_first_predicate`,
+  `test_sparse_identity_markers_block_when_topology_is_missing`,
+  `test_conditional_response_rejects_unregistered_model_policy_claims`,
+  `test_qwen_v3_plan_and_candidate_identities_do_not_change`,
+  `test_host_policy_import_order_has_no_cycle`, and
+  `test_model_compatibility_policy_has_one_host_authority` protect the shared
+  authority, method-registry binding, migration boundary, and dependency
+  direction.
+- **Owner:** Domain, inspection, planning, API, and documentation maintainers
+
 ## Resolved in the 2026-07-22 governance batch
 
 ### DOC-013: Separate raw Reference material from current authority

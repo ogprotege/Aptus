@@ -3,12 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import replace
 
-from .catalog import (
-    QWEN3_MOE_FAMILY,
-    has_reviewed_qwen3_moe_quantization_layout,
-    is_exact_qwen3_moe,
-    target_modules_for,
-)
+from .catalog import target_modules_for
 from .domain import (
     Backend,
     CandidatePlan,
@@ -20,6 +15,7 @@ from .domain import (
     HardwareSpec,
     MemoryBreakdown,
     Method,
+    ModelPolicyDecision,
     ModelSpec,
     Objective,
     RuntimeContract,
@@ -31,7 +27,17 @@ from .domain import (
     to_primitive,
 )
 from .evidence import evidence_for
-from .methods import method_descriptor, runtime_binding, selectable_method_descriptors
+from .methods import (
+    method_descriptor,
+    runtime_binding,
+    runtime_contract_for as registered_runtime_contract_for,
+    selectable_method_descriptors,
+)
+from .model_compatibility import (
+    evaluate_model_compatibility,
+    model_policy_rejection_reasons,
+    subject_from_model,
+)
 from .plan_contract import (
     candidate_id_for_payload,
     mlx_memory_breakdown_for_contract,
@@ -365,12 +371,12 @@ def _runtime_contract_for(
         )
     else:
         training_runtime = TrainingRuntime.TRANSFORMERS_PEFT_CUDA
-    binding = runtime_binding(
+    contract = registered_runtime_contract_for(
         method,
         training_runtime=training_runtime,
         compute_backend=compute_backend,
     )
-    if binding is None:
+    if contract is None:
         return RuntimeContract(
             compute_backend=(
                 Backend.MPS
@@ -384,17 +390,10 @@ def _runtime_contract_for(
             evidence_requirement=EvidenceRequirement.IMPLEMENTATION_REQUIRED,
             export_kind=None,
         )
-    return RuntimeContract(
-        compute_backend=Backend(binding.compute_backend),
-        training_runtime=TrainingRuntime(binding.training_runtime),
-        compiler_id=binding.compiler_id,
-        estimator_id=binding.estimator_id,
-        evidence_requirement=EvidenceRequirement(binding.evidence_requirement),
-        export_kind=binding.export_kind,
-    )
+    return contract
 
 
-def estimate_candidate(
+def _estimate_candidate_with_policy(
     *,
     method: Method,
     model: ModelSpec,
@@ -402,6 +401,7 @@ def estimate_candidate(
     hardware: HardwareSpec,
     target: TrainingTarget,
     distribution: Distribution = Distribution.SINGLE,
+    policy_decision: ModelPolicyDecision,
 ) -> CandidatePlan:
     unsupported: list[str] = []
     infeasible: list[str] = []
@@ -434,56 +434,15 @@ def estimate_candidate(
         target=target,
         devices=participating_devices,
     )
-    has_moe_identity = bool(
-        model.moe is not None
-        or model.family.lower() == QWEN3_MOE_FAMILY
-        or model.model_type == QWEN3_MOE_FAMILY
-        or model.architecture == "Qwen3MoeForCausalLM"
+    unsupported.extend(
+        model_policy_rejection_reasons(
+            policy_decision,
+            method=method,
+            distribution=distribution,
+            target_modules=target_modules,
+            runtime_contract=runtime_contract,
+        )
     )
-    if has_moe_identity:
-        exact_identity = is_exact_qwen3_moe(
-            family=model.family,
-            model_type=model.model_type,
-            architecture=model.architecture,
-        )
-        reviewed_layout = has_reviewed_qwen3_moe_quantization_layout(
-            model.quantization_layout,
-            layers=model.layers,
-        )
-        if not exact_identity:
-            unsupported.append(
-                "MoE execution requires the exact reviewed qwen3_moe and Qwen3MoeForCausalLM provider identity."
-            )
-        elif not reviewed_layout:
-            unsupported.append(
-                "Qwen3 MoE execution requires the exact four-bit plus eight-bit router-gate MLX quantization layout."
-            )
-        elif model.moe is None:
-            unsupported.append(
-                "Qwen3 MoE execution requires the complete provider-declared expert topology."
-            )
-        elif model.moe.shared_expert_intermediate_size is not None:
-            unsupported.append(
-                "The first Qwen3 MoE MLX-LM contract does not support a shared expert."
-            )
-        elif model.quantization_bits != 4:
-            unsupported.append(
-                "The first Qwen3 MoE MLX-LM contract requires explicit four-bit model metadata."
-            )
-        if not (
-            exact_identity
-            and reviewed_layout
-            and model.moe is not None
-            and model.moe.shared_expert_intermediate_size is None
-            and model.quantization_bits == 4
-            and method == Method.QLORA
-            and distribution == Distribution.SINGLE
-            and runtime_contract.training_runtime == TrainingRuntime.MLX_LM
-            and runtime_contract.compute_backend == Backend.MPS
-        ):
-            unsupported.append(
-                "Qwen3 MoE is executable only as single-device MLX-LM QLoRA with attention-only adapters."
-            )
     binding = runtime_binding(
         method,
         training_runtime=runtime_contract.training_runtime,
@@ -852,6 +811,28 @@ def estimate_candidate(
     )
 
 
+def estimate_candidate(
+    *,
+    method: Method,
+    model: ModelSpec,
+    dataset: DatasetProfile,
+    hardware: HardwareSpec,
+    target: TrainingTarget,
+    distribution: Distribution = Distribution.SINGLE,
+) -> CandidatePlan:
+    """Estimate one candidate after evaluating its model policy."""
+
+    return _estimate_candidate_with_policy(
+        method=method,
+        model=model,
+        dataset=dataset,
+        hardware=hardware,
+        target=target,
+        distribution=distribution,
+        policy_decision=evaluate_model_compatibility(subject_from_model(model)),
+    )
+
+
 def _fidelity_order(method: Method) -> int:
     return {Method.FULL: 0, Method.LORA: 1, Method.INT8_LORA: 2, Method.QLORA: 3}[
         method
@@ -911,14 +892,16 @@ def plan_training(
     hardware: HardwareSpec,
     target: TrainingTarget,
 ) -> TrainingPlan:
+    policy_decision = evaluate_model_compatibility(subject_from_model(model))
     candidates = tuple(
-        estimate_candidate(
+        _estimate_candidate_with_policy(
             method=method,
             distribution=distribution,
             model=model,
             dataset=dataset,
             hardware=hardware,
             target=target,
+            policy_decision=policy_decision,
         )
         for descriptor in selectable_method_descriptors()
         for method in (Method(descriptor.method_id),)

@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ..domain import Backend, Distribution, Method, TrainingRuntime
+from ..domain import (
+    Backend,
+    Distribution,
+    EvidenceRequirement,
+    Method,
+    RuntimeContract,
+    TrainingRuntime,
+)
 from .contracts import MethodDescriptor, MethodLifecycle, RuntimeBinding
 
 
@@ -12,6 +19,28 @@ def _descriptor(**values: object) -> MethodDescriptor:
 
 def _runtime(**values: object) -> RuntimeBinding:
     return RuntimeBinding(**values)  # type: ignore[arg-type]
+
+
+_RUNTIME_BACKEND_PAIRS = {
+    TrainingRuntime.TRANSFORMERS_PEFT_CUDA: Backend.CUDA,
+    TrainingRuntime.MLX_LM: Backend.MPS,
+    TrainingRuntime.PYTORCH_MPS: Backend.MPS,
+}
+
+
+def _runtime_contract_from_binding(binding: RuntimeBinding) -> RuntimeContract:
+    runtime = TrainingRuntime(binding.training_runtime)
+    backend = Backend(binding.compute_backend)
+    if _RUNTIME_BACKEND_PAIRS[runtime] != backend:
+        raise ValueError("Runtime binding uses a noncanonical compute backend.")
+    return RuntimeContract(
+        compute_backend=backend,
+        training_runtime=runtime,
+        compiler_id=binding.compiler_id,
+        estimator_id=binding.estimator_id,
+        evidence_requirement=EvidenceRequirement(binding.evidence_requirement),
+        export_kind=binding.export_kind,
+    )
 
 
 METHOD_REGISTRY: dict[str, MethodDescriptor] = {
@@ -296,7 +325,21 @@ def _validate_registry(values: Iterable[MethodDescriptor]) -> None:
                 raise RuntimeError(
                     "Method registry contains an unknown distribution ID."
                 )
+            if len(set(descriptor.supported_backends)) != len(
+                descriptor.supported_backends
+            ):
+                raise RuntimeError("Method registry contains duplicate backend IDs.")
+            if len(set(descriptor.supported_distributions)) != len(
+                descriptor.supported_distributions
+            ):
+                raise RuntimeError(
+                    "Method registry contains duplicate distribution IDs."
+                )
             binding_keys: set[tuple[str, str]] = set()
+            binding_backends: set[str] = set()
+            binding_distributions: set[str] = set()
+            binding_compilers: set[str] = set()
+            binding_exports: set[str] = set()
             for binding in descriptor.runtime_bindings:
                 key = (binding.training_runtime, binding.compute_backend)
                 if key in binding_keys:
@@ -320,6 +363,48 @@ def _validate_registry(values: Iterable[MethodDescriptor]) -> None:
                     raise RuntimeError(
                         "Runtime binding contains an unknown distribution ID."
                     )
+                if len(set(binding.supported_distributions)) != len(
+                    binding.supported_distributions
+                ):
+                    raise RuntimeError(
+                        "Runtime binding contains duplicate distribution IDs."
+                    )
+                if binding.compute_backend not in descriptor.supported_backends:
+                    raise RuntimeError(
+                        "Runtime binding backend is absent from its method descriptor."
+                    )
+                if not set(binding.supported_distributions).issubset(
+                    descriptor.supported_distributions
+                ):
+                    raise RuntimeError(
+                        "Runtime binding distribution is absent from its method descriptor."
+                    )
+                try:
+                    _runtime_contract_from_binding(binding)
+                except (KeyError, ValueError) as error:
+                    raise RuntimeError(
+                        "Runtime binding cannot produce a canonical runtime contract."
+                    ) from error
+                binding_backends.add(binding.compute_backend)
+                binding_distributions.update(binding.supported_distributions)
+                binding_compilers.add(binding.compiler_id)
+                binding_exports.add(binding.export_kind)
+            if binding_backends != set(descriptor.supported_backends):
+                raise RuntimeError(
+                    "Method descriptor backend coverage differs from its bindings."
+                )
+            if binding_distributions != set(descriptor.supported_distributions):
+                raise RuntimeError(
+                    "Method descriptor distribution coverage differs from its bindings."
+                )
+            if descriptor.compiler_id not in binding_compilers:
+                raise RuntimeError(
+                    "Method descriptor compiler is absent from its bindings."
+                )
+            if descriptor.export_kind not in binding_exports:
+                raise RuntimeError(
+                    "Method descriptor export is absent from its bindings."
+                )
         for alias in descriptor.aliases:
             normalized = alias.strip().lower()
             if not normalized or normalized in aliases:
@@ -380,6 +465,24 @@ def runtime_binding(
         ),
         None,
     )
+
+
+def runtime_contract_for(
+    method: str | Method,
+    *,
+    training_runtime: str | TrainingRuntime,
+    compute_backend: str | Backend,
+) -> RuntimeContract | None:
+    """Resolve one domain runtime contract from the authoritative binding."""
+
+    binding = runtime_binding(
+        method,
+        training_runtime=training_runtime,
+        compute_backend=compute_backend,
+    )
+    if binding is None:
+        return None
+    return _runtime_contract_from_binding(binding)
 
 
 def selectable_method_descriptors() -> tuple[MethodDescriptor, ...]:

@@ -312,10 +312,11 @@ Four execution surfaces:
 | Generated bundle programs | `src/aptus/_bundle_programs/` | Self-contained `train.py` / `run.py` / `preflight.py` / `validate.py` emitted into every bundle |
 
 Bundles must run **without importing the Aptus package**. Core dependency
-direction runs `domain.py` → registry, profiling, inspection → `planning.py` →
-`plan_contract.py` → `generation.py` → `validation.py` → `execution.py` →
-API and CLI. The [code map](docs/architecture/code-map.md) has the full
-module-responsibility table.
+direction runs `domain.py` → catalog and method registry →
+`model_compatibility.py` → inspection and `planning.py` → `plan_contract.py` →
+`generation.py` → `validation.py` → `execution.py` → API and CLI. The
+[code map](docs/architecture/code-map.md) has the full module-responsibility
+table.
 
 ---
 

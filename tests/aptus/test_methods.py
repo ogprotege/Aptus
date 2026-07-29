@@ -1,6 +1,12 @@
 import unittest
 
-from aptus.domain import Distribution, Method
+from aptus.domain import (
+    Backend,
+    Distribution,
+    EvidenceRequirement,
+    Method,
+    TrainingRuntime,
+)
 from aptus.evidence import EVIDENCE_REGISTRY
 from aptus.methods import (
     METHOD_REGISTRY,
@@ -8,6 +14,7 @@ from aptus.methods import (
     descriptor_for_compiler,
     method_descriptors,
     runtime_binding,
+    runtime_contract_for,
 )
 
 
@@ -91,6 +98,54 @@ class MethodRegistryTests(unittest.TestCase):
         self.assertEqual(mlx.compiler_id, "mlx-lm.qlora.v1")
         self.assertEqual(mlx.estimator_id, "aptus-memory-mlx-v2")
         self.assertEqual(mlx.supported_distributions, ("single",))
+
+    def test_runtime_contract_is_derived_from_the_registered_binding(self) -> None:
+        contract = runtime_contract_for(
+            Method.QLORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+        )
+
+        self.assertIsNotNone(contract)
+        self.assertEqual(contract.training_runtime, TrainingRuntime.MLX_LM)
+        self.assertEqual(contract.compute_backend, Backend.MPS)
+        self.assertEqual(contract.compiler_id, "mlx-lm.qlora.v1")
+        self.assertEqual(contract.estimator_id, "aptus-memory-mlx-v2")
+        self.assertEqual(contract.export_kind, "mlx-lm-adapter")
+        self.assertEqual(
+            contract.evidence_requirement,
+            EvidenceRequirement.PILOT_REQUIRED,
+        )
+
+    def test_every_runtime_binding_derives_a_complete_contract(self) -> None:
+        for descriptor in METHOD_REGISTRY.values():
+            for binding in descriptor.runtime_bindings:
+                with self.subTest(
+                    method=descriptor.method_id,
+                    runtime=binding.training_runtime,
+                    backend=binding.compute_backend,
+                ):
+                    contract = runtime_contract_for(
+                        descriptor.method_id,
+                        training_runtime=binding.training_runtime,
+                        compute_backend=binding.compute_backend,
+                    )
+                    self.assertIsNotNone(contract)
+                    self.assertEqual(
+                        contract.training_runtime.value,
+                        binding.training_runtime,
+                    )
+                    self.assertEqual(
+                        contract.compute_backend.value,
+                        binding.compute_backend,
+                    )
+                    self.assertEqual(contract.compiler_id, binding.compiler_id)
+                    self.assertEqual(contract.estimator_id, binding.estimator_id)
+                    self.assertEqual(contract.export_kind, binding.export_kind)
+                    self.assertEqual(
+                        contract.evidence_requirement.value,
+                        binding.evidence_requirement,
+                    )
 
 
 if __name__ == "__main__":

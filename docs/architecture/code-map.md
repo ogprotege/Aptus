@@ -34,6 +34,7 @@ that protect it.
 | [`methods/registry.py`](../../src/aptus/methods/registry.py) | Eleven method descriptors, runtime bindings, and the exact selectable set | Planner feasibility or target-host success |
 | [`evidence.py`](../../src/aptus/evidence.py) | Versioned evidence records referenced by candidates and methods | Runtime proof from a paper or documentation page |
 | [`catalog.py`](../../src/aptus/catalog.py) | Runtime-specific direct package pins, supported model-family target modules, exact Qwen3 MoE identity, and stack versions | Provider compatibility without inspection |
+| [`model_compatibility.py`](../../src/aptus/model_compatibility.py) | Host-side model policy registry, artifact decisions, path matching, adapter profiles, and method-registry-backed execution-path validation | Hardware feasibility, runtime evidence, plan identity, or portable validation |
 | [`profiling.py`](../../src/aptus/profiling.py) | Dataset parsing/profiling, canonical rows, pilot pressure rows, model-fact construction, CUDA hardware discovery, and Apple platform probing | Tokenizer measurement when only the character estimate ran |
 | [`runtime_env.py`](../../src/aptus/runtime_env.py) | Exact Python interpreter discovery, runtime capability probes, and runtime resolution | Compiler support from an installed package alone |
 | [`integrations.py`](../../src/aptus/integrations.py) | Bounded loopback LM Studio and oMLX inference clients | Training, remote endpoints, or automatic service discovery beyond declared origins |
@@ -61,9 +62,15 @@ that protect it.
 ```mermaid
 flowchart LR
   D["domain and runtime contracts"] --> MR["method registry"]
+  D --> MCP["model compatibility registry"]
+  MR --> MCP
+  MCP --> AC["API contracts"]
+  AC --> A
   D --> P["profiling and inspection"]
   D --> PL["planner"]
   MR --> PL
+  MCP --> P
+  MCP --> PL
   P --> PL
   PL --> PC["plan contract"]
   PL --> G["artifact compiler"]
@@ -172,6 +179,7 @@ Vitest and Testing Library.
 |---|---|---|
 | Add or change a fact | `domain.py` | API, CLI, plan identity, web types, compiler profiles, docs |
 | Add a method identity | `methods/registry.py` and `evidence.py` | Method tests and research documentation |
+| Change a host model-compatibility policy | `model_compatibility.py` | Domain types, catalog, method registry, inspection, planning, API, portable contract, browser, and target-host pilots |
 | Make a method selectable | `domain.py`, registry, planner, catalog | Generator, validation, export, API/UI, negative tests, target-host pilots |
 | Change memory arithmetic | `planning.py` | Formula version, identity, methodology, release gates, calibration tests |
 | Change bundle contents | `generation.py` | Required files, manifest validation, archive determinism, installed-wheel smoke |

@@ -10,6 +10,7 @@ from aptus.domain import (
     Distribution,
     Method,
     Objective,
+    QuantizationLayout,
     TrainingRuntime,
     gibibytes,
 )
@@ -417,12 +418,76 @@ class PlannerTests(unittest.TestCase):
     def test_qwen3_moe_near_match_has_no_viable_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_qwen3_moe_plan(Path(temporary))
+            cases = {
+                "architecture": replace(
+                    plan.model,
+                    architecture="Qwen3MoeModel",
+                ),
+                "layout": replace(
+                    plan.model,
+                    quantization_layout=QuantizationLayout(4, 64),
+                ),
+                "shared expert": replace(
+                    plan.model,
+                    moe=replace(
+                        plan.model.moe,
+                        shared_expert_intermediate_size=1024,
+                    ),
+                ),
+            }
+            for name, model in cases.items():
+                with self.subTest(name=name):
+                    with self.assertRaises(NoFeasiblePlanError):
+                        plan_training(
+                            model=model,
+                            dataset=plan.dataset,
+                            hardware=plan.hardware,
+                            target=plan.target,
+                        )
+
+    def test_sparse_architecture_marker_without_topology_has_no_viable_candidate(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen3_moe_plan(Path(temporary))
+            model = replace(
+                plan.model,
+                family="qwen",
+                model_type="qwen2",
+                architecture="Qwen2MoeForCausalLM",
+                moe=None,
+                quantization_layout=None,
+            )
+
             with self.assertRaises(NoFeasiblePlanError):
                 plan_training(
-                    model=replace(plan.model, architecture="Qwen3MoeModel"),
+                    model=model,
                     dataset=plan.dataset,
                     hardware=plan.hardware,
                     target=plan.target,
+                )
+
+            candidate = estimate_candidate(
+                method=Method.QLORA,
+                model=model,
+                dataset=plan.dataset,
+                hardware=plan.hardware,
+                target=plan.target,
+            )
+            self.assertEqual(candidate.status, CandidateStatus.UNSUPPORTED)
+            self.assertIn(
+                "Sparse model execution requires an exact reviewed model "
+                "compatibility policy.",
+                candidate.rejection_reasons,
+            )
+            with self.assertRaises(TypeError):
+                estimate_candidate(
+                    method=Method.QLORA,
+                    model=model,
+                    dataset=plan.dataset,
+                    hardware=plan.hardware,
+                    target=plan.target,
+                    policy_decision=object(),  # type: ignore[call-arg]
                 )
 
     def test_apple_fit_uses_current_unified_memory_headroom_without_fake_vram(

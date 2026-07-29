@@ -7,6 +7,7 @@ from .registry import (
     method_descriptor,
     method_descriptors,
     runtime_binding,
+    runtime_contract_for,
     selectable_method_descriptors,
     selectable_method_ids,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "method_descriptor",
     "method_descriptors",
     "runtime_binding",
+    "runtime_contract_for",
     "selectable_method_descriptors",
     "selectable_method_ids",
 ]

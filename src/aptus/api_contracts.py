@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
 from .domain import AdapterProfile, Backend, Distribution, Method, TrainingRuntime
-from .methods.registry import method_descriptor, runtime_binding
+from .model_compatibility import validate_registered_compatibility_path
 
 
 API_CONTRACT_VERSION = "aptus.api.v1"
@@ -270,26 +270,15 @@ class ConditionalModelCompatibilityResponse(ClosedResponseModel):
         if len(set(self.supported_methods)) != len(self.supported_methods):
             raise ValueError("Conditional compatibility methods must be unique.")
         for method in self.supported_methods:
-            if method_descriptor(method).parameterization != "lora":
-                raise ValueError(
-                    "Conditional compatibility adapter profiles require adapter "
-                    "methods."
-                )
-            binding = runtime_binding(
-                method,
+            validate_registered_compatibility_path(
+                family=self.family,
+                method=method,
                 training_runtime=self.supported_runtime,
                 compute_backend=self.compute_backend,
+                distribution=self.distribution,
+                adapter_profile_id=self.adapter_profile_id,
+                evidence_requirement=self.evidence_requirement,
             )
-            if binding is None:
-                raise ValueError(
-                    "Conditional compatibility requires a registered method, "
-                    "runtime, and compute-backend binding."
-                )
-            if self.distribution.value not in binding.supported_distributions:
-                raise ValueError(
-                    "Conditional compatibility distribution is not supported by "
-                    "the registered runtime binding."
-                )
         return self
 
 

@@ -90,6 +90,13 @@ All notable changes are recorded here.
 
 ### Changed
 
+- Provider inspection, sparse candidate admission, and API execution-path
+  validation now consume one host-side model compatibility registry. Runtime
+  contracts remain derived from the method registry, while the v1 API and v3
+  plan identities remain unchanged.
+- Conditional API claims must match a path registered for their model family,
+  and sparse model-type or architecture markers cannot fall through as a dense
+  family when provider topology is missing.
 - Model-inspection compatibility now binds known runtime, compute-backend,
   method, distribution, and adapter-profile IDs, rejects unregistered method
   tuples and non-adapter/profile contradictions, and describes a matching

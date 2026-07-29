@@ -7,19 +7,18 @@ export function AptusMark({ className }: { className?: string }) {
       aria-label="Aptus calibrated A"
     >
       <path
-        d="M218 806 447 232c17-43 78-43 96 0L772 806"
+        d="M200 820 L512 210 L824 820"
         fill="none"
         stroke="currentColor"
-        strokeWidth="82"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth="74"
+        strokeLinejoin="miter"
+        strokeLinecap="butt"
+        strokeMiterlimit="12"
       />
       <path
         className="aptus-mark-accent"
-        d="M245 625H745"
-        fill="none"
-        strokeWidth="58"
-        strokeLinecap="round"
+        d="M281.2 580 L742.8 580 L777.6 648 L246.4 648 Z"
+        stroke="none"
       />
     </svg>
   );

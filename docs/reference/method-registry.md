@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Users comparing methods, planner and compiler maintainers, and research reviewers |
 | Authority | Normative v0.2 reference for method identity, lifecycle, selection, compilation, and release gates |
-| Last reviewed | 2026-07-28 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-22, or sooner when `src/aptus/methods/` changes |
 
 The method registry is Aptus's product boundary between knowing about a
@@ -234,6 +234,8 @@ The descriptor support matrix is only the first filter. Candidate evaluation
 also applies:
 
 - model-family target-module support;
+- exact MoE model identity, architecture, and expert-topology policy;
+- canonical quantization-layout equality for the reviewed Qwen3 MoE slice;
 - CUDA backend and per-device capability rules;
 - sequence length, task, and packing rules;
 - world-size and exact global-batch arithmetic;

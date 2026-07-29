@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation present on 2026-07-27
+> **Applies to:** Repository documentation through PR #18, merge `eec90f8`
 >
-> **Last reviewed:** 2026-07-27
+> **Last reviewed:** 2026-07-29
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,18 +14,24 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-After the 2026-07-27 evidence additions, the repository contains 98 tracked
-Markdown documents in the maintained documentation scope.
+At PR #18 merge `eec90f8`, the repository contains 100 governed tracked
+Markdown documents. This count excludes seven tracked working or implementation
+documents outside the governed product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 83 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 84 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
-| Archived | 13 | Historical research intake and legacy-audit evidence |
-| Total | 98 | Excludes ignored local and generated development artifacts |
+| Archived | 14 | Historical research intake, legacy-audit evidence, and the dated documentation-drift audit |
+| Total | 100 | Excludes ignored local, generated, and tracked implementation-working artifacts |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
+
+The automated `maintained_documentation()` set contains 91 Markdown files. It
+deliberately retains the legacy-audit README while excluding its nine
+subordinate historical pages. The 100-file governed inventory includes all ten
+legacy-audit Markdown records, so these two counts measure different scopes.
 
 ## Active root documents
 
@@ -115,6 +121,8 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Release gates](../operations/release-gates.md)
 - [2026-07-27 MLX-LM target-host acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
+- [2026-07-28 Qwen3 MoE admission and performance evidence](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
+- [2026-07-28 documentation drift audit](../operations/evidence/2026-07-29-documentation-drift-audit/README.md), archived as an immutable point-in-time record
 - [State, storage, and retention](../operations/state-storage-retention.md)
 - [Reference documentation](../reference/index.md)
 - [API reference](../reference/api.md)
@@ -207,6 +215,15 @@ Machine-readable records:
 These records must stay together. Their generator and reproduction commands use
 the current `docs/audits/aptus-legacy/` path.
 
+## Archived documentation audits
+
+The
+[2026-07-28 documentation drift audit](../operations/evidence/2026-07-29-documentation-drift-audit/README.md)
+is an immutable point-in-time record of the tree at `e98ff55`. PR #14 applied
+its corrective work, and this follow-up closes six partially applied prose
+locations without altering the historical record. The audit cannot authorize
+current behavior.
+
 ## Generated bundle documentation
 
 `src/aptus/generation.py` creates three active operator documents in every
@@ -241,6 +258,20 @@ It also generates command help in `train.py`, `run.py`, `preflight.py`, and
 The packaged web build is generated from `web/`. It is a distribution artifact,
 not a second hand-edited copy source.
 
+## Tracked Markdown outside the lifecycle count
+
+Seven tracked implementation or workflow files sit outside the 100-file
+product-documentation lifecycle count:
+
+- `.github/PULL_REQUEST_TEMPLATE.md`;
+- `desktop/macos/README.md`; and
+- the five active review and design notes under `dev/active/`.
+
+They remain tracked and may govern their narrow implementation workflows. They
+are not classified as active, deprecated, or archived product documentation.
+This distinction explains the repository-wide total of 107 tracked Markdown
+files.
+
 ## Excluded local and generated material
 
 The following paths are not maintained repository documentation:
@@ -250,8 +281,13 @@ The following paths are not maintained repository documentation:
 - `build/`, generated build output
 - `.pytest_cache/README.md`, tool-generated cache guidance
 - `.venv/` and `web/node_modules/`, installed dependencies
+- `WIP.md`, an ignored local resume note rather than current authority or
+  release evidence
+- `TempDoc-ForUserReview/`, review-only replacement candidates awaiting an
+  explicit apply decision
 
-Do not index, publish, or review these as current Aptus guidance.
+Do not index or publish these as current Aptus guidance. Review material under
+`TempDoc-ForUserReview/` only as a proposed replacement set.
 
 ## Related documentation
 

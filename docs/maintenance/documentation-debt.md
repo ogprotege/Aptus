@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-07-27
+> **Last reviewed:** 2026-07-29
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-10-27
 
@@ -155,7 +155,11 @@ when its evidence, owner, or resolution changes.
   `measured-run-pass`. The
   [desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
   binds a separate 10-of-10 local build result, package hashes, timing, test
-  counts, signing state, and limitations to its exact tested commit.
+  counts, signing state, and limitations to its exact tested commit. The
+  [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
+  adds exact fail-closed evidence for the 30B checkpoint. It stopped before
+  model loading and is not passing pilot, training, reload, export,
+  performance, or quality evidence.
 - **Required result:** Add equivalent qualifying evidence for every claimed CUDA
   method and placement, plus Developer ID signed and notarized desktop evidence
   for the exact public release commit.
@@ -181,14 +185,45 @@ when its evidence, owner, or resolution changes.
 
 - **Priority:** P1
 - **Status:** Open
-- **Evidence:** `npm audit --omit=dev` reports zero production advisories. The
-  full audit reports four high-severity transitive advisories through
+- **Evidence:** Rechecked 2026-07-29. `npm audit --omit=dev` reports zero
+  production advisories. The full audit reports four high-severity transitive
+  advisories through
   `openapi-typescript` and `@redocly/openapi-core`: `@redocly/openapi-core`,
   `js-yaml`, `minimatch`, and `brace-expansion`. The generator consumes the
   trusted checked-in OpenAPI document during development and release builds.
 - **Required result:** Upgrade or replace the generator dependency chain without
   changing the generated contract unexpectedly, then record a clean full audit.
 - **Owner:** Web and release maintainers
+
+### DOC-017: Complete the 2026-07-28 documentation-drift remediation
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** The six partially remediated locations left by PR #14 now
+  state the MLX model-data evidence boundary, exact Qwen3 MoE navigation and
+  planner filters, and runtime-specific CUDA versus MLX validation ownership.
+  Semantic documentation tests pin those claims to the current generated
+  runtime sources.
+- **Evidence:** The immutable
+  [2026-07-28 documentation drift audit](../operations/evidence/2026-07-29-documentation-drift-audit/README.md)
+  remains unchanged. `test_documentation_drift_audit_closeout_invariants`,
+  `test_qwen3_documentation_slice_is_complete`, and
+  `test_bundle_manifest_distinguishes_runtime_validation_ownership` guard the
+  corrective follow-up.
+- **Owner:** Runtime and documentation maintainers
+
+### DOC-018: Preserve compatibility-evidence presentation parity
+
+- **Priority:** P1
+- **Status:** In progress
+- **Evidence:** Root cause K is fixed and its regression covers the supported-
+  runtime match and mismatch branches. `compatibility` still reaches users only
+  through `ExpertTopologyRail`, so that component remains a single presentation
+  boundary.
+- **Required result:** Keep branch-level tests that assert runtime, supported
+  methods, distribution, and reason in both match and mismatch states. Any new
+  compatibility surface must preserve the same four fields.
+- **Owner:** Workbench maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

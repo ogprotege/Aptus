@@ -31,10 +31,10 @@
 ---
 
 <p align="center">
-  <img src="docs/assets/aptus-macos-compare.jpeg" width="880" alt="The Aptus Compare stage showing candidate feasibility, a per-device Fit Ledger, and the recommended 8-bit LoRA plan">
+  <img src="docs/assets/aptus-compare-dark.png" width="1020" alt="Dark Aptus Compare stage with the workflow rail, a labeled LoRA example recommendation, and the per-device Fit Ledger">
 </p>
 
-<p align="center"><sub>The Compare stage. Every candidate keeps its status and reason — infeasible and unsupported rows stay visible.</sub></p>
+<p align="center"><sub>Dark appearance at Retina resolution. Aptus is connected to its local API. The displayed plan is labeled interface example data, so no inspection, planning, compilation, validation, or training ran.</sub></p>
 
 ---
 
@@ -171,6 +171,12 @@ alternative. The plan is written as `aptus.training-plan.v3` with formula
 The dataset profile and the planning decision are real. The model and hardware
 facts are declared examples. Target-host model loading, measurement, and pilot
 gates can still reject this plan — which is the point.
+
+<p align="center">
+  <img src="docs/assets/aptus-compare-dark-detail.png" width="1020" alt="Readable dark-mode detail of the labeled Aptus example recommendation for LoRA with a 19.3 GiB heuristic upper envelope">
+</p>
+
+<p align="center"><sub>A readable crop from the labeled interface example. It demonstrates the Compare presentation and remains separate from the real CLI evidence above.</sub></p>
 
 ---
 

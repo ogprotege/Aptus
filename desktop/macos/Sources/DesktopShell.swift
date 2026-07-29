@@ -305,13 +305,18 @@ struct AptusDesktopShellView: View {
 private struct SidebarBrandView: View {
     var body: some View {
         HStack(spacing: 10) {
-            Image(nsImage: AptusMarkAsset.templateImage)
-                .resizable()
-                .renderingMode(.template)
-                .foregroundStyle(.primary)
-                .scaledToFit()
-                .frame(width: 28, height: 28)
-                .accessibilityHidden(true)
+            ZStack {
+                RoundedRectangle(cornerRadius: 3.6, style: .circular)
+                    .fill(Color(nsColor: AptusPalette.brandTeal))
+                    .padding(2)
+                Image(nsImage: AptusMarkAsset.templateImage)
+                    .resizable()
+                    .renderingMode(.template)
+                    .foregroundStyle(.white)
+                    .scaledToFit()
+            }
+            .frame(width: 28, height: 28)
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Aptus")
                     .font(.headline)

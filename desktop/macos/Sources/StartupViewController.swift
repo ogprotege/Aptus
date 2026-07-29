@@ -21,6 +21,7 @@ final class StartupViewController: NSViewController {
     private let logButton = NSButton(title: "Show Backend Log", target: nil, action: nil)
     private weak var rootSurface: NSView?
     private weak var cardSurface: NSView?
+    private weak var markSurface: NSView?
     private var statusColor = AptusPalette.circuitTeal
 
     override func loadView() {
@@ -29,15 +30,26 @@ final class StartupViewController: NSViewController {
         root.onAppearanceChange = { [weak self] in self?.updateLayerColors() }
         rootSurface = root
 
+        let markCanvas = NSView()
+        markCanvas.translatesAutoresizingMaskIntoConstraints = false
+
+        let markBackground = NSView()
+        markBackground.wantsLayer = true
+        markBackground.layer?.cornerRadius = 18.3
+        markBackground.translatesAutoresizingMaskIntoConstraints = false
+        markSurface = markBackground
+
         let mark = NSImageView()
         if let source = Bundle.main.image(forResource: "AptusMark"),
            let image = source.copy() as? NSImage {
             image.isTemplate = true
             mark.image = image
         }
-        mark.contentTintColor = AptusPalette.graphite
+        mark.contentTintColor = .white
         mark.imageScaling = .scaleProportionallyUpOrDown
         mark.translatesAutoresizingMaskIntoConstraints = false
+        markCanvas.addSubview(markBackground)
+        markCanvas.addSubview(mark)
 
         let eyebrow = NSTextField(labelWithString: "LOCAL FINE-TUNING WORKBENCH")
         eyebrow.font = .systemFont(ofSize: 11, weight: .semibold)
@@ -89,7 +101,7 @@ final class StartupViewController: NSViewController {
         card.layer?.borderWidth = 1
         cardSurface = card
         card.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(mark)
+        card.addSubview(markCanvas)
         card.addSubview(statusRule)
         card.addSubview(copy)
         root.addSubview(card)
@@ -100,12 +112,22 @@ final class StartupViewController: NSViewController {
             card.widthAnchor.constraint(equalToConstant: 620),
             card.heightAnchor.constraint(equalToConstant: 270),
 
-            mark.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 42),
-            mark.centerYAnchor.constraint(equalTo: card.centerYAnchor),
-            mark.widthAnchor.constraint(equalToConstant: 142),
-            mark.heightAnchor.constraint(equalToConstant: 142),
+            markCanvas.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 42),
+            markCanvas.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            markCanvas.widthAnchor.constraint(equalToConstant: 142),
+            markCanvas.heightAnchor.constraint(equalToConstant: 142),
 
-            statusRule.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: 34),
+            markBackground.leadingAnchor.constraint(equalTo: markCanvas.leadingAnchor, constant: 10),
+            markBackground.trailingAnchor.constraint(equalTo: markCanvas.trailingAnchor, constant: -10),
+            markBackground.topAnchor.constraint(equalTo: markCanvas.topAnchor, constant: 10),
+            markBackground.bottomAnchor.constraint(equalTo: markCanvas.bottomAnchor, constant: -10),
+
+            mark.leadingAnchor.constraint(equalTo: markCanvas.leadingAnchor),
+            mark.trailingAnchor.constraint(equalTo: markCanvas.trailingAnchor),
+            mark.topAnchor.constraint(equalTo: markCanvas.topAnchor),
+            mark.bottomAnchor.constraint(equalTo: markCanvas.bottomAnchor),
+
+            statusRule.leadingAnchor.constraint(equalTo: markCanvas.trailingAnchor, constant: 34),
             statusRule.centerYAnchor.constraint(equalTo: card.centerYAnchor),
             statusRule.widthAnchor.constraint(equalToConstant: 3),
             statusRule.heightAnchor.constraint(equalToConstant: 142),
@@ -156,6 +178,7 @@ final class StartupViewController: NSViewController {
             rootSurface?.layer?.backgroundColor = AptusPalette.cloud.cgColor
             cardSurface?.layer?.backgroundColor = AptusPalette.porcelain.cgColor
             cardSurface?.layer?.borderColor = AptusPalette.hairline.cgColor
+            markSurface?.layer?.backgroundColor = AptusPalette.brandTeal.cgColor
             statusRule.layer?.backgroundColor = statusColor.cgColor
         }
     }

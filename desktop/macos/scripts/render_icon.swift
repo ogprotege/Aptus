@@ -13,7 +13,7 @@ enum IconError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .usage:
-            return "Usage: render_icon.swift SOURCE.svg OUTPUT.icns"
+            return "Usage: render_icon.swift SOURCE.svg OUTPUT.icns [PREVIEW.png]"
         case let .sourceUnreadable(path):
             return "The SVG icon could not be read: \(path)"
         case let .bitmapCreation(size):
@@ -24,6 +24,63 @@ enum IconError: LocalizedError {
             return "iconutil failed with status \(status)."
         }
     }
+}
+
+private enum TileGeometry {
+    static let canvas: CGFloat = 1_024
+    static let inset: CGFloat = 72
+    static let cornerRadius: CGFloat = 132
+    static let color = NSColor(
+        srgbRed: 0x0C / 255,
+        green: 0x6E / 255,
+        blue: 0x77 / 255,
+        alpha: 1
+    )
+}
+
+func reversedGlyph(source: NSImage, pixels: Int) throws -> NSImage {
+    guard let representation = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: pixels,
+        pixelsHigh: pixels,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    ) else {
+        throw IconError.bitmapCreation(pixels)
+    }
+    representation.size = NSSize(width: pixels, height: pixels)
+    let bounds = NSRect(x: 0, y: 0, width: pixels, height: pixels)
+
+    NSGraphicsContext.saveGraphicsState()
+    guard let context = NSGraphicsContext(bitmapImageRep: representation) else {
+        NSGraphicsContext.restoreGraphicsState()
+        throw IconError.bitmapCreation(pixels)
+    }
+    NSGraphicsContext.current = context
+    context.imageInterpolation = .high
+    NSColor.clear.setFill()
+    bounds.fill()
+    source.draw(
+        in: bounds,
+        from: .zero,
+        operation: .sourceOver,
+        fraction: 1,
+        respectFlipped: true,
+        hints: [.interpolation: NSImageInterpolation.high]
+    )
+    NSColor.white.setFill()
+    bounds.fill(using: .sourceAtop)
+    context.flushGraphics()
+    NSGraphicsContext.restoreGraphicsState()
+
+    let image = NSImage(size: NSSize(width: pixels, height: pixels))
+    image.addRepresentation(representation)
+    return image
 }
 
 func render(source: NSImage, pixels: Int, output: URL) throws {
@@ -49,10 +106,25 @@ func render(source: NSImage, pixels: Int, output: URL) throws {
     }
     NSGraphicsContext.current = context
     context.imageInterpolation = .high
-    NSColor(srgbRed: 0xEA / 255, green: 0xF3 / 255, blue: 0xF4 / 255, alpha: 1).setFill()
-    NSRect(x: 0, y: 0, width: pixels, height: pixels).fill()
-    source.draw(
-        in: NSRect(x: 0, y: 0, width: pixels, height: pixels),
+    let bounds = NSRect(x: 0, y: 0, width: pixels, height: pixels)
+    NSColor.clear.setFill()
+    bounds.fill()
+
+    let scale = CGFloat(pixels) / TileGeometry.canvas
+    let tileRect = bounds.insetBy(
+        dx: TileGeometry.inset * scale,
+        dy: TileGeometry.inset * scale
+    )
+    TileGeometry.color.setFill()
+    NSBezierPath(
+        roundedRect: tileRect,
+        xRadius: TileGeometry.cornerRadius * scale,
+        yRadius: TileGeometry.cornerRadius * scale
+    ).fill()
+
+    let glyph = try reversedGlyph(source: source, pixels: pixels)
+    glyph.draw(
+        in: bounds,
         from: .zero,
         operation: .sourceOver,
         fraction: 1,
@@ -68,9 +140,12 @@ func render(source: NSImage, pixels: Int, output: URL) throws {
 }
 
 do {
-    guard CommandLine.arguments.count == 3 else { throw IconError.usage }
+    guard (3 ... 4).contains(CommandLine.arguments.count) else { throw IconError.usage }
     let sourceURL = URL(fileURLWithPath: CommandLine.arguments[1]).standardizedFileURL
     let outputURL = URL(fileURLWithPath: CommandLine.arguments[2]).standardizedFileURL
+    let previewURL = CommandLine.arguments.count == 4
+        ? URL(fileURLWithPath: CommandLine.arguments[3]).standardizedFileURL
+        : nil
     guard let source = NSImage(contentsOf: sourceURL) else {
         throw IconError.sourceUnreadable(sourceURL.path)
     }
@@ -99,6 +174,9 @@ do {
             pixels: item.pixels,
             output: iconset.appendingPathComponent(item.name)
         )
+    }
+    if let previewURL {
+        try render(source: source, pixels: 1_024, output: previewURL)
     }
 
     if manager.fileExists(atPath: outputURL.path) {

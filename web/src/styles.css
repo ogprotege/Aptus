@@ -240,11 +240,15 @@ code {
   width: 40px;
   height: 40px;
   flex: 0 0 40px;
-  color: var(--graphite);
+  color: #ffffff;
+}
+
+.aptus-mark-tile {
+  fill: #0c6e77;
 }
 
 .aptus-mark-accent {
-  fill: var(--circuit-teal);
+  fill: currentColor;
 }
 
 .brand-lockup strong,

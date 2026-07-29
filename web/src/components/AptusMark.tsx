@@ -4,20 +4,28 @@ export function AptusMark({ className }: { className?: string }) {
       className={className}
       viewBox="0 0 1024 1024"
       role="img"
-      aria-label="Aptus calibrated A"
+      aria-label="Aptus tile mark"
     >
+      <rect
+        className="aptus-mark-tile"
+        x="72"
+        y="72"
+        width="880"
+        height="880"
+        rx="132"
+      />
       <path
-        d="M200 820 L512 210 L824 820"
+        d="M268 780 L512 302 L756 780"
         fill="none"
         stroke="currentColor"
-        strokeWidth="74"
+        strokeWidth="76"
         strokeLinejoin="miter"
         strokeLinecap="butt"
         strokeMiterlimit="12"
       />
       <path
         className="aptus-mark-accent"
-        d="M281.2 580 L742.8 580 L777.6 648 L246.4 648 Z"
+        d="M356 606 L668 606 L692 654 L332 654 Z"
         stroke="none"
       />
     </svg>

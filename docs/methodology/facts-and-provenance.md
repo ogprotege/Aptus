@@ -1,6 +1,6 @@
 # Facts and Provenance
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when fact provenance changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-22 or when fact provenance changes
 
 Fact contract version: `aptus.facts.v3`.
 
@@ -35,7 +35,7 @@ V0.2 requires explicit:
 - license identifier;
 - affirmative training-permission attestation.
 
-V3 can also bind exact provider `model_type`, architecture, checkpoint
+V4 can also bind exact provider `model_type`, architecture, checkpoint
 precision, and a complete MoE topology. The topology contains expert count,
 experts selected per token, expert width, sparse cadence, dense-only layer
 indices, and optional shared-expert width. Aptus derives active parameters and
@@ -60,6 +60,39 @@ run, then verifies adapter reload in a fresh process without resuming training.
 The exact Qwen3 MoE row also requires the pinned config to reproduce every
 identity, quantization, and topology fact in the plan. Its compiler scope binds
 attention adapters only.
+
+## Inspection receipt and policy source
+
+Successful model inspection produces an
+`aptus.model-inspection-receipt.v1` at one resolved immutable revision. The
+receipt contains the complete `aptus.model-compatibility.v2` decision and two
+deliberately different SHA-256 digests:
+
+- `subject_facts_sha256` covers only compatibility inputs used by the policy;
+- `observed_facts_sha256` covers every provider-declared or inferred planning
+  fact actually carried from inspection.
+
+The broader digest can cover architecture, context length, family, hidden and
+intermediate sizes, layer count, license label, raw model type, MoE topology,
+and quantization precision and layout. It covers only fields present in the
+receipt's sorted provenance summary. Omitted provider fields stay
+user-attested. Parameter count and training permission are always excluded.
+
+A receipt can contain only `provider-declared` and `inferred` entries. It must
+cover every non-null compatibility subject field and include at least one
+provider-declared subject observation. Registered policies can impose a
+stricter field rule. These constraints prevent a caller from relabeling wholly
+user-attested or unrelated facts as provider inspection.
+
+Passing a valid receipt to planning produces source `provider-inspection`.
+Planning without one produces source `user-attested`. A present receipt is
+recomputed against the submitted model ID, revision, carried facts, current
+policy, provenance requirements, and receipt ID. Invalid input is rejected and
+never downgraded to user-attested.
+
+These content hashes are tamper-evident, not authenticated. They establish
+content agreement inside the trusted local process and client boundary. They do
+not prove the identity of the provider or caller.
 
 ## Dataset profile
 
@@ -134,7 +167,7 @@ packing.
 
 ## Changes and conflicts
 
-Changing an input requires a new plan. V0.2 does not serialize a field-level
+Changing an input requires a new v4 plan. V0.2 does not serialize a field-level
 override actor, reason, or conflict-resolution history. A future fact ledger
 must retain original and replacement values instead of overwriting evidence.
 

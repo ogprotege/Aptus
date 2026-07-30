@@ -146,6 +146,33 @@ class DocumentationTests(unittest.TestCase):
             required = set(schema["components"]["schemas"][name]["required"])
             self.assertIn("project_id", required)
             self.assertIn("expected_project_revision_id", required)
+        phase_three_provenance_fields = {
+            "TrainingPlanResponse": {
+                "schema_version",
+                "plan_id",
+                "recommended",
+                "candidates",
+                "warnings",
+                "recommendation_rationale",
+                "model_policy_decision",
+                "model_policy_decision_source",
+                "inspection_receipt",
+            },
+            "PlanCandidateResponse": {
+                "candidate_id",
+                "model_policy_decision_id",
+                "policy_binding",
+            },
+        }
+        for name, expected_fields in phase_three_provenance_fields.items():
+            required = set(schema["components"]["schemas"][name]["required"])
+            self.assertTrue(expected_fields.issubset(required), (name, required))
+        self.assertEqual(
+            schema["components"]["schemas"]["TrainingPlanResponse"]["properties"][
+                "schema_version"
+            ]["const"],
+            "aptus.training-plan.v4",
+        )
 
     def test_model_compatibility_reference_matches_discriminated_contract(
         self,
@@ -322,6 +349,89 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("model_compatibility.py", code_map)
         self.assertIn("same host-side model policy registry", system)
         self.assertIn("method registry constructs its runtime contract", system)
+
+    def test_phase3_policy_provenance_docs_match_persisted_contracts(self) -> None:
+        plan_schema = (REPOSITORY / "docs/reference/plan-schema.md").read_text(
+            encoding="utf-8"
+        )
+        for contract in (
+            "aptus.training-plan.v4",
+            "aptus.model-compatibility.v2",
+            "aptus.model-inspection-receipt.v1",
+            "aptus.model-policy-binding.v1",
+            "aptus.runtime-contract.v1",
+        ):
+            self.assertIn(contract, plan_schema)
+        for identity in (
+            "model.qwen3-moe.mlx-qlora",
+            "1.0.0",
+            "mlx-lm.qlora.single.attention-qkvo.v1",
+        ):
+            self.assertIn(identity, plan_schema)
+        for field in (
+            "subject_facts_sha256",
+            "observed_facts_sha256",
+            "model_policy_decision_source",
+            "model_policy_decision_id",
+            "policy_binding",
+        ):
+            self.assertIn(field, plan_schema)
+        self.assertIn("Every candidate carries the plan decision link", plan_schema)
+        self.assertIn('`"policy_binding": null`', plan_schema)
+        self.assertIn("`parameters` and `training_allowed` never", plan_schema)
+        self.assertIn("tamper-evident content bindings, not authenticated", plan_schema)
+        self.assertIn("stale v4 policy", plan_schema)
+
+        api = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
+        cli = (REPOSITORY / "docs/reference/cli.md").read_text(encoding="utf-8")
+        self.assertIn("`inspection_receipt`", api)
+        self.assertIn("never falls back to the user-attested path", api)
+        self.assertIn("`--inspection-receipt PATH`", cli)
+        self.assertIn("stale policy fails with", cli)
+
+        error_codes = (REPOSITORY / "docs/reference/error-codes.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("under the v4 contract", error_codes)
+        self.assertIn("obsolete registered policy version", error_codes)
+        self.assertIn("downgrading a bad receipt", error_codes)
+
+        ui_contract = (REPOSITORY / "docs/product/ui-ux.md").read_text(encoding="utf-8")
+        self.assertIn("Saved v3 plans, v2 plans", ui_contract)
+        self.assertIn("`aptus.model-inspection-receipt.v1`", ui_contract)
+        self.assertIn("only the exact registered path", ui_contract)
+        self.assertIn("Phase 4", ui_contract)
+        self.assertIn("Phase 5", ui_contract)
+
+        overview = (REPOSITORY / "docs/methodology/overview.md").read_text(
+            encoding="utf-8"
+        )
+        for unchanged in (
+            "aptus.api.v1",
+            "aptus.facts.v3",
+            "aptus.runtime-contract.v1",
+            "aptus.bundle.v2",
+        ):
+            self.assertIn(unchanged, overview)
+
+        system = (REPOSITORY / "docs/architecture/system.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Phase 4", system)
+        self.assertIn("Phase 5", system)
+
+        debt = (REPOSITORY / "docs/maintenance/documentation-debt.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Phase 2 intentionally preserves `aptus.api.v1`", debt)
+        self.assertIn("`aptus.training-plan.v3`", debt)
+        self.assertIn("### DOC-021: Bind model-policy provenance", debt)
+
+        health = (REPOSITORY / "docs/maintenance/documentation-health.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("The current Phase 3 candidate adds", health)
+        self.assertIn("`aptus.training-plan.v4`", health)
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

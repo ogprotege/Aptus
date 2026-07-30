@@ -8,12 +8,40 @@ import re
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "aptus.training-plan.v3"
+SCHEMA_VERSION = "aptus.training-plan.v4"
 FACTS_SCHEMA_VERSION = "aptus.facts.v3"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
+MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
+MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION = "aptus.model-inspection-receipt.v1"
+MODEL_POLICY_BINDING_SCHEMA_VERSION = "aptus.model-policy-binding.v1"
 PROVIDER_MODEL_ID = re.compile(
     r"^(?:[A-Za-z0-9][A-Za-z0-9._-]*/)?[A-Za-z0-9][A-Za-z0-9._-]*$"
 )
+
+
+def _sha256_is_valid(value: Any) -> bool:
+    return bool(
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _revision_is_valid(value: Any) -> bool:
+    return bool(
+        isinstance(value, str)
+        and 40 <= len(value) <= 64
+        and all(character in "0123456789abcdefABCDEF" for character in value)
+    )
+
+
+def _content_id_is_valid(value: Any, *, prefix: str) -> bool:
+    return bool(
+        isinstance(value, str)
+        and value.startswith(prefix)
+        and len(value) == len(prefix) + 20
+        and all(character in "0123456789abcdef" for character in value[len(prefix) :])
+    )
 
 
 class UnsupportedPlanSchemaError(ValueError):
@@ -75,6 +103,25 @@ class ModelPolicyDecisionKind(StrEnum):
     FAMILY_RECOGNIZED = "family-recognized"
     BLOCKED = "blocked"
     UNKNOWN = "unknown"
+
+
+class ModelPolicyReasonCode(StrEnum):
+    EXACT_REVIEWED_ARTIFACT = "exact-reviewed-artifact"
+    PILOT_NOT_YET_PROVEN = "pilot-not-yet-proven"
+    INVALID_FACTS = "invalid-compatibility-facts"
+    IDENTITY_MISMATCH = "identity-mismatch"
+    QUANTIZATION_LAYOUT_MISMATCH = "quantization-layout-mismatch"
+    TOPOLOGY_INCOMPLETE = "topology-incomplete"
+    SHARED_EXPERT_UNSUPPORTED = "shared-expert-unsupported"
+    FOUR_BIT_REQUIRED = "four-bit-required"
+    FAMILY_RECOGNIZED = "family-recognized"
+    UNREVIEWED_SPARSE_MODEL = "unreviewed-sparse-model"
+    NO_POLICY_MATCH = "no-policy-match"
+
+
+class ModelPolicyBindingSource(StrEnum):
+    PROVIDER_INSPECTION = "provider-inspection"
+    USER_ATTESTED = "user-attested"
 
 
 class Distribution(StrEnum):
@@ -409,6 +456,8 @@ class ModelSpec:
             )
         if not self.family.strip():
             raise ValueError("family is required.")
+        if self.family != self.family.lower():
+            raise ValueError("family must use its canonical lowercase identity.")
         if not self.architecture.strip():
             raise ValueError("architecture is required.")
         if self.model_type is not None and not self.model_type.strip():
@@ -509,6 +558,10 @@ class ModelCompatibilitySubject:
             for value in text_values
         ):
             raise ValueError("Compatibility subject identities must be unpadded.")
+        if self.family is not None and self.family != self.family.lower():
+            raise ValueError(
+                "Compatibility subject family must use its canonical lowercase identity."
+            )
         if self.layers is not None and (
             not isinstance(self.layers, int)
             or isinstance(self.layers, bool)
@@ -536,13 +589,22 @@ class ModelCompatibilitySubject:
 class ModelPolicyPath:
     """One fully bound execution path emitted by model policy evaluation."""
 
+    path_id: str
     method: Method
     distribution: Distribution
     adapter_profile_id: AdapterProfile | None
     target_modules: tuple[str, ...]
     runtime_contract: RuntimeContract
+    required_validation_levels: tuple[str, ...]
+    evidence_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
+        if (
+            not isinstance(self.path_id, str)
+            or not self.path_id
+            or self.path_id != self.path_id.strip()
+        ):
+            raise ValueError("Model policy path ID must be unpadded text.")
         if not isinstance(self.method, Method):
             raise ValueError("Model policy path method must be a known ID.")
         if not isinstance(self.distribution, Distribution):
@@ -568,18 +630,54 @@ class ModelPolicyPath:
             raise ValueError("Model policy path target modules must be unpadded.")
         if len(set(self.target_modules)) != len(self.target_modules):
             raise ValueError("Model policy path target modules must be unique.")
+        if not isinstance(self.required_validation_levels, tuple):
+            raise ValueError("Model policy validation levels must be immutable.")
+        if not self.required_validation_levels or any(
+            item not in {"model-data", "measured-preflight", "pilot"}
+            for item in self.required_validation_levels
+        ):
+            raise ValueError("Model policy validation levels must be known gates.")
+        if len(set(self.required_validation_levels)) != len(
+            self.required_validation_levels
+        ):
+            raise ValueError("Model policy validation levels must be unique.")
+        if not isinstance(self.evidence_ids, tuple):
+            raise ValueError("Model policy path evidence IDs must be immutable.")
+        if not self.evidence_ids or any(
+            not isinstance(item, str) or not item or item != item.strip()
+            for item in self.evidence_ids
+        ):
+            raise ValueError("Model policy path evidence IDs must be unpadded text.")
+        if len(set(self.evidence_ids)) != len(self.evidence_ids):
+            raise ValueError("Model policy path evidence IDs must be unique.")
 
 
 @dataclass(frozen=True)
 class ModelPolicyDecision:
     """Artifact-policy result kept separate from candidate and evidence states."""
 
+    schema_version: str
+    decision_id: str
+    subject_facts_sha256: str
     kind: ModelPolicyDecisionKind
     family: str | None
+    policy_id: str | None
+    policy_version: str | None
     paths: tuple[ModelPolicyPath, ...]
+    reason_codes: tuple[ModelPolicyReasonCode, ...]
+    evidence_ids: tuple[str, ...]
     reason: str
 
     def __post_init__(self) -> None:
+        if self.schema_version != MODEL_COMPATIBILITY_SCHEMA_VERSION:
+            raise ValueError(
+                "Model policy decision schema must be "
+                f"{MODEL_COMPATIBILITY_SCHEMA_VERSION}."
+            )
+        if not _content_id_is_valid(self.decision_id, prefix="compat_"):
+            raise ValueError("Model policy decision ID is invalid.")
+        if not _sha256_is_valid(self.subject_facts_sha256):
+            raise ValueError("Model policy subject digest must be SHA-256.")
         if not isinstance(self.kind, ModelPolicyDecisionKind):
             raise ValueError("Model policy decision kind must be a known ID.")
         if not isinstance(self.paths, tuple):
@@ -594,9 +692,38 @@ class ModelPolicyDecision:
             not self.family.strip() or self.family != self.family.strip()
         ):
             raise ValueError("Model policy decision family must be unpadded.")
+        if (self.policy_id is None) != (self.policy_version is None):
+            raise ValueError("Model policy ID and version must be supplied together.")
+        if self.policy_id is not None and (
+            not self.policy_id.strip() or self.policy_id != self.policy_id.strip()
+        ):
+            raise ValueError("Model policy ID must be unpadded.")
+        if self.policy_version is not None and not re.fullmatch(
+            r"[0-9]+\.[0-9]+\.[0-9]+", self.policy_version
+        ):
+            raise ValueError("Model policy version must use semantic versioning.")
+        if not isinstance(self.reason_codes, tuple) or not self.reason_codes:
+            raise ValueError("Model policy decisions require immutable reason codes.")
+        if any(
+            not isinstance(item, ModelPolicyReasonCode) for item in self.reason_codes
+        ):
+            raise ValueError("Model policy decision reason codes must be known IDs.")
+        if len(set(self.reason_codes)) != len(self.reason_codes):
+            raise ValueError("Model policy decision reason codes must be unique.")
+        if not isinstance(self.evidence_ids, tuple) or any(
+            not isinstance(item, str) or not item or item != item.strip()
+            for item in self.evidence_ids
+        ):
+            raise ValueError(
+                "Model policy decision evidence IDs must be immutable text."
+            )
+        if len(set(self.evidence_ids)) != len(self.evidence_ids):
+            raise ValueError("Model policy decision evidence IDs must be unique.")
         if self.kind == ModelPolicyDecisionKind.PATH_MATCHED:
             if self.family is None:
                 raise ValueError("A path-matched decision requires a family.")
+            if self.policy_id is None:
+                raise ValueError("A path-matched decision requires a policy identity.")
             if not self.paths:
                 raise ValueError("A path-matched decision requires at least one path.")
             if len(set(self.paths)) != len(self.paths):
@@ -604,10 +731,185 @@ class ModelPolicyDecision:
         elif self.paths:
             raise ValueError("Only a path-matched decision may carry paths.")
         if (
+            self.kind
+            in {
+                ModelPolicyDecisionKind.FAMILY_RECOGNIZED,
+                ModelPolicyDecisionKind.UNKNOWN,
+            }
+            and self.policy_id is not None
+        ):
+            raise ValueError("Unregistered policy decisions cannot claim a policy ID.")
+        if (
             self.kind == ModelPolicyDecisionKind.FAMILY_RECOGNIZED
             and self.family is None
         ):
             raise ValueError("A family-recognized decision requires a family.")
+
+
+@dataclass(frozen=True)
+class ModelInspectionProvenance:
+    """One compatibility fact and the provenance class asserted by inspection."""
+
+    field: str
+    kind: ProvenanceKind
+    source: str
+    observed_at: str
+    resolved_revision: str
+
+    def __post_init__(self) -> None:
+        if not self.field or self.field != self.field.strip():
+            raise ValueError("Inspection provenance fields must be unpadded.")
+        if not isinstance(self.kind, ProvenanceKind):
+            raise ValueError("Inspection provenance kinds must be known IDs.")
+        if not self.source or self.source != self.source.strip():
+            raise ValueError("Inspection provenance sources must be unpadded.")
+        try:
+            observed = datetime.fromisoformat(self.observed_at)
+        except ValueError as error:
+            raise ValueError(
+                "Inspection provenance observed_at must be ISO-8601."
+            ) from error
+        if observed.tzinfo is None or observed.utcoffset() is None:
+            raise ValueError(
+                "Inspection provenance observed_at must include a timezone."
+            )
+        if not _revision_is_valid(self.resolved_revision):
+            raise ValueError("Inspection provenance revision must be immutable.")
+
+
+@dataclass(frozen=True)
+class ModelInspectionReceipt:
+    """Tamper-evident provider observation bound to one policy decision."""
+
+    schema_version: str
+    receipt_id: str
+    model_id: str
+    resolved_revision: str
+    observed_facts_sha256: str
+    decision: ModelPolicyDecision
+    provenance_summary: tuple[ModelInspectionProvenance, ...]
+    provenance_requirement: ProvenanceKind | None
+    provenance_requirement_met: bool
+    evaluated_at: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION:
+            raise ValueError(
+                "Model inspection receipt schema must be "
+                f"{MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION}."
+            )
+        if not _content_id_is_valid(self.receipt_id, prefix="receipt_"):
+            raise ValueError("Model inspection receipt ID is invalid.")
+        if (
+            not self.model_id
+            or not PROVIDER_MODEL_ID.fullmatch(self.model_id)
+            or ".." in self.model_id
+            or "--" in self.model_id
+            or self.model_id.endswith(".git")
+        ):
+            raise ValueError("Model inspection receipt model ID is invalid.")
+        if not _revision_is_valid(self.resolved_revision):
+            raise ValueError("Model inspection receipt revision must be immutable.")
+        if not _sha256_is_valid(self.observed_facts_sha256):
+            raise ValueError("Model inspection observed-facts digest must be SHA-256.")
+        if not isinstance(self.decision, ModelPolicyDecision):
+            raise ValueError("Model inspection receipts require a policy decision.")
+        if not isinstance(self.provenance_summary, tuple):
+            raise ValueError("Inspection receipt provenance must be immutable.")
+        if not self.provenance_summary or any(
+            not isinstance(item, ModelInspectionProvenance)
+            for item in self.provenance_summary
+        ):
+            raise ValueError(
+                "Inspection receipts require typed provenance for observed facts."
+            )
+        if any(
+            item.kind not in {ProvenanceKind.PROVIDER_DECLARED, ProvenanceKind.INFERRED}
+            for item in self.provenance_summary
+        ):
+            raise ValueError(
+                "Inspection receipts may contain only provider-declared or "
+                "provider-derived inferred facts."
+            )
+        fields_seen = tuple(item.field for item in self.provenance_summary)
+        if fields_seen != tuple(sorted(set(fields_seen))):
+            raise ValueError(
+                "Inspection receipt provenance fields must be sorted and unique."
+            )
+        if self.provenance_requirement is not None and not isinstance(
+            self.provenance_requirement, ProvenanceKind
+        ):
+            raise ValueError("Inspection receipt provenance requirement is invalid.")
+        if self.provenance_requirement_met and self.provenance_requirement is None:
+            raise ValueError("A met provenance requirement must identify its kind.")
+        try:
+            evaluated = datetime.fromisoformat(self.evaluated_at)
+        except ValueError as error:
+            raise ValueError(
+                "Inspection receipt evaluated_at must be ISO-8601."
+            ) from error
+        if evaluated.tzinfo is None or evaluated.utcoffset() is None:
+            raise ValueError("Inspection receipt evaluated_at must include a timezone.")
+
+
+@dataclass(frozen=True)
+class ModelPolicyBinding:
+    """The exact registered path bound into one candidate identity."""
+
+    schema_version: str
+    decision_id: str
+    subject_facts_sha256: str
+    policy_id: str
+    policy_version: str
+    path_id: str
+    source: ModelPolicyBindingSource
+    inspection_receipt_id: str | None
+    reason_codes: tuple[ModelPolicyReasonCode, ...]
+    evidence_ids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != MODEL_POLICY_BINDING_SCHEMA_VERSION:
+            raise ValueError(
+                "Model policy binding schema must be "
+                f"{MODEL_POLICY_BINDING_SCHEMA_VERSION}."
+            )
+        if not _content_id_is_valid(self.decision_id, prefix="compat_"):
+            raise ValueError("Model policy binding decision ID is invalid.")
+        if not _sha256_is_valid(self.subject_facts_sha256):
+            raise ValueError("Model policy binding facts digest must be SHA-256.")
+        if not self.policy_id or self.policy_id != self.policy_id.strip():
+            raise ValueError("Model policy binding policy ID must be unpadded.")
+        if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", self.policy_version):
+            raise ValueError(
+                "Model policy binding version must use semantic versioning."
+            )
+        if not self.path_id or self.path_id != self.path_id.strip():
+            raise ValueError("Model policy binding path ID must be unpadded.")
+        if not isinstance(self.source, ModelPolicyBindingSource):
+            raise ValueError("Model policy binding source must be a known ID.")
+        if self.source == ModelPolicyBindingSource.PROVIDER_INSPECTION:
+            if not _content_id_is_valid(self.inspection_receipt_id, prefix="receipt_"):
+                raise ValueError("Provider policy bindings require a receipt ID.")
+        elif self.inspection_receipt_id is not None:
+            raise ValueError("User-attested policy bindings cannot claim a receipt.")
+        if not isinstance(self.reason_codes, tuple) or not self.reason_codes:
+            raise ValueError("Model policy bindings require immutable reason codes.")
+        if any(
+            not isinstance(item, ModelPolicyReasonCode) for item in self.reason_codes
+        ) or len(set(self.reason_codes)) != len(self.reason_codes):
+            raise ValueError(
+                "Model policy binding reason codes must be known and unique."
+            )
+        if (
+            not isinstance(self.evidence_ids, tuple)
+            or not self.evidence_ids
+            or any(
+                not isinstance(item, str) or not item or item != item.strip()
+                for item in self.evidence_ids
+            )
+            or len(set(self.evidence_ids)) != len(self.evidence_ids)
+        ):
+            raise ValueError("Model policy binding evidence IDs must be unique text.")
 
 
 @dataclass(frozen=True)
@@ -760,6 +1062,7 @@ class CandidatePlan:
     confidence: str
     assumptions: tuple[str, ...]
     evidence: tuple[str, ...]
+    model_policy_decision_id: str
     candidate_id: str = ""
     status: CandidateStatus = CandidateStatus.INFEASIBLE
     distribution: Distribution = Distribution.SINGLE
@@ -773,6 +1076,18 @@ class CandidatePlan:
     checkpoint_retention_bytes: int = 0
     final_export_bytes: int = 0
     runtime_contract: RuntimeContract | None = None
+    policy_binding: ModelPolicyBinding | None = None
+
+    def __post_init__(self) -> None:
+        if not _content_id_is_valid(self.model_policy_decision_id, prefix="compat_"):
+            raise ValueError("Candidates require a valid model policy decision ID.")
+        if (
+            self.policy_binding is not None
+            and self.policy_binding.decision_id != self.model_policy_decision_id
+        ):
+            raise ValueError(
+                "Candidate policy binding must reference its policy decision."
+            )
 
 
 @dataclass(frozen=True)
@@ -786,9 +1101,60 @@ class TrainingPlan:
     candidates: tuple[CandidatePlan, ...]
     warnings: tuple[str, ...]
     recommendation_rationale: tuple[str, ...]
+    model_policy_decision: ModelPolicyDecision
+    model_policy_decision_source: ModelPolicyBindingSource
+    inspection_receipt: ModelInspectionReceipt | None
     evidence_records: tuple[EvidenceRecord, ...] = ()
     formula_version: str = "aptus-memory-v2"
     plan_id: str = ""
+
+    def __post_init__(self) -> None:
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"Training plans require schema {SCHEMA_VERSION}.")
+        if not isinstance(self.model_policy_decision, ModelPolicyDecision):
+            raise ValueError("Training plans require a model policy decision.")
+        if not isinstance(self.model_policy_decision_source, ModelPolicyBindingSource):
+            raise ValueError("Training plan policy source must be a known ID.")
+        if (
+            self.model_policy_decision_source
+            == ModelPolicyBindingSource.PROVIDER_INSPECTION
+            and self.inspection_receipt is None
+        ):
+            raise ValueError("Provider-inspection plans require an inspection receipt.")
+        if (
+            self.model_policy_decision_source == ModelPolicyBindingSource.USER_ATTESTED
+            and self.inspection_receipt is not None
+        ):
+            raise ValueError("User-attested plans cannot carry an inspection receipt.")
+        if self.inspection_receipt is not None and (
+            self.inspection_receipt.decision.decision_id
+            != self.model_policy_decision.decision_id
+        ):
+            raise ValueError("Inspection receipt must bind the plan policy decision.")
+        if not isinstance(self.candidates, tuple) or not self.candidates:
+            raise ValueError("Training plans require immutable candidates.")
+        if any(
+            item.model_policy_decision_id != self.model_policy_decision.decision_id
+            for item in self.candidates
+        ):
+            raise ValueError("Every candidate must bind the plan policy decision.")
+        if self.recommended not in self.candidates:
+            raise ValueError("The recommended candidate must belong to the plan.")
+        for candidate in self.candidates:
+            binding = candidate.policy_binding
+            if binding is None:
+                continue
+            if binding.source != self.model_policy_decision_source:
+                raise ValueError("Candidate policy binding source must match the plan.")
+            expected_receipt_id = (
+                self.inspection_receipt.receipt_id
+                if self.inspection_receipt is not None
+                else None
+            )
+            if binding.inspection_receipt_id != expected_receipt_id:
+                raise ValueError(
+                    "Candidate policy binding receipt must match the plan."
+                )
 
 
 @dataclass(frozen=True)
@@ -858,8 +1224,216 @@ def _provenance_from(value: Any) -> Provenance | None:
     )
 
 
+def _require_exact_keys(
+    value: Mapping[str, Any], expected: set[str], *, label: str
+) -> None:
+    if set(value) != expected:
+        raise ValueError(f"{label} must contain the exact versioned fields.")
+
+
+def _mapping_sequence(value: Any, *, label: str) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(f"{label} must be a list of objects.")
+    if any(not isinstance(item, Mapping) for item in value):
+        raise ValueError(f"{label} must contain only objects.")
+    return tuple(value)
+
+
+def _runtime_contract_from(value: Mapping[str, Any]) -> RuntimeContract:
+    _require_exact_keys(
+        value,
+        {
+            "compute_backend",
+            "training_runtime",
+            "compiler_id",
+            "estimator_id",
+            "evidence_requirement",
+            "export_kind",
+            "schema_version",
+        },
+        label="Runtime contract",
+    )
+    return RuntimeContract(
+        compute_backend=Backend(value["compute_backend"]),
+        training_runtime=TrainingRuntime(value["training_runtime"]),
+        compiler_id=value.get("compiler_id"),
+        estimator_id=str(value["estimator_id"]),
+        evidence_requirement=EvidenceRequirement(value["evidence_requirement"]),
+        export_kind=value.get("export_kind"),
+        schema_version=value.get("schema_version", RUNTIME_CONTRACT_VERSION),
+    )
+
+
+def _model_policy_path_from(value: Mapping[str, Any]) -> ModelPolicyPath:
+    _require_exact_keys(
+        value,
+        {
+            "path_id",
+            "method",
+            "distribution",
+            "adapter_profile_id",
+            "target_modules",
+            "runtime_contract",
+            "required_validation_levels",
+            "evidence_ids",
+        },
+        label="Model policy path",
+    )
+    runtime_value = value["runtime_contract"]
+    if not isinstance(runtime_value, Mapping):
+        raise ValueError("Model policy path runtime contract must be an object.")
+    adapter_profile = value.get("adapter_profile_id")
+    return ModelPolicyPath(
+        path_id=str(value["path_id"]),
+        method=Method(value["method"]),
+        distribution=Distribution(value["distribution"]),
+        adapter_profile_id=(
+            AdapterProfile(adapter_profile) if adapter_profile is not None else None
+        ),
+        target_modules=tuple(value.get("target_modules", ())),
+        runtime_contract=_runtime_contract_from(runtime_value),
+        required_validation_levels=tuple(value.get("required_validation_levels", ())),
+        evidence_ids=tuple(value.get("evidence_ids", ())),
+    )
+
+
+def _model_policy_decision_from(value: Mapping[str, Any]) -> ModelPolicyDecision:
+    _require_exact_keys(
+        value,
+        {
+            "schema_version",
+            "decision_id",
+            "subject_facts_sha256",
+            "kind",
+            "family",
+            "policy_id",
+            "policy_version",
+            "paths",
+            "reason_codes",
+            "evidence_ids",
+            "reason",
+        },
+        label="Model policy decision",
+    )
+    paths = _mapping_sequence(value.get("paths"), label="Model policy paths")
+    return ModelPolicyDecision(
+        schema_version=str(value["schema_version"]),
+        decision_id=str(value["decision_id"]),
+        subject_facts_sha256=str(value["subject_facts_sha256"]),
+        kind=ModelPolicyDecisionKind(value["kind"]),
+        family=value.get("family"),
+        policy_id=value.get("policy_id"),
+        policy_version=value.get("policy_version"),
+        paths=tuple(_model_policy_path_from(item) for item in paths),
+        reason_codes=tuple(
+            ModelPolicyReasonCode(item) for item in value.get("reason_codes", ())
+        ),
+        evidence_ids=tuple(value.get("evidence_ids", ())),
+        reason=str(value["reason"]),
+    )
+
+
+def model_inspection_receipt_from_primitive(
+    value: Mapping[str, Any],
+) -> ModelInspectionReceipt:
+    """Rehydrate a closed inspection receipt before planner verification."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError("Model inspection receipt must be an object.")
+    _require_exact_keys(
+        value,
+        {
+            "schema_version",
+            "receipt_id",
+            "model_id",
+            "resolved_revision",
+            "observed_facts_sha256",
+            "decision",
+            "provenance_summary",
+            "provenance_requirement",
+            "provenance_requirement_met",
+            "evaluated_at",
+        },
+        label="Model inspection receipt",
+    )
+    decision_value = value.get("decision")
+    if not isinstance(decision_value, Mapping):
+        raise ValueError("Model inspection receipt decision must be an object.")
+    requirement_met = value.get("provenance_requirement_met")
+    if not isinstance(requirement_met, bool):
+        raise ValueError("Receipt provenance_requirement_met must be boolean.")
+    provenance_items = _mapping_sequence(
+        value.get("provenance_summary"),
+        label="Inspection receipt provenance",
+    )
+    for item in provenance_items:
+        _require_exact_keys(
+            item,
+            {"field", "kind", "source", "observed_at", "resolved_revision"},
+            label="Inspection provenance",
+        )
+    return ModelInspectionReceipt(
+        schema_version=str(value["schema_version"]),
+        receipt_id=str(value["receipt_id"]),
+        model_id=str(value["model_id"]),
+        resolved_revision=str(value["resolved_revision"]),
+        observed_facts_sha256=str(value["observed_facts_sha256"]),
+        decision=_model_policy_decision_from(decision_value),
+        provenance_summary=tuple(
+            ModelInspectionProvenance(
+                field=str(item["field"]),
+                kind=ProvenanceKind(item["kind"]),
+                source=str(item["source"]),
+                observed_at=str(item["observed_at"]),
+                resolved_revision=str(item["resolved_revision"]),
+            )
+            for item in provenance_items
+        ),
+        provenance_requirement=(
+            ProvenanceKind(value["provenance_requirement"])
+            if value.get("provenance_requirement") is not None
+            else None
+        ),
+        provenance_requirement_met=requirement_met,
+        evaluated_at=str(value["evaluated_at"]),
+    )
+
+
+def _model_policy_binding_from(value: Mapping[str, Any]) -> ModelPolicyBinding:
+    _require_exact_keys(
+        value,
+        {
+            "schema_version",
+            "decision_id",
+            "subject_facts_sha256",
+            "policy_id",
+            "policy_version",
+            "path_id",
+            "source",
+            "inspection_receipt_id",
+            "reason_codes",
+            "evidence_ids",
+        },
+        label="Model policy binding",
+    )
+    return ModelPolicyBinding(
+        schema_version=str(value["schema_version"]),
+        decision_id=str(value["decision_id"]),
+        subject_facts_sha256=str(value["subject_facts_sha256"]),
+        policy_id=str(value["policy_id"]),
+        policy_version=str(value["policy_version"]),
+        path_id=str(value["path_id"]),
+        source=ModelPolicyBindingSource(value["source"]),
+        inspection_receipt_id=value.get("inspection_receipt_id"),
+        reason_codes=tuple(
+            ModelPolicyReasonCode(item) for item in value.get("reason_codes", ())
+        ),
+        evidence_ids=tuple(value.get("evidence_ids", ())),
+    )
+
+
 def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
-    """Rehydrate the persisted v3 JSON contract without accepting executable values."""
+    """Rehydrate the persisted v4 JSON contract without accepting older plans."""
 
     if not isinstance(value, Mapping):
         raise ValueError("Persisted plan must be an object.")
@@ -928,6 +1502,37 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             },
         }
     )
+    policy_decision_value = value.get("model_policy_decision")
+    if not isinstance(policy_decision_value, Mapping):
+        raise ValueError("Persisted v4 plans require a model policy decision.")
+    model_policy_decision = _model_policy_decision_from(policy_decision_value)
+    if "model_policy_decision_source" not in value:
+        raise ValueError(
+            "Persisted v4 plans require a model_policy_decision_source field."
+        )
+    model_policy_decision_source = ModelPolicyBindingSource(
+        value["model_policy_decision_source"]
+    )
+    if "inspection_receipt" not in value:
+        raise ValueError("Persisted v4 plans require an inspection_receipt field.")
+    receipt_value = value.get("inspection_receipt")
+    if receipt_value is not None and not isinstance(receipt_value, Mapping):
+        raise ValueError("Persisted inspection_receipt must be an object or null.")
+    inspection_receipt = (
+        model_inspection_receipt_from_primitive(receipt_value)
+        if isinstance(receipt_value, Mapping)
+        else None
+    )
+    if (
+        model_policy_decision_source == ModelPolicyBindingSource.PROVIDER_INSPECTION
+        and inspection_receipt is None
+    ):
+        raise ValueError("Provider-inspection plans require an inspection receipt.")
+    if (
+        model_policy_decision_source == ModelPolicyBindingSource.USER_ATTESTED
+        and inspection_receipt is not None
+    ):
+        raise ValueError("User-attested plans cannot carry an inspection receipt.")
     devices = tuple(
         DeviceSpec(
             name=item["name"],
@@ -1011,41 +1616,16 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         )
         memory = MemoryBreakdown(**memory_arguments)
         runtime_value = item.get("runtime_contract")
-        runtime_contract: RuntimeContract | None = None
-        if isinstance(runtime_value, Mapping):
-            runtime_contract = RuntimeContract(
-                compute_backend=Backend(runtime_value["compute_backend"]),
-                training_runtime=TrainingRuntime(runtime_value["training_runtime"]),
-                compiler_id=runtime_value.get("compiler_id"),
-                estimator_id=str(runtime_value["estimator_id"]),
-                evidence_requirement=EvidenceRequirement(
-                    runtime_value["evidence_requirement"]
-                ),
-                export_kind=runtime_value.get("export_kind"),
-                schema_version=runtime_value.get(
-                    "schema_version", RUNTIME_CONTRACT_VERSION
-                ),
-            )
-        else:
-            legacy_method = Method(item["method"])
-            legacy_compilers = {
-                Method.FULL: "transformers.full.v2",
-                Method.LORA: "transformers.peft-lora.v2",
-                Method.INT8_LORA: "transformers.peft-int8-lora.v2",
-                Method.QLORA: "transformers.peft-qlora.v2",
-            }
-            runtime_contract = RuntimeContract(
-                compute_backend=Backend.CUDA,
-                training_runtime=TrainingRuntime.TRANSFORMERS_PEFT_CUDA,
-                compiler_id=legacy_compilers[legacy_method],
-                estimator_id="aptus-memory-v2",
-                evidence_requirement=EvidenceRequirement.PILOT_REQUIRED,
-                export_kind=(
-                    "full-model-safetensors"
-                    if legacy_method == Method.FULL
-                    else "peft-adapter-safetensors"
-                ),
-            )
+        if not isinstance(runtime_value, Mapping):
+            raise ValueError("Persisted v4 candidates require a runtime contract.")
+        runtime_contract = _runtime_contract_from(runtime_value)
+        if "policy_binding" not in item:
+            raise ValueError("Persisted v4 candidates require a policy_binding field.")
+        policy_binding_value = item["policy_binding"]
+        if policy_binding_value is not None and not isinstance(
+            policy_binding_value, Mapping
+        ):
+            raise ValueError("Candidate policy_binding must be an object or null.")
         return CandidatePlan(
             method=Method(item["method"]),
             feasible=item["feasible"],
@@ -1064,6 +1644,7 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             confidence=item.get("confidence", "unknown"),
             assumptions=tuple(item.get("assumptions", ())),
             evidence=tuple(item.get("evidence", ())),
+            model_policy_decision_id=str(item["model_policy_decision_id"]),
             candidate_id=item["candidate_id"],
             status=CandidateStatus(item["status"]),
             distribution=Distribution(item["distribution"]),
@@ -1077,6 +1658,11 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             checkpoint_retention_bytes=item.get("checkpoint_retention_bytes", 0),
             final_export_bytes=item.get("final_export_bytes", 0),
             runtime_contract=runtime_contract,
+            policy_binding=(
+                _model_policy_binding_from(policy_binding_value)
+                if isinstance(policy_binding_value, Mapping)
+                else None
+            ),
         )
 
     candidates = tuple(candidate_from(item) for item in value["candidates"])
@@ -1097,6 +1683,9 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         candidates=candidates,
         warnings=tuple(value.get("warnings", ())),
         recommendation_rationale=tuple(value.get("recommendation_rationale", ())),
+        model_policy_decision=model_policy_decision,
+        model_policy_decision_source=model_policy_decision_source,
+        inspection_receipt=inspection_receipt,
         evidence_records=evidence,
         formula_version=value.get("formula_version", "aptus-memory-v2"),
         plan_id=value["plan_id"],

@@ -437,10 +437,7 @@ export interface components {
             job?: {
                 [key: string]: unknown;
             } | null;
-            /** Plan */
-            plan?: {
-                [key: string]: unknown;
-            } | null;
+            plan?: components["schemas"]["TrainingPlanResponse"] | null;
             project?: components["schemas"]["ProjectResponse"] | null;
             /** Project History */
             project_history: components["schemas"]["ProjectRevisionSummary"][];
@@ -563,6 +560,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * EvidenceRequirement
+         * @enum {string}
+         */
+        EvidenceRequirement: "pilot-required" | "implementation-required";
         /** HardwareFactsRequest */
         HardwareFactsRequest: {
             /** @default cuda */
@@ -762,6 +764,64 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** InspectedModelPolicyDecisionResponse */
+        InspectedModelPolicyDecisionResponse: {
+            /** Decision Id */
+            decision_id: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Family */
+            family: string | null;
+            kind: components["schemas"]["ModelPolicyDecisionKind"];
+            /** Paths */
+            paths: components["schemas"]["InspectedModelPolicyPathResponse"][];
+            /** Policy Id */
+            policy_id: string | null;
+            /** Policy Version */
+            policy_version: string | null;
+            /** Reason */
+            reason: string;
+            /** Reason Codes */
+            reason_codes: components["schemas"]["ModelPolicyReasonCode"][];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.model-compatibility.v2";
+            /** Subject Facts Sha256 */
+            subject_facts_sha256: string;
+        };
+        /** InspectedModelPolicyPathResponse */
+        InspectedModelPolicyPathResponse: {
+            adapter_profile_id: components["schemas"]["AdapterProfile"] | null;
+            distribution: components["schemas"]["Distribution"];
+            /** Evidence Ids */
+            evidence_ids: string[];
+            method: components["schemas"]["Method"];
+            /** Path Id */
+            path_id: string;
+            /** Required Validation Levels */
+            required_validation_levels: ("model-data" | "measured-preflight" | "pilot")[];
+            runtime_contract: components["schemas"]["InspectedRuntimeContractResponse"];
+            /** Target Modules */
+            target_modules: string[];
+        };
+        /** InspectedModelProvenanceResponse */
+        InspectedModelProvenanceResponse: {
+            /** Field */
+            field: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "provider-declared" | "inferred";
+            /** Observed At */
+            observed_at: string;
+            /** Resolved Revision */
+            resolved_revision: string;
+            /** Source */
+            source: string;
+        };
         /** InspectedMoETopologyResponse */
         InspectedMoETopologyResponse: {
             /** Decoder Sparse Step */
@@ -794,6 +854,23 @@ export interface components {
             group_size: number;
             /** Module Path */
             module_path: string;
+        };
+        /** InspectedRuntimeContractResponse */
+        InspectedRuntimeContractResponse: {
+            /** Compiler Id */
+            compiler_id: string | null;
+            compute_backend: components["schemas"]["Backend"];
+            /** Estimator Id */
+            estimator_id: string;
+            evidence_requirement: components["schemas"]["EvidenceRequirement"];
+            /** Export Kind */
+            export_kind: string | null;
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.runtime-contract.v1";
+            training_runtime: components["schemas"]["TrainingRuntime"];
         };
         /** JobRequest */
         JobRequest: {
@@ -914,6 +991,31 @@ export interface components {
             /** Vocab Size */
             vocab_size?: number | null;
         };
+        /** ModelInspectionReceiptResponse */
+        ModelInspectionReceiptResponse: {
+            decision: components["schemas"]["InspectedModelPolicyDecisionResponse"];
+            /** Evaluated At */
+            evaluated_at: string;
+            /** Model Id */
+            model_id: string;
+            /** Observed Facts Sha256 */
+            observed_facts_sha256: string;
+            /** Provenance Requirement */
+            provenance_requirement: "provider-declared" | null;
+            /** Provenance Requirement Met */
+            provenance_requirement_met: boolean;
+            /** Provenance Summary */
+            provenance_summary: components["schemas"]["InspectedModelProvenanceResponse"][];
+            /** Receipt Id */
+            receipt_id: string;
+            /** Resolved Revision */
+            resolved_revision: string;
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.model-inspection-receipt.v1";
+        };
         /** ModelInspectionResponse */
         ModelInspectionResponse: {
             compatibility?: components["schemas"]["ModelCompatibilityResponse"] | null;
@@ -922,6 +1024,7 @@ export interface components {
             /** Explicit User Facts Required */
             explicit_user_facts_required?: string[] | null;
             facts?: components["schemas"]["ModelInspectionFactsResponse"] | null;
+            inspection_receipt?: components["schemas"]["ModelInspectionReceiptResponse"] | null;
             /** Model Id */
             model_id: string;
             /** Provenance */
@@ -956,6 +1059,16 @@ export interface components {
              */
             timeout_seconds: number;
         };
+        /**
+         * ModelPolicyDecisionKind
+         * @enum {string}
+         */
+        ModelPolicyDecisionKind: "path-matched" | "family-recognized" | "blocked" | "unknown";
+        /**
+         * ModelPolicyReasonCode
+         * @enum {string}
+         */
+        ModelPolicyReasonCode: "exact-reviewed-artifact" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match";
         /** MoETopologyRequest */
         MoETopologyRequest: {
             /** Decoder Sparse Step */
@@ -976,11 +1089,51 @@ export interface components {
          * @enum {string}
          */
         Objective: "quality" | "memory" | "speed";
+        /** PlanCandidateResponse */
+        PlanCandidateResponse: {
+            /** Candidate Id */
+            candidate_id: string;
+            /** Model Policy Decision Id */
+            model_policy_decision_id: string;
+            policy_binding: components["schemas"]["PlanModelPolicyBindingResponse"] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** PlanModelPolicyBindingResponse */
+        PlanModelPolicyBindingResponse: {
+            /** Decision Id */
+            decision_id: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Inspection Receipt Id */
+            inspection_receipt_id: string | null;
+            /** Path Id */
+            path_id: string;
+            /** Policy Id */
+            policy_id: string;
+            /** Policy Version */
+            policy_version: string;
+            /** Reason Codes */
+            reason_codes: components["schemas"]["ModelPolicyReasonCode"][];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.model-policy-binding.v1";
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "provider-inspection" | "user-attested";
+            /** Subject Facts Sha256 */
+            subject_facts_sha256: string;
+        };
         /** PlanRequest */
         PlanRequest: {
             /** Dataset Path */
             dataset_path: string;
             hardware: components["schemas"]["HardwareFactsRequest"];
+            inspection_receipt?: components["schemas"]["ModelInspectionReceiptResponse"] | null;
             model: components["schemas"]["ModelFactsRequest"];
             /** Project Id */
             project_id?: string | null;
@@ -1299,7 +1452,7 @@ export interface components {
              * Required Schema
              * @constant
              */
-            required_schema: "aptus.training-plan.v3";
+            required_schema: "aptus.training-plan.v4";
             /**
              * Source
              * @enum {string}
@@ -1423,21 +1576,28 @@ export interface components {
         /** TrainingPlanResponse */
         TrainingPlanResponse: {
             /** Candidates */
-            candidates: {
-                [key: string]: unknown;
-            }[];
+            candidates: components["schemas"]["PlanCandidateResponse"][];
+            inspection_receipt: components["schemas"]["ModelInspectionReceiptResponse"] | null;
+            model_policy_decision: components["schemas"]["InspectedModelPolicyDecisionResponse"];
+            /**
+             * Model Policy Decision Source
+             * @enum {string}
+             */
+            model_policy_decision_source: "provider-inspection" | "user-attested";
             /** Plan Id */
             plan_id: string;
             /** Project Id */
             project_id?: string | null;
             /** Project Revision Id */
             project_revision_id?: string | null;
-            /** Recommended */
-            recommended: {
-                [key: string]: unknown;
-            };
-            /** Schema Version */
-            schema_version: string;
+            /** Recommendation Rationale */
+            recommendation_rationale: string[];
+            recommended: components["schemas"]["PlanCandidateResponse"];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.training-plan.v4";
             /** Warnings */
             warnings: string[];
         } & {

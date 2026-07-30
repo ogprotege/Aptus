@@ -178,18 +178,29 @@ class DomainContractTests(unittest.TestCase):
         self.assertEqual(restored, plan)
 
     def test_legacy_plan_requires_replan_without_mutating_source(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            payload = to_primitive(make_plan(Path(temporary)))
-            payload["schema_version"] = "aptus.training-plan.v2"
-            before = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        for legacy_schema in (
+            "aptus.training-plan.v3",
+            "aptus.training-plan.v2",
+            None,
+        ):
+            with self.subTest(schema=legacy_schema):
+                with tempfile.TemporaryDirectory() as temporary:
+                    payload = to_primitive(make_plan(Path(temporary)))
+                    if legacy_schema is None:
+                        payload.pop("schema_version")
+                    else:
+                        payload["schema_version"] = legacy_schema
+                    before = json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
-            with self.assertRaises(UnsupportedPlanSchemaError) as raised:
-                training_plan_from_primitive(payload)
+                    with self.assertRaises(UnsupportedPlanSchemaError) as raised:
+                        training_plan_from_primitive(payload)
 
-            after = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        self.assertEqual(raised.exception.found_schema, "aptus.training-plan.v2")
-        self.assertEqual(raised.exception.required_schema, "aptus.training-plan.v3")
-        self.assertEqual(after, before)
+                    after = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+                self.assertEqual(raised.exception.found_schema, legacy_schema)
+                self.assertEqual(
+                    raised.exception.required_schema, "aptus.training-plan.v4"
+                )
+                self.assertEqual(after, before)
 
 
 if __name__ == "__main__":

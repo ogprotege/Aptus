@@ -1,3 +1,6 @@
+import copy
+import hashlib
+import json
 import shutil
 import stat
 import sys
@@ -21,16 +24,63 @@ from aptus.catalog import reviewed_qwen3_moe_quantization_layout
 from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.execution import ActiveJobError, JobPrerequisiteError
 from aptus.local_store import atomic_write_json
-from aptus.model_compatibility import validate_registered_compatibility_path
-from aptus.profiling import build_hardware_spec
+from aptus.model_compatibility import (
+    create_model_inspection_receipt,
+    subject_from_model,
+    validate_registered_compatibility_path,
+)
+from aptus.plan_contract import (
+    StaleModelPolicyError,
+    candidate_id_for_payload,
+    plan_id_for_payload,
+)
+from aptus.profiling import build_hardware_spec, build_model_spec
 from aptus.runtime_env import RuntimeInterpreter
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 try:
     from fastapi.testclient import TestClient
 except ImportError:  # The base package intentionally keeps the server optional.
     TestClient = None
+
+
+def inspection_receipt_shape(
+    model_id: str, resolved_revision: str
+) -> dict[str, object]:
+    observed_at = "2026-07-29T12:00:00+00:00"
+    return {
+        "schema_version": "aptus.model-inspection-receipt.v1",
+        "receipt_id": "receipt_" + "a" * 20,
+        "model_id": model_id,
+        "resolved_revision": resolved_revision,
+        "observed_facts_sha256": "b" * 64,
+        "decision": {
+            "schema_version": "aptus.model-compatibility.v2",
+            "decision_id": "compat_" + "c" * 20,
+            "subject_facts_sha256": "d" * 64,
+            "kind": "unknown",
+            "family": None,
+            "policy_id": None,
+            "policy_version": None,
+            "paths": [],
+            "reason_codes": ["no-policy-match"],
+            "evidence_ids": [],
+            "reason": "No registered provider policy matches this artifact.",
+        },
+        "provenance_summary": [
+            {
+                "field": "family",
+                "kind": "inferred",
+                "source": "Aptus exact compatibility mapping",
+                "observed_at": observed_at,
+                "resolved_revision": resolved_revision,
+            }
+        ],
+        "provenance_requirement": None,
+        "provenance_requirement_met": False,
+        "evaluated_at": observed_at,
+    }
 
 
 class ApiContractTests(unittest.TestCase):
@@ -77,6 +127,10 @@ class ApiContractTests(unittest.TestCase):
                     "adapter_profile_id": None,
                     "reason": "The provider topology is incomplete.",
                 },
+                "provenance": {},
+                "inspection_receipt": inspection_receipt_shape(
+                    "provider/incomplete-moe", "a" * 40
+                ),
             }
         )
 
@@ -123,6 +177,38 @@ class ApiContractTests(unittest.TestCase):
             with self.subTest(status=payload["status"]):
                 validated = ModelCompatibilityResponse.model_validate(payload)
                 self.assertEqual(validated.model_dump(mode="json"), payload)
+
+    def test_inspection_response_requires_receipt_only_on_success(self) -> None:
+        success = {
+            "status": "ok",
+            "model_id": "example/model",
+            "requested_revision": "main",
+            "resolved_revision": "a" * 40,
+            "facts": {},
+            "compatibility": {
+                "status": "unsupported",
+                "family": None,
+                "supported_runtime": None,
+                "supported_methods": [],
+                "compute_backend": None,
+                "distribution": None,
+                "evidence_requirement": "implementation-required",
+                "adapter_profile_id": None,
+                "reason": "No reviewed policy matches this model.",
+            },
+            "provenance": {},
+        }
+        with self.assertRaises(ValidationError):
+            ModelInspectionResponse.model_validate(success)
+
+        unavailable = {
+            "status": "unavailable",
+            "model_id": "example/model",
+            "requested_revision": "main",
+            "inspection_receipt": inspection_receipt_shape("example/model", "a" * 40),
+        }
+        with self.assertRaises(ValidationError):
+            ModelInspectionResponse.model_validate(unavailable)
 
     def test_conditional_response_delegates_to_the_domain_path_validator(self) -> None:
         payload = {
@@ -365,6 +451,21 @@ class ApiContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             context = ApiContext(Path(temporary) / "state")
             self.assertIsNone(context.load_plan("../../plan_secret"))
+
+    def test_saved_plan_id_must_match_requested_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            context = ApiContext(root / "state")
+            plan = make_plan(root)
+            substitute_id = "plan_" + "f" * 20
+            substitute_path = context.plans_dir / f"{substitute_id}.json"
+            atomic_write_json(substitute_path, to_primitive(plan), mode=0o600)
+            before = substitute_path.read_bytes()
+
+            with self.assertRaisesRegex(ValueError, "requested filename"):
+                context.load_plan(substitute_id)
+
+            self.assertEqual(substitute_path.read_bytes(), before)
 
     def test_runtime_configuration_is_private_and_survives_context_restart(
         self,
@@ -613,6 +714,171 @@ class ApiEndpointTests(unittest.TestCase):
             "sample_limit": 64,
         }
 
+    def inspection_receipt(self, payload: dict[str, object]) -> dict[str, object]:
+        model_payload = payload["model"]
+        assert isinstance(model_payload, dict)
+        model = build_model_spec(**model_payload)
+        observed_at = "2026-07-29T12:00:00+00:00"
+        facts = {
+            field: getattr(model, field)
+            for field in (
+                "architecture",
+                "context_length",
+                "family",
+                "hidden_size",
+                "intermediate_size",
+                "layers",
+                "license_name",
+                "model_type",
+                "moe",
+                "quantization_bits",
+                "quantization_layout",
+            )
+        }
+        provenance = {
+            field: {
+                "kind": "inferred" if field == "family" else "provider-declared",
+                "source": (
+                    "Aptus exact model-type compatibility mapping"
+                    if field == "family"
+                    else "https://huggingface.co/example/model-1b/config.json"
+                ),
+                "observed_at": observed_at,
+                "resolved_revision": model.revision,
+            }
+            for field, value in facts.items()
+            if value is not None
+        }
+        return to_primitive(
+            create_model_inspection_receipt(
+                model_id=model.model_id,
+                resolved_revision=model.revision,
+                facts=facts,
+                provenance=provenance,
+                subject=subject_from_model(model),
+                evaluated_at=observed_at,
+            )
+        )
+
+    def test_plan_accepts_bound_inspection_receipt_and_marks_omission_attested(
+        self,
+    ) -> None:
+        attested = self.client.post("/api/v1/plan", json=self.plan_payload())
+        self.assertEqual(attested.status_code, 200, attested.text)
+        self.assertEqual(
+            attested.json()["model_policy_decision_source"], "user-attested"
+        )
+        self.assertIsNone(attested.json()["inspection_receipt"])
+
+        payload = self.plan_payload()
+        receipt = self.inspection_receipt(payload)
+        payload["inspection_receipt"] = receipt
+        inspected = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(inspected.status_code, 200, inspected.text)
+        result = inspected.json()
+        self.assertEqual(result["model_policy_decision_source"], "provider-inspection")
+        self.assertEqual(
+            result["inspection_receipt"]["receipt_id"], receipt["receipt_id"]
+        )
+        self.assertTrue(
+            all(
+                candidate["model_policy_decision_id"]
+                == result["model_policy_decision"]["decision_id"]
+                for candidate in result["candidates"]
+            )
+        )
+
+    def test_unknown_family_plan_saves_and_reloads_without_reinterpretation(
+        self,
+    ) -> None:
+        payload = self.plan_payload()
+        payload["model"]["family"] = "unregistered-family"
+
+        planned = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(planned.status_code, 200, planned.text)
+        value = planned.json()
+        self.assertEqual(value["model_policy_decision"]["kind"], "unknown")
+        self.assertTrue(
+            all(
+                candidate["checkpoint_retention_bytes"] == 0
+                for candidate in value["candidates"]
+                if candidate["method"] != "full"
+            )
+        )
+
+        loaded = self.client.get(f"/api/v1/plans/{value['plan_id']}")
+
+        self.assertEqual(loaded.status_code, 200, loaded.text)
+        self.assertEqual(loaded.json()["plan_id"], value["plan_id"])
+
+    def test_plan_rejects_malformed_and_tampered_inspection_receipts(self) -> None:
+        malformed = self.plan_payload()
+        malformed["inspection_receipt"] = {"schema_version": "wrong"}
+        malformed_response = self.client.post("/api/v1/plan", json=malformed)
+        self.assertEqual(malformed_response.status_code, 422, malformed_response.text)
+
+        for label, mutate in (
+            (
+                "digest",
+                lambda receipt: receipt.__setitem__("observed_facts_sha256", "0" * 64),
+            ),
+            (
+                "model identity",
+                lambda receipt: receipt.__setitem__("model_id", "example/other"),
+            ),
+        ):
+            with self.subTest(label=label):
+                payload = self.plan_payload()
+                receipt = self.inspection_receipt(payload)
+                mutate(receipt)
+                payload["inspection_receipt"] = receipt
+                response = self.client.post("/api/v1/plan", json=payload)
+                self.assertEqual(response.status_code, 400, response.text)
+                self.assertEqual(response.json()["error"], "invalid_request")
+
+    def test_every_pre_v4_saved_plan_schema_requires_replanning_without_rewrite(
+        self,
+    ) -> None:
+        context = self.client.app.state.aptus
+        for index, found_schema in enumerate(
+            ("aptus.training-plan.v3", "aptus.training-plan.v2", None)
+        ):
+            with self.subTest(found_schema=found_schema):
+                plan_id = "plan_" + format(index + 1, "020x")
+                payload = {"plan_id": plan_id}
+                if found_schema is not None:
+                    payload["schema_version"] = found_schema
+                path = context.plans_dir / f"{plan_id}.json"
+                atomic_write_json(path, payload, mode=0o600)
+                before = path.read_bytes()
+
+                response = self.client.get(f"/api/v1/plans/{plan_id}")
+
+                self.assertEqual(response.status_code, 409, response.text)
+                self.assertEqual(response.json()["error"], "replan_required")
+                self.assertEqual(
+                    response.json()["required_schema"], "aptus.training-plan.v4"
+                )
+                self.assertEqual(response.json()["found_schema"], found_schema)
+                self.assertEqual(path.read_bytes(), before)
+
+    def test_stale_same_schema_policy_maps_to_replan_required(self) -> None:
+        plan_id = "plan_" + "e" * 20
+        context = self.client.app.state.aptus
+        with patch.object(
+            context,
+            "load_plan",
+            side_effect=StaleModelPolicyError("Registered policy is obsolete."),
+        ):
+            response = self.client.get(f"/api/v1/plans/{plan_id}")
+
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["error"], "replan_required")
+        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v4")
+        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v4")
+
     def owned_bundle_request(self, bundle: Path) -> dict[str, str]:
         planned = self.client.post("/api/v1/plan", json=self.plan_payload())
         self.assertEqual(planned.status_code, 200, planned.text)
@@ -787,7 +1053,7 @@ class ApiEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.text)
         plan = response.json()
-        self.assertEqual(plan["schema_version"], "aptus.training-plan.v3")
+        self.assertEqual(plan["schema_version"], "aptus.training-plan.v4")
         self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
         self.assertEqual(
             len(plan["model"]["quantization_layout"]["module_overrides"]), 48
@@ -865,6 +1131,9 @@ class ApiEndpointTests(unittest.TestCase):
                 "training_allowed": None,
             },
             "provenance": {},
+            "inspection_receipt": inspection_receipt_shape(
+                "Qwen/Qwen3-30B-A3B-MLX-4bit", "d" * 40
+            ),
             "warnings": [],
             "compatibility": {
                 "status": "conditional",
@@ -907,6 +1176,7 @@ class ApiEndpointTests(unittest.TestCase):
             len(result["facts"]["quantization_layout"]["module_overrides"]), 48
         )
         self.assertEqual(result["compatibility"]["status"], "conditional")
+        self.assertEqual(result["inspection_receipt"]["resolved_revision"], "d" * 40)
         self.assertEqual(result["compatibility"]["compute_backend"], "mps")
         self.assertEqual(
             result["compatibility"]["adapter_profile_id"],
@@ -1120,7 +1390,7 @@ class ApiEndpointTests(unittest.TestCase):
                 "status": "replan_required",
                 "plan_id": plan_id,
                 "found_schema": "aptus.training-plan.v2",
-                "required_schema": "aptus.training-plan.v3",
+                "required_schema": "aptus.training-plan.v4",
                 "source": "project-revision",
                 "project_id": project["project_id"],
                 "project_revision_id": revision["revision_id"],
@@ -1135,10 +1405,109 @@ class ApiEndpointTests(unittest.TestCase):
             self.assertEqual(response.status_code, 409, response.text)
             self.assertEqual(response.json()["error"], "replan_required")
             self.assertEqual(
-                response.json()["required_schema"], "aptus.training-plan.v3"
+                response.json()["required_schema"], "aptus.training-plan.v4"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
         self.assertFalse((self.root / "legacy-output").exists())
+        self.assertEqual(
+            context.projects.get(project["project_id"])["revision_count"], 1
+        )
+
+    def test_coherent_stale_v4_plan_requires_replan_across_saved_workflows(
+        self,
+    ) -> None:
+        context = self.client.app.state.aptus
+        stale_plan = to_primitive(make_qwen3_moe_plan(self.root))
+        decision = stale_plan["model_policy_decision"]
+        recommended_key = (
+            stale_plan["recommended"]["method"],
+            stale_plan["recommended"]["distribution"],
+        )
+        decision["policy_version"] = "0.9.0"
+        identity = {
+            key: decision[key]
+            for key in (
+                "schema_version",
+                "subject_facts_sha256",
+                "kind",
+                "family",
+                "policy_id",
+                "policy_version",
+                "paths",
+                "reason_codes",
+                "evidence_ids",
+            )
+        }
+        encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        decision["decision_id"] = "compat_" + hashlib.sha256(encoded).hexdigest()[:20]
+        for candidate in stale_plan["candidates"]:
+            candidate["model_policy_decision_id"] = decision["decision_id"]
+            binding = candidate["policy_binding"]
+            if binding is not None:
+                binding["decision_id"] = decision["decision_id"]
+                binding["policy_version"] = decision["policy_version"]
+            candidate["candidate_id"] = candidate_id_for_payload(
+                candidate,
+                model=stale_plan["model"],
+                dataset=stale_plan["dataset"],
+                hardware=stale_plan["hardware"],
+                target=stale_plan["target"],
+            )
+        stale_plan["recommended"] = copy.deepcopy(
+            next(
+                candidate
+                for candidate in stale_plan["candidates"]
+                if (candidate["method"], candidate["distribution"]) == recommended_key
+            )
+        )
+        stale_plan["plan_id"] = plan_id_for_payload(stale_plan)
+        plan_id = stale_plan["plan_id"]
+
+        saved_plan_path = context.plans_dir / f"{plan_id}.json"
+        atomic_write_json(saved_plan_path, stale_plan, mode=0o600)
+        project = context.projects.create("Stale policy plan")
+        revision = context.projects.create_revision(
+            project["project_id"],
+            reason="stale-v4-imported",
+            plan_id=plan_id,
+            plan_snapshot=stale_plan,
+            selected_candidate_id=stale_plan["recommended"]["candidate_id"],
+        )
+        before = saved_plan_path.read_bytes()
+
+        bootstrap = self.client.get("/api/v1/bootstrap")
+        loaded = self.client.get(f"/api/v1/plans/{plan_id}")
+        compiled = self.client.post(
+            "/api/v1/compile",
+            json={
+                "plan_id": plan_id,
+                "output_dir": str(self.root / "stale-v4-output"),
+                "project_id": project["project_id"],
+                "expected_project_revision_id": revision["revision_id"],
+            },
+        )
+        recovered = self.client.post(
+            f"/api/v1/projects/{project['project_id']}/recover",
+            json={"revision_id": revision["revision_id"]},
+        )
+
+        self.assertEqual(bootstrap.status_code, 200, bootstrap.text)
+        self.assertIsNone(bootstrap.json().get("plan"))
+        self.assertEqual(
+            bootstrap.json()["replan_required"]["status"], "replan_required"
+        )
+        self.assertEqual(
+            bootstrap.json()["replan_required"]["found_schema"],
+            "aptus.training-plan.v4",
+        )
+        for response in (loaded, compiled, recovered):
+            self.assertEqual(response.status_code, 409, response.text)
+            self.assertEqual(response.json()["error"], "replan_required")
+            self.assertEqual(
+                response.json()["required_schema"], "aptus.training-plan.v4"
+            )
+        self.assertEqual(saved_plan_path.read_bytes(), before)
+        self.assertFalse((self.root / "stale-v4-output").exists())
         self.assertEqual(
             context.projects.get(project["project_id"])["revision_count"], 1
         )

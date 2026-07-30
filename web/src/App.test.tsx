@@ -5,6 +5,7 @@ import type { AptusDesktopBridge } from "./desktopBridge";
 const {
   bootstrapMock,
   hardwareMock,
+  inspectModelMock,
   profileMock,
   planMock,
   compileBundleMock,
@@ -13,9 +14,12 @@ const {
   listProjectsMock,
   getProjectMock,
   projectHistoryMock,
+  projectRevisionMock,
+  recoverProjectRevisionMock,
 } = vi.hoisted(() => ({
   bootstrapMock: vi.fn(),
   hardwareMock: vi.fn(),
+  inspectModelMock: vi.fn(),
   profileMock: vi.fn(),
   planMock: vi.fn(),
   compileBundleMock: vi.fn(),
@@ -24,6 +28,8 @@ const {
   listProjectsMock: vi.fn(),
   getProjectMock: vi.fn(),
   projectHistoryMock: vi.fn(),
+  projectRevisionMock: vi.fn(),
+  recoverProjectRevisionMock: vi.fn(),
 }));
 
 vi.mock("./api", async () => {
@@ -34,6 +40,7 @@ vi.mock("./api", async () => {
       ...actual.api,
       bootstrap: bootstrapMock,
       hardware: hardwareMock,
+      inspectModel: inspectModelMock,
       profile: profileMock,
       plan: planMock,
       compileBundle: compileBundleMock,
@@ -42,13 +49,15 @@ vi.mock("./api", async () => {
       listProjects: listProjectsMock,
       getProject: getProjectMock,
       projectHistory: projectHistoryMock,
+      projectRevision: projectRevisionMock,
+      recoverProjectRevision: recoverProjectRevisionMock,
     },
   };
 });
 
 import App from "./App";
 import { EXAMPLE_DRAFT, EXAMPLE_PLAN } from "./demo";
-import type { FactDraft, TrainingPlan } from "./types";
+import type { FactDraft, ModelInspectionReceipt, TrainingPlan } from "./types";
 
 const QWEN3_REVISION = "d".repeat(40);
 const REVIEWED_QWEN3_LAYOUT = {
@@ -60,6 +69,42 @@ const REVIEWED_QWEN3_LAYOUT = {
     group_size: 64,
   })).sort((left, right) => left.module_path.localeCompare(right.module_path)),
 };
+
+function inspectionReceipt(
+  modelId: string,
+  revision: string,
+): ModelInspectionReceipt {
+  return {
+    schema_version: "aptus.model-inspection-receipt.v1",
+    receipt_id: `receipt_${"a".repeat(20)}`,
+    model_id: modelId,
+    resolved_revision: revision,
+    observed_facts_sha256: "b".repeat(64),
+    decision: {
+      schema_version: "aptus.model-compatibility.v2",
+      decision_id: `compat_${"c".repeat(20)}`,
+      subject_facts_sha256: "d".repeat(64),
+      kind: "family-recognized",
+      family: "llama",
+      policy_id: null,
+      policy_version: null,
+      paths: [],
+      reason_codes: ["family-recognized"],
+      evidence_ids: [],
+      reason: "The dense family is recognized without an artifact-specific policy.",
+    },
+    provenance_summary: [{
+      field: "family",
+      kind: "inferred",
+      source: "Aptus exact model-type compatibility mapping",
+      observed_at: "2026-07-29T12:00:00+00:00",
+      resolved_revision: revision,
+    }],
+    provenance_requirement: null,
+    provenance_requirement_met: false,
+    evaluated_at: "2026-07-29T12:00:00+00:00",
+  };
+}
 
 function exactQwen3MoEDraft(): FactDraft {
   const draft = structuredClone(EXAMPLE_DRAFT);
@@ -102,24 +147,40 @@ function exactQwen3MoEDraft(): FactDraft {
 }
 
 function exactQwen3MoEPlan(): TrainingPlan {
+  const decisionId = `compat_${"a".repeat(20)}`;
+  const subjectDigest = "b".repeat(64);
+  const runtimeContract = {
+    schema_version: "aptus.runtime-contract.v1",
+    compute_backend: "mps",
+    training_runtime: "mlx-lm",
+    compiler_id: "mlx-lm.qlora.v1",
+    estimator_id: "aptus-memory-mlx-v2",
+    evidence_requirement: "pilot-required",
+    export_kind: "mlx-lm-adapter",
+  };
   const recommended = {
     candidate_id: "qlora-single",
+    model_policy_decision_id: decisionId,
+    policy_binding: {
+      schema_version: "aptus.model-policy-binding.v1" as const,
+      decision_id: decisionId,
+      subject_facts_sha256: subjectDigest,
+      policy_id: "model.qwen3-moe.mlx-qlora",
+      policy_version: "1.0.0",
+      path_id: "mlx-lm.qlora.single.attention-qkvo.v1",
+      source: "user-attested" as const,
+      inspection_receipt_id: null,
+      reason_codes: ["exact-reviewed-artifact", "pilot-not-yet-proven"],
+      evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
+    },
     method: "qlora",
     distribution: "single",
     status: "conditional",
     target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
-    runtime_contract: {
-      schema_version: "aptus.runtime-contract.v1",
-      compute_backend: "mps",
-      training_runtime: "mlx-lm",
-      compiler_id: "mlx-lm.qlora.v1",
-      estimator_id: "aptus-memory-mlx-v2",
-      evidence_requirement: "pilot-required",
-      export_kind: "mlx-lm-adapter",
-    },
+    runtime_contract: runtimeContract,
   };
   return {
-    schema_version: "aptus.training-plan.v3",
+    schema_version: "aptus.training-plan.v4",
     plan_id: "plan_qwen3_moe",
     model: {
       model_id: "Qwen/Qwen3-30B-A3B",
@@ -185,6 +246,31 @@ function exactQwen3MoEPlan(): TrainingPlan {
     candidates: [recommended],
     warnings: [],
     rationale: [],
+    recommendation_rationale: [],
+    model_policy_decision: {
+      schema_version: "aptus.model-compatibility.v2",
+      decision_id: decisionId,
+      subject_facts_sha256: subjectDigest,
+      kind: "path-matched",
+      family: "qwen3_moe",
+      policy_id: "model.qwen3-moe.mlx-qlora",
+      policy_version: "1.0.0",
+      paths: [{
+        path_id: "mlx-lm.qlora.single.attention-qkvo.v1",
+        method: "qlora",
+        distribution: "single",
+        adapter_profile_id: "attention-qkvo.v1",
+        target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
+        runtime_contract: runtimeContract,
+        required_validation_levels: ["model-data", "measured-preflight", "pilot"],
+        evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
+      }],
+      reason_codes: ["exact-reviewed-artifact", "pilot-not-yet-proven"],
+      evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
+      reason: "Exact reviewed test fixture.",
+    },
+    model_policy_decision_source: "user-attested",
+    inspection_receipt: null,
   };
 }
 
@@ -203,6 +289,7 @@ function installDesktopBridge(): AptusDesktopBridge {
 beforeEach(() => {
   bootstrapMock.mockReset();
   hardwareMock.mockReset();
+  inspectModelMock.mockReset();
   profileMock.mockReset();
   planMock.mockReset();
   compileBundleMock.mockReset();
@@ -211,6 +298,8 @@ beforeEach(() => {
   listProjectsMock.mockReset();
   getProjectMock.mockReset();
   projectHistoryMock.mockReset();
+  projectRevisionMock.mockReset();
+  recoverProjectRevisionMock.mockReset();
 });
 
 afterEach(() => {
@@ -218,6 +307,234 @@ afterEach(() => {
 });
 
 describe("desktop workbench readiness", () => {
+  it("does not silently downgrade an unreceipted provider inspection", async () => {
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      defaults: structuredClone(EXAMPLE_DRAFT),
+      projects: [],
+      project: null,
+      project_history: [],
+    });
+    inspectModelMock.mockResolvedValue({
+      status: "ok",
+      model_id: EXAMPLE_DRAFT.model.model_id,
+      requested_revision: EXAMPLE_DRAFT.model.revision,
+      resolved_revision: "b".repeat(40),
+      facts: { family: "llama" },
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect and pin model" }));
+    expect(await screen.findByText(
+      "The provider inspection did not return a receipt bound to this model and resolved revision.",
+    )).toBeInTheDocument();
+    expect(screen.getByLabelText("Immutable revision"))
+      .toHaveValue(EXAMPLE_DRAFT.model.revision);
+    expect(screen.queryByRole("heading", { name: "Revision-bound facts applied" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("retains an inspection receipt across user attestations and clears it on identity edits", async () => {
+    const resolvedRevision = "b".repeat(40);
+    const receipt = inspectionReceipt(EXAMPLE_DRAFT.model.model_id, resolvedRevision);
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      defaults: structuredClone(EXAMPLE_DRAFT),
+      projects: [],
+      project: null,
+      project_history: [],
+    });
+    inspectModelMock.mockResolvedValue({
+      status: "ok",
+      model_id: EXAMPLE_DRAFT.model.model_id,
+      requested_revision: EXAMPLE_DRAFT.model.revision,
+      resolved_revision: resolvedRevision,
+      facts: {
+        architecture: "LlamaForCausalLM",
+        architectures: ["LlamaForCausalLM"],
+        model_type: "llama",
+        family: "llama",
+        hidden_size: 4096,
+        intermediate_size: 11008,
+        layers: 32,
+        context_length: 4096,
+        license_name: "Example license entry",
+      },
+      inspection_receipt: receipt,
+      warnings: [],
+    });
+    profileMock.mockResolvedValue({ facts: [], warnings: [] });
+    planMock.mockResolvedValue(structuredClone(EXAMPLE_PLAN));
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect and pin model" }));
+    await screen.findByRole("heading", { name: "Revision-bound facts applied" });
+    fireEvent.change(screen.getByLabelText("Total resident parameters"), {
+      target: { value: "7.5" },
+    });
+    const trainingPermission = screen.getByRole("checkbox", {
+      name: /I confirmed this model permits the intended training/i,
+    });
+    fireEvent.click(trainingPermission);
+    fireEvent.click(trainingPermission);
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Profile dataset" }).closest("form") as HTMLFormElement,
+    );
+    await waitFor(() => expect(profileMock).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Compare strategies" }));
+
+    await waitFor(() => expect(planMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        model: expect.objectContaining({
+          revision: resolvedRevision,
+          parameters_b: 7.5,
+          training_allowed: true,
+        }),
+      }),
+      null,
+      receipt,
+    ));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit facts" }));
+    fireEvent.change(screen.getByLabelText("Architecture family"), {
+      target: { value: "mistral" },
+    });
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Profile dataset" }).closest("form") as HTMLFormElement,
+    );
+    await waitFor(() => expect(profileMock).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "Compare strategies" }));
+
+    await waitFor(() => expect(planMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        model: expect.objectContaining({ family: "mistral" }),
+      }),
+      null,
+    ));
+  });
+
+  it("restores the inspection receipt from a v4 plan during bootstrap", async () => {
+    const plan = exactQwen3MoEPlan();
+    const receipt = inspectionReceipt("Qwen/Qwen3-30B-A3B", QWEN3_REVISION);
+    plan.inspection_receipt = receipt;
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan,
+    });
+    planMock.mockResolvedValue(plan);
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Compare strategies" }));
+    await waitFor(() => expect(planMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: expect.objectContaining({
+          model_id: "Qwen/Qwen3-30B-A3B",
+          revision: QWEN3_REVISION,
+        }),
+      }),
+      null,
+      receipt,
+    ));
+  });
+
+  it("restores the recovered plan receipt before the next comparison", async () => {
+    const projectId = `project_${"a".repeat(32)}`;
+    const currentRevisionId = `revision_${"b".repeat(32)}`;
+    const historicalRevisionId = `revision_${"c".repeat(32)}`;
+    const recoveredRevisionId = `revision_${"d".repeat(32)}`;
+    const project = {
+      schema_version: "aptus.project.v1",
+      project_id: projectId,
+      name: "Receipt recovery",
+      created_at: "2026-07-29T10:00:00Z",
+      updated_at: "2026-07-29T11:00:00Z",
+      latest_revision_id: currentRevisionId,
+      revision_count: 2,
+      latest_revision: null,
+    };
+    const historicalSummary = {
+      revision_id: historicalRevisionId,
+      ordinal: 1,
+      created_at: "2026-07-29T10:00:00Z",
+      reason: "plan-created",
+      plan_id: "plan_historical",
+      job_count: 0,
+    };
+    const restoredPlan = exactQwen3MoEPlan();
+    const receipt = inspectionReceipt("Qwen/Qwen3-30B-A3B", QWEN3_REVISION);
+    restoredPlan.inspection_receipt = receipt;
+    bootstrapMock
+      .mockResolvedValueOnce({
+        api_contract_version: "aptus.api.v1",
+        service: { version: "0.2.0" },
+        projects: [project],
+        project,
+        project_history: [historicalSummary],
+        plan: exactQwen3MoEPlan(),
+      })
+      .mockResolvedValueOnce({
+        api_contract_version: "aptus.api.v1",
+        service: { version: "0.2.0" },
+        projects: [project],
+        project,
+        project_history: [],
+        plan: restoredPlan,
+      });
+    projectRevisionMock.mockResolvedValue({
+      schema_version: "aptus.project-revision.v1",
+      revision_id: historicalRevisionId,
+      project_id: projectId,
+      parent_revision_id: null,
+      ordinal: 1,
+      created_at: "2026-07-29T10:00:00Z",
+      reason: "plan-created",
+      plan_id: "plan_historical",
+      facts: {},
+      plan_snapshot: null,
+      bundle: null,
+      validation: null,
+      job_ids: [],
+      training_authorization: { current: false, reason: "Recovery clears authorization." },
+      content_sha256: "e".repeat(64),
+    });
+    recoverProjectRevisionMock.mockResolvedValue({
+      status: "recovered",
+      project_id: projectId,
+      revision: {
+        revision_id: recoveredRevisionId,
+        ordinal: 3,
+      },
+      training_authorization_current: false,
+    });
+    planMock.mockResolvedValue(restoredPlan);
+
+    render(<App />);
+
+    fireEvent.click((await screen.findAllByRole("button", { name: /Project history/i }))[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Revision 1/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Recover as new revision" }));
+    await screen.findByText(/Recovered revision 3 as a new immutable revision/i);
+    fireEvent.click(screen.getByRole("button", { name: "Edit facts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Compare strategies" }));
+
+    await waitFor(() => expect(planMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      projectId,
+      receipt,
+    ));
+  });
+
   it("keeps plan-derived MoE facts and compatibility across planning and restore", async () => {
     const plan = exactQwen3MoEPlan();
     bootstrapMock.mockResolvedValue({
@@ -245,7 +562,7 @@ describe("desktop workbench readiness", () => {
     expect(screen.getByText(
       "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
       + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v3 plan preserves the reviewed "
+      + "Evidence requirement: pilot-required. The current v4 plan preserves the reviewed "
       + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
       + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
       + "mandatory.",
@@ -277,7 +594,7 @@ describe("desktop workbench readiness", () => {
     expect(screen.getByText(
       "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
       + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v3 plan preserves the reviewed "
+      + "Evidence requirement: pilot-required. The current v4 plan preserves the reviewed "
       + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
       + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
       + "mandatory.",
@@ -298,7 +615,7 @@ describe("desktop workbench readiness", () => {
         status: "replan_required",
         plan_id: "plan_legacy",
         found_schema: "aptus.training-plan.v2",
-        required_schema: "aptus.training-plan.v3",
+        required_schema: "aptus.training-plan.v4",
         source: "project-revision",
         message: "This saved plan predates the current executable contract.",
       },
@@ -393,7 +710,7 @@ describe("desktop workbench readiness", () => {
       latest_revision: null,
     };
     const plan = {
-      schema_version: "aptus.training-plan.v3",
+      schema_version: "aptus.training-plan.v4",
       plan_id: "plan_retained",
       project_id: projectId,
       model: {},

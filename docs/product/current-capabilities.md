@@ -35,9 +35,23 @@ acceptance remain open.
   a family prefix or treats inspection as passing runtime evidence. Sparse
   near-matches are blocked before dense-family recognition, including sparse
   model-type or architecture markers whose topology is missing. Conditional API
-  claims must match a registered path for the stated model family. The internal
-  policy decision remains transient in v0.2, so it does not yet provide an
-  inspection receipt or a persisted plan binding.
+  claims must match a registered path for the stated model family.
+- Persisted `aptus.training-plan.v4` compatibility provenance. One
+  `aptus.model-compatibility.v2` decision records stable reason and evidence
+  IDs, policy ID `model.qwen3-moe.mlx-qlora`, policy version `1.0.0`, and path ID
+  `mlx-lm.qlora.single.attention-qkvo.v1` when the exact row matches. Every
+  candidate links to the decision. Only the exact matching candidate receives
+  an `aptus.model-policy-binding.v1` path binding.
+- Versioned `aptus.model-inspection-receipt.v1` output from successful provider
+  inspection. The receipt separately binds compatibility-subject facts and all
+  provider-declared or inferred planning facts carried into the plan. Parameters
+  and training permission remain user-attested and are excluded. Direct facts
+  without a receipt use the explicit `user-attested` decision source. A supplied
+  invalid receipt fails instead of silently degrading to that source.
+- Strict replanning for v3, v2, schema-less, and stale-policy v4 plans. Aptus
+  preserves old saved bytes and does not relabel them. The HTTP API remains
+  `aptus.api.v1`; facts remain `aptus.facts.v3`; candidate runtime contracts
+  remain `aptus.runtime-contract.v1`; and bundles remain `aptus.bundle.v2`.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory

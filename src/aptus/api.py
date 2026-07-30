@@ -25,6 +25,7 @@ from .api_contracts import (
     InferenceModelsResponse,
     InferenceServicesResponse,
     JobResponse,
+    ModelInspectionReceiptResponse,
     ModelInspectionResponse,
     PlatformResponse,
     ProfileResponse,
@@ -48,6 +49,7 @@ from .domain import (
     TrainingPlan,
     TrainingTarget,
     UnsupportedPlanSchemaError,
+    model_inspection_receipt_from_primitive,
     to_primitive,
     training_plan_from_primitive,
 )
@@ -60,7 +62,13 @@ from .integrations import (
 )
 from .local_store import atomic_write_json, private_directory, read_json_object
 from .methods import method_descriptors, selectable_method_ids
-from .plan_contract import sha256_file, validate_bundle_manifest, validate_plan_payload
+from .plan_contract import (
+    StaleModelPolicyError,
+    require_current_model_policy,
+    sha256_file,
+    validate_bundle_manifest,
+    validate_plan_payload,
+)
 from .planning import NoFeasiblePlanError, plan_training
 from .profiling import (
     build_hardware_spec,
@@ -87,6 +95,7 @@ def _replan_required_payload(
     source: str,
     project_id: str | None = None,
     project_revision_id: str | None = None,
+    message: str | None = None,
 ) -> dict[str, Any]:
     return {
         "status": "replan_required",
@@ -104,10 +113,29 @@ def _replan_required_payload(
         "source": source,
         "project_id": project_id,
         "project_revision_id": project_revision_id,
-        "message": (
+        "message": message
+        or (
             "This saved plan predates the current executable contract. Create a "
             "new plan from its preserved facts before compiling or recovering it."
         ),
+    }
+
+
+def _stale_policy_error_payload(
+    *,
+    message: str,
+    plan_id: str | None = None,
+    project_id: str | None = None,
+    project_revision_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "error": "replan_required",
+        "plan_id": plan_id,
+        "found_schema": SCHEMA_VERSION,
+        "required_schema": SCHEMA_VERSION,
+        "project_id": project_id,
+        "project_revision_id": project_revision_id,
+        "message": message,
     }
 
 
@@ -198,6 +226,7 @@ class PlanRequest(StrictModel):
     target: TargetRequest
     dataset_path: str
     sample_limit: int | None = Field(default=512, gt=0)
+    inspection_receipt: ModelInspectionReceiptResponse | None = None
     project_id: str | None = Field(default=None, pattern=r"^project_[0-9a-f]{32}$")
     project_name: str | None = Field(default=None, min_length=1, max_length=120)
 
@@ -364,6 +393,19 @@ class ApiContext:
             if path.is_symlink():
                 raise PermissionError(f"Aptus saved plans cannot be symlinks: {path}")
             value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, Mapping):
+            raise ValueError("Saved plan must be a JSON object.")
+        if value.get("schema_version") != SCHEMA_VERSION:
+            raise UnsupportedPlanSchemaError(value.get("schema_version"))
+        if value.get("plan_id") != plan_id:
+            raise ValueError("Saved plan ID does not match its requested filename.")
+        require_current_model_policy(value)
+        validation_errors = validate_plan_payload(value, verify_dataset=False)
+        if validation_errors:
+            raise ValueError(
+                "Saved plan failed the current executable contract: "
+                + " ".join(validation_errors)
+            )
         return training_plan_from_primitive(value)
 
     def save_bundle(
@@ -428,7 +470,20 @@ def _build_plan(request: PlanRequest) -> TrainingPlan:
         hardware_values["reserve_gib"] = reserve_gib
         hardware = build_hardware_spec(**hardware_values)
     target = TrainingTarget(**request.target.model_dump())
-    return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
+    inspection_receipt = (
+        model_inspection_receipt_from_primitive(
+            request.inspection_receipt.model_dump(mode="json")
+        )
+        if request.inspection_receipt is not None
+        else None
+    )
+    return plan_training(
+        model=model,
+        dataset=dataset,
+        hardware=hardware,
+        target=target,
+        inspection_receipt=inspection_receipt,
+    )
 
 
 def create_app(
@@ -850,6 +905,27 @@ def create_app(
                     else None
                 ),
             )
+        elif isinstance(current_plan_snapshot, dict):
+            try:
+                require_current_model_policy(current_plan_snapshot)
+            except StaleModelPolicyError as error:
+                result["replan_required"] = _replan_required_payload(
+                    current_plan_snapshot,
+                    source="project-revision",
+                    project_id=(
+                        current_revision.get("project_id")
+                        if isinstance(current_revision.get("project_id"), str)
+                        else None
+                    ),
+                    project_revision_id=(
+                        current_revision.get("revision_id")
+                        if isinstance(current_revision.get("revision_id"), str)
+                        else None
+                    ),
+                    message=str(error),
+                )
+            except ValueError:
+                pass
         current_revision_job_ids = (
             {
                 str(job_id)
@@ -994,6 +1070,32 @@ def create_app(
                             ),
                         ),
                     )
+                continue
+            try:
+                require_current_model_policy(plan_payload)
+            except StaleModelPolicyError as error:
+                result.setdefault(
+                    "replan_required",
+                    _replan_required_payload(
+                        plan_payload,
+                        source="compiled-bundle",
+                        project_id=(
+                            current_revision.get("project_id")
+                            if isinstance(current_revision, dict)
+                            and isinstance(current_revision.get("project_id"), str)
+                            else None
+                        ),
+                        project_revision_id=(
+                            current_revision.get("revision_id")
+                            if isinstance(current_revision, dict)
+                            and isinstance(current_revision.get("revision_id"), str)
+                            else None
+                        ),
+                        message=str(error),
+                    ),
+                )
+                continue
+            except ValueError:
                 continue
             if validate_plan_payload(
                 plan_payload, root=bundle_dir, verify_dataset=False
@@ -1352,6 +1454,14 @@ def create_app(
     def get_plan(plan_id: str) -> dict[str, Any]:
         try:
             result = context.load_plan(plan_id)
+        except StaleModelPolicyError as error:
+            raise HTTPException(
+                status_code=409,
+                detail=_stale_policy_error_payload(
+                    plan_id=plan_id,
+                    message=str(error),
+                ),
+            ) from error
         except UnsupportedPlanSchemaError as error:
             raise HTTPException(
                 status_code=409,
@@ -1378,6 +1488,16 @@ def create_app(
         )
         try:
             plan_value = context.load_plan(request.plan_id)
+        except StaleModelPolicyError as error:
+            raise HTTPException(
+                status_code=409,
+                detail=_stale_policy_error_payload(
+                    plan_id=request.plan_id,
+                    project_id=request.project_id,
+                    project_revision_id=request.expected_project_revision_id,
+                    message=str(error),
+                ),
+            ) from error
         except UnsupportedPlanSchemaError as error:
             raise HTTPException(
                 status_code=409,
@@ -1748,7 +1868,31 @@ def create_app(
         project_id: str, request: ProjectRecoverRequest
     ) -> dict[str, Any]:
         try:
+            source_revision = context.projects.revision(project_id, request.revision_id)
+            plan_snapshot = source_revision.get("plan_snapshot")
+            if (
+                isinstance(plan_snapshot, Mapping)
+                and plan_snapshot.get("schema_version") == SCHEMA_VERSION
+            ):
+                require_current_model_policy(plan_snapshot)
+                validation_errors = validate_plan_payload(
+                    plan_snapshot, verify_dataset=False
+                )
+                if validation_errors:
+                    raise ValueError(
+                        "Saved project plan failed the current executable contract: "
+                        + " ".join(validation_errors)
+                    )
             revision = context.projects.recover(project_id, request.revision_id)
+        except StaleModelPolicyError as error:
+            raise HTTPException(
+                status_code=409,
+                detail=_stale_policy_error_payload(
+                    project_id=project_id,
+                    project_revision_id=request.revision_id,
+                    message=str(error),
+                ),
+            ) from error
         except UnsupportedPlanSchemaError as error:
             raise HTTPException(
                 status_code=409,

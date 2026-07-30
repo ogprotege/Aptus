@@ -7,7 +7,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from aptus.cli import main
+from aptus.domain import to_primitive
 from aptus.execution import JobPrerequisiteError
+from aptus.model_compatibility import (
+    create_model_inspection_receipt,
+    subject_from_model,
+)
+from aptus.profiling import build_model_spec
 
 
 def fact_arguments(dataset: Path) -> list[str]:
@@ -56,7 +62,184 @@ def fact_arguments(dataset: Path) -> list[str]:
     ]
 
 
+def inspection_receipt_payload() -> dict[str, object]:
+    model = build_model_spec(
+        model_id="example/model",
+        revision="a" * 40,
+        family="llama",
+        parameters_b=1,
+        hidden_size=2048,
+        intermediate_size=8192,
+        layers=24,
+        context_length=4096,
+        license_name="apache-2.0",
+        training_allowed=True,
+    )
+    observed_at = "2026-07-29T12:00:00+00:00"
+    facts = {
+        field: getattr(model, field)
+        for field in (
+            "architecture",
+            "context_length",
+            "family",
+            "hidden_size",
+            "intermediate_size",
+            "layers",
+            "license_name",
+            "model_type",
+            "moe",
+            "quantization_bits",
+            "quantization_layout",
+        )
+    }
+    provenance = {
+        field: {
+            "kind": "inferred" if field == "family" else "provider-declared",
+            "source": (
+                "Aptus exact model-type compatibility mapping"
+                if field == "family"
+                else "https://huggingface.co/example/model/config.json"
+            ),
+            "observed_at": observed_at,
+            "resolved_revision": model.revision,
+        }
+        for field, value in facts.items()
+        if value is not None
+    }
+    return to_primitive(
+        create_model_inspection_receipt(
+            model_id=model.model_id,
+            resolved_revision=model.revision,
+            facts=facts,
+            provenance=provenance,
+            subject=subject_from_model(model),
+            evaluated_at=observed_at,
+        )
+    )
+
+
 class CliIntegrationTests(unittest.TestCase):
+    def test_spec_plan_accepts_receipt_and_rejects_tampering_without_output(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            receipt_path = root / "inspection-receipt.json"
+            receipt = inspection_receipt_payload()
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            plan_path = root / "inspected-plan.json"
+
+            self.assertEqual(
+                main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(plan_path),
+                    ]
+                ),
+                0,
+            )
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                plan["model_policy_decision_source"], "provider-inspection"
+            )
+            self.assertEqual(
+                plan["inspection_receipt"]["receipt_id"], receipt["receipt_id"]
+            )
+
+            receipt_path.write_text(
+                json.dumps({"status": "ok", "inspection_receipt": receipt}),
+                encoding="utf-8",
+            )
+            wrapped_plan_path = root / "wrapped-inspection-plan.json"
+            self.assertEqual(
+                main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(wrapped_plan_path),
+                    ]
+                ),
+                0,
+            )
+            self.assertEqual(
+                json.loads(wrapped_plan_path.read_text(encoding="utf-8"))[
+                    "inspection_receipt"
+                ]["receipt_id"],
+                receipt["receipt_id"],
+            )
+
+            receipt["observed_facts_sha256"] = "0" * 64
+            receipt_path.write_text(
+                json.dumps({"status": "ok", "inspection_receipt": receipt}),
+                encoding="utf-8",
+            )
+            rejected_path = root / "rejected-plan.json"
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                result = main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(rejected_path),
+                    ]
+                )
+
+            self.assertEqual(result, 2)
+            self.assertIn("receipt", stderr.getvalue().lower())
+            self.assertFalse(rejected_path.exists())
+
+            receipt_path.write_text(
+                json.dumps({"status": "ok", "inspection_receipt": None}),
+                encoding="utf-8",
+            )
+            missing_path = root / "missing-receipt-plan.json"
+            with contextlib.redirect_stderr(io.StringIO()):
+                result = main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(missing_path),
+                    ]
+                )
+            self.assertEqual(result, 2)
+            self.assertFalse(missing_path.exists())
+
+            malformed_receipt = inspection_receipt_payload()
+            malformed_receipt["provenance_summary"] = ["not-an-object"]
+            receipt_path.write_text(
+                json.dumps(malformed_receipt),
+                encoding="utf-8",
+            )
+            malformed_path = root / "malformed-receipt-plan.json"
+            with contextlib.redirect_stderr(io.StringIO()):
+                result = main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(malformed_path),
+                    ]
+                )
+            self.assertEqual(result, 2)
+            self.assertFalse(malformed_path.exists())
+
     def test_profile_spec_plan_and_compile_commands(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -95,7 +278,7 @@ class CliIntegrationTests(unittest.TestCase):
             self.assertTrue(profile_path.is_file())
             self.assertEqual(
                 json.loads(plan_path.read_text())["schema_version"],
-                "aptus.training-plan.v3",
+                "aptus.training-plan.v4",
             )
             self.assertIsNone(
                 json.loads(plan_path.read_text())["target"]["training_runtime"]
@@ -112,31 +295,52 @@ class CliIntegrationTests(unittest.TestCase):
             root = Path(temporary)
             dataset = root / "data.jsonl"
             dataset.write_text('{"text":"example"}\n', encoding="utf-8")
-            plan_path = root / "legacy-plan.json"
-            bundle = root / "bundle"
+            current_plan_path = root / "current-plan.json"
             self.assertEqual(
                 main(
-                    ["spec-plan", *fact_arguments(dataset), "--output", str(plan_path)]
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--output",
+                        str(current_plan_path),
+                    ]
                 ),
                 0,
             )
-            payload = json.loads(plan_path.read_text(encoding="utf-8"))
-            payload["schema_version"] = "aptus.training-plan.v2"
-            plan_path.write_text(
-                json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
-            )
-            before = plan_path.read_bytes()
-            stderr = io.StringIO()
+            current_payload = json.loads(current_plan_path.read_text(encoding="utf-8"))
 
-            with contextlib.redirect_stderr(stderr):
-                result = main(
-                    ["compile", "--plan", str(plan_path), "--output", str(bundle)]
-                )
+            for index, found_schema in enumerate(
+                ("aptus.training-plan.v3", "aptus.training-plan.v2", None)
+            ):
+                with self.subTest(found_schema=found_schema):
+                    plan_path = root / f"legacy-plan-{index}.json"
+                    bundle = root / f"bundle-{index}"
+                    payload = dict(current_payload)
+                    if found_schema is None:
+                        payload.pop("schema_version")
+                    else:
+                        payload["schema_version"] = found_schema
+                    plan_path.write_text(
+                        json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
+                    )
+                    before = plan_path.read_bytes()
+                    stderr = io.StringIO()
 
-            self.assertEqual(result, 2)
-            self.assertIn("Replan required", stderr.getvalue())
-            self.assertEqual(plan_path.read_bytes(), before)
-            self.assertFalse(bundle.exists())
+                    with contextlib.redirect_stderr(stderr):
+                        result = main(
+                            [
+                                "compile",
+                                "--plan",
+                                str(plan_path),
+                                "--output",
+                                str(bundle),
+                            ]
+                        )
+
+                    self.assertEqual(result, 2)
+                    self.assertIn("Replan required", stderr.getvalue())
+                    self.assertEqual(plan_path.read_bytes(), before)
+                    self.assertFalse(bundle.exists())
 
     def test_exact_qwen3_moe_flags_persist_derived_sparse_facts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -193,7 +397,7 @@ class CliIntegrationTests(unittest.TestCase):
             )
 
             plan = json.loads(plan_path.read_text(encoding="utf-8"))
-            self.assertEqual(plan["schema_version"], "aptus.training-plan.v3")
+            self.assertEqual(plan["schema_version"], "aptus.training-plan.v4")
             self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
             self.assertEqual(plan["model"]["architecture"], "Qwen3MoeForCausalLM")
             self.assertEqual(plan["model"]["quantization_bits"], 4)

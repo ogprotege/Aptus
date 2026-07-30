@@ -9,19 +9,346 @@ from aptus.domain import (
     CandidateStatus,
     Distribution,
     Method,
+    ModelPolicyBindingSource,
     Objective,
+    Provenance,
+    ProvenanceKind,
     QuantizationLayout,
     TrainingRuntime,
     gibibytes,
 )
 from aptus.methods import METHOD_REGISTRY
+from aptus.model_compatibility import (
+    create_model_inspection_receipt,
+    subject_from_model,
+)
 from aptus.planning import NoFeasiblePlanError, estimate_candidate, plan_training
 from aptus.profiling import build_hardware_spec
 
 from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 
+def _provider_receipt(model):
+    observed_at = "2026-07-29T20:00:00+00:00"
+    fields = (
+        "architecture",
+        "context_length",
+        "family",
+        "hidden_size",
+        "intermediate_size",
+        "layers",
+        "license_name",
+        "model_type",
+        "moe",
+        "quantization_bits",
+        "quantization_layout",
+    )
+    facts = {field: getattr(model, field) for field in fields}
+    provenance = {
+        field: {
+            "kind": (
+                ProvenanceKind.INFERRED.value
+                if field == "family"
+                else ProvenanceKind.PROVIDER_DECLARED.value
+            ),
+            "source": (
+                "aptus-family-map"
+                if field == "family"
+                else f"https://huggingface.co/{model.model_id}/resolve/{model.revision}/config.json"
+            ),
+            "observed_at": observed_at,
+            "resolved_revision": model.revision,
+        }
+        for field in fields
+    }
+    return create_model_inspection_receipt(
+        model_id=model.model_id,
+        resolved_revision=model.revision,
+        facts=facts,
+        provenance=provenance,
+        subject=subject_from_model(model),
+        evaluated_at=observed_at,
+    )
+
+
 class PlannerTests(unittest.TestCase):
+    def test_user_attested_plan_binds_current_policy_to_every_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen3_moe_plan(Path(temporary))
+
+        self.assertEqual(
+            plan.model_policy_decision_source,
+            ModelPolicyBindingSource.USER_ATTESTED,
+        )
+        self.assertIsNone(plan.inspection_receipt)
+        self.assertTrue(
+            all(
+                candidate.model_policy_decision_id
+                == plan.model_policy_decision.decision_id
+                for candidate in plan.candidates
+            )
+        )
+        bound = [candidate for candidate in plan.candidates if candidate.policy_binding]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual(bound[0].method, Method.QLORA)
+        self.assertEqual(bound[0].distribution, Distribution.SINGLE)
+        self.assertEqual(
+            bound[0].policy_binding.source,
+            ModelPolicyBindingSource.USER_ATTESTED,
+        )
+        self.assertIsNone(bound[0].policy_binding.inspection_receipt_id)
+        self.assertTrue(
+            set(bound[0].policy_binding.evidence_ids).issubset(bound[0].evidence)
+        )
+
+    def test_provider_receipt_is_validated_and_preserved_in_policy_binding(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            receipt = _provider_receipt(base.model)
+            plan = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+
+        self.assertEqual(
+            plan.model_policy_decision_source,
+            ModelPolicyBindingSource.PROVIDER_INSPECTION,
+        )
+        self.assertEqual(plan.inspection_receipt, receipt)
+        self.assertEqual(
+            plan.model.provenance["architecture"].kind,
+            ProvenanceKind.PROVIDER_DECLARED,
+        )
+        self.assertEqual(
+            plan.model.provenance["family"].kind,
+            ProvenanceKind.INFERRED,
+        )
+        self.assertEqual(
+            plan.model.provenance["parameters"].kind,
+            ProvenanceKind.USER_ATTESTED,
+        )
+        self.assertEqual(
+            plan.model.provenance["training_allowed"].kind,
+            ProvenanceKind.USER_ATTESTED,
+        )
+        bound = [candidate for candidate in plan.candidates if candidate.policy_binding]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual(
+            bound[0].policy_binding.source,
+            ModelPolicyBindingSource.PROVIDER_INSPECTION,
+        )
+        self.assertEqual(
+            bound[0].policy_binding.inspection_receipt_id,
+            receipt.receipt_id,
+        )
+
+    def test_receipt_rejects_user_attested_dense_unknown_and_exact_subjects(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            dense = make_plan(Path(temporary)).model
+            exact = make_qwen3_moe_plan(Path(temporary)).model
+        unknown = replace(
+            dense,
+            family="custom",
+            model_type="custom",
+            architecture="CustomForCausalLM",
+        )
+        observed_at = "2026-07-29T20:00:00+00:00"
+        fields = (
+            "architecture",
+            "context_length",
+            "family",
+            "hidden_size",
+            "intermediate_size",
+            "layers",
+            "license_name",
+            "model_type",
+            "moe",
+            "quantization_bits",
+            "quantization_layout",
+        )
+
+        for model in (dense, unknown, exact):
+            facts = {
+                field: getattr(model, field)
+                for field in fields
+                if getattr(model, field) is not None
+            }
+            provenance = {
+                field: {
+                    "kind": "user-attested",
+                    "source": "operator",
+                    "observed_at": observed_at,
+                    "resolved_revision": model.revision,
+                }
+                for field in facts
+            }
+            with (
+                self.subTest(family=model.family),
+                self.assertRaisesRegex(ValueError, "provider-declared observation"),
+            ):
+                create_model_inspection_receipt(
+                    model_id=model.model_id,
+                    resolved_revision=model.revision,
+                    facts=facts,
+                    provenance=provenance,
+                    subject=subject_from_model(model),
+                    evaluated_at=observed_at,
+                )
+
+    def test_receipt_rejects_partial_subject_and_noninspection_kinds(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            model = make_plan(Path(temporary)).model
+        observed_at = "2026-07-29T20:00:00+00:00"
+        license_only = {
+            "license_name": {
+                "kind": "provider-declared",
+                "source": "provider-card",
+                "observed_at": observed_at,
+                "resolved_revision": model.revision,
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "does not cover"):
+            create_model_inspection_receipt(
+                model_id=model.model_id,
+                resolved_revision=model.revision,
+                facts={"license_name": model.license_name},
+                provenance=license_only,
+                subject=subject_from_model(model),
+                evaluated_at=observed_at,
+            )
+
+        fields = ("architecture", "family", "layers", "license_name")
+        facts = {field: getattr(model, field) for field in fields}
+        provenance = {
+            field: {
+                "kind": "provider-declared",
+                "source": "provider-config",
+                "observed_at": observed_at,
+                "resolved_revision": model.revision,
+            }
+            for field in fields
+        }
+        provenance["license_name"]["kind"] = "unknown"
+        with self.assertRaisesRegex(
+            ValueError, "provider-declared or provider-derived"
+        ):
+            create_model_inspection_receipt(
+                model_id=model.model_id,
+                resolved_revision=model.revision,
+                facts=facts,
+                provenance=provenance,
+                subject=subject_from_model(model),
+                evaluated_at=observed_at,
+            )
+
+    def test_tampered_provider_receipt_is_rejected_instead_of_downgraded(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            receipt = replace(
+                _provider_receipt(base.model),
+                receipt_id="receipt_" + "0" * 20,
+            )
+
+            with self.assertRaisesRegex(ValueError, "immutable ID"):
+                plan_training(
+                    model=base.model,
+                    dataset=base.dataset,
+                    hardware=base.hardware,
+                    target=base.target,
+                    inspection_receipt=receipt,
+                )
+
+    def test_receipt_replanning_preserves_user_attestation_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            model = replace(
+                base.model,
+                provenance={
+                    "all": Provenance(
+                        ProvenanceKind.USER_ATTESTED,
+                        "operator-intake",
+                    )
+                },
+            )
+            receipt = _provider_receipt(model)
+            first = plan_training(
+                model=model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+            repeated = plan_training(
+                model=first.model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+
+        self.assertEqual(
+            repeated.model.provenance["parameters"].source,
+            "operator-intake",
+        )
+        self.assertEqual(
+            repeated.model.provenance["training_allowed"].source,
+            "operator-intake",
+        )
+
+    def test_receipt_free_replanning_explicitly_user_attests_all_model_facts(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            receipt = _provider_receipt(base.model)
+            inspected = plan_training(
+                model=base.model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+            direct = plan_training(
+                model=inspected.model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+            )
+
+        self.assertEqual(
+            direct.model_policy_decision_source,
+            ModelPolicyBindingSource.USER_ATTESTED,
+        )
+        self.assertEqual(set(direct.model.provenance), {"all"})
+        self.assertEqual(
+            direct.model.provenance["all"].kind,
+            ProvenanceKind.USER_ATTESTED,
+        )
+
+    def test_estimate_candidate_cannot_accept_injected_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            receipt = _provider_receipt(base.model)
+
+            with self.assertRaises(TypeError):
+                estimate_candidate(
+                    method=Method.QLORA,
+                    model=base.model,
+                    dataset=base.dataset,
+                    hardware=base.hardware,
+                    target=base.target,
+                    inspection_receipt=receipt,  # type: ignore[call-arg]
+                )
+
     def test_enumerates_full_matrix_with_immutable_unique_ids(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_plan(Path(temporary), gpu_count=2)

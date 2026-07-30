@@ -8,8 +8,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from aptus.domain import Backend, ValidationReport, ValidationState
+from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.generation import generate_bundle
+from aptus.model_compatibility import (
+    create_model_inspection_receipt,
+    subject_from_model,
+)
 from aptus.plan_contract import (
     bundle_fingerprint,
     expected_model_architecture_contract,
@@ -25,7 +29,7 @@ from aptus.validation import (
     validate_bundle,
 )
 
-from tests.aptus.helpers import make_plan
+from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 
 def _json_digest(value: object) -> str:
@@ -115,6 +119,49 @@ def _load_generated_module(path: Path, name: str):
     finally:
         sys.path.remove(str(path.parent))
     return module
+
+
+def _provider_qwen_plan(root: Path):
+    base = make_qwen3_moe_plan(root)
+    model = base.model
+    observed_at = "2026-07-29T12:00:00+00:00"
+    receipt_fields = (
+        "architecture",
+        "context_length",
+        "family",
+        "hidden_size",
+        "intermediate_size",
+        "layers",
+        "license_name",
+        "model_type",
+        "moe",
+        "quantization_bits",
+        "quantization_layout",
+    )
+    provenance = {
+        field: {
+            "kind": "inferred" if field == "family" else "provider-declared",
+            "source": "https://huggingface.co/provider/pinned-config",
+            "observed_at": observed_at,
+            "resolved_revision": model.revision,
+        }
+        for field in receipt_fields
+    }
+    receipt = create_model_inspection_receipt(
+        model_id=model.model_id,
+        resolved_revision=model.revision,
+        facts=to_primitive(model),
+        provenance=provenance,
+        subject=subject_from_model(model),
+        evaluated_at=observed_at,
+    )
+    return plan_training(
+        model=model,
+        dataset=base.dataset,
+        hardware=base.hardware,
+        target=base.target,
+        inspection_receipt=receipt,
+    )
 
 
 def install_mlx_completed_run(
@@ -515,6 +562,28 @@ def install_measured_run_attestation(bundle: Path) -> dict:
 
 
 class ValidationAttestationTests(unittest.TestCase):
+    def test_planner_parity_preserves_provider_inspection_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            plan = _provider_qwen_plan(root)
+            bundle = root / "provider-receipt-bundle"
+            generate_bundle(plan, bundle)
+
+            with patch(
+                "aptus.validation.plan_training", wraps=plan_training
+            ) as replanner:
+                report = validate_bundle(bundle, level="contract", run=False)
+
+            self.assertFalse(report.findings, report.findings)
+            receipt = replanner.call_args.kwargs["inspection_receipt"]
+            self.assertIsNotNone(receipt)
+            self.assertIsNotNone(plan.inspection_receipt)
+            assert plan.inspection_receipt is not None
+            self.assertEqual(
+                receipt.receipt_id,
+                plan.inspection_receipt.receipt_id,
+            )
+
     def test_host_preflight_reader_accepts_bound_mlx_memory_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             bundle, plan, _run_root, metrics = install_mlx_completed_run(

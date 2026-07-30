@@ -1,7 +1,11 @@
 import copy
+from dataclasses import replace
+import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from aptus.domain import (
     Backend,
@@ -11,11 +15,20 @@ from aptus.domain import (
     to_primitive,
 )
 from aptus.methods import selectable_method_descriptors
+from aptus.model_compatibility import (
+    create_model_inspection_receipt,
+    evaluate_model_compatibility,
+    subject_from_model,
+)
 from aptus.plan_contract import (
+    MODEL_TARGET_MODULES,
     RUNTIME_BINDING_IDENTITIES,
+    StaleModelPolicyError,
+    _current_model_policy_decision,
     candidate_id_for_payload,
     expected_model_architecture_contract,
     plan_id_for_payload,
+    require_current_model_policy,
     validate_model_config_against_plan,
     validate_plan_payload,
 )
@@ -42,9 +55,660 @@ class PlanContractTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_real_v3_plan_is_valid(self) -> None:
+    def test_real_v4_plan_is_valid(self) -> None:
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
-        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v3")
+        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v4")
+
+    def test_host_and_portable_policy_decisions_match_every_supported_state(
+        self,
+    ) -> None:
+        qwen_model = make_qwen3_moe_plan(self.root).model
+        qwen_subject = subject_from_model(qwen_model)
+        qwen_payload = to_primitive(qwen_model)
+        assert qwen_subject.quantization_layout is not None
+        assert qwen_subject.moe is not None
+
+        dense_model = make_plan(self.root).model
+        dense_subject = subject_from_model(dense_model)
+        dense_payload = to_primitive(dense_model)
+
+        cases = [("exact-qwen", qwen_subject, qwen_payload)]
+
+        identity_subject = replace(qwen_subject, architecture="OtherForCausalLM")
+        identity_payload = copy.deepcopy(qwen_payload)
+        identity_payload["architecture"] = "OtherForCausalLM"
+        cases.append(("identity-mismatch", identity_subject, identity_payload))
+
+        layout = replace(qwen_subject.quantization_layout, default_group_size=128)
+        layout_subject = replace(qwen_subject, quantization_layout=layout)
+        layout_payload = copy.deepcopy(qwen_payload)
+        layout_payload["quantization_layout"]["default_group_size"] = 128
+        cases.append(("layout-mismatch", layout_subject, layout_payload))
+
+        topology = replace(qwen_subject.moe, decoder_sparse_step=49)
+        topology_subject = replace(qwen_subject, moe=topology)
+        topology_payload = copy.deepcopy(qwen_payload)
+        topology_payload["moe"]["decoder_sparse_step"] = 49
+        cases.append(("topology-incomplete", topology_subject, topology_payload))
+
+        shared = replace(qwen_subject.moe, shared_expert_intermediate_size=256)
+        shared_subject = replace(qwen_subject, moe=shared)
+        shared_payload = copy.deepcopy(qwen_payload)
+        shared_payload["moe"]["shared_expert_intermediate_size"] = 256
+        cases.append(("shared-expert", shared_subject, shared_payload))
+
+        four_bit_subject = replace(qwen_subject, quantization_bits=8)
+        four_bit_payload = copy.deepcopy(qwen_payload)
+        four_bit_payload["quantization_bits"] = 8
+        cases.append(("four-bit-required", four_bit_subject, four_bit_payload))
+
+        cases.append(("dense-recognized", dense_subject, dense_payload))
+
+        sparse_subject = replace(
+            dense_subject,
+            family="mixtral",
+            model_type="mixtral",
+            architecture="MixtralForCausalLM",
+        )
+        sparse_payload = copy.deepcopy(dense_payload)
+        sparse_payload.update(
+            {
+                "family": "mixtral",
+                "model_type": "mixtral",
+                "architecture": "MixtralForCausalLM",
+            }
+        )
+        cases.append(("unreviewed-sparse", sparse_subject, sparse_payload))
+
+        unknown_subject = replace(
+            dense_subject,
+            family="unknown-family",
+            model_type=None,
+            architecture=None,
+        )
+        unknown_payload = copy.deepcopy(dense_payload)
+        unknown_payload.update(
+            {
+                "family": "unknown-family",
+                "model_type": None,
+                "architecture": None,
+            }
+        )
+        cases.append(("unknown", unknown_subject, unknown_payload))
+
+        for label, subject, model in cases:
+            with self.subTest(label=label):
+                self.assertEqual(
+                    _current_model_policy_decision(model),
+                    to_primitive(evaluate_model_compatibility(subject)),
+                )
+
+    def _provider_qwen_payload(self) -> dict:
+        base = make_qwen3_moe_plan(self.root)
+        model = base.model
+        facts = to_primitive(model)
+        observed_at = "2026-07-29T12:00:00+00:00"
+        receipt_fields = (
+            "architecture",
+            "context_length",
+            "family",
+            "hidden_size",
+            "intermediate_size",
+            "layers",
+            "license_name",
+            "model_type",
+            "moe",
+            "quantization_bits",
+            "quantization_layout",
+        )
+        provenance = {
+            field: {
+                "kind": "inferred" if field == "family" else "provider-declared",
+                "source": "https://huggingface.co/provider/pinned-config",
+                "observed_at": observed_at,
+                "resolved_revision": model.revision,
+            }
+            for field in receipt_fields
+        }
+        receipt = create_model_inspection_receipt(
+            model_id=model.model_id,
+            resolved_revision=model.revision,
+            facts=facts,
+            provenance=provenance,
+            subject=subject_from_model(model),
+            evaluated_at=observed_at,
+        )
+        return to_primitive(
+            plan_training(
+                model=model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+        )
+
+    def test_pre_v4_plan_requires_replanning(self) -> None:
+        value = copy.deepcopy(self.payload)
+        value["schema_version"] = "aptus.training-plan.v3"
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(any("replan_required" in item for item in errors), errors)
+
+    def test_recomputes_current_policy_after_consistent_plan_id_tampering(self) -> None:
+        value = copy.deepcopy(self.payload)
+        value["model_policy_decision"]["reason_codes"] = ["no-policy-match"]
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(any("current registered policy" in item for item in errors))
+        self.assertFalse(any("Plan immutable ID" in item for item in errors))
+
+    def test_stale_registered_policy_has_a_dedicated_replan_error(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        decision = value["model_policy_decision"]
+        recommended_key = (
+            value["recommended"]["method"],
+            value["recommended"]["distribution"],
+        )
+        decision["policy_version"] = "0.9.0"
+        identity = {
+            key: decision[key]
+            for key in (
+                "schema_version",
+                "subject_facts_sha256",
+                "kind",
+                "family",
+                "policy_id",
+                "policy_version",
+                "paths",
+                "reason_codes",
+                "evidence_ids",
+            )
+        }
+        encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        decision["decision_id"] = "compat_" + hashlib.sha256(encoded).hexdigest()[:20]
+        for candidate in value["candidates"]:
+            candidate["model_policy_decision_id"] = decision["decision_id"]
+            binding = candidate["policy_binding"]
+            if binding is not None:
+                binding["decision_id"] = decision["decision_id"]
+                binding["policy_version"] = decision["policy_version"]
+            candidate["candidate_id"] = candidate_id_for_payload(
+                candidate,
+                model=value["model"],
+                dataset=value["dataset"],
+                hardware=value["hardware"],
+                target=value["target"],
+            )
+        value["recommended"] = copy.deepcopy(
+            next(
+                candidate
+                for candidate in value["candidates"]
+                if (candidate["method"], candidate["distribution"]) == recommended_key
+            )
+        )
+        value["plan_id"] = plan_id_for_payload(value)
+
+        with self.assertRaisesRegex(StaleModelPolicyError, "replan_required"):
+            require_current_model_policy(value)
+
+    def test_partial_stale_policy_rewrite_is_tampering_not_replan(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        decision = value["model_policy_decision"]
+        decision["policy_version"] = "0.9.0"
+        identity = {
+            key: decision[key]
+            for key in (
+                "schema_version",
+                "subject_facts_sha256",
+                "kind",
+                "family",
+                "policy_id",
+                "policy_version",
+                "paths",
+                "reason_codes",
+                "evidence_ids",
+            )
+        }
+        encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        decision["decision_id"] = "compat_" + hashlib.sha256(encoded).hexdigest()[:20]
+
+        with self.assertRaises(ValueError) as caught:
+            require_current_model_policy(value)
+
+        self.assertNotIsInstance(caught.exception, StaleModelPolicyError)
+
+    def test_internally_valid_plan_requires_replan_when_a_policy_is_added(self) -> None:
+        value = copy.deepcopy(self.payload)
+        future = copy.deepcopy(value["model_policy_decision"])
+        future["policy_id"] = "model.llama.future-policy"
+        future["policy_version"] = "1.0.0"
+        future["reason_codes"] = ["exact-reviewed-artifact"]
+        identity = {
+            key: future[key]
+            for key in (
+                "schema_version",
+                "subject_facts_sha256",
+                "kind",
+                "family",
+                "policy_id",
+                "policy_version",
+                "paths",
+                "reason_codes",
+                "evidence_ids",
+            )
+        }
+        encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+        future["decision_id"] = "compat_" + hashlib.sha256(encoded).hexdigest()[:20]
+
+        with (
+            patch(
+                "aptus.plan_contract._current_model_policy_decision",
+                return_value=future,
+            ),
+            patch.dict(MODEL_TARGET_MODULES, {"llama": ["future_proj"]}),
+            self.assertRaisesRegex(StaleModelPolicyError, "replan_required"),
+        ):
+            require_current_model_policy(value)
+
+    def test_generated_unknown_family_plan_round_trips_portable_validation(
+        self,
+    ) -> None:
+        base = make_plan(self.root)
+        plan = plan_training(
+            model=replace(base.model, family="unregistered-family"),
+            dataset=base.dataset,
+            hardware=base.hardware,
+            target=base.target,
+        )
+        value = to_primitive(plan)
+        adapter_candidates = [
+            candidate
+            for candidate in value["candidates"]
+            if candidate["method"] != "full"
+        ]
+
+        self.assertEqual(value["model_policy_decision"]["kind"], "unknown")
+        self.assertTrue(adapter_candidates)
+        self.assertTrue(
+            all(
+                candidate["status"] == "unsupported"
+                and candidate["target_modules"] == []
+                and candidate["checkpoint_retention_bytes"] == 0
+                for candidate in adapter_candidates
+            )
+        )
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+
+    def test_malformed_json_scalar_types_return_errors_instead_of_raising(
+        self,
+    ) -> None:
+        mutations = (
+            ("model family", lambda value: value["model"].__setitem__("family", [])),
+            (
+                "target method",
+                lambda value: value["target"].__setitem__("method_preference", []),
+            ),
+            (
+                "target runtime",
+                lambda value: value["target"].__setitem__("training_runtime", []),
+            ),
+            (
+                "candidate method",
+                lambda value: value["candidates"][0].__setitem__("method", []),
+            ),
+            (
+                "candidate runtime",
+                lambda value: value["candidates"][0]["runtime_contract"].__setitem__(
+                    "training_runtime", []
+                ),
+            ),
+            (
+                "candidate status",
+                lambda value: value["candidates"][0].__setitem__("status", []),
+            ),
+            (
+                "oversized evaluation fraction",
+                lambda value: value["target"].__setitem__(
+                    "evaluation_fraction", 10**400
+                ),
+            ),
+            (
+                "negative oversized evaluation fraction",
+                lambda value: value["target"].__setitem__(
+                    "evaluation_fraction", -(10**400)
+                ),
+            ),
+            (
+                "oversized learning rate",
+                lambda value: value["candidates"][0].__setitem__(
+                    "learning_rate", 10**400
+                ),
+            ),
+            (
+                "negative oversized learning rate",
+                lambda value: value["candidates"][0].__setitem__(
+                    "learning_rate", -(10**400)
+                ),
+            ),
+        )
+
+        for label, mutate in mutations:
+            with self.subTest(label=label):
+                value = copy.deepcopy(self.payload)
+                mutate(value)
+                errors = validate_plan_payload(value, verify_dataset=False)
+                self.assertTrue(errors)
+
+    def test_uppercase_family_is_rejected_at_both_policy_boundaries(self) -> None:
+        qwen_model = make_qwen3_moe_plan(self.root).model
+        qwen_subject = subject_from_model(qwen_model)
+        qwen_payload = to_primitive(qwen_model)
+        qwen_payload["family"] = "QWEN3_MOE"
+
+        with self.assertRaisesRegex(ValueError, "canonical lowercase"):
+            replace(qwen_model, family="QWEN3_MOE")
+        with self.assertRaisesRegex(ValueError, "canonical lowercase"):
+            replace(qwen_subject, family="QWEN3_MOE")
+        with self.assertRaisesRegex(ValueError, "canonical lowercase"):
+            _current_model_policy_decision(qwen_payload)
+
+    def test_coherently_reidentified_non_scalar_family_fails_validation(self) -> None:
+        base = make_plan(self.root)
+        value = to_primitive(
+            plan_training(
+                model=replace(base.model, family="unregistered-family"),
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+            )
+        )
+        recommended_key = (
+            value["recommended"]["method"],
+            value["recommended"]["distribution"],
+        )
+        value["model"]["family"] = ["unregistered-family"]
+        decision = _current_model_policy_decision(value["model"])
+        value["model_policy_decision"] = decision
+        for candidate in value["candidates"]:
+            candidate["model_policy_decision_id"] = decision["decision_id"]
+            candidate["policy_binding"] = None
+            candidate["candidate_id"] = candidate_id_for_payload(
+                candidate,
+                model=value["model"],
+                dataset=value["dataset"],
+                hardware=value["hardware"],
+                target=value["target"],
+            )
+        value["recommended"] = copy.deepcopy(
+            next(
+                candidate
+                for candidate in value["candidates"]
+                if (candidate["method"], candidate["distribution"]) == recommended_key
+            )
+        )
+        value["plan_id"] = plan_id_for_payload(value)
+
+        require_current_model_policy(value)
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(any("Model family is required" in item for item in errors))
+
+    def test_policy_tampering_is_not_classified_as_a_stale_version(self) -> None:
+        value = to_primitive(make_qwen3_moe_plan(self.root))
+        value["model_policy_decision"]["reason_codes"] = ["no-policy-match"]
+
+        with self.assertRaises(ValueError) as caught:
+            require_current_model_policy(value)
+
+        self.assertNotIsInstance(caught.exception, StaleModelPolicyError)
+
+    def test_explanatory_policy_prose_is_not_part_of_identity(self) -> None:
+        value = copy.deepcopy(self.payload)
+        original_plan_id = value["plan_id"]
+        value["model_policy_decision"]["reason"] = "Clearer explanatory prose."
+
+        self.assertEqual(plan_id_for_payload(value), original_plan_id)
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+
+    def test_evidence_record_content_is_identity_bound_and_canonical(self) -> None:
+        original = to_primitive(make_qwen3_moe_plan(self.root))
+        mutations = {
+            "claim": "Full production training passed.",
+            "source": "https://attacker.invalid/forged",
+            "source_kind": "production-attestation",
+            "scope": "All models and all hosts",
+            "confidence": "production-passed",
+            "revision": "forged-revision",
+        }
+        for field, replacement in mutations.items():
+            with self.subTest(field=field):
+                value = copy.deepcopy(original)
+                record = next(
+                    item
+                    for item in value["evidence_records"]
+                    if item["evidence_id"]
+                    == "admission.qwen3-30b-a3b.memory-blocked.2026-07-28"
+                )
+                record[field] = replacement
+
+                self.assertNotEqual(plan_id_for_payload(value), original["plan_id"])
+                value["plan_id"] = plan_id_for_payload(value)
+                errors = validate_plan_payload(value, verify_dataset=False)
+                self.assertTrue(
+                    any("canonical evidence registry" in item for item in errors),
+                    errors,
+                )
+
+    def test_unknown_family_cannot_replay_known_adapter_targets(self) -> None:
+        value = copy.deepcopy(self.payload)
+        recommended_key = (
+            value["recommended"]["method"],
+            value["recommended"]["distribution"],
+        )
+        value["model"]["family"] = "unknown-model"
+        decision = _current_model_policy_decision(value["model"])
+        self.assertEqual(decision["kind"], "unknown")
+        value["model_policy_decision"] = decision
+        for candidate in value["candidates"]:
+            candidate["model_policy_decision_id"] = decision["decision_id"]
+            candidate["policy_binding"] = None
+            candidate["candidate_id"] = candidate_id_for_payload(
+                candidate,
+                model=value["model"],
+                dataset=value["dataset"],
+                hardware=value["hardware"],
+                target=value["target"],
+            )
+        value["recommended"] = copy.deepcopy(
+            next(
+                candidate
+                for candidate in value["candidates"]
+                if (candidate["method"], candidate["distribution"]) == recommended_key
+            )
+        )
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any("unregistered model families" in item for item in errors), errors
+        )
+        require_current_model_policy(value)
+
+    def test_candidate_identity_and_link_bind_the_policy_decision(self) -> None:
+        value = copy.deepcopy(self.payload)
+        candidate = value["candidates"][0]
+        original_id = candidate["candidate_id"]
+        candidate["model_policy_decision_id"] = "compat_" + "0" * 20
+        candidate["candidate_id"] = candidate_id_for_payload(
+            candidate,
+            model=value["model"],
+            dataset=value["dataset"],
+            hardware=value["hardware"],
+            target=value["target"],
+        )
+        if value["recommended"]["candidate_id"] == original_id:
+            value["recommended"] = copy.deepcopy(candidate)
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any("current model policy decision ID" in item for item in errors)
+        )
+        self.assertFalse(any("immutable candidate ID" in item for item in errors))
+
+    def test_registered_path_requires_binding_and_other_paths_forbid_it(self) -> None:
+        for mutation in ("remove-matching", "add-nonmatching"):
+            with self.subTest(mutation=mutation):
+                value = to_primitive(make_qwen3_moe_plan(self.root))
+                bound = next(
+                    item for item in value["candidates"] if item["policy_binding"]
+                )
+                if mutation == "remove-matching":
+                    candidate = bound
+                    candidate["policy_binding"] = None
+                else:
+                    candidate = next(
+                        item
+                        for item in value["candidates"]
+                        if item["policy_binding"] is None
+                    )
+                    candidate["policy_binding"] = copy.deepcopy(bound["policy_binding"])
+                original_id = candidate["candidate_id"]
+                candidate["candidate_id"] = candidate_id_for_payload(
+                    candidate,
+                    model=value["model"],
+                    dataset=value["dataset"],
+                    hardware=value["hardware"],
+                    target=value["target"],
+                )
+                if value["recommended"]["candidate_id"] == original_id:
+                    value["recommended"] = copy.deepcopy(candidate)
+                value["plan_id"] = plan_id_for_payload(value)
+
+                errors = validate_plan_payload(value, verify_dataset=False)
+
+                expected = (
+                    "requires a policy_binding"
+                    if mutation == "remove-matching"
+                    else "policy_binding must be null"
+                )
+                self.assertTrue(any(expected in item for item in errors), errors)
+
+    def test_provider_receipt_is_recomputed_from_every_observed_plan_fact(self) -> None:
+        value = self._provider_qwen_payload()
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+
+        value["model"]["context_length"] -= 1
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(any("observed-facts digest" in item for item in errors), errors)
+
+    def test_receipt_decision_prose_is_not_part_of_identity(self) -> None:
+        value = self._provider_qwen_payload()
+        original_plan_id = value["plan_id"]
+        value["model_policy_decision"]["reason"] = "Plan explanation."
+        value["inspection_receipt"]["decision"]["reason"] = "Receipt explanation."
+
+        self.assertEqual(plan_id_for_payload(value), original_plan_id)
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+
+    def test_receipt_backed_model_provenance_is_verified(self) -> None:
+        for field in ("architecture", "parameters", "training_allowed"):
+            with self.subTest(field=field):
+                value = self._provider_qwen_payload()
+                value["model"]["provenance"][field]["kind"] = "unknown"
+
+                errors = validate_plan_payload(value, verify_dataset=False)
+
+                self.assertTrue(
+                    any(f"provenance for {field}" in item for item in errors),
+                    errors,
+                )
+
+    def test_portable_receipt_rejects_non_provider_provenance_kinds(self) -> None:
+        for kind in ("measured", "unknown", "user-attested"):
+            with self.subTest(kind=kind):
+                value = self._provider_qwen_payload()
+                provenance = value["inspection_receipt"]["provenance_summary"]
+                provenance[0]["kind"] = kind
+                value["plan_id"] = plan_id_for_payload(value)
+
+                errors = validate_plan_payload(value, verify_dataset=False)
+
+                self.assertTrue(
+                    any(
+                        "kind must be provider-declared or inferred" in item
+                        for item in errors
+                    ),
+                    errors,
+                )
+
+    def test_portable_receipt_requires_complete_compatibility_subject_coverage(
+        self,
+    ) -> None:
+        value = self._provider_qwen_payload()
+        provenance = value["inspection_receipt"]["provenance_summary"]
+        value["inspection_receipt"]["provenance_summary"] = [
+            item for item in provenance if item["field"] != "architecture"
+        ]
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any(
+                "provenance does not cover compatibility subject facts: architecture"
+                in item
+                for item in errors
+            ),
+            errors,
+        )
+
+    def test_malformed_provider_receipt_does_not_downgrade_to_user_attested(
+        self,
+    ) -> None:
+        value = self._provider_qwen_payload()
+        value["inspection_receipt"] = {}
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(any("inspection receipt" in item.lower() for item in errors))
+        self.assertTrue(any("exact v1 fields" in item for item in errors))
+
+    def test_receipt_free_plan_cannot_claim_provider_model_provenance(self) -> None:
+        value = copy.deepcopy(self.payload)
+        value["model"]["provenance"]["all"]["kind"] = "provider-declared"
+        value["plan_id"] = plan_id_for_payload(value)
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertTrue(
+            any("must remain user-attested" in item for item in errors),
+            errors,
+        )
+
+    def test_plan_identity_binds_decision_source_and_full_receipt(self) -> None:
+        for field, replacement in (
+            ("model_policy_decision_source", "user-attested"),
+            ("inspection_receipt", None),
+        ):
+            with self.subTest(field=field):
+                value = self._provider_qwen_payload()
+                value[field] = replacement
+
+                errors = validate_plan_payload(value, verify_dataset=False)
+
+                self.assertTrue(any("Plan immutable ID" in item for item in errors))
 
     def test_embedded_runtime_identities_match_the_registered_bindings(self) -> None:
         registered = {

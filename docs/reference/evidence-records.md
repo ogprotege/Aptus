@@ -5,15 +5,18 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-07-22 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-22, or sooner when domain, evidence, validation, or execution contracts change |
 
-Aptus separates four concepts that answer different questions:
+Aptus separates seven concepts that answer different questions:
 
 | Concept | Question answered | Location |
 | --- | --- | --- |
 | Provenance | Where did this supplied or observed fact come from? | Model, dataset, hardware, and device records |
 | Measurement kind | Was dataset token length measured with the pinned tokenizer or estimated? | Dataset profile |
+| Policy decision | What did the current compatibility registry decide from the subject facts? | Plan-level `model_policy_decision` |
+| Inspection receipt | Which provider and inferred planning facts were observed at one immutable revision? | Plan-level `inspection_receipt` when used |
+| Policy binding | Which exact registered policy path does one candidate match? | Candidate `policy_binding` when matched |
 | Evidence record | What source supports a method or estimator claim? | Plan-level `evidence_records` |
 | Runtime attestation | What exact artifact and execution fact did Aptus verify? | `validation-report.json`, metrics files, and job completion records |
 
@@ -62,6 +65,38 @@ During compilation, dataset provenance becomes portable. Its source changes to
 `bundle:data/dataset.<source-suffix>`, the copied source artifact. The original
 observation timestamp, digest, and detail are retained when present.
 
+## Policy provenance records
+
+`aptus.model-compatibility.v2` separates one policy decision from candidate
+feasibility. Its `subject_facts_sha256` covers only compatibility inputs. Stable
+reason codes and evidence IDs identify the result. A matched or blocked
+registered policy can also name a stable policy ID and semantic version. The
+current exact row uses policy `model.qwen3-moe.mlx-qlora` version `1.0.0` and
+path `mlx-lm.qlora.single.attention-qkvo.v1`.
+
+`aptus.model-inspection-receipt.v1` separately records
+`observed_facts_sha256`. That digest covers every provider-declared or inferred
+planning fact carried from inspection, not only the compatibility subject. The
+receipt lists each covered field's provenance kind, source, observation time,
+and resolved revision. Parameters and training permission are excluded and
+remain user-attested.
+
+Receipt provenance accepts only `provider-declared` and `inferred`. It covers
+every non-null compatibility subject field and includes at least one
+provider-declared subject observation. A registered path can impose a stricter
+provider-declared field set.
+
+Every v4 candidate carries `model_policy_decision_id`, including candidates
+that match no policy path. Only the candidate whose method, distribution,
+target modules, and runtime contract match a registered path carries an
+`aptus.model-policy-binding.v1`. Its source is `provider-inspection` with a
+receipt ID or `user-attested` with no receipt ID.
+
+Receipt and decision hashes are tamper-evident content bindings, not
+authenticated signatures. They detect mismatched content but do not prove the
+identity of the producer. A present invalid receipt is rejected rather than
+silently treated as user-attested.
+
 ## Dataset measurement kind
 
 Dataset profiling reports one of two measurement kinds:
@@ -96,6 +131,8 @@ The current confidence labels are:
 | `documented` | An official integration or training document states the claim |
 | `paper-reported` | A research paper defines or reports the claim within its scope |
 | `uncalibrated` | Aptus records an analytic methodology that still requires empirical calibration |
+| `implementation-reviewed` | An Aptus compatibility path has passed code and contract review but still requires runtime gates |
+| `measured-blocked` | A recorded target-host attempt failed at a named measured admission gate |
 
 Confidence does not cross scopes. For example, `paper-reported` on a LoRA
 definition does not provide runtime evidence for an Aptus LoRA bundle.
@@ -118,6 +155,8 @@ The registry currently contains these records.
 | `method.sharelora.paper` | Research paper | `paper-reported` | ShareLoRA shares compatible low-rank factors; serialization and synchronization need separate proof |
 | `method.bitsandbytes.int8` | Official documentation | `documented` | Bitsandbytes supports eight-bit loading in supported CUDA environments |
 | `estimate.memory.v2` | Aptus methodology | `uncalibrated` | Aptus emits a point estimate and heuristic upper envelope; an exact pilot remains required |
+| `policy.qwen3-moe.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The exact reviewed Qwen3 MoE tuple maps to one MLX-LM QLoRA path; runtime validation remains mandatory |
+| `admission.qwen3-30b-a3b.memory-blocked.2026-07-28` | Measured admission record | `measured-blocked` | One exact 30B attempt failed live unified-memory admission before model loading; it is refusal evidence, not a passing pilot |
 
 Canonical source URLs and revisions are serialized into each generated plan.
 Consumers should read the record rather than reconstructing a URL from its ID.
@@ -147,18 +186,20 @@ object per line. The bundle manifest binds that file by path, size, and digest.
 
 ## Evidence identity rules
 
-Evidence content is integrity-bound but is not an input to `plan_id` in v0.2.
-That ID binds schema and formula versions, normalized facts, ordered candidate
-IDs, and the recommended candidate ID. Changing an evidence claim, source,
-scope, confidence label, or revision changes the serialized plan bytes and any
-bundle manifest and artifact fingerprint that contains it, but it does not by
-itself change `plan_id`.
+Evidence-record content is a direct `plan_id` input. The v4 plan ID binds schema
+and formula versions, normalized facts, the policy decision and source, any
+receipt, the sorted canonical evidence records, ordered candidate IDs, and the
+recommended candidate ID. Changing a claim, source, source kind, scope,
+confidence, or revision changes the plan ID. The portable validator also
+requires each known evidence ID to resolve to its exact code-owned record and
+requires the record set to equal the candidates' cited evidence union.
 
 Within a bundle:
 
 - `plan.json` is bound by the bundle manifest;
 - `evidence.jsonl` is independently bound by the bundle manifest;
-- candidate evidence references must resolve inside `plan.json`; and
+- candidate evidence references must resolve to exact canonical records inside
+  `plan.json`; and
 - validation reproduces the plan from its facts and compares candidate and
   recommendation parity.
 

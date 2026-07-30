@@ -4,30 +4,35 @@
 | --- | --- |
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
-| Authority | Normative field reference for `aptus.training-plan.v3` |
-| Last reviewed | 2026-07-27 |
+| Authority | Normative field reference for `aptus.training-plan.v4` |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-27, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
-The current schema identifier is `aptus.training-plan.v3`. Numbers must be
+The current schema identifier is `aptus.training-plan.v4`. Numbers must be
 finite JSON values. The self-contained bundle validator recomputes candidate and
 plan identities and rejects semantic mutation. Plans with
-`aptus.training-plan.v2` or no schema identifier do not contain every fact
-required by v3. Aptus preserves those saved bytes, but it does not reinterpret,
-compile, or recover them. Create a deterministic v3 plan from the preserved
-source facts. Do not relabel the old plan.
+`aptus.training-plan.v3`, `aptus.training-plan.v2`, or no schema identifier do
+not contain the policy provenance required by v4. Aptus preserves those saved
+bytes, but it does not reinterpret, compile, or recover them. Create a
+deterministic v4 plan from the preserved source facts. Do not relabel the old
+plan. A syntactically valid v4 plan also enters `replan_required` when its
+persisted policy decision no longer matches the current registered policy.
 
 ## Top-level object
 
 ```json
 {
-  "schema_version": "aptus.training-plan.v3",
+  "schema_version": "aptus.training-plan.v4",
   "plan_id": "plan_0123456789abcdef0123",
   "formula_version": "aptus-memory-v2",
   "model": {},
   "dataset": {},
   "hardware": {},
   "target": {},
+  "model_policy_decision": {},
+  "model_policy_decision_source": "user-attested",
+  "inspection_receipt": null,
   "recommended": {},
   "candidates": [],
   "warnings": [],
@@ -45,6 +50,9 @@ source facts. Do not relabel the old plan.
 | `dataset` | object | Source identity and profile |
 | `hardware` | object | Planned devices, host capacity, and provenance |
 | `target` | object | Requested training policy |
+| `model_policy_decision` | object | Versioned compatibility result under `aptus.model-compatibility.v2` |
+| `model_policy_decision_source` | string | `provider-inspection` when backed by a valid receipt, otherwise `user-attested` |
+| `inspection_receipt` | object or null | Exact `aptus.model-inspection-receipt.v1` observation used for planning; required for `provider-inspection` and forbidden for `user-attested` |
 | `recommended` | candidate object | Highest-ranked viable candidate |
 | `candidates` | array | Fixed 12-row method and placement matrix |
 | `warnings` | string array | Plan-wide limitations and inferred assumptions |
@@ -57,7 +65,7 @@ source facts. Do not relabel the old plan.
 | --- | --- | --- |
 | `model_id` | string | Provider repository ID, not a local path |
 | `revision` | string | Immutable 40 to 64 character hexadecimal commit |
-| `family` | string | Planner family. Dense adapter paths use `gemma`, `llama`, `mistral`, or `qwen`; the exact sparse row uses `qwen3_moe` |
+| `family` | string | Canonical lowercase planner family. Dense adapter paths use `gemma`, `llama`, `mistral`, or `qwen`; the exact sparse row uses `qwen3_moe` |
 | `parameters` | integer | Positive exact user-attested total parameter count. This is the resident-weight basis |
 | `active_parameters` | integer | Backend-derived logical parameters used per token. This never replaces `parameters` in resident memory estimates |
 | `hidden_size` | integer | Positive hidden width |
@@ -76,7 +84,87 @@ source facts. Do not relabel the old plan.
 | `provenance` | object | Field name to provenance object mapping |
 
 Provider inspection can supply identity, quantization, and MoE topology facts,
-but it cannot supply `parameters` or set `training_allowed`.
+but it cannot supply `parameters` or set `training_allowed`. Those two facts
+remain user-attested and are excluded from the inspection receipt.
+
+## Model policy decision
+
+Every v4 plan contains one `aptus.model-compatibility.v2` decision. The planner
+evaluates it once and links every candidate to its `decision_id`.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `schema_version` | string | Exact `aptus.model-compatibility.v2` identifier |
+| `decision_id` | string | `compat_` plus a 20-hex content identity |
+| `subject_facts_sha256` | 64-hex string | Digest of compatibility-only model facts |
+| `kind` | string | `path-matched`, `family-recognized`, `blocked`, or `unknown` |
+| `family` | string or null | Normalized family when known |
+| `policy_id` | string or null | Stable registered policy ID for matched or blocked registered-policy results |
+| `policy_version` | string or null | Semantic version paired with `policy_id` |
+| `paths` | array | Complete registered paths for a `path-matched` result; empty otherwise |
+| `reason_codes` | string array | Stable machine-readable result reasons |
+| `evidence_ids` | string array | Evidence records supporting the policy result |
+| `reason` | string | Human-readable explanation; excluded from decision identity |
+
+`subject_facts_sha256` binds family, raw model type, architecture, layer count,
+quantization precision and layout, MoE topology, and compatibility fact errors.
+It does not stand in for all planning facts. The decision ID also binds the
+decision kind, policy identity and version, complete path objects, reason codes,
+and evidence IDs.
+
+The current exact sparse row uses:
+
+- policy ID `model.qwen3-moe.mlx-qlora`;
+- policy version `1.0.0`; and
+- path ID `mlx-lm.qlora.single.attention-qkvo.v1`.
+
+Each policy path binds method, distribution, adapter profile, target modules,
+`aptus.runtime-contract.v1`, required `model-data`, `measured-preflight`, and
+`pilot` levels, and evidence IDs. Policy and path IDs are stable. Any semantic
+policy change requires a new policy version or path ID.
+
+## Inspection receipt
+
+A successful bounded provider inspection returns an
+`aptus.model-inspection-receipt.v1` object:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `schema_version` | string | Exact receipt contract identifier |
+| `receipt_id` | string | `receipt_` plus a 20-hex content identity |
+| `model_id` | string | Inspected provider repository |
+| `resolved_revision` | string | Immutable provider revision used for every observation |
+| `observed_facts_sha256` | 64-hex string | Digest of every inspected planning fact carried into the plan |
+| `decision` | object | Complete `aptus.model-compatibility.v2` decision for the inspected facts |
+| `provenance_summary` | array | Sorted per-field kind, source, observation time, and resolved revision |
+| `provenance_requirement` | string or null | Required provenance kind for a registered policy match |
+| `provenance_requirement_met` | boolean | Whether every policy-required field meets that provenance requirement |
+| `evaluated_at` | string | Timezone-aware evaluation time |
+
+The observed-facts digest is deliberately broader than
+`subject_facts_sha256`. It covers each provider-declared or inferred planning
+field actually carried from inspection: architecture, context length, family,
+hidden size, intermediate size, layers, license label, raw model type, MoE
+topology, quantization precision, and quantization layout when present. Omitted
+provider fields remain user-attested. `parameters` and `training_allowed` never
+enter the receipt.
+
+Receipt provenance is intentionally narrower than general plan provenance.
+Every receipt entry must be `provider-declared` or `inferred`. Every non-null
+compatibility subject field must have one sorted receipt entry, and at least one
+subject field must be provider-declared. A registered path can require a
+stricter provider-declared field set. The exact Qwen3 MoE path does.
+
+A supplied receipt is revalidated against the model ID, resolved revision,
+observed-facts digest, current policy decision, provenance requirements, and
+receipt content identity. A missing receipt selects the explicit
+`user-attested` path. A present but malformed, stale, mismatched, or modified
+receipt is rejected. Aptus never downgrades a bad receipt to user-attested.
+
+These hashes are tamper-evident content bindings, not authenticated signatures.
+They can expose accidental or untrusted mutation after creation. They do not
+prove who produced a receipt, so the local client and process boundary remains
+trusted.
 
 When `quantization_layout` is present, it contains:
 
@@ -219,9 +307,23 @@ Every row remains visible even when unsupported.
 | `device_indices` | integer array | Bound planned devices in rank order |
 | `user_reserve_bytes` | integer | Reserve excluded from usable capacity |
 | `runtime_contract` | object | Versioned compute, compiler, estimator, evidence, and export binding |
+| `model_policy_decision_id` | string | Required link to the plan's `compat_` decision for every candidate |
+| `policy_binding` | object or null | Exact registered policy path binding; non-null only when this candidate matches an emitted path |
 
 Consumers must use `status`, not only `feasible`. A conditional row can become
 the recommendation, but unresolved reasons remain binding warnings.
+
+Every candidate carries the plan decision link, including dense, blocked,
+unknown, unsupported, and infeasible rows. Only a candidate whose method,
+placement, target modules, and runtime contract exactly match a registered path
+may carry a policy binding. Every other candidate serializes
+`"policy_binding": null`.
+
+An `aptus.model-policy-binding.v1` object contains `decision_id`,
+`subject_facts_sha256`, `policy_id`, `policy_version`, `path_id`, `source`,
+`inspection_receipt_id`, `reason_codes`, and `evidence_ids`. Its source must
+equal the plan source. A provider-inspection binding requires the plan receipt
+ID. A user-attested binding must use `inspection_receipt_id: null`.
 
 ### Precision and training configuration
 
@@ -235,7 +337,7 @@ the recommendation, but unresolved reasons remain binding warnings.
 | `rank` | integer | Zero for full training; adapter prior otherwise |
 | `alpha` | integer | Zero for full training; `2 * rank` for adapters |
 | `learning_rate` | number | Method-class prior |
-| `target_modules` | string array | Empty for full; family catalog modules for adapters. The exact Qwen3 MoE row uses only attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
+| `target_modules` | string array | Empty for full and for unsupported adapters on an unregistered family; otherwise the exact family catalog modules. The Qwen3 MoE row uses only attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
 
 ### Resource and decision fields
 
@@ -244,7 +346,7 @@ the recommendation, but unresolved reasons remain binding warnings.
 | `memory` | object | Point components, upper components, uncertainty, and assumptions |
 | `required_host_ram_bytes` | integer | Host model-loading prior for the planned rank count |
 | `required_disk_bytes` | integer | Staging, pilot, retention, and export prior |
-| `checkpoint_retention_bytes` | integer | Conservative retention estimate; it does not make MLX weight snapshots resumable checkpoints |
+| `checkpoint_retention_bytes` | integer | Conservative retention estimate; zero only for an unsupported adapter with no targets or trainable parameters. It does not make MLX weight snapshots resumable checkpoints |
 | `final_export_bytes` | integer | Minimum predicted final export size |
 | `preference_score` | number | Negative deterministic rank, or a large negative sentinel for rejected rows |
 | `pareto_frontier` | boolean | Nondominated viable row under memory, fidelity, and accumulation criteria |
@@ -323,20 +425,35 @@ the research and methodology evidence records cited by candidates.
 
 Each entry contains `evidence_id`, `claim`, `source`, `source_kind`, `scope`,
 `confidence`, and optional `revision`. The plan includes the sorted union of
-evidence IDs cited by every candidate, not only the recommendation.
+evidence records cited by every candidate, not only the recommendation. Each
+known evidence ID must resolve to its exact code-owned canonical record.
 
 ## Content identity
 
 Candidate identity binds normalized model, dataset, hardware, and target facts,
-plus the execution strategy, resource fields, status, target modules, and memory
-object. Plan identity binds schema and formula versions, normalized facts, all
-candidate IDs in order, and the recommended candidate ID.
-
-Evidence-record content, warnings, and rationale are serialized and later bound
-by the bundle manifest, but they are not direct `plan_id` inputs in v0.2.
+plus the execution strategy, resource fields, status, target modules, memory
+object, policy decision link, and optional exact path binding. Plan identity
+binds schema and formula versions, normalized facts, the complete policy
+decision, its provider-inspection or user-attested source, the optional
+inspection receipt, the complete sorted canonical evidence records, all
+candidate IDs in order, and the recommended candidate ID. Changing an evidence
+claim, source, source kind, scope, confidence, or revision changes plan identity
+and also fails canonical registry validation unless the evidence ID changes
+with the code-owned record.
 
 Narrative warnings and rationale do not replace content identity. A payload must
-also pass deterministic replanning parity during host static validation.
+also pass deterministic replanning parity and current-policy validation during
+loading, compilation, recovery, and host static validation. A stale v4 policy
+version, policy addition or removal, or changed registered path requires
+replanning. Aptus returns `replan_required` only after the saved decision,
+receipt, candidate links and bindings, candidate IDs, recommendation, evidence,
+and plan ID form a coherent historical chain. Broken dependencies are malformed
+or tampered input, not legitimate stale policy state.
+Historical classification uses the persisted decision and its internally
+consistent candidate targets. It does not reinterpret the old plan through a
+newer family-target catalog. Current plans still validate against the current
+catalog, so copied targets on an unknown family fail closed. Malformed JSON
+scalar types return validation errors instead of escaping as runtime failures.
 
 Compilation rewrites the dataset path and provenance source to bundle-relative
 values while retaining the same semantic dataset digest and plan identity.

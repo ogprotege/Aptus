@@ -109,6 +109,24 @@ EVIDENCE_REGISTRY: dict[str, EvidenceRecord] = {
         "Uncalibrated component accounting; exact real-model pilot required",
         "uncalibrated",
     ),
+    "policy.qwen3-moe.mlx-qlora.v1": EvidenceRecord(
+        "policy.qwen3-moe.mlx-qlora.v1",
+        "Aptus defines one exact Qwen3 MoE MLX-LM QLoRA path as eligible for gated validation.",
+        "aptus://operations/evidence/2026-07-28-qwen3-moe-admission",
+        "aptus-compatibility-policy",
+        "Exact qwen3_moe and Qwen3MoeForCausalLM identity, reviewed mixed-bit layout, routed topology, and attention-only adapter scope",
+        "implementation-reviewed",
+        "1.0.0",
+    ),
+    "admission.qwen3-30b-a3b.memory-blocked.2026-07-28": EvidenceRecord(
+        "admission.qwen3-30b-a3b.memory-blocked.2026-07-28",
+        "The exact 30B target-host attempt passed dependency validation and then stopped before model loading at live unified-memory admission.",
+        "aptus://operations/evidence/2026-07-28-qwen3-moe-admission",
+        "measured-admission-record",
+        "Exact pinned Qwen3 30B-A3B revision on the recorded Apple Silicon host; not a passing model-data or pilot result",
+        "measured-blocked",
+        "e9675aa3ca5f900ccef55267914466d55ab325fa",
+    ),
 }
 
 

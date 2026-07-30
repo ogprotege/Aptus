@@ -109,7 +109,8 @@ Aptus can compile the run. The accepted 0.5B run is plumbing and runtime
 evidence, not a target-quality model. The 7B LoRA run is the first larger
 unquantized experiment. The 14B run is a later quality and efficiency candidate.
 The MoE row requires one router-gate override per layer, a complete
-no-shared-expert topology, attention-only adapters, and the v3 model contract.
+no-shared-expert topology, attention-only adapters, and the `aptus.facts.v3`
+model-facts contract.
 Its active parameter count cannot replace
 the total resident parameter count. The 70B run is intentionally last.
 The [Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)

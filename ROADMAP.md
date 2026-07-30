@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-27 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-29 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -50,7 +50,7 @@ The first implementation slice recognizes only an exact `qwen3_moe` checkpoint
 whose architecture is `Qwen3MoeForCausalLM`, whose reviewed MLX layout uses
 four-bit group-64 defaults with one eight-bit group-64 router-gate override per
 layer, and which declares no shared expert. It carries the provider topology
-into `aptus.training-plan.v3`, derives active parameters and sparse-layer count,
+into `aptus.training-plan.v4`, derives active parameters and sparse-layer count,
 and permits only single-device MLX-LM QLoRA with attention `q_proj`, `k_proj`,
 `v_proj`, and `o_proj` adapters. Every candidate remains pilot-required. This
 slice is not released until a real target-host model run passes the gates below.
@@ -93,6 +93,19 @@ Each executable MoE slice requires these gates:
 Compatibility code may precede release evidence, but the UI and plan must retain
 the conditional state. Support expands one exact family and runtime at a time,
 after that executable contract and its evidence gates agree.
+
+Phase 3 binds the host decision into persisted plans. It adds stable policy and
+path IDs, a semantic policy version, a versioned inspection receipt, separate
+compatibility-subject and observed-planning-facts digests, and an exact binding
+only on a candidate that matches the registered path. Every candidate still
+links to the plan decision. Plans created from direct facts remain explicitly
+`user-attested`; provider-backed plans require a valid receipt. Parameter count
+and training permission remain outside that receipt.
+
+Phase 4 will make the policy snapshot and evaluator portable inside the bundle.
+Phase 5 will remove the remaining browser-side policy reconstruction. Phase 3
+does neither. `aptus.api.v1`, `aptus.facts.v3`,
+`aptus.runtime-contract.v1`, and `aptus.bundle.v2` remain unchanged.
 
 ## Planner depth
 

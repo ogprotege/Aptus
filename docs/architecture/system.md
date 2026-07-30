@@ -8,6 +8,7 @@ completion evidence. Each boundary has a distinct contract.
 ```mermaid
 flowchart LR
   A["Explicit facts"] --> B["Profiler and planner"]
+  Q["Optional inspection receipt"] --> B
   B --> C["Identity-bound runtime contract"]
   C --> D["Compiler dispatch"]
   D --> E["Portable bundle"]
@@ -39,7 +40,8 @@ inspection measures the local server host.
 
 Inspection keeps raw `model_type` and architecture identities. For the exact
 Qwen3 MoE row, it also returns checkpoint precision, routed-expert topology,
-and a structured compatibility decision. Normalized inspection facts and typed
+and an `aptus.model-inspection-receipt.v1` containing a structured
+`aptus.model-compatibility.v2` decision. Normalized inspection facts and typed
 planning facts call the same host-side model policy registry. Its internal
 decision distinguishes a matched path, a recognized dense family, a blocked
 sparse near-match, and an unknown family. The unchanged public v1 response maps
@@ -84,22 +86,34 @@ current free host RAM as the live unified-memory headroom cap when available.
 
 The planner evaluates the model policy once per plan and intersects every
 candidate with the emitted paths. Policy matching does not decide hardware fit,
-memory fit, ranking, or evidence readiness. The Phase 2 decision remains
-transient, so `aptus.training-plan.v3` identities and persisted fields do not
-change. A later schema migration will bind versioned policy provenance into the
-plan.
+memory fit, ranking, or evidence readiness. `aptus.training-plan.v4` persists
+that decision and its `provider-inspection` or `user-attested` source. Every
+candidate carries the decision ID. Only the candidate that exactly matches an
+emitted path carries an `aptus.model-policy-binding.v1` object.
+
+The receipt carries two different digests. `subject_facts_sha256` binds only
+compatibility inputs. `observed_facts_sha256` binds every provider-declared or
+inferred planning fact carried from inspection. Parameters and training
+permission remain user-attested and outside the receipt. A present receipt must
+revalidate completely. Invalid input never falls back to the user-attested
+path. These content hashes are tamper-evident, not authenticated signatures.
 
 The host policy registry keeps sparse planning narrower than general MLX-LM
 support. It emits one path only for an
 exact `qwen3_moe` and `Qwen3MoeForCausalLM` identity with four-bit group-64
 defaults, one eight-bit group-64 router-gate override per layer, no shared
-expert, QLoRA, `single`, and attention-only adapter targets. The v3 plan carries
+expert, QLoRA, `single`, and attention-only adapter targets. The v4 plan carries
 the full topology and canonical quantization layout. Resident weights use total
 parameters. Routed activity can inform compute and activation terms but never
 reduces base-weight residency.
 
 Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
+
+Phase 4 will place a portable policy snapshot and generic evaluator in generated
+bundles. Phase 5 will remove browser-side policy reconstruction. Phase 3 keeps
+the current self-contained validator and browser boundary, so neither later
+change is claimed here.
 
 ## 3. Compilation
 

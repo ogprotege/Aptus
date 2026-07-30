@@ -40,7 +40,9 @@ import type {
   InputProfile,
   Job,
   MethodDescriptor,
+  ModelInspectionReceipt,
   ModelInspectionResponse,
+  PlanView,
   ProjectDetail,
   ProjectRevisionSummary,
   ProjectSummary,
@@ -55,6 +57,10 @@ const ACTIVE_JOB_STATES = new Set(["queued", "running", "cancelling"]);
 
 function isActiveJob(job: Job | null): job is Job {
   return Boolean(job && ACTIVE_JOB_STATES.has(job.state));
+}
+
+function isBoundTrainingPlan(plan: PlanView | null): plan is TrainingPlan {
+  return Boolean(plan && "schema_version" in plan);
 }
 
 function validationRank(state: string | undefined): number {
@@ -229,6 +235,12 @@ function freshDraft(): FactDraft {
   return structuredClone(EMPTY_DRAFT);
 }
 
+function inspectionReceiptFromPlan(plan: PlanView | null): ModelInspectionReceipt | null {
+  return isBoundTrainingPlan(plan) && plan.inspection_receipt
+    ? structuredClone(plan.inspection_receipt)
+    : null;
+}
+
 function mergeDefaults(current: FactDraft, defaults: Partial<FactDraft>): FactDraft {
   return {
     ...current,
@@ -263,7 +275,7 @@ export default function App() {
   const [stage, setStage] = useState<WorkflowStage>("facts");
   const [draft, setDraft] = useState<FactDraft>(freshDraft);
   const [profile, setProfile] = useState<InputProfile | null>(null);
-  const [plan, setPlan] = useState<TrainingPlan | null>(null);
+  const [plan, setPlan] = useState<PlanView | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidatePlan | null>(null);
   const [bundle, setBundle] = useState<CompileResponse | null>(null);
   const [report, setReport] = useState<ValidationReport | null>(null);
@@ -277,6 +289,7 @@ export default function App() {
   const [demoMode, setDemoMode] = useState(false);
   const [hardwareScanned, setHardwareScanned] = useState(false);
   const [modelInspection, setModelInspection] = useState<ModelInspectionResponse | null>(null);
+  const [inspectionReceipt, setInspectionReceipt] = useState<ModelInspectionReceipt | null>(null);
   const [methodCatalog, setMethodCatalog] = useState<MethodDescriptor[]>([]);
   const [outputDir, setOutputDir] = useState("");
   const [validationLevel, setValidationLevel] = useState<ValidateRequest["level"]>("static");
@@ -363,6 +376,7 @@ export default function App() {
         }
         if (bootstrap.plan && restoreWorkspace) {
           setPlan(bootstrap.plan);
+          setInspectionReceipt(inspectionReceiptFromPlan(bootstrap.plan));
           setSelectedCandidate(bootstrap.plan.recommended ?? bootstrap.plan.candidates[0] ?? null);
         }
         if (bootstrap.bundle && restoreWorkspace) {
@@ -578,11 +592,23 @@ export default function App() {
         setModelInspection(inspection);
         throw new Error(inspection.error ?? "The provider did not return revision-bound model facts.");
       }
+      const receipt = inspection.inspection_receipt;
+      if (
+        !receipt
+        || receipt.schema_version !== "aptus.model-inspection-receipt.v1"
+        || receipt.model_id !== modelId
+        || receipt.resolved_revision.toLowerCase() !== inspection.resolved_revision.toLowerCase()
+      ) {
+        throw new Error(
+          "The provider inspection did not return a receipt bound to this model and resolved revision.",
+        );
+      }
       if (draftVersionRef.current !== requestDraftVersion) {
         setNotice("Model facts changed during inspection. Aptus did not apply the older provider response.");
         return;
       }
       setModelInspection(inspection);
+      setInspectionReceipt(structuredClone(receipt));
       draftVersionRef.current += 1;
       setDraft((current) => ({
         ...current,
@@ -612,10 +638,10 @@ export default function App() {
     beginAction("plan");
     const requestDraftVersion = draftVersionRef.current;
     try {
-      const nextPlan = await api.plan(
-        draft,
-        currentProject?.project_id ?? plan?.project_id ?? null,
-      );
+      const projectId = currentProject?.project_id ?? plan?.project_id ?? null;
+      const nextPlan = inspectionReceipt
+        ? await api.plan(draft, projectId, inspectionReceipt)
+        : await api.plan(draft, projectId);
       if (draftVersionRef.current !== requestDraftVersion) {
         setNotice("Facts changed while planning. Aptus discarded the older response; compare the current facts again.");
         return;
@@ -649,7 +675,7 @@ export default function App() {
   };
 
   const handleCompile = async () => {
-    if (!plan) return;
+    if (!isBoundTrainingPlan(plan)) return;
     if (demoMode) {
       setError("Clear the labeled example before compiling artifacts.");
       return;
@@ -853,6 +879,7 @@ export default function App() {
       setDemoMode(false);
       setModelInspection(null);
       setPlan(bootstrap.plan ?? null);
+      setInspectionReceipt(inspectionReceiptFromPlan(bootstrap.plan ?? null));
       setSelectedCandidate(
         bootstrap.plan?.recommended ?? bootstrap.plan?.candidates[0] ?? null,
       );
@@ -907,6 +934,7 @@ export default function App() {
     setDemoMode(true);
     setHardwareScanned(false);
     setModelInspection(null);
+    setInspectionReceipt(null);
     setOutputDir("./aptus-output/example-support-adapter");
     setError(null);
     setNotice("Labeled example loaded. No model inspection, compilation, validation, or execution ran.");
@@ -930,6 +958,7 @@ export default function App() {
     setDemoMode(false);
     setHardwareScanned(false);
     setModelInspection(null);
+    setInspectionReceipt(null);
     setOutputDir("");
     setError(null);
     setNotice("Example cleared. Enter facts for a real plan.");
@@ -1059,7 +1088,10 @@ export default function App() {
               onClearExample={clearExample}
               onProfile={handleProfile}
               onModelInspect={handleModelInspect}
-              onInvalidateModelInspection={() => setModelInspection(null)}
+              onInvalidateModelInspection={() => {
+                setModelInspection(null);
+                setInspectionReceipt(null);
+              }}
               onPlan={handlePlan}
               onHardwareScan={handleHardwareScan}
               hardwareScanned={hardwareScanned}
@@ -1081,7 +1113,7 @@ export default function App() {
           ) : null}
           {stage === "compile" ? (
             <CompileStage
-              plan={plan}
+              plan={isBoundTrainingPlan(plan) ? plan : null}
               bundle={bundle}
               busy={busy}
               demoMode={demoMode}

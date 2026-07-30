@@ -73,14 +73,12 @@
           "plan": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/TrainingPlanResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Plan"
+            ]
           },
           "project": {
             "anyOf": [
@@ -441,6 +439,14 @@
         ],
         "title": "ErrorResponse",
         "type": "object"
+      },
+      "EvidenceRequirement": {
+        "enum": [
+          "pilot-required",
+          "implementation-required"
+        ],
+        "title": "EvidenceRequirement",
+        "type": "string"
       },
       "HardwareFactsRequest": {
         "additionalProperties": false,
@@ -973,6 +979,209 @@
         "title": "InspectedMoETopologyResponse",
         "type": "object"
       },
+      "InspectedModelPolicyDecisionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "pattern": "^compat_[0-9a-f]{20}$",
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ModelPolicyDecisionKind"
+          },
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/InspectedModelPolicyPathResponse"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "policy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Id"
+          },
+          "policy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Version"
+          },
+          "reason": {
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Reason",
+            "type": "string"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ModelPolicyReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "aptus.model-compatibility.v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "subject_facts_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Subject Facts Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "decision_id",
+          "subject_facts_sha256",
+          "kind",
+          "family",
+          "policy_id",
+          "policy_version",
+          "paths",
+          "reason_codes",
+          "evidence_ids",
+          "reason"
+        ],
+        "title": "InspectedModelPolicyDecisionResponse",
+        "type": "object"
+      },
+      "InspectedModelPolicyPathResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_profile_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdapterProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "distribution": {
+            "$ref": "#/components/schemas/Distribution"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "method": {
+            "$ref": "#/components/schemas/Method"
+          },
+          "path_id": {
+            "title": "Path Id",
+            "type": "string"
+          },
+          "required_validation_levels": {
+            "items": {
+              "enum": [
+                "model-data",
+                "measured-preflight",
+                "pilot"
+              ],
+              "type": "string"
+            },
+            "title": "Required Validation Levels",
+            "type": "array"
+          },
+          "runtime_contract": {
+            "$ref": "#/components/schemas/InspectedRuntimeContractResponse"
+          },
+          "target_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target Modules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path_id",
+          "method",
+          "distribution",
+          "adapter_profile_id",
+          "target_modules",
+          "runtime_contract",
+          "required_validation_levels",
+          "evidence_ids"
+        ],
+        "title": "InspectedModelPolicyPathResponse",
+        "type": "object"
+      },
+      "InspectedModelProvenanceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "provider-declared",
+              "inferred"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observed_at": {
+            "title": "Observed At",
+            "type": "string"
+          },
+          "resolved_revision": {
+            "pattern": "^[0-9A-Fa-f]{40,64}$",
+            "title": "Resolved Revision",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "kind",
+          "source",
+          "observed_at",
+          "resolved_revision"
+        ],
+        "title": "InspectedModelProvenanceResponse",
+        "type": "object"
+      },
       "InspectedQuantizationLayoutResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1028,6 +1237,62 @@
           "group_size"
         ],
         "title": "InspectedQuantizationOverrideResponse",
+        "type": "object"
+      },
+      "InspectedRuntimeContractResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "compiler_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compiler Id"
+          },
+          "compute_backend": {
+            "$ref": "#/components/schemas/Backend"
+          },
+          "estimator_id": {
+            "title": "Estimator Id",
+            "type": "string"
+          },
+          "evidence_requirement": {
+            "$ref": "#/components/schemas/EvidenceRequirement"
+          },
+          "export_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Kind"
+          },
+          "schema_version": {
+            "const": "aptus.runtime-contract.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "training_runtime": {
+            "$ref": "#/components/schemas/TrainingRuntime"
+          }
+        },
+        "required": [
+          "schema_version",
+          "compute_backend",
+          "training_runtime",
+          "compiler_id",
+          "estimator_id",
+          "evidence_requirement",
+          "export_kind"
+        ],
+        "title": "InspectedRuntimeContractResponse",
         "type": "object"
       },
       "JobRequest": {
@@ -1566,6 +1831,79 @@
         "title": "ModelInspectionFactsResponse",
         "type": "object"
       },
+      "ModelInspectionReceiptResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/InspectedModelPolicyDecisionResponse"
+          },
+          "evaluated_at": {
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "observed_facts_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Observed Facts Sha256",
+            "type": "string"
+          },
+          "provenance_requirement": {
+            "anyOf": [
+              {
+                "const": "provider-declared",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance Requirement"
+          },
+          "provenance_requirement_met": {
+            "title": "Provenance Requirement Met",
+            "type": "boolean"
+          },
+          "provenance_summary": {
+            "items": {
+              "$ref": "#/components/schemas/InspectedModelProvenanceResponse"
+            },
+            "title": "Provenance Summary",
+            "type": "array"
+          },
+          "receipt_id": {
+            "pattern": "^receipt_[0-9a-f]{20}$",
+            "title": "Receipt Id",
+            "type": "string"
+          },
+          "resolved_revision": {
+            "pattern": "^[0-9A-Fa-f]{40,64}$",
+            "title": "Resolved Revision",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "aptus.model-inspection-receipt.v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "receipt_id",
+          "model_id",
+          "resolved_revision",
+          "observed_facts_sha256",
+          "decision",
+          "provenance_summary",
+          "provenance_requirement",
+          "provenance_requirement_met",
+          "evaluated_at"
+        ],
+        "title": "ModelInspectionReceiptResponse",
+        "type": "object"
+      },
       "ModelInspectionResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1608,6 +1946,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ModelInspectionFactsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inspection_receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInspectionReceiptResponse"
               },
               {
                 "type": "null"
@@ -1691,6 +2039,33 @@
         "title": "ModelInspectionResponse",
         "type": "object"
       },
+      "ModelPolicyDecisionKind": {
+        "enum": [
+          "path-matched",
+          "family-recognized",
+          "blocked",
+          "unknown"
+        ],
+        "title": "ModelPolicyDecisionKind",
+        "type": "string"
+      },
+      "ModelPolicyReasonCode": {
+        "enum": [
+          "exact-reviewed-artifact",
+          "pilot-not-yet-proven",
+          "invalid-compatibility-facts",
+          "identity-mismatch",
+          "quantization-layout-mismatch",
+          "topology-incomplete",
+          "shared-expert-unsupported",
+          "four-bit-required",
+          "family-recognized",
+          "unreviewed-sparse-model",
+          "no-policy-match"
+        ],
+        "title": "ModelPolicyReasonCode",
+        "type": "string"
+      },
       "Objective": {
         "enum": [
           "quality",
@@ -1699,6 +2074,119 @@
         ],
         "title": "Objective",
         "type": "string"
+      },
+      "PlanCandidateResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "candidate_id": {
+            "pattern": "^cand_[0-9a-f]{20}$",
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "model_policy_decision_id": {
+            "pattern": "^compat_[0-9a-f]{20}$",
+            "title": "Model Policy Decision Id",
+            "type": "string"
+          },
+          "policy_binding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanModelPolicyBindingResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "candidate_id",
+          "model_policy_decision_id",
+          "policy_binding"
+        ],
+        "title": "PlanCandidateResponse",
+        "type": "object"
+      },
+      "PlanModelPolicyBindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "pattern": "^compat_[0-9a-f]{20}$",
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "inspection_receipt_id": {
+            "anyOf": [
+              {
+                "pattern": "^receipt_[0-9a-f]{20}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspection Receipt Id"
+          },
+          "path_id": {
+            "title": "Path Id",
+            "type": "string"
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/ModelPolicyReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "aptus.model-policy-binding.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "provider-inspection",
+              "user-attested"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "subject_facts_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Subject Facts Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "decision_id",
+          "subject_facts_sha256",
+          "policy_id",
+          "policy_version",
+          "path_id",
+          "source",
+          "inspection_receipt_id",
+          "reason_codes",
+          "evidence_ids"
+        ],
+        "title": "PlanModelPolicyBindingResponse",
+        "type": "object"
       },
       "PlanRequest": {
         "additionalProperties": false,
@@ -1709,6 +2197,16 @@
           },
           "hardware": {
             "$ref": "#/components/schemas/HardwareFactsRequest"
+          },
+          "inspection_receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInspectionReceiptResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "model": {
             "$ref": "#/components/schemas/ModelFactsRequest"
@@ -2648,7 +3146,7 @@
             "title": "Project Revision Id"
           },
           "required_schema": {
-            "const": "aptus.training-plan.v3",
+            "const": "aptus.training-plan.v4",
             "title": "Required Schema",
             "type": "string"
           },
@@ -2902,13 +3400,35 @@
         "properties": {
           "candidates": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/PlanCandidateResponse"
             },
+            "minItems": 1,
             "title": "Candidates",
             "type": "array"
           },
+          "inspection_receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInspectionReceiptResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_policy_decision": {
+            "$ref": "#/components/schemas/InspectedModelPolicyDecisionResponse"
+          },
+          "model_policy_decision_source": {
+            "enum": [
+              "provider-inspection",
+              "user-attested"
+            ],
+            "title": "Model Policy Decision Source",
+            "type": "string"
+          },
           "plan_id": {
+            "pattern": "^plan_[0-9a-f]{20}$",
             "title": "Plan Id",
             "type": "string"
           },
@@ -2934,12 +3454,18 @@
             ],
             "title": "Project Revision Id"
           },
+          "recommendation_rationale": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendation Rationale",
+            "type": "array"
+          },
           "recommended": {
-            "additionalProperties": true,
-            "title": "Recommended",
-            "type": "object"
+            "$ref": "#/components/schemas/PlanCandidateResponse"
           },
           "schema_version": {
+            "const": "aptus.training-plan.v4",
             "title": "Schema Version",
             "type": "string"
           },
@@ -2956,7 +3482,11 @@
           "plan_id",
           "recommended",
           "candidates",
-          "warnings"
+          "warnings",
+          "recommendation_rationale",
+          "model_policy_decision",
+          "model_policy_decision_source",
+          "inspection_receipt"
         ],
         "title": "TrainingPlanResponse",
         "type": "object"

@@ -285,6 +285,37 @@ when its evidence, owner, or resolution changes.
   direction.
 - **Owner:** Domain, inspection, planning, API, and documentation maintainers
 
+### DOC-021: Bind model-policy provenance into persisted plans
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** `aptus.training-plan.v4` persists one
+  `aptus.model-compatibility.v2` decision and an explicit
+  `provider-inspection` or `user-attested` source. Successful provider
+  inspection emits `aptus.model-inspection-receipt.v1` with separate
+  compatibility-subject and observed-planning-facts digests. Every candidate
+  links to the decision. Only a candidate that exactly matches a registered
+  path carries `aptus.model-policy-binding.v1`. The exact Qwen3 MoE row has a
+  stable policy ID, semantic policy version, and path ID. Parameter count and
+  training permission remain outside the receipt.
+- **Failure boundary:** A present malformed, stale, mismatched, or modified
+  receipt is rejected instead of downgraded to user-attested. V3, v2,
+  schema-less, and stale-policy v4 plans return `replan_required` without
+  rewriting saved state. Receipt and identity hashes are tamper-evident, not
+  authenticated signatures.
+- **Boundary:** Phase 3 intentionally preserves `aptus.api.v1`,
+  `aptus.facts.v3`, `aptus.runtime-contract.v1`, and `aptus.bundle.v2`. A
+  portable policy snapshot and generic evaluator belong to Phase 4. Removal of
+  browser-side policy reconstruction belongs to Phase 5.
+- **Verification:**
+  `test_provider_receipt_is_recomputed_from_every_observed_plan_fact`,
+  `test_registered_path_requires_binding_and_other_paths_forbid_it`,
+  `test_stale_registered_policy_has_a_dedicated_replan_error`,
+  `test_tampered_provider_receipt_is_rejected_instead_of_downgraded`, and
+  `test_phase3_policy_provenance_docs_match_persisted_contracts` protect the
+  receipt, decision, binding, migration, and documentation boundaries.
+- **Owner:** Domain, inspection, planning, API, client, and documentation maintainers
+
 ## Resolved in the 2026-07-22 governance batch
 
 ### DOC-013: Separate raw Reference material from current authority

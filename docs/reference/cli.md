@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-07-28 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-27, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON
@@ -20,7 +20,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | Command | Purpose | Default action | Persistent side effects |
 | --- | --- | --- | --- |
 | `profile` | Profile a local dataset | Sample up to 512 valid rows for length statistics | Optional JSON output file |
-| `spec-plan` | Write a standalone v3 plan | Objective `memory` | Plan JSON output file |
+| `spec-plan` | Write a standalone v4 plan | Objective `memory` | Plan JSON output file |
 | `plan` | Compatibility flow for plan, compile, static validation, and archive | Same as `build` | Bundle, ZIP, optional plan file |
 | `build` | Plan, compile, static validation, and archive | Objective `memory` | Bundle, ZIP, optional plan file |
 | `compile` | Compile a persisted plan | Archive beside bundle | Bundle, ZIP, validation report |
@@ -44,6 +44,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | --- | ---: | --- | --- |
 | `--model-id ID` | Yes | None | Provider repository identifier, not a local path |
 | `--revision HEX` | Yes | None | Immutable 40 to 64 character hexadecimal commit |
+| `--inspection-receipt PATH` | No | None | Successful `aptus inspect model` JSON or its nested receipt; every covered fact is revalidated |
 | `--family FAMILY` | Yes | None | Dense adapter catalog or exact inspected `qwen3_moe` row |
 | `--parameters-b NUMBER` | Yes | None | Positive total resident parameter count in billions; never substitute active MoE parameters |
 | `--model-type TYPE` | No | `null` | Exact provider model type; required by allowlisted MoE contracts |
@@ -65,6 +66,13 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `--dataset PATH` | Yes | None | Existing `.jsonl`, `.json`, `.csv`, or `.txt` file |
 | `--sample-limit INTEGER` | No | `512` | Positive bound for sampled length statistics, not canonical compilation |
 
+Without `--inspection-receipt`, model facts and the policy-decision source are
+`user-attested`. A valid receipt changes only its covered provider-declared or
+inferred model fields and sets the source to `provider-inspection`. Parameter
+count and training permission remain user-attested and are excluded from the
+receipt. A present but invalid receipt fails; it never silently falls back to
+manual facts.
+
 ### Hardware facts
 
 | Option | Required | Default | Contract |
@@ -81,9 +89,9 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `--reserve-gib NUMBER` | No | `2.0` | Non-negative reserve subtracted from each device. Raised to at least `8.0` when `--backend mps` is selected |
 | `--disk-free-gib NUMBER` | No | `null` | Current free disk; analytic disk rejection is skipped when omitted |
 
-Manual facts are recorded as `user-attested`. Repeating one set of values for
-`--gpu-count N` creates `N` homogeneous device records. It does not scan the
-host.
+Manual hardware facts are recorded as `user-attested`. Repeating one set of
+values for `--gpu-count N` creates `N` homogeneous device records. It does not
+scan the host.
 
 ### Training target facts
 
@@ -139,10 +147,11 @@ sample limit bounds only percentile statistics and sample indices.
 aptus spec-plan FACT_OPTIONS --output PLAN.json
 ```
 
-The command profiles the source, constructs user-attested model and hardware
-facts, enumerates the 12 candidates, and writes one `aptus.training-plan.v3`
-document. Parent directories are created. An existing plan output file is
-replaced. No bundle or archive is created.
+The command profiles the source, constructs the supplied model and hardware
+facts, evaluates one model-policy decision, enumerates the 12 candidates, and
+writes one `aptus.training-plan.v4` document. Without an inspection receipt,
+the decision source is `user-attested`. Parent directories are created. An
+existing plan output file is replaced. No bundle or archive is created.
 
 ## `aptus plan` and `aptus build`
 
@@ -170,10 +179,11 @@ when a later compilation step fails.
 aptus compile --plan PLAN.json --output BUNDLE [--archive BUNDLE.zip]
 ```
 
-The plan is rehydrated through the exact v3 domain contract. A saved v2 plan or
-a plan with no schema identifier fails with `Replan required`. Aptus leaves the
-source plan unchanged and creates no bundle. Recreate the plan deterministically
-from its preserved facts. Do not relabel it as v3.
+The plan is rehydrated through the exact v4 domain contract. A saved v3 plan,
+v2 plan, schema-less plan, or v4 plan with a stale policy fails with
+`Replan required`. Aptus leaves the source plan unchanged and creates no bundle.
+Recreate the plan deterministically from its preserved facts. Do not relabel it
+as v4.
 
 The default archive is the bundle path with its suffix replaced by `.zip`. The
 archive must be outside the bundle. Bundle and archive publication are
@@ -304,7 +314,11 @@ aptus inspect model --model-id REPOSITORY \
 The timeout must be greater than zero and no more than 30 seconds. Inspection
 makes bounded Hugging Face config and metadata requests. It returns status
 `ok`, `unavailable`, or `unsupported`. Only `ok` exits successfully. Provider
-metadata never decides parameter count or training permission.
+metadata never decides parameter count or training permission. A successful
+result contains an `aptus.model-inspection-receipt.v1` with separate
+compatibility-subject and observed-planning-facts digests. Either save the whole
+inspection output or extract its `inspection_receipt` object for a later
+`--inspection-receipt` planning argument.
 
 ## `aptus serve`
 

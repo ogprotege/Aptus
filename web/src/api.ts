@@ -12,7 +12,9 @@ import type {
   Job,
   JobRequest,
   MethodDescriptor,
+  ModelInspectionReceipt,
   ModelInspectionResponse,
+  NoFeasibleComparisonPlan,
   PlanRequest,
   ProjectDetail,
   ProjectRecoveryResponse,
@@ -48,6 +50,13 @@ export type OpenApiTrainingPlanResponse = components["schemas"]["TrainingPlanRes
 export type OpenApiValidationResponse = components["schemas"]["ValidationResponse"];
 
 type OpenApiPath = keyof paths;
+
+interface CompilablePlanReference {
+  plan_id: string;
+  project_id?: string;
+  project_revision_id?: string;
+  [key: string]: unknown;
+}
 
 export const API_PATHS = {
   bootstrap: "/api/v1/bootstrap",
@@ -159,7 +168,11 @@ function requiredNumber(value: number | null, label: string): number {
   return value;
 }
 
-function planRequest(facts: FactDraft, projectId?: string | null): PlanRequest {
+function planRequest(
+  facts: FactDraft,
+  projectId?: string | null,
+  inspectionReceipt?: ModelInspectionReceipt | null,
+): PlanRequest {
   const device = facts.hardware.devices[0];
   if (!device) throw new Error("At least one hardware device is required before planning.");
   return {
@@ -248,6 +261,9 @@ function planRequest(facts: FactDraft, projectId?: string | null): PlanRequest {
       checkpoint_steps: facts.target.checkpoint_steps,
     },
     dataset_path: facts.dataset.source_path,
+    ...(inspectionReceipt
+      ? { inspection_receipt: structuredClone(inspectionReceipt) }
+      : {}),
     ...(facts.dataset.sample_limit
       ? { sample_limit: facts.dataset.sample_limit }
       : {}),
@@ -334,7 +350,115 @@ function normalizeProfile(payload: Record<string, unknown>): ProfileResponse {
   } as ProfileResponse;
 }
 
+function requireV4PlanProvenance(payload: Record<string, unknown>): void {
+  if (payload.schema_version !== "aptus.training-plan.v4") {
+    throw new Error("Plan response requires aptus.training-plan.v4.");
+  }
+  if (typeof payload.plan_id !== "string" || !payload.plan_id.startsWith("plan_")) {
+    throw new Error("Plan response requires its immutable plan ID.");
+  }
+  const decision = payload.model_policy_decision;
+  if (!isRecord(decision) || typeof decision.decision_id !== "string") {
+    throw new Error("Plan response requires a typed model policy decision.");
+  }
+  const source = payload.model_policy_decision_source;
+  if (source !== "provider-inspection" && source !== "user-attested") {
+    throw new Error("Plan response requires a known model policy decision source.");
+  }
+  if (!("inspection_receipt" in payload)) {
+    throw new Error("Plan response requires an explicit nullable inspection receipt.");
+  }
+  const receipt = payload.inspection_receipt;
+  if (source === "provider-inspection") {
+    if (!isRecord(receipt) || !isRecord(receipt.decision)) {
+      throw new Error("Provider-inspection plans require a typed inspection receipt.");
+    }
+    if (receipt.decision.decision_id !== decision.decision_id) {
+      throw new Error("Plan inspection receipt does not bind the plan decision.");
+    }
+  } else if (receipt !== null) {
+    throw new Error("User-attested plans cannot carry an inspection receipt.");
+  }
+  if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
+    throw new Error("Plan response requires candidates with provenance links.");
+  }
+  const candidateIds = new Set<string>();
+  for (const candidate of payload.candidates) {
+    if (
+      !isRecord(candidate)
+      || typeof candidate.candidate_id !== "string"
+      || candidate.model_policy_decision_id !== decision.decision_id
+      || !("policy_binding" in candidate)
+    ) {
+      throw new Error("Every plan candidate must bind the plan policy decision.");
+    }
+    candidateIds.add(candidate.candidate_id);
+    const binding = candidate.policy_binding;
+    if (binding !== null) {
+      if (
+        !isRecord(binding)
+        || binding.decision_id !== decision.decision_id
+        || binding.source !== source
+      ) {
+        throw new Error("Candidate policy binding is inconsistent with the plan.");
+      }
+    }
+  }
+  const recommended = payload.recommended;
+  if (
+    !isRecord(recommended)
+    || typeof recommended.candidate_id !== "string"
+    || !candidateIds.has(recommended.candidate_id)
+  ) {
+    throw new Error("Plan response recommendation must reference a listed candidate.");
+  }
+}
+
+function normalizeNoFeasibleComparison(
+  candidatesValue: unknown[],
+  message: string,
+): NoFeasibleComparisonPlan {
+  const candidates = candidatesValue.map((value) => {
+    if (
+      !isRecord(value)
+      || typeof value.candidate_id !== "string"
+      || typeof value.model_policy_decision_id !== "string"
+      || !("policy_binding" in value)
+      || typeof value.method !== "string"
+    ) {
+      throw new Error(
+        "No-feasible-plan candidates require decision links and explicit bindings.",
+      );
+    }
+    const memory = isRecord(value.memory) ? value.memory : {};
+    return {
+      ...value,
+      id: value.candidate_id,
+      memory: {
+        ...memory,
+        expected_bytes: memory.expected_bytes
+          ?? memory.point_estimate_bytes
+          ?? memory.estimated_peak_bytes,
+        upper_bytes: memory.upper_bytes ?? memory.upper_estimate_bytes,
+      },
+    } as CandidatePlan;
+  });
+  return {
+    no_feasible_plan: true,
+    recommended: null,
+    candidates,
+    warnings: [message],
+    rationale: [
+      "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
+    ],
+    recommendation_rationale: [
+      "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
+    ],
+  };
+}
+
 function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
+  requireV4PlanProvenance(payload);
   const hardware = payload.hardware as Record<string, unknown> | undefined;
   const devices = hardware?.devices as Array<Record<string, unknown>> | undefined;
   const reserveValue = hardware?.reserve_per_device_bytes;
@@ -540,8 +664,12 @@ export const api = {
     } as unknown as ModelInspectionResponse;
   },
 
-  async plan(facts: FactDraft, projectId?: string | null) {
-    const body = planRequest(facts, projectId);
+  async plan(
+    facts: FactDraft,
+    projectId?: string | null,
+    inspectionReceipt?: ModelInspectionReceipt | null,
+  ) {
+    const body = planRequest(facts, projectId, inspectionReceipt);
     try {
       const response = await request<OpenApiTrainingPlanResponse>(API_PATHS.plan, {
         method: "POST",
@@ -558,21 +686,16 @@ export const api = {
         detail?.error === "no_feasible_plan" &&
         Array.isArray(detail.candidates)
       ) {
-        return normalizePlan({
-          recommended: null,
-          candidates: detail.candidates,
-          warnings: [typeof detail.message === "string" ? detail.message : error.message],
-          recommendation_rationale: [
-            "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
-          ],
-          no_feasible_plan: true,
-        });
+        return normalizeNoFeasibleComparison(
+          detail.candidates,
+          typeof detail.message === "string" ? detail.message : error.message,
+        );
       }
       throw error;
     }
   },
 
-  async compileBundle(plan: TrainingPlan, outputDir: string) {
+  async compileBundle(plan: CompilablePlanReference, outputDir: string) {
     if (!plan.plan_id) throw new Error("The plan id is required before compilation.");
     if (!plan.project_id || !plan.project_revision_id) {
       throw new Error(

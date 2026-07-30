@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | API clients, CLI operators, UI developers, and support engineers |
 | Authority | Normative inventory of host API errors and host validator findings in v0.2 |
-| Last reviewed | 2026-07-28 |
+| Last reviewed | 2026-07-29 |
 | Next review | 2026-10-27, or sooner when API handlers or validation findings change |
 
 API errors, managed-job errors, and validation findings are separate channels.
@@ -58,7 +58,7 @@ Lifecycle conflicts use structured fields:
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
-| `409` | `replan_required` | A saved plan uses v2 or has no schema identifier and must be recreated deterministically under the v3 contract |
+| `409` | `replan_required` | A saved plan uses v3, v2, or no schema identifier, or a v4 plan uses an obsolete registered policy version; recreate it deterministically under the v4 contract |
 | `409` | `project_revision_conflict` | The named project advanced after the caller loaded its expected revision |
 | `409` | `project_plan_mismatch` | The requested plan does not belong to the named project revision |
 | `409` | `project_plan_snapshot_mismatch` | The persisted plan no longer equals the immutable plan snapshot that authorized compilation |
@@ -79,6 +79,12 @@ These codes include `invalid_endpoint`, `non_loopback_endpoint`,
 errors include Pydantic `details`. Prerequisite errors include the action,
 required state, current state, and reason. Clients should preserve those fields
 instead of replacing them with a generic message.
+
+`replan_required` preserves the source plan and revision. A same-schema plan
+with a malformed or modified decision, receipt, digest, candidate link, or path
+binding is invalid or tampered input, not a stale-version migration. Aptus never
+repairs either class by changing `schema_version` or downgrading a bad receipt
+to user-attested.
 
 Invalid Host headers are rejected by TrustedHost middleware and are not wrapped
 in an Aptus error object.
@@ -180,7 +186,7 @@ error, and full log together.
 | No feasible plan | Inspect every candidate reason and correct facts or requirements |
 | Active-job conflict | Wait, poll the owning job, or cancel it through its owner |
 | Prerequisite conflict | Complete or recheck the named prior action |
-| Replan required | Preserve the old plan and create a new v3 plan from its source facts; do not relabel or edit the old artifact |
+| Replan required | Preserve the old plan and create a new v4 plan from its source facts; do not relabel or edit the old artifact |
 | Manifest or plan finding | Recompile from the trusted plan and source |
 | Runtime dependency or model-data failure | Correct the environment, facts, or source and rerun the ordered gate |
 | Capacity failure | Re-probe on the target host or select a different viable plan |

@@ -15,9 +15,7 @@ from aptus.domain import (
     Distribution,
     Method,
     ModelCompatibilitySubject,
-    ModelPolicyDecision,
     ModelPolicyDecisionKind,
-    ModelPolicyPath,
     QuantizationLayout,
     TrainingRuntime,
     to_primitive,
@@ -49,10 +47,21 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
     def test_exact_qwen_policy_emits_one_registry_bound_path(self) -> None:
         decision = evaluate_model_compatibility(self.subject)
 
+        self.assertEqual(decision.schema_version, "aptus.model-compatibility.v2")
+        self.assertEqual(decision.policy_id, "model.qwen3-moe.mlx-qlora")
+        self.assertEqual(decision.policy_version, "1.0.0")
+        self.assertTrue(decision.decision_id.startswith("compat_"))
+        self.assertEqual(len(decision.subject_facts_sha256), 64)
         self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
         self.assertEqual(decision.family, "qwen3_moe")
         self.assertEqual(len(decision.paths), 1)
         path = decision.paths[0]
+        self.assertEqual(path.path_id, "mlx-lm.qlora.single.attention-qkvo.v1")
+        self.assertEqual(
+            path.required_validation_levels,
+            ("model-data", "measured-preflight", "pilot"),
+        )
+        self.assertTrue(path.evidence_ids)
         self.assertEqual(path.method, Method.QLORA)
         self.assertEqual(path.distribution, Distribution.SINGLE)
         self.assertEqual(
@@ -270,54 +279,29 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
                     validate_execution_path_selection(**values)
 
     def test_domain_decision_and_path_invariants_fail_closed(self) -> None:
-        path = evaluate_model_compatibility(self.subject).paths[0]
+        decision = evaluate_model_compatibility(self.subject)
+        path = decision.paths[0]
         with self.assertRaises(ValueError):
-            ModelPolicyPath(
-                method=Method.FULL,
-                distribution=path.distribution,
-                adapter_profile_id=path.adapter_profile_id,
-                target_modules=path.target_modules,
-                runtime_contract=path.runtime_contract,
-            )
+            replace(path, method=Method.FULL)
         with self.assertRaises(ValueError):
-            ModelPolicyPath(
-                method=path.method,
-                distribution=path.distribution,
-                adapter_profile_id=path.adapter_profile_id,
-                target_modules=("q_proj", "q_proj"),
-                runtime_contract=path.runtime_contract,
-            )
+            replace(path, target_modules=("q_proj", "q_proj"))
         with self.assertRaises(ValueError):
-            ModelPolicyDecision(
-                kind=ModelPolicyDecisionKind.PATH_MATCHED,
-                family="qwen3_moe",
-                paths=(),
-                reason="Matched.",
-            )
+            replace(decision, paths=())
         with self.assertRaises(ValueError):
-            ModelPolicyDecision(
-                kind=ModelPolicyDecisionKind.PATH_MATCHED,
-                family=None,
-                paths=(path,),
-                reason="Matched.",
-            )
+            replace(decision, family=None)
         with self.assertRaises(ValueError):
-            ModelPolicyDecision(
+            replace(
+                decision,
                 kind=ModelPolicyDecisionKind.FAMILY_RECOGNIZED,
                 family="qwen",
                 paths=(path,),
-                reason="Recognized.",
             )
         with self.assertRaises(ValueError):
-            ModelPolicyDecision(
-                kind=ModelPolicyDecisionKind.PATH_MATCHED,
-                family="qwen3_moe",
-                paths=(path, path),
-                reason="Matched.",
-            )
+            replace(decision, paths=(path, path))
 
     def test_v1_projection_rejects_heterogeneous_policy_paths(self) -> None:
-        qwen_path = evaluate_model_compatibility(self.subject).paths[0]
+        qwen_decision = evaluate_model_compatibility(self.subject)
+        qwen_path = qwen_decision.paths[0]
         cuda_contract = validate_execution_path_selection(
             method=Method.LORA,
             training_runtime=TrainingRuntime.TRANSFORMERS_PEFT_CUDA,
@@ -325,18 +309,17 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             distribution=Distribution.SINGLE,
             adapter_profile_id=AdapterProfile.ATTENTION_QKVO_V1,
         )
-        cuda_path = ModelPolicyPath(
+        cuda_path = replace(
+            qwen_path,
+            path_id="test.cuda.lora.single.attention-qkvo.v1",
             method=Method.LORA,
             distribution=Distribution.SINGLE,
-            adapter_profile_id=AdapterProfile.ATTENTION_QKVO_V1,
             target_modules=adapter_target_modules(AdapterProfile.ATTENTION_QKVO_V1),
             runtime_contract=cuda_contract,
         )
-        decision = ModelPolicyDecision(
-            kind=ModelPolicyDecisionKind.PATH_MATCHED,
-            family="qwen3_moe",
+        decision = replace(
+            qwen_decision,
             paths=(qwen_path, cuda_path),
-            reason="Matched.",
         )
 
         with patch("aptus.model_compatibility.validate_model_policy_path"):
@@ -344,7 +327,8 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
                 compatibility_response_v1(decision)
 
     def test_v1_projection_rejects_a_forged_policy_path(self) -> None:
-        path = evaluate_model_compatibility(self.subject).paths[0]
+        base_decision = evaluate_model_compatibility(self.subject)
+        path = base_decision.paths[0]
         forged_paths = (
             replace(path, target_modules=("q_proj", "k_proj")),
             replace(
@@ -358,11 +342,9 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
 
         for forged_path in forged_paths:
             with self.subTest(path=forged_path):
-                decision = ModelPolicyDecision(
-                    kind=ModelPolicyDecisionKind.PATH_MATCHED,
-                    family="qwen3_moe",
+                decision = replace(
+                    base_decision,
                     paths=(forged_path,),
-                    reason="Matched.",
                 )
                 with self.assertRaises(ValueError):
                     compatibility_response_v1(decision)
@@ -393,60 +375,48 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             completed.stderr,
         )
 
-    def test_qwen_v3_plan_and_candidate_identities_do_not_change(self) -> None:
-        self.assertEqual(self.plan.plan_id, "plan_6cf48d2656249b62457e")
-        self.assertEqual(
-            self.plan.recommended.candidate_id,
-            "cand_f41093c9a9aaf5294138",
-        )
-        expected = {
-            ("full", "single"): "cand_5a67adaa9f9df795bde1",
-            ("full", "ddp"): "cand_1f94483ffa3951a0476f",
-            ("full", "fsdp"): "cand_5df8d5aaa561184dc1f5",
-            ("lora", "single"): "cand_7671ea9e9278c8c23a49",
-            ("lora", "ddp"): "cand_ecb820e9cbe2907fe7a7",
-            ("lora", "fsdp"): "cand_7c013a184afc2c42e2b6",
-            ("int8-lora", "single"): "cand_d58e772674b58bde3aca",
-            ("int8-lora", "ddp"): "cand_3547790cd48c1edb5481",
-            ("int8-lora", "fsdp"): "cand_cf3afcedc7be1f6ac9d8",
-            ("qlora", "single"): "cand_f41093c9a9aaf5294138",
-            ("qlora", "ddp"): "cand_a135a981bc7548521d24",
-            ("qlora", "fsdp"): "cand_66ef650a0a8dcd6d522c",
-        }
-        actual = {
-            (candidate.method.value, candidate.distribution.value): (
-                candidate.candidate_id
-            )
-            for candidate in self.plan.candidates
-        }
-        self.assertEqual(actual, expected)
+    def test_qwen_v4_identities_are_deterministic_and_policy_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repeated = make_qwen3_moe_plan(Path(temporary))
 
-    def test_dense_cuda_v3_plan_and_candidate_identities_do_not_change(self) -> None:
+        self.assertEqual(self.plan.plan_id, repeated.plan_id)
+        self.assertEqual(
+            tuple(item.candidate_id for item in self.plan.candidates),
+            tuple(item.candidate_id for item in repeated.candidates),
+        )
+        self.assertEqual(len({item.candidate_id for item in self.plan.candidates}), 12)
+        self.assertTrue(
+            all(
+                item.model_policy_decision_id
+                == self.plan.model_policy_decision.decision_id
+                for item in self.plan.candidates
+            )
+        )
+        bound = [
+            item for item in self.plan.candidates if item.policy_binding is not None
+        ]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual(bound[0].candidate_id, self.plan.recommended.candidate_id)
+
+    def test_dense_cuda_v4_identities_are_deterministic_and_decision_bound(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_plan(Path(temporary))
+            repeated = make_plan(Path(temporary))
 
-        self.assertEqual(plan.plan_id, "plan_67777e0dd66328c9ab5a")
-        expected = {
-            ("full", "single"): "cand_b0f860595649f2ba6394",
-            ("full", "ddp"): "cand_811d09debf94b91fe1f1",
-            ("full", "fsdp"): "cand_1cb6a1b1dc53e7d2791e",
-            ("lora", "single"): "cand_8a5af924ce3ca398b700",
-            ("lora", "ddp"): "cand_9bdf56c1b4b36a947b2f",
-            ("lora", "fsdp"): "cand_178c0f3988dd6557db9e",
-            ("int8-lora", "single"): "cand_cc3fe360eeabd2bd0561",
-            ("int8-lora", "ddp"): "cand_730b9bc51be5dd60a17a",
-            ("int8-lora", "fsdp"): "cand_7332d35546f7714f9af9",
-            ("qlora", "single"): "cand_b94008cb7e9d98b7c748",
-            ("qlora", "ddp"): "cand_ed9a14b544302fd1170d",
-            ("qlora", "fsdp"): "cand_3ab87df7672e3725e914",
-        }
-        actual = {
-            (candidate.method.value, candidate.distribution.value): (
-                candidate.candidate_id
+        self.assertEqual(plan.plan_id, repeated.plan_id)
+        self.assertEqual(
+            tuple(item.candidate_id for item in plan.candidates),
+            tuple(item.candidate_id for item in repeated.candidates),
+        )
+        self.assertTrue(all(item.policy_binding is None for item in plan.candidates))
+        self.assertTrue(
+            all(
+                item.model_policy_decision_id == plan.model_policy_decision.decision_id
+                for item in plan.candidates
             )
-            for candidate in plan.candidates
-        }
-        self.assertEqual(actual, expected)
+        )
 
     def test_host_policy_import_order_has_no_cycle(self) -> None:
         orders = (

@@ -84,6 +84,96 @@ class ModelInspectionTests(unittest.TestCase):
             result["explicit_user_facts_required"], ["parameters", "training_allowed"]
         )
         self.assertEqual(result["compatibility"]["status"], "recognized")
+        self.assertEqual(
+            transport.requests,
+            [
+                (
+                    "https://huggingface.co/org/model/resolve/main/config.json",
+                    10.0,
+                ),
+                (
+                    f"https://huggingface.co/api/models/org/model/revision/{commit}",
+                    10.0,
+                ),
+            ],
+        )
+        self.assertEqual(
+            result["provenance"]["license_name"]["source"],
+            f"https://huggingface.co/api/models/org/model/revision/{commit}",
+        )
+        self.assertEqual(result["provenance"]["family"]["kind"], "inferred")
+
+        receipt = result["inspection_receipt"]
+        self.assertEqual(receipt["schema_version"], "aptus.model-inspection-receipt.v1")
+        self.assertTrue(receipt["receipt_id"].startswith("receipt_"))
+        self.assertEqual(receipt["model_id"], "org/model")
+        self.assertEqual(receipt["resolved_revision"], commit)
+        self.assertEqual(len(receipt["decision"]["subject_facts_sha256"]), 64)
+        receipt_fields = {item["field"]: item for item in receipt["provenance_summary"]}
+        self.assertEqual(
+            set(receipt_fields),
+            {
+                "architecture",
+                "context_length",
+                "family",
+                "hidden_size",
+                "intermediate_size",
+                "layers",
+                "license_name",
+                "model_type",
+            },
+        )
+        self.assertEqual(receipt_fields["family"]["kind"], "inferred")
+        self.assertEqual(
+            receipt_fields["license_name"]["source"],
+            f"https://huggingface.co/api/models/org/model/revision/{commit}",
+        )
+        for excluded in (
+            "architectures",
+            "attention_heads",
+            "key_value_heads",
+            "parameters",
+            "training_allowed",
+            "vocab_size",
+        ):
+            self.assertNotIn(excluded, receipt_fields)
+
+    def test_fallback_architecture_and_family_are_inferred_and_license_cites_config(
+        self,
+    ) -> None:
+        commit = "a" * 40
+        config_url = f"https://huggingface.co/org/model/resolve/{commit}/config.json"
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "llama",
+                        "license": "apache-2.0",
+                        "num_hidden_layers": 32,
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+
+        result = inspect_huggingface_model("org/model", "main", transport=transport)
+
+        self.assertEqual(result["facts"]["architecture"], "llama")
+        self.assertEqual(result["provenance"]["architecture"]["kind"], "inferred")
+        self.assertIn(
+            "architecture fallback",
+            result["provenance"]["architecture"]["source"],
+        )
+        self.assertEqual(result["provenance"]["family"]["kind"], "inferred")
+        self.assertEqual(result["provenance"]["license_name"]["source"], config_url)
+        receipt_provenance = {
+            item["field"]: item
+            for item in result["inspection_receipt"]["provenance_summary"]
+        }
+        self.assertEqual(receipt_provenance["architecture"]["kind"], "inferred")
+        self.assertEqual(receipt_provenance["family"]["kind"], "inferred")
+        self.assertEqual(receipt_provenance["license_name"]["source"], config_url)
 
     def test_normalizes_only_exact_dense_aliases_and_keeps_raw_evidence(self) -> None:
         cases = (
@@ -448,6 +538,43 @@ class ModelInspectionTests(unittest.TestCase):
         transport = SequenceTransport([FakeResponse({"model_type": "llama"})])
         result = inspect_huggingface_model("org/model", "main", transport=transport)
         self.assertEqual(result["status"], "unsupported")
+
+    def test_mutable_ref_rejects_body_asserted_commit_hash(self) -> None:
+        transport = SequenceTransport(
+            [FakeResponse({"model_type": "llama", "_commit_hash": "a" * 40})]
+        )
+
+        result = inspect_huggingface_model("org/model", "main", transport=transport)
+
+        self.assertEqual(result["status"], "unsupported")
+        self.assertIn("immutable commit", result["error"])
+
+    def test_headerless_immutable_requested_revision_remains_bound(self) -> None:
+        commit = "a" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "llama",
+                        "architectures": ["LlamaForCausalLM"],
+                        "num_hidden_layers": 32,
+                    }
+                ),
+                FakeResponse({}),
+            ]
+        )
+
+        result = inspect_huggingface_model("org/model", commit, transport=transport)
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["resolved_revision"], commit)
+        self.assertTrue(
+            all(
+                item["source"].endswith(f"/resolve/{commit}/config.json")
+                or item["source"].startswith("Aptus ")
+                for item in result["provenance"].values()
+            )
+        )
 
     def test_network_failure_returns_typed_unavailable_result(self) -> None:
         result = inspect_huggingface_model(

@@ -3,7 +3,7 @@ import type {
   CandidatePlan,
   MemoryComponent,
   MemoryComponentValue,
-  TrainingPlan,
+  PlanView,
 } from "../types";
 
 const COMPONENT_LABELS: Record<string, string> = {
@@ -164,7 +164,7 @@ export function candidateMemoryLanguage(candidate: CandidatePlan | null) {
       };
 }
 
-export function planRationale(plan: TrainingPlan): string[] {
+export function planRationale(plan: PlanView): string[] {
   return plan.rationale.length
     ? plan.rationale
     : plan.recommendation_rationale ?? [];

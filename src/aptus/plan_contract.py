@@ -3,14 +3,18 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "aptus.training-plan.v3"
+SCHEMA_VERSION = "aptus.training-plan.v4"
 FORMULA_VERSION = "aptus-memory-v2"
 MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
+MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
+MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION = "aptus.model-inspection-receipt.v1"
+MODEL_POLICY_BINDING_SCHEMA_VERSION = "aptus.model-policy-binding.v1"
 CANDIDATE_STATUSES = {"feasible", "conditional", "infeasible", "unsupported"}
 METHODS = {"full", "lora", "int8-lora", "qlora"}
 DISTRIBUTIONS = {"single", "ddp", "fsdp"}
@@ -19,6 +23,85 @@ EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
 QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
+QWEN3_MOE_POLICY_ID = "model.qwen3-moe.mlx-qlora"
+QWEN3_MOE_POLICY_VERSION = "1.0.0"
+QWEN3_MOE_PATH_ID = "mlx-lm.qlora.single.attention-qkvo.v1"
+QWEN3_MOE_POLICY_EVIDENCE_IDS = [
+    "policy.qwen3-moe.mlx-qlora.v1",
+    "admission.qwen3-30b-a3b.memory-blocked.2026-07-28",
+]
+QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS = {
+    "architecture",
+    "layers",
+    "model_type",
+    "moe",
+    "quantization_bits",
+    "quantization_layout",
+}
+RECEIPT_FACT_FIELDS = {
+    "architecture",
+    "context_length",
+    "family",
+    "hidden_size",
+    "intermediate_size",
+    "layers",
+    "license_name",
+    "model_type",
+    "moe",
+    "quantization_bits",
+    "quantization_layout",
+}
+PROVENANCE_KINDS = {
+    "measured",
+    "provider-declared",
+    "user-attested",
+    "inferred",
+    "unknown",
+}
+INSPECTION_PROVENANCE_KINDS = {"provider-declared", "inferred"}
+COMPATIBILITY_SUBJECT_FACT_FIELDS = {
+    "architecture",
+    "family",
+    "layers",
+    "model_type",
+    "moe",
+    "quantization_bits",
+    "quantization_layout",
+}
+POLICY_DECISION_SOURCES = {"provider-inspection", "user-attested"}
+QWEN3_MOE_IDENTITY_REASON = (
+    "MoE execution requires the exact reviewed qwen3_moe and "
+    "Qwen3MoeForCausalLM provider identity."
+)
+QWEN3_MOE_LAYOUT_REASON = (
+    "Qwen3 MoE execution requires the exact four-bit plus eight-bit "
+    "router-gate MLX quantization layout."
+)
+QWEN3_MOE_TOPOLOGY_REASON = (
+    "Qwen3 MoE execution requires the complete provider-declared expert topology."
+)
+QWEN3_MOE_SHARED_EXPERT_REASON = (
+    "The first Qwen3 MoE MLX-LM contract does not support a shared expert."
+)
+QWEN3_MOE_FOUR_BIT_REASON = (
+    "The first Qwen3 MoE MLX-LM contract requires explicit four-bit model metadata."
+)
+QWEN3_MOE_MATCHED_REASON = (
+    "The model identity, mixed-precision layout, routed-expert topology, and "
+    "attention-only q/k/v/o target policy match the reviewed Qwen3 MoE slice. "
+    "Measured preflight and a real-model pilot remain mandatory."
+)
+FAMILY_RECOGNIZED_REASON = (
+    "The provider identity maps to an existing dense Aptus family; the planner "
+    "still decides the executable runtime and method."
+)
+UNKNOWN_POLICY_REASON = (
+    "No exact Aptus model-family compatibility policy matches this provider "
+    "model type and architecture."
+)
+UNREVIEWED_SPARSE_MODEL_REASON = (
+    "Sparse model execution requires an exact reviewed model compatibility policy."
+)
 DENSE_TARGET_MODULES = [
     "q_proj",
     "k_proj",
@@ -51,6 +134,43 @@ QUANTIZATION_LAYOUT_FIELDS = (
     "module_overrides",
 )
 QUANTIZATION_OVERRIDE_FIELDS = ("module_path", "bits", "group_size")
+
+# Evidence record prose is executable-plan input because it is displayed and
+# copied into generated bundles. These digests mirror aptus.evidence and keep
+# the portable validator independent from the host package.
+EVIDENCE_RECORD_SHA256 = {
+    "method.full.transformers": (
+        "000e5bd35b691c5c6cc304241bb1caac902a6c82d394413cc45611e3b5f4fdb5"
+    ),
+    "method.lora.paper": (
+        "5d4deee885b48352282ec562e8943e519825e7d793204bd550bfefc22c474d99"
+    ),
+    "method.qlora.paper": (
+        "79bcfa63d5378e33c8d65e5ba0179c18cf1dea42ec252a84aa3bbae198a2589b"
+    ),
+    "method.bitsandbytes.int8": (
+        "569146a786fb72236e3e23f05fa17d630588f02d5e2c9ad32a8f1f5abdf599f5"
+    ),
+    "estimate.memory.v2": (
+        "575dfbd577b113e41b52ce88cba981cd024aa06dd3e3d9aa5c97a21ec8133552"
+    ),
+    "policy.qwen3-moe.mlx-qlora.v1": (
+        "3f40dfd230170bed8ad89ada2969d13b5e3b711f7bfeb30f0f122c5e4f29a844"
+    ),
+    "admission.qwen3-30b-a3b.memory-blocked.2026-07-28": (
+        "8def6f7dd2591edd1ac5dbedb49b49a4740a65b6398ad56669f32423f7c56ac2"
+    ),
+}
+METHOD_EVIDENCE_IDS = {
+    "full": ["method.full.transformers", "estimate.memory.v2"],
+    "lora": ["method.lora.paper", "estimate.memory.v2"],
+    "int8-lora": [
+        "method.lora.paper",
+        "method.bitsandbytes.int8",
+        "estimate.memory.v2",
+    ],
+    "qlora": ["method.qlora.paper", "estimate.memory.v2"],
+}
 
 # This table is intentionally self-contained because plan_contract.py is copied
 # into every generated bundle. It mirrors the executable RuntimeBinding entries
@@ -100,6 +220,10 @@ UNAVAILABLE_RUNTIME_IDENTITY = (
     None,
     "implementation-required",
 )
+
+
+class StaleModelPolicyError(ValueError):
+    """An internally valid saved plan no longer matches the current policy."""
 
 
 def sha256_file(path: Path) -> str:
@@ -215,12 +339,19 @@ def _positive_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
+def _known_text(value: Any, choices: set[str]) -> bool:
+    """Return membership for an untrusted JSON scalar without raising."""
+
+    return isinstance(value, str) and value in choices
+
+
 def _finite_number(value: Any) -> bool:
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def _contains_nonfinite(value: Any) -> bool:
@@ -236,6 +367,738 @@ def _contains_nonfinite(value: Any) -> bool:
 def _content_id(prefix: str, payload: Mapping[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return prefix + hashlib.sha256(encoded).hexdigest()[:20]
+
+
+def _sha256_json(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _valid_sha256(value: Any) -> bool:
+    return bool(
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _valid_revision(value: Any) -> bool:
+    return bool(
+        isinstance(value, str)
+        and 40 <= len(value) <= 64
+        and all(character in "0123456789abcdefABCDEF" for character in value)
+    )
+
+
+def _valid_content_id(value: Any, *, prefix: str) -> bool:
+    suffix = value[len(prefix) :] if isinstance(value, str) else ""
+    return bool(
+        isinstance(value, str)
+        and value.startswith(prefix)
+        and len(suffix) == 20
+        and all(character in "0123456789abcdef" for character in suffix)
+    )
+
+
+def _valid_timestamp(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None and parsed.utcoffset() is not None
+
+
+def _qwen3_moe_policy_path() -> dict[str, Any]:
+    return {
+        "path_id": QWEN3_MOE_PATH_ID,
+        "method": "qlora",
+        "distribution": "single",
+        "adapter_profile_id": "attention-qkvo.v1",
+        "target_modules": list(MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY]),
+        "runtime_contract": {
+            "schema_version": RUNTIME_CONTRACT_VERSION,
+            "compute_backend": "mps",
+            "training_runtime": "mlx-lm",
+            "compiler_id": "mlx-lm.qlora.v1",
+            "estimator_id": MLX_FORMULA_VERSION,
+            "evidence_requirement": "pilot-required",
+            "export_kind": "mlx-lm-adapter",
+        },
+        "required_validation_levels": [
+            "model-data",
+            "measured-preflight",
+            "pilot",
+        ],
+        "evidence_ids": list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
+    }
+
+
+def _compatibility_subject_payload(model: Mapping[str, Any]) -> dict[str, Any]:
+    family = model.get("family")
+    if isinstance(family, str) and family != family.lower():
+        raise ValueError("Model family must use its canonical lowercase identity.")
+    quantization_layout = (
+        _normalized_quantization_layout(model.get("quantization_layout"))
+        if model.get("quantization_layout") is not None
+        else None
+    )
+    moe = _normalized_moe(model.get("moe")) if model.get("moe") is not None else None
+    return {
+        "family": family,
+        "model_type": model.get("model_type"),
+        "architecture": model.get("architecture"),
+        "layers": model.get("layers"),
+        "quantization_bits": model.get("quantization_bits"),
+        "quantization_layout": quantization_layout,
+        "moe": moe,
+        "fact_errors": [],
+    }
+
+
+def _policy_decision(
+    *,
+    subject_facts_sha256: str,
+    kind: str,
+    family: Any,
+    policy_id: str | None,
+    policy_version: str | None,
+    paths: list[dict[str, Any]],
+    reason_codes: list[str],
+    evidence_ids: list[str],
+    reason: str,
+) -> dict[str, Any]:
+    identity = {
+        "schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
+        "subject_facts_sha256": subject_facts_sha256,
+        "kind": kind,
+        "family": family,
+        "policy_id": policy_id,
+        "policy_version": policy_version,
+        "paths": paths,
+        "reason_codes": reason_codes,
+        "evidence_ids": evidence_ids,
+    }
+    return {
+        "schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
+        "decision_id": "compat_" + _sha256_json(identity)[:20],
+        "subject_facts_sha256": subject_facts_sha256,
+        "kind": kind,
+        "family": family,
+        "policy_id": policy_id,
+        "policy_version": policy_version,
+        "paths": paths,
+        "reason_codes": reason_codes,
+        "evidence_ids": evidence_ids,
+        "reason": reason,
+    }
+
+
+def _policy_decision_identity_payload(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value.get(key)
+        for key in (
+            "schema_version",
+            "subject_facts_sha256",
+            "kind",
+            "family",
+            "policy_id",
+            "policy_version",
+            "paths",
+            "reason_codes",
+            "evidence_ids",
+        )
+    }
+
+
+def _semantic_policy_decision(value: Any) -> Any:
+    """Return policy identity fields while excluding explanatory prose."""
+
+    if not isinstance(value, Mapping):
+        return value
+    return {
+        key: value.get(key)
+        for key in (
+            "schema_version",
+            "decision_id",
+            "subject_facts_sha256",
+            "kind",
+            "family",
+            "policy_id",
+            "policy_version",
+            "paths",
+            "reason_codes",
+            "evidence_ids",
+        )
+    }
+
+
+def _semantic_inspection_receipt(value: Any) -> Any:
+    """Bind the full receipt except explanatory decision prose."""
+
+    if not isinstance(value, Mapping):
+        return value
+    return {
+        key: (_semantic_policy_decision(item) if key == "decision" else item)
+        for key, item in value.items()
+    }
+
+
+def _current_model_policy_decision(model: Mapping[str, Any]) -> dict[str, Any]:
+    """Recompute the current portable policy without importing Aptus.
+
+    This remains an explicit Qwen3 MoE policy check. A portable policy snapshot
+    and generic evaluator belong to a later contract version.
+    """
+
+    subject = _compatibility_subject_payload(model)
+    subject_digest = _sha256_json(subject)
+    family = subject["family"]
+    model_type = subject["model_type"]
+    architecture = subject["architecture"]
+    normalized_family = family.lower() if isinstance(family, str) else None
+    claimed_qwen = bool(
+        normalized_family == QWEN3_MOE_FAMILY
+        or model_type == QWEN3_MOE_MODEL_TYPE
+        or architecture == QWEN3_MOE_ARCHITECTURE
+    )
+    if claimed_qwen:
+        reason: str | None = None
+        reason_code: str | None = None
+        exact_identity = bool(
+            family == QWEN3_MOE_FAMILY
+            and model_type == QWEN3_MOE_MODEL_TYPE
+            and architecture == QWEN3_MOE_ARCHITECTURE
+        )
+        if not exact_identity:
+            reason = QWEN3_MOE_IDENTITY_REASON
+            reason_code = "identity-mismatch"
+        elif subject["quantization_layout"] != _reviewed_qwen3_moe_quantization_layout(
+            subject["layers"]
+        ):
+            reason = QWEN3_MOE_LAYOUT_REASON
+            reason_code = "quantization-layout-mismatch"
+        else:
+            moe = subject["moe"]
+            layers = subject["layers"]
+            executable_sparse_layer = bool(
+                isinstance(moe, Mapping)
+                and _positive_int(layers)
+                and any(
+                    (index + 1) % moe["decoder_sparse_step"] == 0
+                    and index not in set(moe["mlp_only_layers"])
+                    for index in range(layers)
+                )
+            )
+            if not executable_sparse_layer:
+                reason = QWEN3_MOE_TOPOLOGY_REASON
+                reason_code = "topology-incomplete"
+            elif moe.get("shared_expert_intermediate_size") is not None:
+                reason = QWEN3_MOE_SHARED_EXPERT_REASON
+                reason_code = "shared-expert-unsupported"
+            elif subject["quantization_bits"] != 4:
+                reason = QWEN3_MOE_FOUR_BIT_REASON
+                reason_code = "four-bit-required"
+        if reason is not None:
+            assert reason_code is not None
+            return _policy_decision(
+                subject_facts_sha256=subject_digest,
+                kind="blocked",
+                family=QWEN3_MOE_FAMILY,
+                policy_id=QWEN3_MOE_POLICY_ID,
+                policy_version=QWEN3_MOE_POLICY_VERSION,
+                paths=[],
+                reason_codes=[reason_code],
+                evidence_ids=list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
+                reason=reason,
+            )
+        return _policy_decision(
+            subject_facts_sha256=subject_digest,
+            kind="path-matched",
+            family=QWEN3_MOE_FAMILY,
+            policy_id=QWEN3_MOE_POLICY_ID,
+            policy_version=QWEN3_MOE_POLICY_VERSION,
+            paths=[_qwen3_moe_policy_path()],
+            reason_codes=["exact-reviewed-artifact", "pilot-not-yet-proven"],
+            evidence_ids=list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
+            reason=QWEN3_MOE_MATCHED_REASON,
+        )
+
+    sparse_identity = subject["moe"] is not None or any(
+        marker in value.lower()
+        for value in (family, model_type, architecture)
+        if isinstance(value, str)
+        for marker in ("moe", "mixtral")
+    )
+    if sparse_identity:
+        return _policy_decision(
+            subject_facts_sha256=subject_digest,
+            kind="blocked",
+            family=family,
+            policy_id=None,
+            policy_version=None,
+            paths=[],
+            reason_codes=["unreviewed-sparse-model"],
+            evidence_ids=[],
+            reason=UNREVIEWED_SPARSE_MODEL_REASON,
+        )
+    if normalized_family in {"gemma", "llama", "mistral", "qwen"}:
+        return _policy_decision(
+            subject_facts_sha256=subject_digest,
+            kind="family-recognized",
+            family=normalized_family,
+            policy_id=None,
+            policy_version=None,
+            paths=[],
+            reason_codes=["family-recognized"],
+            evidence_ids=[],
+            reason=FAMILY_RECOGNIZED_REASON,
+        )
+    return _policy_decision(
+        subject_facts_sha256=subject_digest,
+        kind="unknown",
+        family=family,
+        policy_id=None,
+        policy_version=None,
+        paths=[],
+        reason_codes=["no-policy-match"],
+        evidence_ids=[],
+        reason=UNKNOWN_POLICY_REASON,
+    )
+
+
+def require_current_model_policy(plan_value: Any) -> None:
+    """Raise a distinct error when a same-schema plan needs policy replanning.
+
+    Malformed or tampered v4 state remains a plain ``ValueError``. A decision is
+    classified as stale only after its full historical receipt, candidate,
+    recommendation, evidence, and plan identity chain validates independently
+    of today's policy registry.
+    """
+
+    if not isinstance(plan_value, Mapping):
+        raise ValueError("Persisted plan must be an object.")
+    if plan_value.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError(f"Persisted plan schema must be {SCHEMA_VERSION}.")
+    model = plan_value.get("model")
+    decision = plan_value.get("model_policy_decision")
+    if not isinstance(model, Mapping) or not isinstance(decision, Mapping):
+        raise ValueError("Persisted v4 plans require model policy state.")
+    try:
+        expected = _current_model_policy_decision(model)
+    except (OverflowError, TypeError, ValueError) as error:
+        raise ValueError(
+            "Saved model policy could not be recomputed from malformed model facts."
+        ) from error
+    reason = decision.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or reason != reason.strip():
+        raise ValueError("Saved model policy reason must be unpadded non-empty text.")
+    if _semantic_policy_decision(decision) == _semantic_policy_decision(expected):
+        return
+    required_decision_fields = {
+        "schema_version",
+        "decision_id",
+        "subject_facts_sha256",
+        "kind",
+        "family",
+        "policy_id",
+        "policy_version",
+        "paths",
+        "reason_codes",
+        "evidence_ids",
+        "reason",
+    }
+    if (
+        set(decision) != required_decision_fields
+        or decision.get("schema_version") != MODEL_COMPATIBILITY_SCHEMA_VERSION
+        or not _valid_content_id(decision.get("decision_id"), prefix="compat_")
+        or decision.get("decision_id")
+        != "compat_" + _sha256_json(_policy_decision_identity_payload(decision))[:20]
+        or decision.get("subject_facts_sha256") != expected.get("subject_facts_sha256")
+    ):
+        raise ValueError(
+            "Saved model policy state is malformed, tampered, or inconsistent "
+            "with the current model facts."
+        )
+    try:
+        historical_errors = _validate_plan_payload_impl(
+            plan_value,
+            verify_dataset=False,
+            expected_policy_decision_override=decision,
+            enforce_current_policy=False,
+        )
+    except (IndexError, KeyError, OverflowError, TypeError, ValueError) as error:
+        raise ValueError(
+            "Saved model policy dependencies are malformed or tampered."
+        ) from error
+    if historical_errors:
+        raise ValueError(
+            "Saved model policy dependencies are malformed or tampered: "
+            + "; ".join(historical_errors[:3])
+        )
+    raise StaleModelPolicyError(
+        "The saved plan uses policy semantics that are no longer current; "
+        "replan_required."
+    )
+
+
+def _receipt_fact_value(field: str, model: Mapping[str, Any]) -> Any:
+    value = model.get(field)
+    if field == "quantization_layout" and value is not None:
+        return _normalized_quantization_layout(value)
+    if field == "moe" and value is not None:
+        return _normalized_moe(value)
+    return value
+
+
+def _validate_receipt_model_provenance(
+    *,
+    model: Mapping[str, Any],
+    provenance_summary: list[Mapping[str, Any]],
+    receipt_id: Any,
+    errors: list[str],
+) -> None:
+    model_provenance = model.get("provenance")
+    if not isinstance(model_provenance, Mapping):
+        errors.append("Receipt-backed model provenance must be an object.")
+        return
+    expected_fields = RECEIPT_FACT_FIELDS | {"parameters", "training_allowed"}
+    if set(model_provenance) != expected_fields:
+        errors.append(
+            "Receipt-backed model provenance must name every observed planning fact "
+            "plus parameters and training_allowed."
+        )
+    summary_by_field = {
+        item.get("field"): item
+        for item in provenance_summary
+        if isinstance(item.get("field"), str)
+    }
+    provenance_fields = {
+        "kind",
+        "source",
+        "observed_at",
+        "digest",
+        "detail",
+    }
+    for field in expected_fields:
+        value = model_provenance.get(field)
+        if not isinstance(value, Mapping):
+            errors.append(f"Model provenance for {field} must be an object.")
+            continue
+        if set(value) != provenance_fields:
+            errors.append(
+                f"Model provenance for {field} must contain the exact v1 fields."
+            )
+        observed = summary_by_field.get(field)
+        if observed is not None:
+            expected = {
+                "kind": observed.get("kind"),
+                "source": observed.get("source"),
+                "observed_at": observed.get("observed_at"),
+                "digest": receipt_id,
+                "detail": (
+                    "Provider observation at immutable revision "
+                    f"{observed.get('resolved_revision')}."
+                ),
+            }
+            if value != expected:
+                errors.append(
+                    f"Model provenance for {field} does not match its inspection receipt."
+                )
+        elif value.get("kind") != "user-attested":
+            errors.append(f"Model provenance for {field} must remain user-attested.")
+
+
+def _validate_user_attested_model_provenance(
+    *, model: Mapping[str, Any], errors: list[str]
+) -> None:
+    provenance = model.get("provenance")
+    if not isinstance(provenance, Mapping) or set(provenance) != {"all"}:
+        errors.append(
+            "Receipt-free plans require one all-fields user-attested model provenance record."
+        )
+        return
+    record = provenance.get("all")
+    if not isinstance(record, Mapping) or set(record) != {
+        "kind",
+        "source",
+        "observed_at",
+        "digest",
+        "detail",
+    }:
+        errors.append(
+            "User-attested model provenance must contain the exact v1 fields."
+        )
+        return
+    source = record.get("source")
+    if record.get("kind") != "user-attested":
+        errors.append("Receipt-free model provenance must remain user-attested.")
+    if not isinstance(source, str) or not source or source != source.strip():
+        errors.append("User-attested model provenance source must be unpadded text.")
+
+
+def _validate_inspection_receipt(
+    receipt_value: Any,
+    *,
+    model: Mapping[str, Any],
+    expected_decision: Mapping[str, Any],
+    errors: list[str],
+) -> Mapping[str, Any] | None:
+    if receipt_value is None:
+        return None
+    if not isinstance(receipt_value, Mapping):
+        errors.append("Plan inspection_receipt must be an object or null.")
+        return None
+    receipt = receipt_value
+    required_receipt_fields = {
+        "schema_version",
+        "receipt_id",
+        "model_id",
+        "resolved_revision",
+        "observed_facts_sha256",
+        "decision",
+        "provenance_summary",
+        "provenance_requirement",
+        "provenance_requirement_met",
+        "evaluated_at",
+    }
+    if set(receipt) != required_receipt_fields:
+        errors.append("Plan inspection receipt must contain the exact v1 fields.")
+    if receipt.get("schema_version") != MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION:
+        errors.append(
+            "Plan inspection receipt schema must be "
+            f"{MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION}."
+        )
+    if receipt.get("model_id") != model.get("model_id"):
+        errors.append("Plan inspection receipt model ID does not match model facts.")
+    if (
+        not _valid_revision(receipt.get("resolved_revision"))
+        or str(receipt.get("resolved_revision")).lower()
+        != str(model.get("revision")).lower()
+    ):
+        errors.append("Plan inspection receipt revision does not match model facts.")
+    receipt_decision = receipt.get("decision")
+    receipt_reason = (
+        receipt_decision.get("reason")
+        if isinstance(receipt_decision, Mapping)
+        else None
+    )
+    if not isinstance(receipt_decision, Mapping) or set(receipt_decision) != {
+        "schema_version",
+        "decision_id",
+        "subject_facts_sha256",
+        "kind",
+        "family",
+        "policy_id",
+        "policy_version",
+        "paths",
+        "reason_codes",
+        "evidence_ids",
+        "reason",
+    }:
+        errors.append(
+            "Plan inspection receipt decision must contain the exact v2 fields."
+        )
+    if (
+        not isinstance(receipt_reason, str)
+        or not receipt_reason.strip()
+        or receipt_reason != receipt_reason.strip()
+    ):
+        errors.append(
+            "Plan inspection receipt decision reason must be unpadded non-empty text."
+        )
+    if _semantic_policy_decision(receipt_decision) != _semantic_policy_decision(
+        expected_decision
+    ):
+        errors.append(
+            "Plan inspection receipt decision is stale or differs from current policy."
+        )
+    if not _valid_timestamp(receipt.get("evaluated_at")):
+        errors.append(
+            "Plan inspection receipt evaluated_at must be timezone-aware ISO-8601."
+        )
+
+    provenance_value = receipt.get("provenance_summary")
+    provenance: list[Mapping[str, Any]] = []
+    provenance_fields: list[str] = []
+    if not isinstance(provenance_value, list) or not provenance_value:
+        errors.append("Plan inspection receipt requires a non-empty provenance list.")
+    else:
+        for index, item in enumerate(provenance_value):
+            name = f"Inspection provenance {index}"
+            if not isinstance(item, Mapping):
+                errors.append(f"{name} must be an object.")
+                continue
+            provenance.append(item)
+            if set(item) != {
+                "field",
+                "kind",
+                "source",
+                "observed_at",
+                "resolved_revision",
+            }:
+                errors.append(f"{name} must contain the exact v1 fields.")
+            field = item.get("field")
+            if not isinstance(field, str) or field not in RECEIPT_FACT_FIELDS:
+                errors.append(f"{name} names an unsupported planning fact.")
+            else:
+                provenance_fields.append(field)
+            if not _known_text(item.get("kind"), INSPECTION_PROVENANCE_KINDS):
+                errors.append(f"{name} kind must be provider-declared or inferred.")
+            source = item.get("source")
+            if not isinstance(source, str) or not source or source != source.strip():
+                errors.append(f"{name} source must be unpadded text.")
+            if not _valid_timestamp(item.get("observed_at")):
+                errors.append(f"{name} observed_at must be timezone-aware ISO-8601.")
+            if (
+                not _valid_revision(item.get("resolved_revision"))
+                or str(item.get("resolved_revision")).lower()
+                != str(receipt.get("resolved_revision")).lower()
+            ):
+                errors.append(f"{name} revision does not match the receipt.")
+    if provenance_fields != sorted(set(provenance_fields)):
+        errors.append(
+            "Plan inspection receipt provenance fields must be sorted and unique."
+        )
+    required_subject_fields = {
+        field
+        for field in COMPATIBILITY_SUBJECT_FACT_FIELDS
+        if model.get(field) is not None
+    }
+    missing_subject_fields = required_subject_fields.difference(provenance_fields)
+    if missing_subject_fields:
+        errors.append(
+            "Plan inspection receipt provenance does not cover compatibility "
+            "subject facts: " + ", ".join(sorted(missing_subject_fields)) + "."
+        )
+    if not any(
+        item.get("field") in required_subject_fields
+        and item.get("kind") == "provider-declared"
+        for item in provenance
+    ):
+        errors.append(
+            "Plan inspection receipt compatibility facts require at least one "
+            "provider-declared observation."
+        )
+
+    observed_facts = {
+        field: _receipt_fact_value(field, model) for field in provenance_fields
+    }
+    expected_observed_digest = _sha256_json(observed_facts)
+    if (
+        not _valid_sha256(receipt.get("observed_facts_sha256"))
+        or receipt.get("observed_facts_sha256") != expected_observed_digest
+    ):
+        errors.append(
+            "Plan inspection receipt observed-facts digest does not match model facts."
+        )
+
+    has_registered_policy = expected_decision.get("policy_id") is not None
+    expected_requirement = "provider-declared" if has_registered_policy else None
+    expected_requirement_met = bool(
+        has_registered_policy
+        and QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS.issubset(provenance_fields)
+        and all(
+            item.get("kind") == "provider-declared"
+            for item in provenance
+            if _known_text(item.get("field"), QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS)
+        )
+    )
+    if receipt.get("provenance_requirement") != expected_requirement:
+        errors.append("Plan inspection receipt provenance requirement is stale.")
+    if not isinstance(receipt.get("provenance_requirement_met"), bool) or (
+        receipt.get("provenance_requirement_met") is not expected_requirement_met
+    ):
+        errors.append("Plan inspection receipt provenance result is inconsistent.")
+    if expected_decision.get("kind") == "path-matched" and not expected_requirement_met:
+        errors.append(
+            "A matched provider policy receipt requires provider-declared path facts."
+        )
+
+    receipt_identity = {
+        "schema_version": MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION,
+        "model_id": receipt.get("model_id"),
+        "resolved_revision": str(receipt.get("resolved_revision")).lower(),
+        "observed_facts_sha256": receipt.get("observed_facts_sha256"),
+        "decision_id": expected_decision.get("decision_id"),
+        "provenance_summary": provenance_value,
+        "provenance_requirement": receipt.get("provenance_requirement"),
+        "provenance_requirement_met": receipt.get("provenance_requirement_met"),
+        "evaluated_at": receipt.get("evaluated_at"),
+    }
+    expected_receipt_id = "receipt_" + _sha256_json(receipt_identity)[:20]
+    if (
+        not _valid_content_id(receipt.get("receipt_id"), prefix="receipt_")
+        or receipt.get("receipt_id") != expected_receipt_id
+    ):
+        errors.append(
+            "Plan inspection receipt immutable ID does not match its content."
+        )
+    _validate_receipt_model_provenance(
+        model=model,
+        provenance_summary=provenance,
+        receipt_id=receipt.get("receipt_id"),
+        errors=errors,
+    )
+    return receipt
+
+
+def _matching_policy_path(
+    decision: Mapping[str, Any], candidate: Mapping[str, Any]
+) -> Mapping[str, Any] | None:
+    paths = decision.get("paths")
+    if decision.get("kind") != "path-matched" or not isinstance(paths, list):
+        return None
+    return next(
+        (
+            path
+            for path in paths
+            if isinstance(path, Mapping)
+            and path.get("method") == candidate.get("method")
+            and path.get("distribution") == candidate.get("distribution")
+            and path.get("target_modules") == candidate.get("target_modules")
+            and path.get("runtime_contract") == candidate.get("runtime_contract")
+        ),
+        None,
+    )
+
+
+def _expected_policy_binding(
+    *,
+    decision: Mapping[str, Any],
+    path: Mapping[str, Any],
+    source: str,
+    receipt: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    decision_evidence = decision.get("evidence_ids")
+    path_evidence = path.get("evidence_ids")
+    evidence_ids = list(
+        dict.fromkeys(
+            (decision_evidence if isinstance(decision_evidence, list) else [])
+            + (path_evidence if isinstance(path_evidence, list) else [])
+        )
+    )
+    return {
+        "schema_version": MODEL_POLICY_BINDING_SCHEMA_VERSION,
+        "decision_id": decision.get("decision_id"),
+        "subject_facts_sha256": decision.get("subject_facts_sha256"),
+        "policy_id": decision.get("policy_id"),
+        "policy_version": decision.get("policy_version"),
+        "path_id": path.get("path_id"),
+        "source": source,
+        "inspection_receipt_id": (
+            receipt.get("receipt_id") if receipt is not None else None
+        ),
+        "reason_codes": decision.get("reason_codes"),
+        "evidence_ids": evidence_ids,
+    }
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
@@ -271,7 +1134,8 @@ def _normalized_quantization_layout(value: Any) -> dict[str, Any] | None:
         return None
     if not isinstance(value, Mapping) or set(value) != set(QUANTIZATION_LAYOUT_FIELDS):
         raise ValueError(
-            "Model quantization_layout must contain the exact v3 layout fields."
+            "Model quantization_layout must contain the exact aptus.facts.v3 "
+            "layout fields."
         )
     default_bits = value.get("default_bits")
     default_group_size = value.get("default_group_size")
@@ -416,7 +1280,9 @@ def _normalized_moe(value: Any) -> dict[str, Any] | None:
     if value is None:
         return None
     if not isinstance(value, Mapping) or set(value) != set(MOE_TOPOLOGY_FIELDS):
-        raise ValueError("Model moe must contain the exact v3 topology fields.")
+        raise ValueError(
+            "Model moe must contain the exact aptus.facts.v3 topology fields."
+        )
     positive_names = (
         "expert_count",
         "experts_per_token",
@@ -811,16 +1677,16 @@ def _mlx_adapter_parameter_count(
         )
     moe = model.get("moe")
     if moe is not None and any(
-        module in {"gate_proj", "up_proj", "down_proj"} for module in target_modules
+        module in ("gate_proj", "up_proj", "down_proj") for module in target_modules
     ):
         raise ValueError(
             "MLX MoE memory recomputation refuses topology-free expert adapters."
         )
     per_layer = 0
     for module in target_modules:
-        if module in {"gate_proj", "up_proj", "down_proj"}:
+        if module in ("gate_proj", "up_proj", "down_proj"):
             per_layer += hidden_size + intermediate_size
-        elif module in {"q_proj", "k_proj", "v_proj", "o_proj"}:
+        elif module in ("q_proj", "k_proj", "v_proj", "o_proj"):
             per_layer += hidden_size * 2
         else:
             raise ValueError(
@@ -845,8 +1711,8 @@ def mlx_quantized_storage_bytes_for_contract(
         )
     layout = model.get("quantization_layout")
     if layout is None:
-        # Dense v3 plans predate an exact layout binding. Preserve their named
-        # analytical prior while the runtime still requires real four-bit metadata.
+        # Dense aptus.facts.v3 records do not require an exact layout binding.
+        # Preserve their analytical prior; runtime still needs real 4-bit metadata.
         return round(parameters * 0.5), round(parameters * 0.0625)
     if not isinstance(layout, Mapping):
         raise ValueError("MLX quantization layout must be an object.")
@@ -917,7 +1783,7 @@ def mlx_memory_breakdown_for_contract(
     """Recompute the portable MLX memory contract from normalized plan facts."""
 
     method = candidate.get("method")
-    if method not in {"lora", "qlora"}:
+    if method not in ("lora", "qlora"):
         raise ValueError("The MLX estimator supports LoRA and QLoRA only.")
     parameters = model.get("parameters")
     hidden_size = model.get("hidden_size")
@@ -1112,6 +1978,8 @@ def candidate_id_for_payload(
                 if isinstance(runtime_contract, Mapping)
                 else {}
             ),
+            "model_policy_decision_id": candidate.get("model_policy_decision_id"),
+            "policy_binding": candidate.get("policy_binding"),
         },
         "facts": {
             "model": _normalized_model(model),
@@ -1147,15 +2015,25 @@ def plan_id_for_payload(plan: Mapping[str, Any]) -> str:
         },
         "candidate_ids": candidate_ids,
         "recommended_candidate_id": recommended.get("candidate_id"),
+        "model_policy_decision": _semantic_policy_decision(
+            plan.get("model_policy_decision")
+        ),
+        "model_policy_decision_source": plan.get("model_policy_decision_source"),
+        "inspection_receipt": _semantic_inspection_receipt(
+            plan.get("inspection_receipt")
+        ),
+        "evidence_records": plan.get("evidence_records"),
     }
     return _content_id("plan_", identity)
 
 
-def validate_plan_payload(
+def _validate_plan_payload_impl(
     plan_value: Any,
     *,
     root: Path | None = None,
     verify_dataset: bool = True,
+    expected_policy_decision_override: Mapping[str, Any] | None = None,
+    enforce_current_policy: bool = True,
 ) -> tuple[str, ...]:
     errors: list[str] = []
     if not isinstance(plan_value, dict) or not plan_value:
@@ -1176,7 +2054,7 @@ def validate_plan_payload(
     ):
         errors.append("A v2 plan cannot contain v3 model architecture or MoE fields.")
     if plan.get("schema_version") != SCHEMA_VERSION:
-        errors.append(f"Plan schema_version must be {SCHEMA_VERSION}.")
+        errors.append(f"Plan schema_version must be {SCHEMA_VERSION}; replan_required.")
     if plan.get("formula_version") != FORMULA_VERSION:
         errors.append(f"Plan formula_version must be {FORMULA_VERSION}.")
     for key in (
@@ -1187,6 +2065,9 @@ def validate_plan_payload(
         "recommended",
         "candidates",
         "evidence_records",
+        "model_policy_decision",
+        "model_policy_decision_source",
+        "inspection_receipt",
     ):
         if key not in plan:
             errors.append(f"Plan requires {key}.")
@@ -1198,6 +2079,11 @@ def validate_plan_payload(
     for key in ("model_id", "revision", "family", "license_name"):
         if not isinstance(model.get(key), str) or not model.get(key, "").strip():
             errors.append(f"Model {key} is required.")
+    if (
+        isinstance(model.get("family"), str)
+        and model["family"] != model["family"].lower()
+    ):
+        errors.append("Model family must use its canonical lowercase identity.")
     revision = model.get("revision")
     if (
         not isinstance(revision, str)
@@ -1235,20 +2121,106 @@ def validate_plan_payload(
     except ValueError as error:
         errors.append(str(error))
 
-    if dataset.get("schema_name") not in {
-        "text",
-        "prompt-completion",
-        "instruction-output",
-        "messages",
-        "mixed",
-    }:
+    current_policy_decision: Mapping[str, Any] | None = None
+    try:
+        current_policy_decision = _current_model_policy_decision(model)
+    except (TypeError, ValueError) as error:
+        errors.append(
+            "Model compatibility decision could not be recomputed from bound facts: "
+            f"{error}"
+        )
+    expected_policy_decision = (
+        expected_policy_decision_override
+        if expected_policy_decision_override is not None
+        else current_policy_decision
+    )
+    policy_decision_value = plan.get("model_policy_decision")
+    if not isinstance(policy_decision_value, Mapping):
+        errors.append("Plan model_policy_decision must be an object.")
+        policy_decision: Mapping[str, Any] = {}
+    else:
+        policy_decision = policy_decision_value
+        if set(policy_decision) != {
+            "schema_version",
+            "decision_id",
+            "subject_facts_sha256",
+            "kind",
+            "family",
+            "policy_id",
+            "policy_version",
+            "paths",
+            "reason_codes",
+            "evidence_ids",
+            "reason",
+        }:
+            errors.append(
+                "Plan model_policy_decision must contain the exact v2 fields."
+            )
+        if not _valid_content_id(policy_decision.get("decision_id"), prefix="compat_"):
+            errors.append("Plan model policy decision ID is invalid.")
+        elif policy_decision.get("decision_id") != (
+            "compat_"
+            + _sha256_json(_policy_decision_identity_payload(policy_decision))[:20]
+        ):
+            errors.append(
+                "Plan model policy decision ID does not match its semantic content."
+            )
+        if not _valid_sha256(policy_decision.get("subject_facts_sha256")):
+            errors.append("Plan model policy subject digest is invalid.")
+        reason = policy_decision.get("reason")
+        if (
+            not isinstance(reason, str)
+            or not reason.strip()
+            or reason != reason.strip()
+        ):
+            errors.append("Plan model policy reason must be unpadded non-empty text.")
+        policy_comparison_target = (
+            current_policy_decision
+            if enforce_current_policy
+            else expected_policy_decision
+        )
+        if policy_comparison_target is not None and _semantic_policy_decision(
+            policy_decision
+        ) != _semantic_policy_decision(policy_comparison_target):
+            errors.append(
+                "Plan model compatibility decision is stale, tampered, or differs "
+                "from the current registered policy."
+            )
+
+    policy_source = plan.get("model_policy_decision_source")
+    if not _known_text(policy_source, POLICY_DECISION_SOURCES):
+        errors.append(
+            "Plan model_policy_decision_source must be provider-inspection or "
+            "user-attested."
+        )
+    inspection_receipt = (
+        _validate_inspection_receipt(
+            plan.get("inspection_receipt"),
+            model=model,
+            expected_decision=expected_policy_decision,
+            errors=errors,
+        )
+        if expected_policy_decision is not None
+        else None
+    )
+    if policy_source == "provider-inspection" and inspection_receipt is None:
+        errors.append("Provider-inspection plans require a valid inspection receipt.")
+    if policy_source == "user-attested" and plan.get("inspection_receipt") is not None:
+        errors.append("User-attested plans cannot carry an inspection receipt.")
+    if policy_source == "user-attested" and plan.get("inspection_receipt") is None:
+        _validate_user_attested_model_provenance(model=model, errors=errors)
+
+    if not _known_text(
+        dataset.get("schema_name"),
+        {"text", "prompt-completion", "instruction-output", "messages", "mixed"},
+    ):
         errors.append("Dataset schema is unsupported.")
     if (
         not isinstance(dataset.get("source_path"), str)
         or not dataset.get("source_path", "").strip()
     ):
         errors.append("Dataset source_path is required.")
-    if dataset.get("source_format") not in {"jsonl", "json", "csv", "txt"}:
+    if not _known_text(dataset.get("source_format"), {"jsonl", "json", "csv", "txt"}):
         errors.append("Dataset source_format is unsupported.")
     for key in (
         "example_count",
@@ -1309,7 +2281,8 @@ def validate_plan_payload(
     if not isinstance(devices, list) or not devices:
         errors.append("Hardware requires at least one device.")
     elif any(
-        not isinstance(item, dict) or item.get("backend") not in {"cuda", "mps"}
+        not isinstance(item, dict)
+        or not _known_text(item.get("backend"), {"cuda", "mps"})
         for item in devices
     ):
         errors.append("Aptus execution plans support CUDA or MPS compute devices.")
@@ -1390,21 +2363,20 @@ def validate_plan_payload(
         )
     if target.get("task") != "sft":
         errors.append("Aptus v0.2 target task must be sft.")
-    if target.get("objective") not in {"quality", "memory", "speed"}:
+    if not _known_text(target.get("objective"), {"quality", "memory", "speed"}):
         errors.append("Target objective is invalid.")
-    if target.get("method_preference") not in METHODS | {None}:
+    if target.get("method_preference") is not None and not _known_text(
+        target.get("method_preference"), METHODS
+    ):
         errors.append("Target method_preference is invalid.")
-    if target.get("training_runtime") not in TRAINING_RUNTIMES | {None}:
+    if target.get("training_runtime") is not None and not _known_text(
+        target.get("training_runtime"), TRAINING_RUNTIMES
+    ):
         errors.append("Target training_runtime is invalid.")
     if target.get("packing") is not False:
         errors.append("Aptus v0.2 target packing must be false.")
     evaluation_fraction = target.get("evaluation_fraction")
-    if (
-        not isinstance(evaluation_fraction, (int, float))
-        or isinstance(evaluation_fraction, bool)
-        or not math.isfinite(evaluation_fraction)
-        or not 0 <= evaluation_fraction < 1
-    ):
+    if not _finite_number(evaluation_fraction) or not 0 <= evaluation_fraction < 1:
         errors.append("Target evaluation_fraction must be in [0, 1).")
     if _positive_int(model.get("context_length")) and _positive_int(
         target.get("sequence_length")
@@ -1416,6 +2388,59 @@ def validate_plan_payload(
     if not isinstance(candidates, list) or not candidates:
         errors.append("Plan candidates must be a non-empty list.")
         candidates = []
+    historical_policy_validation = bool(
+        expected_policy_decision_override is not None and not enforce_current_policy
+    )
+    historical_adapter_targets: list[str] | None = None
+    historical_adapter_targets_registered = False
+    if historical_policy_validation:
+        assert expected_policy_decision_override is not None
+        historical_kind = expected_policy_decision_override.get("kind")
+        historical_policy_id = expected_policy_decision_override.get("policy_id")
+        target_variants: list[tuple[str, ...]] = []
+        if historical_kind == "path-matched":
+            historical_paths = expected_policy_decision_override.get("paths")
+            if isinstance(historical_paths, list):
+                for path in historical_paths:
+                    targets = (
+                        path.get("target_modules") if isinstance(path, dict) else None
+                    )
+                    if (
+                        isinstance(targets, list)
+                        and targets
+                        and all(isinstance(item, str) for item in targets)
+                    ):
+                        variant = tuple(targets)
+                        if variant not in target_variants:
+                            target_variants.append(variant)
+        elif historical_kind == "family-recognized" or (
+            historical_kind == "blocked" and historical_policy_id is not None
+        ):
+            for candidate in candidates:
+                if not isinstance(candidate, dict) or not _known_text(
+                    candidate.get("method"), METHODS - {"full"}
+                ):
+                    continue
+                targets = candidate.get("target_modules")
+                if (
+                    isinstance(targets, list)
+                    and targets
+                    and all(isinstance(item, str) for item in targets)
+                ):
+                    variant = tuple(targets)
+                    if variant not in target_variants:
+                        target_variants.append(variant)
+        if _known_text(historical_kind, {"path-matched", "family-recognized"}) or (
+            historical_kind == "blocked" and historical_policy_id is not None
+        ):
+            if len(target_variants) != 1:
+                errors.append(
+                    "Historical model policy must establish one internally "
+                    "consistent adapter-target set."
+                )
+            else:
+                historical_adapter_targets = list(target_variants[0])
+                historical_adapter_targets_registered = True
     candidate_ids: set[str] = set()
     candidate_by_id: dict[str, dict[str, Any]] = {}
     strategy_pairs: set[tuple[str, str]] = set()
@@ -1424,38 +2449,54 @@ def validate_plan_payload(
         errors.append("Plan evidence_records must be a list.")
         evidence_records = []
     evidence_ids: set[str] = set()
-    required_evidence_fields = (
+    evidence_id_order: list[str] = []
+    required_evidence_fields = {
         "evidence_id",
         "claim",
         "source",
         "source_kind",
         "scope",
         "confidence",
-    )
+        "revision",
+    }
     for index, record in enumerate(evidence_records):
         name = f"Evidence record {index}"
         if not isinstance(record, dict):
             errors.append(f"{name} must be an object.")
             continue
-        for field in required_evidence_fields:
+        if set(record) != required_evidence_fields:
+            errors.append(f"{name} must contain the exact v1 fields.")
+        for field in required_evidence_fields - {"revision"}:
             if not isinstance(record.get(field), str) or not record[field].strip():
                 errors.append(f"{name} requires non-empty string {field}.")
         evidence_id = record.get("evidence_id")
         if isinstance(evidence_id, str) and evidence_id:
+            evidence_id_order.append(evidence_id)
             if evidence_id in evidence_ids:
                 errors.append(f"Duplicate evidence ID: {evidence_id}.")
             else:
                 evidence_ids.add(evidence_id)
+            canonical_digest = EVIDENCE_RECORD_SHA256.get(evidence_id)
+            if canonical_digest is None:
+                errors.append(f"{name} uses an unknown evidence ID.")
+            elif _sha256_json(record) != canonical_digest:
+                errors.append(
+                    f"{name} content does not match the canonical evidence registry."
+                )
         revision = record.get("revision")
         if revision is not None and (
             not isinstance(revision, str) or not revision.strip()
         ):
             errors.append(f"{name} revision must be null or a non-empty string.")
+    if evidence_id_order != sorted(set(evidence_id_order)):
+        errors.append("Plan evidence records must be sorted by unique evidence ID.")
+    referenced_evidence_ids: set[str] = set()
     for index, candidate in enumerate(candidates):
         name = f"Candidate {index}"
         if not isinstance(candidate, dict):
             errors.append(f"{name} must be an object.")
             continue
+        expected_policy_binding: Mapping[str, Any] | None = None
         candidate_id = candidate.get("candidate_id")
         if not isinstance(candidate_id, str) or not candidate_id:
             errors.append(f"{name} requires candidate_id.")
@@ -1464,8 +2505,45 @@ def validate_plan_payload(
         else:
             candidate_ids.add(candidate_id)
             candidate_by_id[candidate_id] = candidate
+        expected_decision_id = (
+            expected_policy_decision.get("decision_id")
+            if expected_policy_decision is not None
+            else policy_decision.get("decision_id")
+        )
+        if candidate.get("model_policy_decision_id") != expected_decision_id:
+            errors.append(f"{name} must link to the current model policy decision ID.")
+        if "policy_binding" not in candidate:
+            errors.append(f"{name} requires an explicit policy_binding field.")
+        binding_value = candidate.get("policy_binding")
+        matching_path = (
+            _matching_policy_path(expected_policy_decision, candidate)
+            if expected_policy_decision is not None
+            else None
+        )
+        if matching_path is None:
+            if binding_value is not None:
+                errors.append(
+                    f"{name} policy_binding must be null because no registered "
+                    "policy path matches the candidate."
+                )
+        else:
+            expected_policy_binding = _expected_policy_binding(
+                decision=expected_policy_decision,
+                path=matching_path,
+                source=str(policy_source),
+                receipt=inspection_receipt,
+            )
+            if not isinstance(binding_value, Mapping):
+                errors.append(
+                    f"{name} requires a policy_binding for its registered policy path."
+                )
+            elif binding_value != expected_policy_binding:
+                errors.append(
+                    f"{name} policy_binding is stale, tampered, or does not match "
+                    "the current registered path."
+                )
         candidate_method = candidate.get("method")
-        if candidate_method not in METHODS:
+        if not _known_text(candidate_method, METHODS):
             errors.append(f"{name} method is invalid.")
         runtime_contract = candidate.get("runtime_contract")
         runtime_id = "transformers-peft-cuda"
@@ -1481,24 +2559,34 @@ def validate_plan_payload(
                 errors.append(
                     f"{name} runtime contract schema must be {RUNTIME_CONTRACT_VERSION}."
                 )
-            if runtime_id not in TRAINING_RUNTIMES:
+            if not _known_text(runtime_id, TRAINING_RUNTIMES):
                 errors.append(f"{name} training runtime is invalid.")
-            if runtime_backend not in {"cuda", "mps"}:
+            if not _known_text(runtime_backend, {"cuda", "mps"}):
                 errors.append(f"{name} runtime compute backend is invalid.")
-            expected_runtime_backend = {
-                "transformers-peft-cuda": "cuda",
-                "mlx-lm": "mps",
-                "pytorch-mps": "mps",
-            }.get(runtime_id)
+            expected_runtime_backend = (
+                {
+                    "transformers-peft-cuda": "cuda",
+                    "mlx-lm": "mps",
+                    "pytorch-mps": "mps",
+                }.get(runtime_id)
+                if isinstance(runtime_id, str)
+                else None
+            )
             if expected_runtime_backend and runtime_backend != expected_runtime_backend:
                 errors.append(f"{name} runtime and compute backend do not match.")
-            if (
-                runtime_contract.get("evidence_requirement")
-                not in EVIDENCE_REQUIREMENTS
+            if not _known_text(
+                runtime_contract.get("evidence_requirement"), EVIDENCE_REQUIREMENTS
             ):
                 errors.append(f"{name} runtime evidence requirement is invalid.")
-            expected_runtime_identity = RUNTIME_BINDING_IDENTITIES.get(
-                (candidate_method, runtime_id, runtime_backend)
+            expected_runtime_identity = (
+                RUNTIME_BINDING_IDENTITIES.get(
+                    (candidate_method, runtime_id, runtime_backend)
+                )
+                if all(
+                    isinstance(item, str)
+                    for item in (candidate_method, runtime_id, runtime_backend)
+                )
+                else None
             )
             actual_runtime_identity = (
                 runtime_contract.get("compiler_id"),
@@ -1515,10 +2603,9 @@ def validate_plan_payload(
                 errors.append(
                     f"{name} runtime contract does not match its registered compiler, estimator, export, and evidence identity."
                 )
-            viable_runtime = candidate.get("status") in {
-                "feasible",
-                "conditional",
-            }
+            viable_runtime = _known_text(
+                candidate.get("status"), {"feasible", "conditional"}
+            )
             if viable_runtime:
                 if expected_runtime_identity is None:
                     errors.append(
@@ -1526,7 +2613,7 @@ def validate_plan_payload(
                     )
                 elif runtime_contract.get("evidence_requirement") != "pilot-required":
                     errors.append(f"{name} viable runtime must remain pilot-required.")
-        if candidate.get("precision") not in {"bf16", "fp16"}:
+        if not _known_text(candidate.get("precision"), {"bf16", "fp16"}):
             errors.append(f"{name} precision is invalid.")
         learning_rate = candidate.get("learning_rate")
         if not _finite_number(learning_rate) or learning_rate <= 0:
@@ -1534,19 +2621,19 @@ def validate_plan_payload(
         if (
             candidate.get("method") == "full"
             and candidate.get("precision") == "fp16"
-            and candidate.get("status") in {"feasible", "conditional"}
+            and _known_text(candidate.get("status"), {"feasible", "conditional"})
         ):
             errors.append(
                 f"{name} full-parameter FP16 execution is unsupported in Aptus v0.2."
             )
-        if candidate.get("distribution") not in DISTRIBUTIONS:
+        if not _known_text(candidate.get("distribution"), DISTRIBUTIONS):
             errors.append(f"{name} distribution is invalid.")
-        elif candidate.get("method") in METHODS:
+        elif _known_text(candidate.get("method"), METHODS):
             strategy_pairs.add((candidate["method"], candidate["distribution"]))
-        if candidate.get("status") not in CANDIDATE_STATUSES:
+        if not _known_text(candidate.get("status"), CANDIDATE_STATUSES):
             errors.append(f"{name} status is invalid.")
         elif candidate.get("feasible") is not (
-            candidate["status"] in {"feasible", "conditional"}
+            _known_text(candidate["status"], {"feasible", "conditional"})
         ):
             errors.append(f"{name} feasible flag does not match status.")
         for key in (
@@ -1586,13 +2673,30 @@ def validate_plan_payload(
                 errors.append(
                     f"{name} runtime compute backend does not match selected hardware."
                 )
+        zero_checkpoint_allowed = bool(
+            _known_text(candidate_method, METHODS)
+            and candidate_method != "full"
+            and candidate.get("status") == "unsupported"
+            and candidate.get("target_modules") in ([], ())
+        )
         for key in (
             "required_host_ram_bytes",
             "required_disk_bytes",
             "checkpoint_retention_bytes",
             "final_export_bytes",
         ):
-            if not _positive_int(candidate.get(key)):
+            value = candidate.get(key)
+            if key == "checkpoint_retention_bytes" and zero_checkpoint_allowed:
+                if not (
+                    isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and value >= 0
+                ):
+                    errors.append(
+                        f"{name} {key} must be non-negative for an unsupported "
+                        "zero-target adapter candidate."
+                    )
+            elif not _positive_int(value):
                 errors.append(f"{name} {key} must be positive.")
         if all(
             _positive_int(candidate.get(key))
@@ -1680,24 +2784,23 @@ def validate_plan_payload(
                 expected_memory_formula = (
                     MLX_FORMULA_VERSION
                     if runtime_id == "mlx-lm"
-                    and candidate.get("method") in {"lora", "qlora"}
+                    and _known_text(candidate.get("method"), {"lora", "qlora"})
                     else FORMULA_VERSION
                 )
                 if memory.get("formula_version") != expected_memory_formula:
                     errors.append(
                         f"{name} memory formula must be {expected_memory_formula}."
                     )
-                if runtime_id == "mlx-lm" and candidate.get("method") in {
-                    "lora",
-                    "qlora",
-                }:
+                if runtime_id == "mlx-lm" and _known_text(
+                    candidate.get("method"), {"lora", "qlora"}
+                ):
                     try:
                         recomputed_memory = mlx_memory_breakdown_for_contract(
                             model=model,
                             target=target,
                             candidate=candidate,
                         )
-                    except (TypeError, ValueError) as error:
+                    except (OverflowError, TypeError, ValueError) as error:
                         errors.append(
                             f"{name} MLX memory could not be recomputed from bound facts: {error}"
                         )
@@ -1710,14 +2813,14 @@ def validate_plan_payload(
                                 f"{name} MLX memory does not match deterministic recomputation from bound facts."
                             )
                 if (
-                    candidate.get("status") in {"feasible", "conditional"}
+                    _known_text(candidate.get("status"), {"feasible", "conditional"})
                     and runtime_estimator != expected_memory_formula
                 ):
                     errors.append(
                         f"{name} runtime estimator does not match its memory formula."
                     )
                 if (
-                    candidate.get("status") in {"feasible", "conditional"}
+                    _known_text(candidate.get("status"), {"feasible", "conditional"})
                     and selected_devices
                     and isinstance(reserve, int)
                 ):
@@ -1750,25 +2853,52 @@ def validate_plan_payload(
         expected_quantization = (
             "mlx-4bit-groupwise"
             if runtime_id == "mlx-lm" and method == "qlora"
-            else {
-                "full": None,
-                "lora": None,
-                "int8-lora": "int8-bitsandbytes",
-                "qlora": "nf4-double-quant",
-            }.get(method)
-        )
-        if method in METHODS and quantization != expected_quantization:
-            errors.append(f"{name} quantization does not match method.")
-        expected_targets = MODEL_TARGET_MODULES.get(model.get("family"))
-        if (
-            method != "full"
-            and method in METHODS
-            and expected_targets is not None
-            and candidate.get("target_modules") != expected_targets
-        ):
-            errors.append(
-                f"{name} target modules do not match the exact model-family policy."
+            else (
+                {
+                    "full": None,
+                    "lora": None,
+                    "int8-lora": "int8-bitsandbytes",
+                    "qlora": "nf4-double-quant",
+                }.get(method)
+                if isinstance(method, str)
+                else None
             )
+        )
+        if _known_text(method, METHODS) and quantization != expected_quantization:
+            errors.append(f"{name} quantization does not match method.")
+        model_family = model.get("family")
+        current_expected_targets = (
+            MODEL_TARGET_MODULES.get(model_family)
+            if isinstance(model_family, str)
+            else None
+        )
+        expected_targets = (
+            historical_adapter_targets
+            if historical_policy_validation
+            else current_expected_targets
+        )
+        adapter_targets_registered = (
+            historical_adapter_targets_registered
+            if historical_policy_validation
+            else current_expected_targets is not None
+        )
+        if method != "full" and _known_text(method, METHODS):
+            if not adapter_targets_registered:
+                if candidate.get("target_modules") not in ([], ()):
+                    errors.append(
+                        f"{name} unregistered model families cannot carry adapter targets."
+                    )
+                if (
+                    candidate.get("status") != "unsupported"
+                    or candidate.get("feasible") is not False
+                ):
+                    errors.append(
+                        f"{name} adapter path must be unsupported for an unregistered model family."
+                    )
+            elif candidate.get("target_modules") != expected_targets:
+                errors.append(
+                    f"{name} target modules do not match the exact model-family policy."
+                )
         if method == "full" and (
             candidate.get("rank") != 0
             or candidate.get("alpha") != 0
@@ -1777,11 +2907,11 @@ def validate_plan_payload(
             errors.append(f"{name} full fine-tuning cannot carry adapter fields.")
         if (
             method != "full"
-            and method in METHODS
+            and _known_text(method, METHODS)
             and (
                 not _positive_int(candidate.get("rank"))
                 or not _positive_int(candidate.get("alpha"))
-                or not candidate.get("target_modules")
+                or (adapter_targets_registered and not candidate.get("target_modules"))
             )
         ):
             errors.append(
@@ -1811,7 +2941,10 @@ def validate_plan_payload(
                 errors.append(
                     f"{name} Qwen3 MoE execution must remain conditional pending its measured pilot."
                 )
-        if candidate.get("status") in {"feasible", "conditional"} and selected_devices:
+        if (
+            _known_text(candidate.get("status"), {"feasible", "conditional"})
+            and selected_devices
+        ):
             if candidate.get("precision") == "bf16" and any(
                 not item.get("supports_bf16") for item in selected_devices
             ):
@@ -1830,13 +2963,12 @@ def validate_plan_payload(
                 errors.append(
                     f"{name} uses eight-bit quantization without device support."
                 )
-            if candidate.get("distribution") == "fsdp" and method in {
-                "int8-lora",
-                "qlora",
-            }:
+            if candidate.get("distribution") == "fsdp" and _known_text(
+                method, {"int8-lora", "qlora"}
+            ):
                 errors.append(f"{name} uses an unsupported quantized FSDP combination.")
             if runtime_id == "mlx-lm":
-                if method not in {"lora", "qlora"}:
+                if not _known_text(method, {"lora", "qlora"}):
                     errors.append(f"{name} MLX-LM method is unsupported.")
                 if candidate.get("distribution") != "single":
                     errors.append(f"{name} MLX-LM distribution must be single.")
@@ -1868,11 +3000,39 @@ def validate_plan_payload(
         else:
             if len(candidate_evidence) != len(set(candidate_evidence)):
                 errors.append(f"{name} evidence IDs must be unique.")
+            expected_candidate_evidence = list(
+                METHOD_EVIDENCE_IDS.get(candidate_method, ())
+                if isinstance(candidate_method, str)
+                else ()
+            )
+            if expected_policy_binding is not None:
+                expected_candidate_evidence.extend(
+                    expected_policy_binding["evidence_ids"]
+                )
+            if _known_text(candidate_method, METHODS) and (
+                candidate_evidence != expected_candidate_evidence
+            ):
+                errors.append(
+                    f"{name} evidence must match its method and policy contract."
+                )
+            if expected_policy_binding is not None and any(
+                evidence_id not in candidate_evidence
+                for evidence_id in expected_policy_binding["evidence_ids"]
+            ):
+                errors.append(
+                    f"{name} evidence must include every bound model-policy record."
+                )
             for evidence_id in candidate_evidence:
+                referenced_evidence_ids.add(evidence_id)
                 if evidence_id not in evidence_ids:
                     errors.append(
                         f"{name} references missing evidence ID {evidence_id}."
                     )
+
+    if evidence_ids != referenced_evidence_ids:
+        errors.append(
+            "Plan evidence records must exactly match the candidate evidence IDs."
+        )
 
     expected_pairs = {
         (method, distribution) for method in METHODS for distribution in DISTRIBUTIONS
@@ -1894,10 +3054,28 @@ def validate_plan_payload(
             errors.append(
                 "Recommended candidate must exactly match its listed candidate."
             )
-        if recommended.get("status") not in {"feasible", "conditional"}:
+        if not _known_text(recommended.get("status"), {"feasible", "conditional"}):
             errors.append("Recommended candidate must be feasible or conditional.")
     if plan.get("plan_id") != plan_id_for_payload(plan):
         errors.append(
             "Plan immutable ID does not match its normalized facts, candidates, and recommendation."
         )
     return tuple(errors)
+
+
+def validate_plan_payload(
+    plan_value: Any,
+    *,
+    root: Path | None = None,
+    verify_dataset: bool = True,
+) -> tuple[str, ...]:
+    """Validate a plan against the current portable policy contract."""
+
+    try:
+        return _validate_plan_payload_impl(
+            plan_value,
+            root=root,
+            verify_dataset=verify_dataset,
+        )
+    except (IndexError, KeyError, OverflowError, TypeError, ValueError) as error:
+        return (f"Plan structure is malformed: {error}",)

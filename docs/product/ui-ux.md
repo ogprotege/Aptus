@@ -28,12 +28,13 @@ revision detail on demand, and recovers an older state only by creating a new
 revision. The interface must state that recovery does not restore training
 authorization and must require fresh validation and confirmation.
 
-Saved v2 plans and plans with no schema identifier remain historical records,
-not executable workspaces. Bootstrap exposes `replan_required` and the source
-identity. The workbench shows that message, restores no old plan or bundle, and
-does not offer compile or revision recovery for it. The operator creates a new
-deterministic v3 plan from the preserved facts. The UI must never imply that
-changing the old schema label is a migration.
+Saved v3 plans, v2 plans, and plans with no schema identifier remain historical
+records, not executable workspaces. A v4 plan with an obsolete registered
+policy version also requires replanning. Bootstrap exposes `replan_required`
+and the source identity. The workbench shows that message, restores no old plan
+or bundle, and does not offer compile or revision recovery for it. The operator
+creates a new deterministic v4 plan from the preserved facts. The UI must never
+imply that changing the old schema label is a migration.
 
 The Models destination includes a read-only MLX environment doctor. Each likely
 interpreter shows path, discovery source, Python version, import-probe status,
@@ -77,6 +78,15 @@ single-device rows bind the strongest method-compatible visible GPU, while
 distributed rows use limiting VRAM and capabilities shared by every
 participating GPU.
 
+A successful inspection also returns an
+`aptus.model-inspection-receipt.v1`. The workbench retains that receipt
+separately and sends it with planning only while its covered model facts remain
+unchanged. Editing any inspection-derived identity, architecture, shape,
+topology, quantization, context, family, or license fact clears the receipt.
+Editing parameter count or training permission preserves it because those facts
+remain user-attested and never enter the receipt. A missing or malformed receipt
+cannot be presented as provider-backed planning.
+
 When inspection returns MoE topology, the Facts stage shows a static expert
 routing rail from token to router to the selected expert bank. It displays
 experts selected per token, total experts, optional shared-expert presence,
@@ -90,8 +100,9 @@ A runtime or backend mismatch names the complete required tuple and blocks the
 current target. Malformed, contradictory, or unknown evidence renders a
 fail-closed unsupported state.
 Changing any inspection-derived model identity or shape fact clears the topology
-until the operator inspects again. Changing total parameters or training
-permission does not erase inspection because those facts remain user-attested.
+and receipt until the operator inspects again. Changing total parameters or
+training permission does not erase inspection because those facts remain
+user-attested.
 Changing total parameters clears any previously derived active-parameter value
 until the backend creates a new plan.
 
@@ -111,10 +122,21 @@ host RAM, disk, assumptions, and evidence. Unsupported rows remain visible.
 Selecting a row changes only the inspected evidence. Compilation always uses the
 plan's clearly labeled recommended candidate.
 
+The v4 plan carries one `aptus.model-compatibility.v2` decision. Every candidate
+links to it, but only the exact registered path may show a non-null
+`aptus.model-policy-binding.v1`. The UI must not infer a binding for another
+candidate from family, prefix, method, or presentation text.
+
 The recommendation label means highest-ranked within the enumerated viable
 catalog. Viable includes `feasible` and `conditional`, with feasible ranked
 first. A conditional label keeps its unresolved warning. Recommendation does
 not mean “best model” or “guaranteed fit.”
+
+Receipt and identity hashes are tamper-evident, not authenticated signatures.
+The workbench trusts the local authenticated service boundary and still treats
+any server rejection as final. Phase 4 owns a portable policy snapshot and
+generic evaluator. Phase 5 owns removal of browser-side policy reconstruction.
+The Phase 3 UI must not claim either later boundary is complete.
 
 ## Compile and validate stages
 

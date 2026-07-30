@@ -1,13 +1,15 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
 
 ## Inputs
 
-- Valid `aptus.training-plan.v3` payload.
+- Valid `aptus.training-plan.v4` payload whose current policy decision,
+  decision source, optional inspection receipt, candidate decision links, and
+  exact-path binding all revalidate.
 - Recommended candidate embedded in that plan.
 - Source dataset whose content still matches the profiled digest.
 - Empty or absent output directory.
@@ -73,8 +75,15 @@ original mode only when the Aptus-created directory still owns the path.
   coordination used by portable entrypoints.
 
 Generated code reads semantic values from `plan.json`. It validates plan and
-candidate identities before runtime use. Distributed launch uses the active
-Python interpreter's Accelerate module rather than an unbound shell executable.
+candidate identities before runtime use. The v4 host compiler also rejects an
+obsolete registered policy version with `replan_required`. V3, v2, and
+schema-less plans are preserved but never compiled or relabeled. Distributed
+launch uses the active Python interpreter's Accelerate module rather than an
+unbound shell executable.
+
+The Phase 3 bundle still uses the handwritten self-contained policy checks. A
+portable policy snapshot and generic evaluator belong to Phase 4, not this
+compiler contract.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through

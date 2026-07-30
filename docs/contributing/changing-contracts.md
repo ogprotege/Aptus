@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -11,7 +11,10 @@ compatible. Decide the semantic effect before editing code.
 | Contract | Current identifier | Primary authority |
 |---|---|---|
 | Facts | `aptus.facts.v3` | `domain.py` and interface request models |
-| Training plan | `aptus.training-plan.v3` | `domain.py` and `plan_contract.py` |
+| Training plan | `aptus.training-plan.v4` | `domain.py` and `plan_contract.py` |
+| Model compatibility decision | `aptus.model-compatibility.v2` | `domain.py`, `model_compatibility.py`, and `plan_contract.py` |
+| Model inspection receipt | `aptus.model-inspection-receipt.v1` | `inspection.py`, `model_compatibility.py`, and interface response models |
+| Model policy binding | `aptus.model-policy-binding.v1` | `model_compatibility.py`, `planning.py`, and `plan_contract.py` |
 | Memory formula | `aptus-memory-v2` | `planning.py` |
 | MLX memory formula | `aptus-memory-mlx-v2` | `planning.py` and the method registry |
 | Method descriptor | `aptus.method-descriptor.v1` | `methods/contracts.py` and registry |
@@ -117,14 +120,16 @@ Current plan and bundle validators require exact schema identifiers. There is no
 general artifact migration command. Never reinterpret an old artifact under new
 semantics without an explicit reader and migration policy.
 
-The current plan reader accepts only `aptus.training-plan.v3`. A saved v2 plan,
-or a plan with no schema identifier, stays byte-for-byte preserved but enters
-`replan_required`. The CLI cannot compile it. The API cannot rehydrate, compile,
-or recover it, and project recovery does not append a revision. Bootstrap omits
-the old plan from the executable workspace and returns the source identity plus
-the required schema. The operator must create a deterministic v3 plan from the
-preserved facts. Changing only `schema_version` is not migration because v3
-binds new model, topology, quantization, and runtime semantics.
+The current plan reader accepts only `aptus.training-plan.v4`. A saved v3 plan,
+v2 plan, or plan with no schema identifier stays byte-for-byte preserved but
+enters `replan_required`. A v4 plan also requires replanning when its decision,
+policy version, or registered path differs from the current registry. The CLI
+cannot compile it. The API cannot rehydrate, compile, or recover it, and project
+recovery does not append a revision. Bootstrap omits the old plan from the
+executable workspace and returns the source identity plus the required schema.
+The operator must create a deterministic v4 plan from the preserved facts.
+Changing only `schema_version` is not migration because v4 binds policy
+decision, provenance source, receipt, candidate links, and exact path binding.
 
 For an incompatible change, choose one of these:
 
@@ -135,6 +140,36 @@ For an incompatible change, choose one of these:
 
 Do not mutate a persisted plan, bundle, validation report, job, or run in place
 to make it appear current.
+
+## Model-policy provenance changes
+
+Policy IDs and path IDs are stable public identities. Change the semantic
+policy version when an existing policy's predicates, required provenance,
+reason codes, evidence IDs, or emitted paths change. Introduce a new path ID
+when its method, placement, runtime contract, adapter profile, target modules,
+required gates, or evidence changes.
+
+Recompute and validate both digests independently. `subject_facts_sha256`
+covers only compatibility inputs. `observed_facts_sha256` covers every
+provider-declared or inferred planning fact carried into a receipt. Parameters
+and training permission remain user-attested and must never enter that receipt.
+Every candidate links to the decision, while only an exact path match carries a
+binding. Content hashes are tamper-evident, not authenticated signatures.
+Receipt entries are limited to `provider-declared` and `inferred`, cover every
+non-null compatibility subject field, and include at least one
+provider-declared subject observation.
+
+Evidence records are code-owned semantic inputs. Changing a record's claim,
+source, source kind, scope, confidence, or revision requires a new evidence ID,
+updated policy and method references, and a regenerated plan identity. The
+portable validator must continue to require exact canonical record content and
+the exact union cited by candidates.
+
+Phase 4 owns a portable policy snapshot and generic evaluator. Phase 5 owns
+removal of browser-side policy reconstruction. Do not fold either change into a
+Phase 3-compatible patch. The Phase 3 migration intentionally preserves
+`aptus.api.v1`, `aptus.facts.v3`, `aptus.runtime-contract.v1`, and
+`aptus.bundle.v2`.
 
 ## API and workbench changes
 
@@ -188,7 +223,12 @@ persisted state. Do not mark success from child exit alone.
 - [ ] Current and proposed semantics are written down.
 - [ ] Compatibility and version decision is explicit.
 - [ ] Canonical identity includes every execution-affecting field.
+- [ ] Evidence content and evidence IDs change together and remain canonical.
 - [ ] Unknown, malformed, stale, and tampered forms fail closed.
+- [ ] Stale classification validates historical coherence without applying a
+      newer mutable target catalog to the old plan.
+- [ ] Malformed JSON scalar types produce typed validation errors, not process
+      exceptions.
 - [ ] Host and portable implementations agree.
 - [ ] API, CLI, and web consumers agree.
 - [ ] Generated OpenAPI JSON and TypeScript schema and path types are current.

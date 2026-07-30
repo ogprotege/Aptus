@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 import { EXAMPLE_DRAFT } from "./demo";
 import { MALFORMED_COMPATIBILITY_REASON } from "./lib/modelCompatibility";
+import type { ModelInspectionReceipt } from "./types";
 
 const REVIEWED_QWEN3_LAYOUT = {
   default_bits: 4,
@@ -12,6 +13,91 @@ const REVIEWED_QWEN3_LAYOUT = {
     group_size: 64,
   })).sort((left, right) => left.module_path.localeCompare(right.module_path)),
 };
+
+function inspectionReceipt(
+  modelId = EXAMPLE_DRAFT.model.model_id,
+  revision = EXAMPLE_DRAFT.model.revision,
+): ModelInspectionReceipt {
+  return {
+    schema_version: "aptus.model-inspection-receipt.v1",
+    receipt_id: `receipt_${"a".repeat(20)}`,
+    model_id: modelId,
+    resolved_revision: revision,
+    observed_facts_sha256: "b".repeat(64),
+    decision: {
+      schema_version: "aptus.model-compatibility.v2",
+      decision_id: `compat_${"c".repeat(20)}`,
+      subject_facts_sha256: "d".repeat(64),
+      kind: "family-recognized",
+      family: "llama",
+      policy_id: null,
+      policy_version: null,
+      paths: [],
+      reason_codes: ["family-recognized"],
+      evidence_ids: [],
+      reason: "The dense family is recognized without an artifact-specific policy.",
+    },
+    provenance_summary: [{
+      field: "family",
+      kind: "inferred",
+      source: "Aptus exact model-type compatibility mapping",
+      observed_at: "2026-07-29T12:00:00+00:00",
+      resolved_revision: revision,
+    }],
+    provenance_requirement: null,
+    provenance_requirement_met: false,
+    evaluated_at: "2026-07-29T12:00:00+00:00",
+  };
+}
+
+function trainingPlanResponse(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const decision = (overrides.model_policy_decision ?? inspectionReceipt().decision) as Record<string, unknown>;
+  const candidateOverrides = (
+    overrides.recommended && typeof overrides.recommended === "object"
+      ? overrides.recommended
+      : {}
+  ) as Record<string, unknown>;
+  const recommended = {
+    candidate_id: `cand_${"1".repeat(20)}`,
+    model_policy_decision_id: decision.decision_id,
+    policy_binding: null,
+    method: "lora",
+    status: "feasible",
+    ...candidateOverrides,
+  };
+  const rawCandidates = Array.isArray(overrides.candidates)
+    ? overrides.candidates
+    : [recommended];
+  const candidates = rawCandidates.map((item, index) => ({
+    candidate_id: `cand_${String(index + 1).padStart(20, "0")}`,
+    model_policy_decision_id: decision.decision_id,
+    policy_binding: null,
+    method: "lora",
+    status: "feasible",
+    ...(item as Record<string, unknown>),
+  }));
+  const listedRecommended = candidates.find(
+    (item) => item.candidate_id === recommended.candidate_id,
+  ) ?? { ...candidates[0], ...recommended };
+  if (!candidates.some((item) => item.candidate_id === listedRecommended.candidate_id)) {
+    candidates[0] = listedRecommended;
+  }
+  return {
+    ...overrides,
+    schema_version: "aptus.training-plan.v4",
+    plan_id: overrides.plan_id ?? `plan_${"2".repeat(20)}`,
+    recommended: listedRecommended,
+    candidates,
+    warnings: overrides.warnings ?? [],
+    recommendation_rationale: overrides.recommendation_rationale ?? [],
+    model_policy_decision: decision,
+    model_policy_decision_source:
+      overrides.model_policy_decision_source ?? "user-attested",
+    inspection_receipt: overrides.inspection_receipt ?? null,
+  };
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -64,7 +150,7 @@ describe("typed API client", () => {
         new Response(
           JSON.stringify({
             api_contract_version: "aptus.api.v1",
-            plan: {
+            plan: trainingPlanResponse({
               plan_id: "plan_restored",
               hardware: { reserve_per_device_bytes: 0, devices: [] },
               recommended: {
@@ -75,7 +161,7 @@ describe("typed API client", () => {
               candidates: [],
               warnings: [],
               recommendation_rationale: ["restored"],
-            },
+            }),
             bundle: { bundle_dir: "/tmp/restored", files: [] },
             job: { job_id: "job_restored", state: "cancelling", action: "pilot" },
           }),
@@ -133,14 +219,9 @@ describe("typed API client", () => {
   it("translates the UI fact draft and retained project into the strict plan request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
-        JSON.stringify({
-          schema_version: "aptus.training-plan.v3",
+        JSON.stringify(trainingPlanResponse({
           plan_id: "plan_example",
-          recommended: null,
-          candidates: [],
-          warnings: [],
-          recommendation_rationale: [],
-        }),
+        })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
@@ -168,19 +249,60 @@ describe("typed API client", () => {
     expect(body.target.task).toBe("sft");
     expect(body.target.evaluation_fraction).toBe(0.1);
     expect(body.dataset_path).toBe(EXAMPLE_DRAFT.dataset.source_path);
+    expect(body).not.toHaveProperty("inspection_receipt");
+  });
+
+  it("rejects v4 plan responses with missing provenance links", async () => {
+    const cases: Array<(payload: Record<string, unknown>) => void> = [
+      (payload) => { delete payload.model_policy_decision; },
+      (payload) => { delete payload.inspection_receipt; },
+      (payload) => {
+        const candidate = (payload.candidates as Array<Record<string, unknown>>)[0];
+        delete candidate.policy_binding;
+      },
+    ];
+
+    for (const mutate of cases) {
+      const payload = trainingPlanResponse();
+      mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/plan.*provenance|plan response|candidate/i);
+    }
+  });
+
+  it("forwards a retained inspection receipt without adding one to manual plans", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify(trainingPlanResponse({
+          plan_id: "plan_receipt",
+        })),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const receipt = inspectionReceipt();
+
+    await api.plan(EXAMPLE_DRAFT, null, receipt);
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.inspection_receipt).toEqual(receipt);
   });
 
   it("sends the exact MoE topology while omitting derived plan facts", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
-        JSON.stringify({
-          schema_version: "aptus.training-plan.v3",
+        JSON.stringify(trainingPlanResponse({
           plan_id: "plan_moe",
-          recommended: null,
-          candidates: [],
-          warnings: [],
-          recommendation_rationale: [],
-        }),
+        })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
@@ -257,7 +379,7 @@ describe("typed API client", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
     const plan = {
-      schema_version: "aptus.training-plan.v3",
+      schema_version: "aptus.training-plan.v4",
       plan_id: "plan_exact",
       project_id: projectId,
       project_revision_id: planRevisionId,
@@ -293,7 +415,7 @@ describe("typed API client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(api.compileBundle({
-      schema_version: "aptus.training-plan.v3",
+      schema_version: "aptus.training-plan.v4",
       plan_id: "plan_unbound",
       recommended: null,
       candidates: [],
@@ -404,6 +526,7 @@ describe("typed API client", () => {
   });
 
   it("requests provider model facts without sending user permission or parameter claims", async () => {
+    const receipt = inspectionReceipt("org/model", "a".repeat(40));
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -412,17 +535,19 @@ describe("typed API client", () => {
           requested_revision: "main",
           resolved_revision: "a".repeat(40),
           facts: { family: "llama", parameters: null, training_allowed: null },
+          inspection_receipt: receipt,
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await api.inspectModel("org/model", "main");
+    const inspection = await api.inspectModel("org/model", "main");
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/models/inspect");
     expect(JSON.parse(String(init.body))).toEqual({ model_id: "org/model", revision: "main" });
+    expect(inspection.inspection_receipt).toEqual(receipt);
   });
 
   it("fails closed when provider compatibility evidence is malformed", async () => {
@@ -542,6 +667,8 @@ describe("typed API client", () => {
             message: "No candidate passed every hard gate.",
             candidates: [{
               candidate_id: "cand_rejected",
+              model_policy_decision_id: `compat_${"c".repeat(20)}`,
+              policy_binding: null,
               method: "qlora",
               status: "infeasible",
               rejection_reasons: ["Even the point estimate exceeds usable per-device VRAM."],
@@ -566,7 +693,7 @@ describe("typed API client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({
+          JSON.stringify(trainingPlanResponse({
             plan_id: "plan_example",
             hardware: {
               reserve_per_device_bytes: 2 * GiB,
@@ -582,9 +709,7 @@ describe("typed API client", () => {
               memory: { point_estimate_bytes: 4 * GiB, upper_estimate_bytes: 5 * GiB },
             },
             candidates: [],
-            warnings: [],
-            recommendation_rationale: [],
-          }),
+          })),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       ),
@@ -602,7 +727,7 @@ describe("typed API client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({
+          JSON.stringify(trainingPlanResponse({
             plan_id: "plan_selected_device",
             hardware: {
               reserve_per_device_bytes: 2 * GiB,
@@ -619,9 +744,7 @@ describe("typed API client", () => {
               memory: { point_estimate_bytes: 4 * GiB, upper_estimate_bytes: 5 * GiB },
             },
             candidates: [],
-            warnings: [],
-            recommendation_rationale: [],
-          }),
+          })),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       ),

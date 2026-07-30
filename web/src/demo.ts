@@ -4,11 +4,27 @@ import type {
   FactDraft,
   InputProfile,
   Job,
+  ModelPolicyDecision,
   TrainingPlan,
   ValidationReport,
 } from "./types";
 
 const GiB = 1024 ** 3;
+const EXAMPLE_POLICY_DECISION_ID = `compat_${"e".repeat(20)}`;
+
+const EXAMPLE_POLICY_DECISION: ModelPolicyDecision = {
+  schema_version: "aptus.model-compatibility.v2",
+  decision_id: EXAMPLE_POLICY_DECISION_ID,
+  subject_facts_sha256: "e".repeat(64),
+  kind: "family-recognized",
+  family: "llama",
+  policy_id: null,
+  policy_version: null,
+  paths: [],
+  reason_codes: ["family-recognized"],
+  evidence_ids: [],
+  reason: "The labeled example uses a recognized dense model family without a registered artifact-specific policy.",
+};
 
 export const EMPTY_DRAFT: FactDraft = {
   project_name: "",
@@ -265,6 +281,8 @@ function exampleCandidate(
     required_disk_bytes: requiredDiskBytes,
     checkpoint_retention_bytes: method === "full" ? 210_000_000_000 : 1_250_000_000,
     final_export_bytes: method === "full" ? 14_000_000_000 : 86_000_000,
+    model_policy_decision_id: EXAMPLE_POLICY_DECISION_ID,
+    policy_binding: null,
     quantized: isQuantized,
   };
 }
@@ -287,15 +305,22 @@ const EXAMPLE_CANDIDATES: CandidatePlan[] = [
 const EXAMPLE_RECOMMENDED = EXAMPLE_CANDIDATES[3];
 
 export const EXAMPLE_PLAN: TrainingPlan = {
-  schema_version: "aptus.training-plan.v3",
+  schema_version: "aptus.training-plan.v4",
   plan_id: "plan_eeeeeeeeeeeeeeeeeeee",
   example: true,
+  model_policy_decision: EXAMPLE_POLICY_DECISION,
+  model_policy_decision_source: "user-attested",
+  inspection_receipt: null,
   recommended: EXAMPLE_RECOMMENDED,
   candidates: EXAMPLE_CANDIDATES,
   warnings: [
     "Example data only. No claim about real model fit or expected quality is being made.",
   ],
   rationale: [
+    "The example chooses LoRA because full fine-tuning is infeasible and the quality policy prefers LoRA among the viable adapter methods.",
+    "QLoRA remains the lower-memory viable alternative.",
+  ],
+  recommendation_rationale: [
     "The example chooses LoRA because full fine-tuning is infeasible and the quality policy prefers LoRA among the viable adapter methods.",
     "QLoRA remains the lower-memory viable alternative.",
   ],

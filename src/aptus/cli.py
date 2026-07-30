@@ -6,7 +6,7 @@ import secrets
 import sys
 import time
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from .catalog import (
     QWEN3_MOE_QUANTIZATION_PROFILE,
@@ -17,13 +17,16 @@ from .domain import (
     Method,
     MoETopology,
     Objective,
+    SCHEMA_VERSION,
     TrainingRuntime,
     TrainingTarget,
     ValidationState,
+    model_inspection_receipt_from_primitive,
     to_primitive,
     training_plan_from_primitive,
 )
 from .generation import create_bundle_archive, generate_bundle
+from .plan_contract import require_current_model_policy, validate_plan_payload
 from .planning import plan_training
 from .profiling import (
     build_hardware_spec,
@@ -142,6 +145,14 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         "--confirm-training-allowed",
         action="store_true",
         help="Attest that the intended model training is permitted.",
+    )
+    parser.add_argument(
+        "--inspection-receipt",
+        type=Path,
+        help=(
+            "Optional inspection_receipt JSON from `aptus inspect model`; "
+            "all bound provider facts are revalidated before planning."
+        ),
     )
     parser.add_argument(
         "--dataset",
@@ -290,7 +301,7 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     for name, help_text in (
-        ("spec-plan", "Write a persisted v3 plan JSON without compiling."),
+        ("spec-plan", "Write a persisted v4 plan JSON without compiling."),
         ("plan", "Compatibility flow: plan, compile, validate, and archive."),
         ("build", "Plan, compile, validate, and archive."),
     ):
@@ -313,7 +324,7 @@ def _parser() -> argparse.ArgumentParser:
         "compile", help="Compile a persisted plan JSON into a portable bundle."
     )
     compile_command.add_argument(
-        "--plan", required=True, type=Path, help="Persisted Aptus v3 plan JSON."
+        "--plan", required=True, type=Path, help="Persisted Aptus v4 plan JSON."
     )
     compile_command.add_argument(
         "--output", required=True, type=Path, help="New or empty bundle directory."
@@ -573,7 +584,30 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         checkpoint_steps=arguments.checkpoint_steps,
         training_runtime=training_runtime,
     )
-    return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
+    inspection_receipt = None
+    if arguments.inspection_receipt is not None:
+        receipt_value = json.loads(
+            arguments.inspection_receipt.read_text(encoding="utf-8")
+        )
+        if isinstance(receipt_value, Mapping) and "status" in receipt_value:
+            if receipt_value.get("status") != "ok":
+                raise ValueError(
+                    "Only successful model inspection output can supply a receipt."
+                )
+            nested_receipt = receipt_value.get("inspection_receipt")
+            if not isinstance(nested_receipt, Mapping):
+                raise ValueError(
+                    "Inspection output does not contain a usable inspection_receipt."
+                )
+            receipt_value = nested_receipt
+        inspection_receipt = model_inspection_receipt_from_primitive(receipt_value)
+    return plan_training(
+        model=model,
+        dataset=dataset,
+        hardware=hardware,
+        target=target,
+        inspection_receipt=inspection_receipt,
+    )
 
 
 def _compile(plan: Any, output: Path, archive: Path | None = None) -> dict[str, Any]:
@@ -636,6 +670,14 @@ def _run(arguments: argparse.Namespace) -> int:
         return 0
     if arguments.command == "compile":
         value = json.loads(arguments.plan.read_text(encoding="utf-8"))
+        if isinstance(value, Mapping) and value.get("schema_version") == SCHEMA_VERSION:
+            require_current_model_policy(value)
+            validation_errors = validate_plan_payload(value)
+            if validation_errors:
+                raise ValueError(
+                    "Persisted plan failed the current executable contract: "
+                    + " ".join(validation_errors)
+                )
         plan = training_plan_from_primitive(value)
         _write_json(_compile(plan, arguments.output, arguments.archive), None)
         return 0

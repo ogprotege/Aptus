@@ -4,7 +4,16 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
-from .domain import AdapterProfile, Backend, Distribution, Method, TrainingRuntime
+from .domain import (
+    AdapterProfile,
+    Backend,
+    Distribution,
+    EvidenceRequirement,
+    Method,
+    ModelPolicyDecisionKind,
+    ModelPolicyReasonCode,
+    TrainingRuntime,
+)
 from .model_compatibility import validate_registered_compatibility_path
 
 
@@ -116,7 +125,7 @@ class ReplanRequiredResponse(ClosedResponseModel):
     status: Literal["replan_required"]
     plan_id: str | None = None
     found_schema: str | None = None
-    required_schema: Literal["aptus.training-plan.v3"]
+    required_schema: Literal["aptus.training-plan.v4"]
     source: Literal["project-revision", "compiled-bundle"]
     project_id: str | None = None
     project_revision_id: str | None = None
@@ -135,7 +144,7 @@ class BootstrapResponse(ResponseModel):
     projects: list[ProjectSummaryResponse]
     project: ProjectResponse | None = None
     project_history: list[ProjectRevisionSummary]
-    plan: dict[str, Any] | None = None
+    plan: TrainingPlanResponse | None = None
     bundle: dict[str, Any] | None = None
     job: dict[str, Any] | None = None
     replan_required: ReplanRequiredResponse | None = None
@@ -318,6 +327,64 @@ class ModelCompatibilityResponse(RootModel[ModelCompatibilityVariant]):
     pass
 
 
+class InspectedRuntimeContractResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.runtime-contract.v1"]
+    compute_backend: Backend
+    training_runtime: TrainingRuntime
+    compiler_id: str | None
+    estimator_id: str
+    evidence_requirement: EvidenceRequirement
+    export_kind: str | None
+
+
+class InspectedModelPolicyPathResponse(ClosedResponseModel):
+    path_id: str
+    method: Method
+    distribution: Distribution
+    adapter_profile_id: AdapterProfile | None
+    target_modules: list[str]
+    runtime_contract: InspectedRuntimeContractResponse
+    required_validation_levels: list[
+        Literal["model-data", "measured-preflight", "pilot"]
+    ]
+    evidence_ids: list[str]
+
+
+class InspectedModelPolicyDecisionResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.model-compatibility.v2"]
+    decision_id: str = Field(pattern=r"^compat_[0-9a-f]{20}$")
+    subject_facts_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    kind: ModelPolicyDecisionKind
+    family: str | None
+    policy_id: str | None
+    policy_version: str | None
+    paths: list[InspectedModelPolicyPathResponse]
+    reason_codes: list[ModelPolicyReasonCode]
+    evidence_ids: list[str]
+    reason: _NonEmptyCompatibilityText
+
+
+class InspectedModelProvenanceResponse(ClosedResponseModel):
+    field: str
+    kind: Literal["provider-declared", "inferred"]
+    source: str
+    observed_at: str
+    resolved_revision: str = Field(pattern=r"^[0-9A-Fa-f]{40,64}$")
+
+
+class ModelInspectionReceiptResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.model-inspection-receipt.v1"]
+    receipt_id: str = Field(pattern=r"^receipt_[0-9a-f]{20}$")
+    model_id: str
+    resolved_revision: str = Field(pattern=r"^[0-9A-Fa-f]{40,64}$")
+    observed_facts_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision: InspectedModelPolicyDecisionResponse
+    provenance_summary: list[InspectedModelProvenanceResponse]
+    provenance_requirement: Literal["provider-declared"] | None
+    provenance_requirement_met: Annotated[bool, Field(strict=True)]
+    evaluated_at: str
+
+
 class ModelInspectionResponse(ClosedResponseModel):
     status: Literal["ok", "unavailable", "unsupported"]
     model_id: str
@@ -326,10 +393,44 @@ class ModelInspectionResponse(ClosedResponseModel):
     facts: ModelInspectionFactsResponse | None = None
     compatibility: ModelCompatibilityResponse | None = None
     provenance: dict[str, dict[str, Any]] | None = None
+    inspection_receipt: ModelInspectionReceiptResponse | None = None
     warnings: list[str] | None = None
     explicit_user_facts_required: list[str] | None = None
     error: str | None = None
     source: str | None = None
+
+    @model_validator(mode="after")
+    def require_complete_success_receipt(self) -> Self:
+        if self.status == "ok":
+            missing = [
+                field
+                for field in (
+                    "resolved_revision",
+                    "facts",
+                    "compatibility",
+                    "provenance",
+                    "inspection_receipt",
+                )
+                if getattr(self, field) is None
+            ]
+            if missing:
+                raise ValueError(
+                    "Successful model inspection requires " + ", ".join(missing) + "."
+                )
+            assert self.inspection_receipt is not None
+            assert self.resolved_revision is not None
+            if self.inspection_receipt.model_id != self.model_id:
+                raise ValueError("Inspection receipt model_id must match the response.")
+            if (
+                self.inspection_receipt.resolved_revision.lower()
+                != self.resolved_revision.lower()
+            ):
+                raise ValueError(
+                    "Inspection receipt revision must match the resolved response revision."
+                )
+        elif self.inspection_receipt is not None:
+            raise ValueError("Unsuccessful model inspection cannot claim a receipt.")
+        return self
 
 
 class InferenceModelsResponse(ClosedResponseModel):
@@ -350,14 +451,76 @@ class InferenceGenerateResponse(ClosedResponseModel):
     payload: dict[str, Any]
 
 
+class PlanModelPolicyBindingResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.model-policy-binding.v1"]
+    decision_id: str = Field(pattern=r"^compat_[0-9a-f]{20}$")
+    subject_facts_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    policy_id: str
+    policy_version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    path_id: str
+    source: Literal["provider-inspection", "user-attested"]
+    inspection_receipt_id: Annotated[
+        str | None, Field(pattern=r"^receipt_[0-9a-f]{20}$")
+    ]
+    reason_codes: list[ModelPolicyReasonCode]
+    evidence_ids: list[str]
+
+    @model_validator(mode="after")
+    def require_source_receipt_coherence(self) -> Self:
+        if self.source == "provider-inspection" and self.inspection_receipt_id is None:
+            raise ValueError("Provider policy bindings require a receipt ID.")
+        if self.source == "user-attested" and self.inspection_receipt_id is not None:
+            raise ValueError("User-attested policy bindings cannot claim a receipt.")
+        return self
+
+
+class PlanCandidateResponse(ResponseModel):
+    candidate_id: str = Field(pattern=r"^cand_[0-9a-f]{20}$")
+    model_policy_decision_id: str = Field(pattern=r"^compat_[0-9a-f]{20}$")
+    policy_binding: PlanModelPolicyBindingResponse | None
+
+
 class TrainingPlanResponse(ResponseModel):
-    schema_version: str
-    plan_id: str
-    recommended: dict[str, Any]
-    candidates: list[dict[str, Any]]
+    schema_version: Literal["aptus.training-plan.v4"]
+    plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")
+    recommended: PlanCandidateResponse
+    candidates: list[PlanCandidateResponse] = Field(min_length=1)
     warnings: list[str]
+    recommendation_rationale: list[str]
+    model_policy_decision: InspectedModelPolicyDecisionResponse
+    model_policy_decision_source: Literal["provider-inspection", "user-attested"]
+    inspection_receipt: ModelInspectionReceiptResponse | None
     project_id: str | None = None
     project_revision_id: str | None = None
+
+    @model_validator(mode="after")
+    def require_complete_policy_chain(self) -> Self:
+        decision_id = self.model_policy_decision.decision_id
+        if any(
+            candidate.model_policy_decision_id != decision_id
+            for candidate in self.candidates
+        ):
+            raise ValueError("Every candidate must link to the plan policy decision.")
+        if self.recommended.candidate_id not in {
+            candidate.candidate_id for candidate in self.candidates
+        }:
+            raise ValueError("The recommended candidate must be listed in candidates.")
+        if self.model_policy_decision_source == "provider-inspection":
+            if self.inspection_receipt is None:
+                raise ValueError("Provider-inspection plans require a receipt.")
+            if self.inspection_receipt.decision.decision_id != decision_id:
+                raise ValueError("The inspection receipt must bind the plan decision.")
+        elif self.inspection_receipt is not None:
+            raise ValueError("User-attested plans cannot carry a receipt.")
+        for candidate in self.candidates:
+            binding = candidate.policy_binding
+            if binding is None:
+                continue
+            if binding.decision_id != decision_id:
+                raise ValueError("Candidate bindings must link to the plan decision.")
+            if binding.source != self.model_policy_decision_source:
+                raise ValueError("Candidate binding sources must match the plan.")
+        return self
 
 
 class CompileResponse(ResponseModel):

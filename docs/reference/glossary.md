@@ -156,8 +156,9 @@ optimizer step.
 
 ## MoE topology
 
-The exact Mixture-of-Experts structure bound into a v3 model fact: total routed
-experts, experts selected per token, expert intermediate width, sparse cadence,
+The exact Mixture-of-Experts structure bound into an `aptus.facts.v3`
+model-facts record: total routed experts, experts selected per token, expert
+intermediate width, sparse cadence,
 dense-only layer indices, and optional shared-expert width. A topology alone
 does not establish compatibility. Aptus also requires an exact provider model
 type, architecture, precision, runtime, method, placement, and evidence policy.

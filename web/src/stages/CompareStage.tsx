@@ -1,4 +1,4 @@
-import type { CandidatePlan, EvidenceRecord, TrainingPlan } from "../types";
+import type { CandidatePlan, EvidenceRecord, PlanView } from "../types";
 import { CandidateComparison } from "../components/CandidateComparison";
 import { EmptyStage } from "../components/EmptyStage";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
@@ -15,7 +15,7 @@ import {
 } from "../lib/plan";
 
 interface CompareStageProps {
-  plan: TrainingPlan | null;
+  plan: PlanView | null;
   selected: CandidatePlan | null;
   busy: string | null;
   demoMode: boolean;

@@ -15,6 +15,8 @@ from .domain import (
     HardwareSpec,
     MemoryBreakdown,
     Method,
+    ModelInspectionReceipt,
+    ModelPolicyBindingSource,
     ModelPolicyDecision,
     ModelSpec,
     Objective,
@@ -35,8 +37,13 @@ from .methods import (
 )
 from .model_compatibility import (
     evaluate_model_compatibility,
+    matching_model_policy_path,
+    model_with_inspection_provenance,
+    model_with_user_attested_provenance,
+    model_policy_binding_for_path,
     model_policy_rejection_reasons,
     subject_from_model,
+    validate_model_inspection_receipt,
 )
 from .plan_contract import (
     candidate_id_for_payload,
@@ -402,6 +409,7 @@ def _estimate_candidate_with_policy(
     target: TrainingTarget,
     distribution: Distribution = Distribution.SINGLE,
     policy_decision: ModelPolicyDecision,
+    inspection_receipt: ModelInspectionReceipt | None,
 ) -> CandidatePlan:
     unsupported: list[str] = []
     infeasible: list[str] = []
@@ -433,6 +441,22 @@ def _estimate_candidate_with_policy(
         method=method,
         target=target,
         devices=participating_devices,
+    )
+    policy_path = matching_model_policy_path(
+        policy_decision,
+        method=method,
+        distribution=distribution,
+        target_modules=target_modules,
+        runtime_contract=runtime_contract,
+    )
+    policy_binding = (
+        model_policy_binding_for_path(
+            decision=policy_decision,
+            path=policy_path,
+            receipt=inspection_receipt,
+        )
+        if policy_path is not None
+        else None
     )
     unsupported.extend(
         model_policy_rejection_reasons(
@@ -785,7 +809,13 @@ def _estimate_candidate_with_policy(
         preference_score=0.0,
         confidence="uncalibrated-pilot-required",
         assumptions=selected_memory.assumptions + tuple(policy_assumptions),
-        evidence=descriptor.evidence_ids,
+        evidence=tuple(
+            dict.fromkeys(
+                descriptor.evidence_ids
+                + (policy_binding.evidence_ids if policy_binding is not None else ())
+            )
+        ),
+        model_policy_decision_id=policy_decision.decision_id,
         candidate_id="",
         status=status,
         distribution=distribution,
@@ -798,6 +828,7 @@ def _estimate_candidate_with_policy(
         checkpoint_retention_bytes=checkpoint_retention,
         final_export_bytes=final_export,
         runtime_contract=runtime_contract,
+        policy_binding=policy_binding,
     )
     return replace(
         candidate,
@@ -830,6 +861,7 @@ def estimate_candidate(
         target=target,
         distribution=distribution,
         policy_decision=evaluate_model_compatibility(subject_from_model(model)),
+        inspection_receipt=None,
     )
 
 
@@ -891,8 +923,27 @@ def plan_training(
     dataset: DatasetProfile,
     hardware: HardwareSpec,
     target: TrainingTarget,
+    inspection_receipt: ModelInspectionReceipt | None = None,
 ) -> TrainingPlan:
     policy_decision = evaluate_model_compatibility(subject_from_model(model))
+    if inspection_receipt is not None:
+        if not isinstance(inspection_receipt, ModelInspectionReceipt):
+            raise ValueError(
+                "inspection_receipt must be a typed model inspection receipt."
+            )
+        validate_model_inspection_receipt(
+            receipt=inspection_receipt,
+            model=model,
+            decision=policy_decision,
+        )
+        model = model_with_inspection_provenance(model, inspection_receipt)
+    else:
+        model = model_with_user_attested_provenance(model)
+    policy_source = (
+        ModelPolicyBindingSource.PROVIDER_INSPECTION
+        if inspection_receipt is not None
+        else ModelPolicyBindingSource.USER_ATTESTED
+    )
     candidates = tuple(
         _estimate_candidate_with_policy(
             method=method,
@@ -902,6 +953,7 @@ def plan_training(
             hardware=hardware,
             target=target,
             policy_decision=policy_decision,
+            inspection_receipt=inspection_receipt,
         )
         for descriptor in selectable_method_descriptors()
         for method in (Method(descriptor.method_id),)
@@ -966,6 +1018,9 @@ def plan_training(
         candidates=candidates,
         warnings=warnings,
         recommendation_rationale=rationale,
+        model_policy_decision=policy_decision,
+        model_policy_decision_source=policy_source,
+        inspection_receipt=inspection_receipt,
         evidence_records=evidence_records,
         formula_version=FORMULA_VERSION,
         plan_id="",

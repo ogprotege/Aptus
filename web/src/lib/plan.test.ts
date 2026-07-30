@@ -12,6 +12,9 @@ import {
 
 describe("plan memory normalization", () => {
   const candidate: CandidatePlan = {
+    candidate_id: `cand_${"a".repeat(20)}`,
+    model_policy_decision_id: `compat_${"b".repeat(20)}`,
+    policy_binding: null,
     method: "lora",
     status: "conditional",
     memory: {

@@ -67,8 +67,14 @@ portable static level then parses every generated Python program.
 
 Core contract checks bind:
 
-- `aptus.training-plan.v3`, every `aptus.runtime-contract.v1`, and the selected
+- `aptus.training-plan.v4`, every `aptus.runtime-contract.v1`, and the selected
   memory estimator identity;
+- the `aptus.model-compatibility.v2` decision and its provider-inspection or
+  user-attested source;
+- any `aptus.model-inspection-receipt.v1`, including its separate compatibility
+  subject and observed planning-facts digests;
+- every candidate decision link and an `aptus.model-policy-binding.v1` only for
+  the exact registered path;
 - candidate and plan content IDs;
 - normalized model, dataset, hardware, and target facts;
 - the copied dataset digest when dataset verification is enabled;
@@ -78,6 +84,11 @@ Core contract checks bind:
 
 Contract validation does not import the training stack or allocate accelerator
 memory.
+
+The host also evaluates the saved decision against the current policy registry.
+A v3, v2, schema-less, or stale-policy v4 plan returns `replan_required` during
+loading, compilation, recovery, or validation. Aptus preserves the old bytes
+and never repairs the failure by changing only `schema_version`.
 
 ### Static
 

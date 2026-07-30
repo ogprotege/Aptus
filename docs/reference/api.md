@@ -161,13 +161,15 @@ When restorable state exists, the response can also contain:
 - `plan`, loaded from the current project's latest valid revision or restorable bundle;
 - `bundle.bundle_dir`, `archive_path`, current file list, and report.
 
-If the current revision or restorable bundle contains a v2 plan or a plan with
-no schema identifier, bootstrap does not return it as `plan` or restore its
-bundle into the executable workspace. It returns `replan_required` with
-`status`, optional `plan_id`, optional `found_schema`, required v3 schema,
-source, project identities when known, and an operator message. The source is
-`project-revision` or `compiled-bundle`. The saved plan and source revision stay
-unchanged. Create a deterministic v3 plan from the preserved facts.
+If the current revision or restorable bundle contains a v3 plan, a v2 plan, or
+a plan with no schema identifier, bootstrap does not return it as `plan` or
+restore its bundle into the executable workspace. It returns `replan_required`
+with `status`, optional `plan_id`, optional `found_schema`, required v4 schema,
+source, project identities when known, and an operator message. The same result
+applies to a v4 plan whose policy decision or registered path is stale. The
+source is `project-revision` or `compiled-bundle`. The saved plan and source
+revision stay unchanged. Create a deterministic v4 plan from the preserved
+facts.
 
 A standalone project plan can be restored from the current immutable revision.
 Bootstrap returns a current-project bundle only when its resolved path, plan ID,
@@ -275,8 +277,10 @@ Example:
 The inspector reads at most 4 MiB from each provider response. It returns
 `status: ok`, `unavailable`, or `unsupported`. An `ok` response includes the
 resolved immutable revision, provider-declared facts, provenance, warnings, and
-`explicit_user_facts_required`. Parameter count and training permission remain
-explicit user facts. `facts` can include exact `model_type`, `architecture`,
+`explicit_user_facts_required`. It also includes one
+`aptus.model-inspection-receipt.v1`. Parameter count and training permission
+remain explicit user facts and never enter the receipt. `facts` can include
+exact `model_type`, `architecture`,
 `quantization_bits`, `quantization_layout`, and a `moe` topology with expert
 count, experts per token, expert width, sparse cadence, dense-only layer
 indices, and optional shared expert width. The separate `compatibility` object
@@ -314,8 +318,24 @@ evaluator. The API model delegates model-family path coherence to the same
 registry instead of maintaining its own runtime-binding rules. The v1 response
 remains a single flattened path shape. Its producer rejects a future
 heterogeneous path set rather than selecting or dropping one path silently.
-Policy identity, version, provenance receipts, and plan binding are not part of
-v1.
+The flattened `compatibility` projection remains unchanged under
+`aptus.api.v1`. The sibling inspection receipt carries the complete
+`aptus.model-compatibility.v2` decision, stable reason and evidence IDs, and any
+registered policy ID, semantic version, and path ID. Its
+`subject_facts_sha256` covers compatibility inputs. Its separate
+`observed_facts_sha256` covers every provider-declared or inferred planning fact
+actually carried from inspection. Each covered field has a provenance kind,
+source, observation time, and the same resolved revision.
+
+Receipt entries use only `provider-declared` or `inferred`. They cover every
+non-null compatibility subject fact and include at least one provider-declared
+subject observation. Registered policies can require additional fields to be
+provider-declared.
+
+Receipt content IDs and digests are tamper-evident, not authenticated
+signatures. A caller that passes the receipt to planning must trust its local
+client boundary. Aptus still recomputes the receipt, observed facts, policy
+decision, provenance requirements, and content identity before using it.
 
 Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
 sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a
@@ -352,6 +372,7 @@ Top-level request:
 | `target` | object | Yes | None |
 | `dataset_path` | string | Yes | None |
 | `sample_limit` | integer or null | No | `512` |
+| `inspection_receipt` | object or null | No | Receipt returned by a successful model inspection |
 | `project_id` | string or null | No | Existing `project_` plus 32 lowercase hex |
 | `project_name` | string or null | No | Name for a new project; 1 to 120 characters |
 
@@ -361,7 +382,7 @@ Top-level request:
 | --- | --- | ---: | --- |
 | `model_id` | string | Yes | Provider repository identifier |
 | `revision` | string | Yes | Domain layer requires immutable 40 to 64 hex |
-| `family` | string | Yes | Must resolve in the current target-module catalog for adapters |
+| `family` | string | Yes | Normalized to its canonical lowercase identity; must resolve in the current target-module catalog for adapter eligibility |
 | `parameters_b` | number | Yes | Greater than 0 |
 | `hidden_size` | integer | Yes | Greater than 0 |
 | `intermediate_size` | integer or null | No | Greater than 0 when present |
@@ -396,6 +417,12 @@ is bound into plan identity. A merely four-bit Qwen3 MoE request is not enough.
 The request never accepts `active_parameters` or `sparse_layer_count`. The
 backend derives both and serializes them in the plan. `parameters_b` remains the
 user-attested total resident parameter count.
+
+Without `inspection_receipt`, all submitted model facts use the explicit
+`user-attested` policy-decision source. With a receipt, the model ID, revision,
+covered planning facts, compatibility decision, provenance requirements, and
+receipt identity must all match. A present but malformed, stale, mismatched, or
+modified receipt fails. It never falls back to the user-attested path.
 
 `hardware` fields:
 
@@ -439,20 +466,27 @@ pinned model revision.
 | `packing` | boolean | No | False; true is rejected by planning |
 | `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
 
-Success persists and returns one full `aptus.training-plan.v3` object plus
+Success persists and returns one full `aptus.training-plan.v4` object plus
 `project_id` and `project_revision_id`. Supplying `project_id` appends to that
 project. Otherwise Aptus creates a named project, using `project_name` or a
 model-derived default. When no candidate is viable, the response is
 `422 no_feasible_plan` and still includes the complete rejected candidate
 matrix.
 
+The OpenAPI response requires the v4 schema and plan ID, recommendation,
+candidates, warnings, rationale, model-policy decision, decision source, and
+nullable inspection receipt. Every candidate requires its candidate ID,
+decision ID, and nullable policy binding. The maintained browser client rejects
+purported v4 plans that omit this provenance chain. A no-feasible comparison is
+an explicitly partial view and cannot be submitted for compilation.
+
 ### `GET /api/v1/plans/{plan_id}`
 
 The ID must have the exact form `plan_` plus 20 lowercase hexadecimal
 characters. Invalid or missing IDs return `404 plan_not_found`. A valid stored
 plan is rehydrated through the strict domain contract before it is returned. A
-saved v2 plan or one with no schema identifier returns `409 replan_required`
-without changing the file.
+saved v3 plan, v2 plan, schema-less plan, or v4 plan with a stale policy returns
+`409 replan_required` without changing the file.
 
 ## Compilation and direct validation
 
@@ -641,9 +675,10 @@ one. It does not rewrite the source revision. Success returns:
 Recovery is not training resume. Revalidate current evidence and submit a new
 explicitly confirmed train action. Missing projects or revisions return the
 corresponding `project_not_found` or `project_revision_not_found` error.
-A revision whose plan snapshot uses v2 or has no schema identifier returns
+A revision whose plan snapshot uses v3, v2, or no schema identifier returns
 `409 replan_required`. Aptus preserves the source revision and appends no
-replacement revision. Create a new v3 plan from the source facts instead.
+replacement revision. A stale v4 policy decision has the same result. Create a
+new v4 plan from the source facts instead.
 
 ## Error envelopes
 

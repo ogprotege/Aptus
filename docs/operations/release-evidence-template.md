@@ -1,6 +1,6 @@
 # Release Evidence Template
 
-> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
 
 Copy this template into a new, dated evidence record for each release candidate.
 Do not edit the template into a claim that work passed. Fill every applicable
@@ -104,7 +104,10 @@ Record the exact registry and planner facts from the candidate build:
 | Experimental IDs | `dora`, `bitfit`, `adalora`, `sharelora` | `[fill]` | `[fill]` |
 | Research-only IDs | `loreft`, `aflora`, `bilora` | `[fill]` | `[fill]` |
 | Planner rows | 12 | `[fill]` | `[fill]` |
-| Plan schema | `aptus.training-plan.v3` | `[fill]` | `[fill]` |
+| Plan schema | `aptus.training-plan.v4` | `[fill]` | `[fill]` |
+| Model policy decision | `aptus.model-compatibility.v2` | `[fill]` | `[fill]` |
+| Inspection receipt | `aptus.model-inspection-receipt.v1` or explicit null | `[fill]` | `[fill]` |
+| Candidate policy binding | `aptus.model-policy-binding.v1` on exact path only | `[fill]` | `[fill]` |
 | Memory formula | `aptus-memory-v2` | `[fill]` | `[fill]` |
 | MLX memory formula | `aptus-memory-mlx-v2` | `[fill]` | `[fill]` |
 | Bundle schema | `aptus.bundle.v2` | `[fill]` | `[fill]` |
@@ -116,6 +119,17 @@ Attach evidence for:
 - [ ] all evidence IDs resolve;
 - [ ] all aliases and compiler IDs are unique;
 - [ ] all 12 placement rows appear with correct status and reasons;
+- [ ] every candidate links to the same policy decision, and only an exact
+      registered path carries a non-null binding;
+- [ ] provider-inspection and user-attested plan sources enforce their receipt
+      presence rules;
+- [ ] compatibility-subject and observed-planning-facts digests are recomputed
+      independently, while parameters and training permission remain outside
+      the receipt;
+- [ ] malformed, stale, mismatched, and modified receipts fail without
+      downgrading to user-attested;
+- [ ] v3, v2, schema-less, and stale-policy v4 plans return
+      `replan_required` without changing saved bytes;
 - [ ] identity mutation tests pass;
 - [ ] memory component and upper-bound arithmetic passes;
 - [ ] compilation and ZIP output are deterministic and no-clobber;
@@ -164,6 +178,22 @@ Use immutable, reviewable fixtures for every runtime row.
 | Fixture ID | Model repository and commit | Family | License and permission evidence | Dataset digest and schema | Sequence and batch | Purpose |
 |---|---|---|---|---|---|---|
 | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+
+For every provider-inspected fixture, record:
+
+| Field | Value |
+|---|---|
+| Receipt ID and schema | `[fill]` |
+| Resolved immutable revision | `[fill]` |
+| Decision ID and `subject_facts_sha256` | `[fill]` |
+| `observed_facts_sha256` and covered field list | `[fill]` |
+| Decision source | `[fill: provider-inspection or user-attested]` |
+| Policy ID and version | `[fill or N/A]` |
+| Matched path ID | `[fill or N/A]` |
+| Receipt exclusion check | `[fill: parameters and training permission absent]` |
+
+Treat these values as tamper-evident content bindings, not authenticated
+signatures. Record the trusted local producer and review boundary separately.
 
 For each dataset record:
 

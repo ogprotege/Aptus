@@ -1242,6 +1242,7 @@ def validate_bundle(
                     dataset=restored.dataset,
                     hardware=restored.hardware,
                     target=restored.target,
+                    inspection_receipt=restored.inspection_receipt,
                 )
             except (KeyError, TypeError, ValueError) as error:
                 findings.append(

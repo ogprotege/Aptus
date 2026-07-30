@@ -50,7 +50,7 @@ def _revision_worker(
 class ProjectRepositoryTests(unittest.TestCase):
     def _saved_plan(self, state: Path, plan_id: str) -> dict[str, Any]:
         plan = {
-            "schema_version": "aptus.training-plan.v3",
+            "schema_version": "aptus.training-plan.v4",
             "plan_id": plan_id,
             "recommended": {"candidate_id": "candidate_a"},
         }

@@ -165,7 +165,7 @@ every one keeps its verdict:
 Against 22.0 GiB usable device memory, full fine-tuning is rejected outright,
 LoRA is conditional because its envelope exceeds what is usable, and int8-LoRA
 wins under the quality objective while QLoRA remains the lower-memory
-alternative. The plan is written as `aptus.training-plan.v3` with formula
+alternative. The plan is written as `aptus.training-plan.v4` with formula
 `aptus-memory-v2` and a content-addressed `plan_id`.
 
 The dataset profile and the planning decision are real. The model and hardware
@@ -203,7 +203,7 @@ old revision creates a *new* revision and never restores training authorization.
 | Command | Purpose |
 | --- | --- |
 | `aptus profile` | Profile a local training dataset. |
-| `aptus spec-plan` | Write a persisted v3 plan JSON without compiling. |
+| `aptus spec-plan` | Write a persisted v4 plan JSON without compiling. |
 | `aptus plan` | Compatibility flow: plan, compile, validate, and archive. |
 | `aptus build` | Plan, compile, validate, and archive. |
 | `aptus compile` | Compile a persisted plan JSON into a portable bundle. |
@@ -256,6 +256,15 @@ CPU count, unified memory, headroom, pressure, swap, and Metal working-set
 guidance; local LM Studio and oMLX adapters for inference and evaluation
 (neither is a training engine); typed API responses under `aptus.api.v1` with a
 checked OpenAPI artifact; and read-only diagnosis via `aptus doctor`.
+
+Every v4 plan persists one `aptus.model-compatibility.v2` decision. Every
+candidate links to that decision, while only an exact registered path receives
+an `aptus.model-policy-binding.v1` binding. Provider inspection can add an
+`aptus.model-inspection-receipt.v1` with separate compatibility-subject and
+observed-planning-facts digests. Direct facts remain explicitly
+`user-attested`. Parameter count and training permission are never promoted to
+provider facts. Old v3, v2, schema-less, or stale-policy plans require
+replanning instead of reinterpretation.
 
 Read the [complete capability matrix](docs/reference/capability-matrix.md)
 before committing compute time.

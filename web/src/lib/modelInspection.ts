@@ -4,8 +4,8 @@ import type {
   ModelFacts,
   ModelInspectionResponse,
   MoETopology,
+  PlanView,
   QuantizationLayout,
-  TrainingPlan,
 } from "../types";
 
 const QWEN3_MOE_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj"];
@@ -153,11 +153,12 @@ export function applyProviderModelInspection(
 
 export function applyPlanDerivedModelFacts(
   current: ModelFacts,
-  plan: TrainingPlan,
+  plan: PlanView,
 ): ModelFacts {
+  if (!("schema_version" in plan)) return current;
   const model = plan.model;
   if (
-    plan.schema_version !== "aptus.training-plan.v3"
+    plan.schema_version !== "aptus.training-plan.v4"
     || !isRecord(model)
     || !matchesCurrentModel(model, current)
   ) {
@@ -192,10 +193,10 @@ export function applyPlanDerivedModelFacts(
 }
 
 export function moeCompatibilityFromPlan(
-  plan: TrainingPlan | null,
+  plan: PlanView | null,
   current: ModelFacts,
 ): ModelCompatibility | null {
-  if (plan?.schema_version !== "aptus.training-plan.v3" || !current.moe) return null;
+  if (!plan || !("schema_version" in plan) || !current.moe) return null;
   const model = plan.model;
   if (
     !isRecord(model)
@@ -239,7 +240,7 @@ export function moeCompatibilityFromPlan(
         distribution: "single",
         evidence_requirement: "pilot-required",
         adapter_profile_id: "attention-qkvo.v1",
-        reason: "The current v3 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
+        reason: "The current v4 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
       }
     : {
         status: "unsupported",

@@ -19,9 +19,11 @@ from .domain import (
     MoETopology,
     QuantizationLayout,
     QuantizationOverride,
+    to_primitive,
 )
 from .model_compatibility import (
     compatibility_response_v1,
+    create_model_inspection_receipt,
     evaluate_model_compatibility,
 )
 
@@ -403,9 +405,6 @@ def inspect_huggingface_model(
     config_url = (
         f"https://huggingface.co/{model_path}/resolve/{revision_path}/config.json"
     )
-    metadata_url = (
-        f"https://huggingface.co/api/models/{model_path}/revision/{revision_path}"
-    )
     observed_at = datetime.now(timezone.utc).isoformat()
     try:
         config, commit_header = _fetch_json(
@@ -427,13 +426,16 @@ def inspect_huggingface_model(
             "source": config_url,
         }
 
-    resolved = commit_header or config.get("_commit_hash")
-    if (
-        resolved is None
-        and 40 <= len(revision) <= 64
-        and all(character in "0123456789abcdefABCDEF" for character in revision)
-    ):
-        resolved = revision.lower()
+    requested_revision = revision.strip()
+    requested_revision_is_immutable = bool(
+        40 <= len(requested_revision) <= 64
+        and all(
+            character in "0123456789abcdefABCDEF" for character in requested_revision
+        )
+    )
+    resolved = commit_header
+    if resolved is None and requested_revision_is_immutable:
+        resolved = requested_revision.lower()
     if (
         not isinstance(resolved, str)
         or not (40 <= len(resolved) <= 64)
@@ -447,13 +449,23 @@ def inspect_huggingface_model(
             "source": config_url,
         }
 
+    resolved_revision = resolved.lower()
+    resolved_revision_path = quote(resolved_revision, safe="")
+    resolved_config_url = (
+        f"https://huggingface.co/{model_path}/resolve/"
+        f"{resolved_revision_path}/config.json"
+    )
+    metadata_url = (
+        f"https://huggingface.co/api/models/{model_path}/revision/"
+        f"{resolved_revision_path}"
+    )
     metadata: dict[str, Any] = {}
     warnings: list[str] = []
     try:
         metadata, metadata_commit = _fetch_json(
             metadata_url, timeout=timeout, transport=transport
         )
-        if metadata_commit and metadata_commit.lower() != resolved.lower():
+        if metadata_commit and metadata_commit.lower() != resolved_revision:
             warnings.append(
                 "Metadata response resolved to a different commit; its license field was ignored."
             )
@@ -477,15 +489,21 @@ def inspect_huggingface_model(
     )
     raw_model_type = text_config.get("model_type") or config.get("model_type")
     architecture = architectures[0] if architectures else raw_model_type
+    architecture_is_inferred = not architectures and architecture is not None
     family, family_warning = _catalog_family(raw_model_type, architecture)
     if family_warning is not None:
         warnings.append(family_warning)
     card_data = (
         metadata.get("cardData") if isinstance(metadata.get("cardData"), dict) else {}
     )
-    license_name = (
-        card_data.get("license") or metadata.get("license") or config.get("license")
-    )
+    license_name = card_data.get("license")
+    license_source = metadata_url if license_name else None
+    if not license_name:
+        license_name = metadata.get("license")
+        license_source = metadata_url if license_name else None
+    if not license_name:
+        license_name = config.get("license")
+        license_source = resolved_config_url if license_name else None
     moe = _moe_facts(config)
     layers = _first(text_config, "num_hidden_layers", "n_layer", "num_layers")
     moe_error = _moe_topology_error(moe, layers) if moe is not None else None
@@ -521,19 +539,34 @@ def inspect_huggingface_model(
     provenance = {
         key: {
             "kind": "provider-declared",
-            "source": config_url if key != "license_name" else metadata_url,
+            "source": (
+                license_source
+                if key == "license_name" and license_source is not None
+                else resolved_config_url
+            ),
             "observed_at": observed_at,
-            "resolved_revision": resolved.lower(),
+            "resolved_revision": resolved_revision,
         }
         for key, value in facts.items()
         if value is not None
     }
-    if family is not None and family != raw_model_type:
+    if architecture_is_inferred:
+        provenance["architecture"] = {
+            "kind": "inferred",
+            "source": (
+                f"Aptus architecture fallback from model_type at {resolved_config_url}"
+            ),
+            "observed_at": observed_at,
+            "resolved_revision": resolved_revision,
+        }
+    if family is not None:
         provenance["family"] = {
             "kind": "inferred",
-            "source": f"Aptus exact model-type compatibility mapping of {config_url}",
+            "source": (
+                f"Aptus exact model-type compatibility mapping of {resolved_config_url}"
+            ),
             "observed_at": observed_at,
-            "resolved_revision": resolved.lower(),
+            "resolved_revision": resolved_revision,
         }
     compatibility_subject = _compatibility_subject(
         family=family,
@@ -546,13 +579,32 @@ def inspect_huggingface_model(
         moe=moe,
         moe_error=moe_error,
     )
+    try:
+        inspection_receipt = create_model_inspection_receipt(
+            model_id=model_id.strip(),
+            resolved_revision=resolved_revision,
+            facts=facts,
+            provenance=provenance,
+            subject=compatibility_subject,
+            evaluated_at=observed_at,
+        )
+    except ValueError as error:
+        return {
+            "status": "unsupported",
+            "model_id": model_id,
+            "requested_revision": revision,
+            "resolved_revision": resolved_revision,
+            "error": str(error),
+            "source": resolved_config_url,
+        }
     return {
         "status": "ok",
         "model_id": model_id,
         "requested_revision": revision,
-        "resolved_revision": resolved.lower(),
+        "resolved_revision": resolved_revision,
         "facts": facts,
         "provenance": provenance,
+        "inspection_receipt": to_primitive(inspection_receipt),
         "warnings": warnings,
         "compatibility": compatibility_response_v1(
             evaluate_model_compatibility(compatibility_subject)

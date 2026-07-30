@@ -1,6 +1,6 @@
 # First Planning-Only Run
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when CLI defaults change
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-22 or when CLI defaults change
 
 This tutorial proves the local planning, compilation, and static-validation
 path. It works without CUDA. It uses bundled synthetic data and synthetic model
@@ -94,15 +94,22 @@ aptus spec-plan \
 
 Open `aptus-work/plan.json` and confirm:
 
-- `schema_version` is `aptus.training-plan.v3`;
+- `schema_version` is `aptus.training-plan.v4`;
 - `formula_version` is `aptus-memory-v2`;
+- `model_policy_decision.schema_version` is
+  `aptus.model-compatibility.v2`;
+- `model_policy_decision_source` is `user-attested` and
+  `inspection_receipt` is null;
 - twelve candidates are present;
+- every candidate links to `model_policy_decision.decision_id` and has an
+  explicit `policy_binding` field;
 - each candidate retains a status and reason;
 - `recommended` names one viable candidate; and
 - every point and upper memory component is visible.
 
 The entered CUDA values are tutorial planning facts. They are not measurements
-of this Mac and cannot authorize execution.
+of this Mac and cannot authorize execution. This dense tutorial has no exact
+registered model-policy path, so every candidate policy binding is null.
 
 ## 4. Compile the selected candidate
 

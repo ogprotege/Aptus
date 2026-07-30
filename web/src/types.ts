@@ -70,13 +70,84 @@ export interface ModelFacts {
 }
 
 export interface ModelInspectionFactProvenance {
-  kind: "provider-declared" | string;
+  field?: string;
+  kind: InspectionReceiptProvenanceKind;
   source: string;
-  observed_at?: string;
-  resolved_revision?: string;
+  observed_at: string;
+  resolved_revision: string;
 }
 
 export type ModelCompatibility = components["schemas"]["ModelCompatibilityResponse"];
+
+export type InspectionProvenanceKind =
+  | "measured"
+  | "provider-declared"
+  | "user-attested"
+  | "inferred"
+  | "unknown";
+
+export type InspectionReceiptProvenanceKind =
+  | "provider-declared"
+  | "inferred";
+
+export type ModelPolicyDecisionKind =
+  | "path-matched"
+  | "family-recognized"
+  | "blocked"
+  | "unknown";
+
+export type ModelPolicyBindingSource = "provider-inspection" | "user-attested";
+
+export interface ModelPolicyPath {
+  path_id: string;
+  method: string;
+  distribution: string;
+  adapter_profile_id: string | null;
+  target_modules: string[];
+  runtime_contract: NonNullable<CandidatePlan["runtime_contract"]>;
+  required_validation_levels: string[];
+  evidence_ids: string[];
+}
+
+export interface ModelPolicyDecision {
+  schema_version: "aptus.model-compatibility.v2";
+  decision_id: string;
+  subject_facts_sha256: string;
+  kind: ModelPolicyDecisionKind;
+  family: string | null;
+  policy_id: string | null;
+  policy_version: string | null;
+  paths: ModelPolicyPath[];
+  reason_codes: string[];
+  evidence_ids: string[];
+  reason: string;
+}
+
+export interface ModelInspectionReceipt {
+  schema_version: "aptus.model-inspection-receipt.v1";
+  receipt_id: string;
+  model_id: string;
+  resolved_revision: string;
+  observed_facts_sha256: string;
+  decision: ModelPolicyDecision;
+  provenance_summary: Array<ModelInspectionFactProvenance & { field: string }>;
+  provenance_requirement: "provider-declared" | null;
+  provenance_requirement_met: boolean;
+  evaluated_at: string;
+}
+
+export interface ModelPolicyBinding {
+  schema_version: "aptus.model-policy-binding.v1";
+  decision_id: string;
+  subject_facts_sha256: string;
+  policy_id: string;
+  policy_version: string;
+  path_id: string;
+  source: ModelPolicyBindingSource;
+  inspection_receipt_id: string | null;
+  reason_codes: string[];
+  evidence_ids: string[];
+}
 
 export interface ModelInspectionResponse {
   status: "ok" | "unavailable" | "unsupported" | string;
@@ -101,6 +172,7 @@ export interface ModelInspectionResponse {
     [key: string]: unknown;
   };
   compatibility?: ModelCompatibility | null;
+  inspection_receipt?: ModelInspectionReceipt | null;
   provenance?: Record<string, ModelInspectionFactProvenance>;
   warnings?: string[];
   explicit_user_facts_required?: string[];
@@ -212,7 +284,7 @@ export interface BatchStrategy {
 
 export interface CandidatePlan {
   id?: string;
-  candidate_id?: string;
+  candidate_id: string;
   method: string;
   distribution?: string;
   status?: "feasible" | "infeasible" | "unknown" | string;
@@ -252,6 +324,8 @@ export interface CandidatePlan {
     evidence_requirement: string;
     export_kind: string | null;
   };
+  model_policy_decision_id: string;
+  policy_binding: ModelPolicyBinding | null;
   [key: string]: unknown;
 }
 
@@ -287,18 +361,21 @@ export interface EvidenceRecord {
 }
 
 export interface TrainingPlan {
-  schema_version?: string;
-  plan_id?: string;
+  schema_version: "aptus.training-plan.v4";
+  plan_id: string;
   project_id?: string;
   project_revision_id?: string;
-  recommended: CandidatePlan | null;
+  recommended: CandidatePlan;
   candidates: CandidatePlan[];
   warnings: string[];
   rationale: string[];
-  recommendation_rationale?: string[];
+  recommendation_rationale: string[];
   assumptions?: string[];
   evidence?: string[];
   evidence_records?: EvidenceRecord[];
+  model_policy_decision: ModelPolicyDecision;
+  model_policy_decision_source: ModelPolicyBindingSource;
+  inspection_receipt: ModelInspectionReceipt | null;
   model?: Record<string, unknown>;
   dataset?: Record<string, unknown>;
   hardware?: Record<string, unknown>;
@@ -306,6 +383,22 @@ export interface TrainingPlan {
   example?: boolean;
   [key: string]: unknown;
 }
+
+export interface NoFeasibleComparisonPlan {
+  no_feasible_plan: true;
+  recommended: null;
+  candidates: CandidatePlan[];
+  warnings: string[];
+  rationale: string[];
+  recommendation_rationale: string[];
+  assumptions?: string[];
+  evidence?: string[];
+  evidence_records?: EvidenceRecord[];
+  project_id?: string;
+  project_revision_id?: string;
+}
+
+export type PlanView = TrainingPlan | NoFeasibleComparisonPlan;
 
 export interface PlanRequest {
   project_id?: string;
@@ -355,6 +448,7 @@ export interface PlanRequest {
   };
   dataset_path: string;
   sample_limit?: number;
+  inspection_receipt?: ModelInspectionReceipt;
 }
 
 export interface ProjectRevisionSummary {
@@ -670,7 +764,7 @@ export interface ReplanRequired {
   status: "replan_required";
   plan_id?: string | null;
   found_schema?: string | null;
-  required_schema: "aptus.training-plan.v3";
+  required_schema: "aptus.training-plan.v4";
   source: "project-revision" | "compiled-bundle";
   project_id?: string | null;
   project_revision_id?: string | null;

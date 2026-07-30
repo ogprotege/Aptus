@@ -1,6 +1,6 @@
 # Data and Identity Flow
 
-> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27
 
 Aptus binds decisions and runtime evidence to exact content. It uses separate
 identities for projects, revisions, source data, candidates, plans, bundles,
@@ -12,11 +12,13 @@ in for all of them.
 ```mermaid
 flowchart TD
   S["Local source dataset"] -->|"SHA-256 + profile"| DP["Dataset profile"]
+  PM["Provider metadata at immutable revision"] --> IR["Inspection receipt"]
   MF["Model facts"] --> P["Planner"]
+  IR --> P
   HF["Hardware facts"] --> P
   TF["Target facts"] --> P
   DP --> P
-  P -->|"canonical semantic IDs"| C["12 candidate records"]
+  P -->|"one policy decision + canonical IDs"| C["12 candidate records"]
   C --> TP["Identity-bound training plan"]
   TP -->|"verify source digest"| AC["Atomic compiler"]
   S --> AC
@@ -50,12 +52,24 @@ Provider-declared model fields do not become permission facts. Manual hardware
 values do not become target-host measurements. An inferred model family does
 not replace the raw provider model type or architecture evidence.
 
-For a sparse model, the v3 model payload binds exact provider type,
+For a sparse model, the v4 model payload binds exact provider type,
 architecture, checkpoint precision, expert count, experts per token, expert
 width, sparse cadence, dense-only layer indices, and optional shared-expert
 width. It also binds backend-derived active parameters and sparse-layer count.
 The user-attested total parameter count remains a separate resident-weight fact.
 Changing any of these values changes candidate and plan identity.
+
+A provider inspection resolves one immutable revision and can emit an
+`aptus.model-inspection-receipt.v1`. Its `subject_facts_sha256` binds only the
+facts evaluated by `aptus.model-compatibility.v2`. Its separate
+`observed_facts_sha256` binds every provider-declared or inferred model fact
+actually carried into planning. Parameter count and training permission remain
+user-attested and are excluded from the receipt. A plan without a receipt says
+`user-attested`; a plan with a valid receipt says `provider-inspection`.
+Receipt entries use only those two inspection kinds. They cover every non-null
+compatibility subject field and include at least one provider-declared subject
+observation. This prevents unrelated or wholly user-attested facts from
+establishing provider-inspection provenance.
 
 ## Source dataset identity
 
@@ -86,13 +100,34 @@ payload includes:
 - exact sparse topology, total resident parameters, and derived routed activity
   when the model is MoE;
 - status and feasibility;
+- the shared policy decision ID and, only for an exact path match, the
+  `aptus.model-policy-binding.v1` object;
 - memory components, upper bounds, formula version, host RAM, disk, checkpoint,
   export, and reserve terms.
 
 A plan ID begins with `plan_`. It binds the plan and formula schema versions,
-normalized facts, the ordered candidate IDs, and the recommended candidate ID.
-IDs are content identities, not editable labels. Changing a bound semantic fact
-without recomputing identity makes validation fail.
+normalized facts, the complete policy decision and source, the optional
+inspection receipt, the sorted canonical evidence records, the ordered
+candidate IDs, and the recommended candidate ID. IDs are content identities,
+not editable labels. Changing a bound semantic fact without recomputing
+identity makes validation fail. Known evidence records must also match their
+code-owned canonical contents.
+
+All candidates link to the same decision, including candidates with no
+registered execution path. Only the candidate whose method, placement, target
+modules, and runtime contract match the emitted path has a non-null policy
+binding. Loading, compilation, recovery, and validation also compare a v4
+decision with the current registry. An obsolete policy version returns
+`replan_required` only after the complete saved identity chain validates. V3,
+v2, and schema-less plans receive the same fail-closed
+result and remain unchanged on disk.
+
+The historical coherence pass uses the persisted decision and one internally
+consistent adapter-target set, not the current mutable family catalog. The
+ordinary current-plan pass still requires exact current catalog targets. An
+unsupported adapter for an unregistered family carries no targets and can
+truthfully record zero checkpoint retention because it has no trainable adapter
+parameters.
 
 ## Project and revision identities
 
@@ -234,6 +269,11 @@ metrics, tokenizer files, and exports can all contain sensitive material.
 Backup and synchronization software can create more
 copies. Bundle integrity detects changes. It does not encrypt or govern access
 to those files.
+
+Receipt, decision, candidate, plan, and bundle hashes are tamper-evident content
+bindings. They are not authenticated signatures and do not prove who created an
+artifact. Aptus therefore trusts its local process and client boundary while
+still rejecting mismatched content.
 
 Keep the API on loopback. Treat anyone who can call it as able to use the Aptus
 process user's file and compute permissions.

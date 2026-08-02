@@ -36,6 +36,7 @@ from .methods import (
     selectable_method_descriptors,
 )
 from .model_compatibility import (
+    current_model_policy_snapshot_sha256,
     evaluate_model_compatibility,
     matching_model_policy_path,
     model_with_inspection_provenance,
@@ -1021,6 +1022,7 @@ def plan_training(
         model_policy_decision=policy_decision,
         model_policy_decision_source=policy_source,
         inspection_receipt=inspection_receipt,
+        model_policy_snapshot_sha256=current_model_policy_snapshot_sha256(),
         evidence_records=evidence_records,
         formula_version=FORMULA_VERSION,
         plan_id="",

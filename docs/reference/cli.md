@@ -149,7 +149,8 @@ aptus spec-plan FACT_OPTIONS --output PLAN.json
 
 The command profiles the source, constructs the supplied model and hardware
 facts, evaluates one model-policy decision, enumerates the 12 candidates, and
-writes one `aptus.training-plan.v4` document. Without an inspection receipt,
+writes one `aptus.training-plan.v5` document. It binds the deterministic
+model-policy snapshot digest. Without an inspection receipt,
 the decision source is `user-attested`. Parent directories are created. An
 existing plan output file is replaced. No bundle or archive is created.
 

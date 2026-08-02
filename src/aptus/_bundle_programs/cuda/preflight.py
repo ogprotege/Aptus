@@ -46,6 +46,7 @@ def require_contract() -> dict:
 def require_static() -> None:
     for relative in (
         "plan_contract.py",
+        "policy_snapshot.py",
         "preflight.py",
         "run.py",
         "runtime_lease.py",

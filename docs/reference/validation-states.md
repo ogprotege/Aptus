@@ -67,7 +67,7 @@ portable static level then parses every generated Python program.
 
 Core contract checks bind:
 
-- `aptus.training-plan.v4`, every `aptus.runtime-contract.v1`, and the selected
+- `aptus.training-plan.v5`, every `aptus.runtime-contract.v1`, and the selected
   memory estimator identity;
 - the `aptus.model-compatibility.v2` decision and its provider-inspection or
   user-attested source;
@@ -78,15 +78,18 @@ Core contract checks bind:
 - candidate and plan content IDs;
 - normalized model, dataset, hardware, and target facts;
 - the copied dataset digest when dataset verification is enabled;
-- `aptus.bundle.v2`, `plan_sha256`, file paths, sizes, and hashes;
+- `aptus.bundle.v3`, `plan_sha256`, the canonical
+  `aptus.model-policy-snapshot.v1`, its plan/manifest/file digest agreement,
+  file paths, sizes, and hashes;
 - absence of symlinks and unauthorized unmanifested files; and
 - method-specific direct requirements and trainer configuration on the host.
 
 Contract validation does not import the training stack or allocate accelerator
 memory.
 
-The host also evaluates the saved decision against the current policy registry.
-A v3, v2, schema-less, or stale-policy v4 plan returns `replan_required` during
+The host and portable validator evaluate the saved subject with the generic
+snapshot evaluator and require exact parity with the persisted decision. A v4,
+v3, v2, schema-less, or stale-policy v5 plan returns `replan_required` during
 loading, compilation, recovery, or validation. Aptus preserves the old bytes
 and never repairs the failure by changing only `schema_version`.
 
@@ -258,6 +261,12 @@ disk for the plan and measured adapter artifacts. A parent may record active or
 pending run evidence as `execution-approved` until completion verification
 succeeds.
 
+Host-managed admission also binds the exact bundle-manifest fingerprint and the
+current host model-policy snapshot digest into the launched child. Generated
+entrypoints verify both bindings before they use plan state. Manual standalone
+bundle execution omits those host bindings and continues to validate the frozen
+snapshot embedded in the bundle.
+
 The state is not durable permission to start any future run. Admission is
 repeated for each submission.
 
@@ -282,6 +291,14 @@ adapter delta, live headroom evidence, the owned run marker, immutable adapter
 and artifact manifests, fresh-process one-to-four-token generation, and the
 `aptus.mlx-final-export.v1` adapter tree. The full run does not become resumable.
 
+Before either parent promotes pending evidence, it rechecks the exact admitted
+artifact and the current host policy. Terminal state and an
+`aptus.parent-promotion.v1` receipt are then committed in one atomic report
+write. The receipt binds the job, run, artifact fingerprint, and measured
+evidence digest. Restart recovery may recognize already-promoted evidence only
+when that complete receipt and terminal report still match; unreceipted or stale
+pending evidence fails closed.
+
 The state proves this execution and structural artifact contract. Aptus v0.2
 has no task metric, baseline, quality threshold, or deployment gate.
 
@@ -304,6 +321,7 @@ has no task metric, baseline, quality threshold, or deployment gate.
 | `final_export` | Parent-verified final export summary after full completion |
 | `measured_run` | Parent-verified full-run summary |
 | `measured_run_completed_at` | Completion-promotion timestamp |
+| `parent_promotion` | Atomic host receipt binding the promoted job, run, artifact, and measured evidence |
 | `latest_recheck` | Lower-level recheck preserved beside stronger current evidence |
 
 ## Bindings

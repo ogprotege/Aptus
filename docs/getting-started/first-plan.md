@@ -94,7 +94,9 @@ aptus spec-plan \
 
 Open `aptus-work/plan.json` and confirm:
 
-- `schema_version` is `aptus.training-plan.v4`;
+- `schema_version` is `aptus.training-plan.v5`;
+- `model_policy_snapshot_sha256` binds the canonical policy snapshot used to
+  produce the compatibility decision;
 - `formula_version` is `aptus-memory-v2`;
 - `model_policy_decision.schema_version` is
   `aptus.model-compatibility.v2`;

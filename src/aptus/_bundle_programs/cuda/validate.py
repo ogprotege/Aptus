@@ -33,7 +33,9 @@ if (ROOT / "__pycache__").exists():
         "Bundle contains an unmanifested __pycache__; remove it before validation."
     )
 sys.dont_write_bytecode = True
+from plan_contract import validate_bundle_manifest
 from runtime_lease import portable_execution_lease, run_with_lease
+
 STATE_BY_LEVEL = {
     "contract": "contract-pass",
     "static": "static-pass",
@@ -68,11 +70,15 @@ def bind_visible_cuda_devices(plan: dict) -> None:
         )
         or len(set(device_indices)) != len(device_indices)
     ):
-        raise RuntimeError("Selected CUDA device indices do not match the planned world.")
+        raise RuntimeError(
+            "Selected CUDA device indices do not match the planned world."
+        )
     marker = os.environ.get("APTUS_BOUND_DEVICE_CANDIDATE")
     if marker is not None:
         if marker != candidate["candidate_id"]:
-            raise RuntimeError("Inherited Aptus CUDA visibility belongs to another candidate.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility belongs to another candidate."
+            )
         inherited = os.environ.get("CUDA_VISIBLE_DEVICES")
         inherited_tokens = (
             [token.strip() for token in inherited.split(",") if token.strip()]
@@ -80,21 +86,27 @@ def bind_visible_cuda_devices(plan: dict) -> None:
             else []
         )
         if len(inherited_tokens) != world_size or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in inherited_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in inherited_tokens
         ):
-            raise RuntimeError("Inherited Aptus CUDA visibility is missing or malformed.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility is missing or malformed."
+            )
         return
     existing = os.environ.get("CUDA_VISIBLE_DEVICES")
     if existing is not None:
-        visible_tokens = [token.strip() for token in existing.split(",") if token.strip()]
+        visible_tokens = [
+            token.strip() for token in existing.split(",") if token.strip()
+        ]
         if not visible_tokens or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in visible_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in visible_tokens
         ):
-            raise RuntimeError("CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices.")
+            raise RuntimeError(
+                "CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices."
+            )
         if any(index >= len(visible_tokens) for index in device_indices):
-            raise RuntimeError("Selected CUDA device index is outside CUDA_VISIBLE_DEVICES.")
+            raise RuntimeError(
+                "Selected CUDA device index is outside CUDA_VISIBLE_DEVICES."
+            )
         selected_tokens = [visible_tokens[index] for index in device_indices]
     else:
         selected_tokens = [str(index) for index in device_indices]
@@ -141,8 +153,13 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
         "method": method,
         "parameter_scope": expected_scope,
     }
-    if any(value.get(name) != expected_value for name, expected_value in expected_identity.items()):
-        raise RuntimeError("Trainable-parameter census violates the selected method scope.")
+    if any(
+        value.get(name) != expected_value
+        for name, expected_value in expected_identity.items()
+    ):
+        raise RuntimeError(
+            "Trainable-parameter census violates the selected method scope."
+        )
     if value.get("all_values_finite") is not True:
         raise RuntimeError("Trainable-parameter census does not attest finite values.")
     for name in ("trainable_parameter_count", "trainable_tensor_count"):
@@ -160,10 +177,14 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
     for name in counter_names:
         count = value.get(name)
         if not isinstance(count, int) or isinstance(count, bool) or count < 0:
-            raise RuntimeError(f"Trainable-parameter census requires non-negative integer {name}.")
+            raise RuntimeError(
+                f"Trainable-parameter census requires non-negative integer {name}."
+            )
     if method == "full":
         if any(value[name] != 0 for name in counter_names):
-            raise RuntimeError("Full fine-tuning census contains frozen or adapter counters.")
+            raise RuntimeError(
+                "Full fine-tuning census contains frozen or adapter counters."
+            )
     else:
         for name in ("frozen_parameter_count", "frozen_tensor_count"):
             if value[name] <= 0:
@@ -171,20 +192,27 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
                     f"Adapter census requires positive {name} for its frozen base."
                 )
         if value["unexpected_trainable_tensor_count"] != 0:
-            raise RuntimeError("Adapter census contains an unexpected trainable tensor.")
+            raise RuntimeError(
+                "Adapter census contains an unexpected trainable tensor."
+            )
         if (
             value["expected_adapter_target_match_count"] <= 0
-            or value["adapter_target_instance_count"] != value["expected_adapter_target_match_count"]
+            or value["adapter_target_instance_count"]
+            != value["expected_adapter_target_match_count"]
             or value["incomplete_adapter_target_instance_count"] != 0
         ):
-            raise RuntimeError("Adapter census does not bind one complete LoRA A/B pair to every target instance.")
+            raise RuntimeError(
+                "Adapter census does not bind one complete LoRA A/B pair to every target instance."
+            )
     digest = value.get("descriptor_sha256")
     if (
         not isinstance(digest, str)
         or len(digest) != 64
         or any(character not in "0123456789abcdef" for character in digest)
     ):
-        raise RuntimeError("Trainable-parameter census has an invalid descriptor digest.")
+        raise RuntimeError(
+            "Trainable-parameter census has an invalid descriptor digest."
+        )
     return value
 
 
@@ -262,10 +290,9 @@ def completed_run_is_current(existing: dict, plan: dict) -> bool:
     metrics_path = run_dir / "metrics.json"
     if not export_path.is_file() or not metrics_path.is_file():
         return False
-    if (
-        final_report.get("manifest_sha256") != sha256(export_path)
-        or measured_report.get("metrics_sha256") != sha256(metrics_path)
-    ):
+    if final_report.get("manifest_sha256") != sha256(
+        export_path
+    ) or measured_report.get("metrics_sha256") != sha256(metrics_path):
         return False
     try:
         export = json.loads(export_path.read_text(encoding="utf-8"))
@@ -328,7 +355,9 @@ def completed_run_is_current(existing: dict, plan: dict) -> bool:
 
 
 def json_hash(value: object) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def environment_binding() -> str:
@@ -342,12 +371,14 @@ def environment_binding() -> str:
         except PackageNotFoundError:
             direct_constraints[name] = "missing"
     runtime_distributions = runtime_distribution_closure(direct_constraints)
-    return json_hash({
-        "python": platform.python_version(),
-        "platform": platform.platform(),
-        "direct_constraints": direct_constraints,
-        "runtime_distributions": runtime_distributions,
-    })
+    return json_hash(
+        {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "direct_constraints": direct_constraints,
+            "runtime_distributions": runtime_distributions,
+        }
+    )
 
 
 def runtime_distribution_closure(names: dict[str, str]) -> dict[str, str]:
@@ -370,7 +401,11 @@ def runtime_distribution_closure(names: dict[str, str]) -> dict[str, str]:
         for requirement in package.requires or ():
             token = requirement.split(";", 1)[0].strip()
             boundary = min(
-                (token.find(character) for character in "[ (<>=!~" if character in token),
+                (
+                    token.find(character)
+                    for character in "[ (<>=!~"
+                    if character in token
+                ),
                 default=len(token),
             )
             dependency = token[:boundary].strip()
@@ -398,7 +433,11 @@ def actual_hardware_binding() -> str:
         if executable is not None:
             try:
                 completed = subprocess.run(
-                    [executable, "--query-gpu=driver_version", "--format=csv,noheader,nounits"],
+                    [
+                        executable,
+                        "--query-gpu=driver_version",
+                        "--format=csv,noheader,nounits",
+                    ],
                     check=False,
                     capture_output=True,
                     text=True,
@@ -407,7 +446,11 @@ def actual_hardware_binding() -> str:
             except (OSError, subprocess.TimeoutExpired):
                 completed = None
             if completed is not None and completed.returncode == 0:
-                versions = {line.strip() for line in completed.stdout.splitlines() if line.strip()}
+                versions = {
+                    line.strip()
+                    for line in completed.stdout.splitlines()
+                    if line.strip()
+                }
                 if len(versions) == 1:
                     driver_version = versions.pop()
     if driver_version is None:
@@ -418,7 +461,9 @@ def actual_hardware_binding() -> str:
         major, minor = torch.cuda.get_device_capability(index)
         device_uuid = str(getattr(properties, "uuid", "")).strip()
         if not device_uuid or device_uuid.lower() == "none":
-            raise RuntimeError(f"CUDA device {index} does not expose a stable UUID for pilot binding.")
+            raise RuntimeError(
+                f"CUDA device {index} does not expose a stable UUID for pilot binding."
+            )
         devices.append(
             {
                 "index": index,
@@ -430,7 +475,11 @@ def actual_hardware_binding() -> str:
             }
         )
     return json_hash(
-        {"cuda_runtime": torch.version.cuda, "driver_version": driver_version, "devices": devices}
+        {
+            "cuda_runtime": torch.version.cuda,
+            "driver_version": driver_version,
+            "devices": devices,
+        }
     )
 
 
@@ -452,13 +501,9 @@ def _write_attestation(level: str) -> None:
         existing_state = existing.get("state") if isinstance(existing, dict) else None
         historical_run = existing_state == "measured-run-pass"
         current_environment = environment_binding()
-        environment_is_current = (
-            historical_run
-            or (
-                isinstance(existing, dict)
-                and existing.get("bindings", {}).get("environment")
-                == current_environment
-            )
+        environment_is_current = historical_run or (
+            isinstance(existing, dict)
+            and existing.get("bindings", {}).get("environment") == current_environment
         )
         pilot_is_current = True
         preflight_is_current = True
@@ -477,7 +522,9 @@ def _write_attestation(level: str) -> None:
                 current_hardware is not None
                 and existing.get("bindings", {}).get("hardware") == current_hardware
             )
-        if existing_state in STATE_ORDER and STATE_ORDER.index(existing_state) >= STATE_ORDER.index("measured-preflight-pass"):
+        if existing_state in STATE_ORDER and STATE_ORDER.index(
+            existing_state
+        ) >= STATE_ORDER.index("measured-preflight-pass"):
             try:
                 current_preflight_metrics = require_preflight_metrics(plan)
             except RuntimeError:
@@ -489,11 +536,14 @@ def _write_attestation(level: str) -> None:
                 == sha256(preflight_metrics_path)
                 and existing.get("preflight_metrics") == current_preflight_metrics
             )
-        if existing_state in STATE_ORDER and STATE_ORDER.index(existing_state) >= STATE_ORDER.index("pilot-pass"):
+        if existing_state in STATE_ORDER and STATE_ORDER.index(
+            existing_state
+        ) >= STATE_ORDER.index("pilot-pass"):
             pilot_metrics = ROOT / "pilot-output" / "metrics.json"
             pilot_is_current = bool(
                 pilot_metrics.is_file()
-                and existing.get("bindings", {}).get("pilot_metrics") == sha256(pilot_metrics)
+                and existing.get("bindings", {}).get("pilot_metrics")
+                == sha256(pilot_metrics)
             )
         if (
             isinstance(existing, dict)
@@ -502,9 +552,12 @@ def _write_attestation(level: str) -> None:
             and existing.get("artifact_fingerprint") == manifest_digest
             and existing.get("bindings", {}).get("bundle") == manifest_digest
             and existing.get("bindings", {}).get("plan_id") == plan["plan_id"]
-            and existing.get("bindings", {}).get("candidate_id") == plan["recommended"]["candidate_id"]
-            and existing.get("bindings", {}).get("model_revision") == plan["model"]["revision"]
-            and existing.get("bindings", {}).get("dataset") == plan["dataset"]["source_sha256"]
+            and existing.get("bindings", {}).get("candidate_id")
+            == plan["recommended"]["candidate_id"]
+            and existing.get("bindings", {}).get("model_revision")
+            == plan["model"]["revision"]
+            and existing.get("bindings", {}).get("dataset")
+            == plan["dataset"]["source_sha256"]
             and environment_is_current
             and hardware_is_current
             and preflight_is_current
@@ -523,8 +576,7 @@ def _write_attestation(level: str) -> None:
             }
             temporary = existing_path.with_name(".validation-report.json.tmp")
             temporary.write_text(
-                json.dumps(existing, indent=2, sort_keys=True, allow_nan=False)
-                + "\n",
+                json.dumps(existing, indent=2, sort_keys=True, allow_nan=False) + "\n",
                 encoding="utf-8",
             )
             os.replace(temporary, existing_path)
@@ -576,7 +628,9 @@ def _write_attestation(level: str) -> None:
         "pilot_metrics": pilot_metrics,
     }
     temporary = existing_path.with_name(".validation-report.json.tmp")
-    temporary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     os.replace(temporary, existing_path)
 
 
@@ -593,7 +647,9 @@ def prune_attested_pilot_runs() -> None:
         or report.get("bindings", {}).get("pilot_metrics") != sha256(metrics_path)
         or not isinstance(current, str)
     ):
-        raise RuntimeError("Pilot retention cleanup requires a durable current attestation.")
+        raise RuntimeError(
+            "Pilot retention cleanup requires a durable current attestation."
+        )
     unresolved_runs_root = ROOT / "runs"
     if not unresolved_runs_root.exists():
         return
@@ -629,6 +685,9 @@ def prune_attested_pilot_runs() -> None:
 
 
 def main() -> int:
+    manifest_errors = validate_bundle_manifest(ROOT)
+    if manifest_errors:
+        raise RuntimeError("Invalid Aptus bundle: " + " | ".join(manifest_errors))
     parser = argparse.ArgumentParser(description="Validate this Aptus bundle.")
     parser.add_argument("--level", choices=tuple(STATE_BY_LEVEL), default="static")
     parser.add_argument("--local-files-only", action="store_true")

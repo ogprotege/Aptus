@@ -466,7 +466,7 @@ pinned model revision.
 | `packing` | boolean | No | False; true is rejected by planning |
 | `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
 
-Success persists and returns one full `aptus.training-plan.v4` object plus
+Success persists and returns one full `aptus.training-plan.v5` object plus
 `project_id` and `project_revision_id`. Supplying `project_id` appends to that
 project. Otherwise Aptus creates a named project, using `project_name` or a
 model-derived default. When no candidate is viable, the response is
@@ -677,7 +677,8 @@ explicitly confirmed train action. Missing projects or revisions return the
 corresponding `project_not_found` or `project_revision_not_found` error.
 A revision whose plan snapshot uses v3, v2, or no schema identifier returns
 `409 replan_required`. Aptus preserves the source revision and appends no
-replacement revision. A stale v4 policy decision has the same result. Create a
+replacement revision. A v4 plan or stale v5 policy decision or snapshot has the
+same result. Create a
 new v4 plan from the source facts instead.
 
 ## Error envelopes

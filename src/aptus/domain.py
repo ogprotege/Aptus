@@ -8,7 +8,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "aptus.training-plan.v4"
+SCHEMA_VERSION = "aptus.training-plan.v5"
 FACTS_SCHEMA_VERSION = "aptus.facts.v3"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
@@ -1104,6 +1104,7 @@ class TrainingPlan:
     model_policy_decision: ModelPolicyDecision
     model_policy_decision_source: ModelPolicyBindingSource
     inspection_receipt: ModelInspectionReceipt | None
+    model_policy_snapshot_sha256: str
     evidence_records: tuple[EvidenceRecord, ...] = ()
     formula_version: str = "aptus-memory-v2"
     plan_id: str = ""
@@ -1111,6 +1112,10 @@ class TrainingPlan:
     def __post_init__(self) -> None:
         if self.schema_version != SCHEMA_VERSION:
             raise ValueError(f"Training plans require schema {SCHEMA_VERSION}.")
+        if not _sha256_is_valid(self.model_policy_snapshot_sha256):
+            raise ValueError(
+                "Training plans require a lowercase model policy snapshot SHA-256."
+            )
         if not isinstance(self.model_policy_decision, ModelPolicyDecision):
             raise ValueError("Training plans require a model policy decision.")
         if not isinstance(self.model_policy_decision_source, ModelPolicyBindingSource):
@@ -1433,12 +1438,16 @@ def _model_policy_binding_from(value: Mapping[str, Any]) -> ModelPolicyBinding:
 
 
 def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
-    """Rehydrate the persisted v4 JSON contract without accepting older plans."""
+    """Rehydrate the persisted v5 JSON contract without accepting older plans."""
 
     if not isinstance(value, Mapping):
         raise ValueError("Persisted plan must be an object.")
     if value.get("schema_version") != SCHEMA_VERSION:
         raise UnsupportedPlanSchemaError(value.get("schema_version"))
+    if "model_policy_snapshot_sha256" not in value:
+        raise ValueError(
+            "Persisted v5 plans require a model_policy_snapshot_sha256 field."
+        )
 
     model_value = value["model"]
     hardware_value = value["hardware"]
@@ -1504,17 +1513,17 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
     )
     policy_decision_value = value.get("model_policy_decision")
     if not isinstance(policy_decision_value, Mapping):
-        raise ValueError("Persisted v4 plans require a model policy decision.")
+        raise ValueError("Persisted v5 plans require a model policy decision.")
     model_policy_decision = _model_policy_decision_from(policy_decision_value)
     if "model_policy_decision_source" not in value:
         raise ValueError(
-            "Persisted v4 plans require a model_policy_decision_source field."
+            "Persisted v5 plans require a model_policy_decision_source field."
         )
     model_policy_decision_source = ModelPolicyBindingSource(
         value["model_policy_decision_source"]
     )
     if "inspection_receipt" not in value:
-        raise ValueError("Persisted v4 plans require an inspection_receipt field.")
+        raise ValueError("Persisted v5 plans require an inspection_receipt field.")
     receipt_value = value.get("inspection_receipt")
     if receipt_value is not None and not isinstance(receipt_value, Mapping):
         raise ValueError("Persisted inspection_receipt must be an object or null.")
@@ -1617,10 +1626,10 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         memory = MemoryBreakdown(**memory_arguments)
         runtime_value = item.get("runtime_contract")
         if not isinstance(runtime_value, Mapping):
-            raise ValueError("Persisted v4 candidates require a runtime contract.")
+            raise ValueError("Persisted v5 candidates require a runtime contract.")
         runtime_contract = _runtime_contract_from(runtime_value)
         if "policy_binding" not in item:
-            raise ValueError("Persisted v4 candidates require a policy_binding field.")
+            raise ValueError("Persisted v5 candidates require a policy_binding field.")
         policy_binding_value = item["policy_binding"]
         if policy_binding_value is not None and not isinstance(
             policy_binding_value, Mapping
@@ -1686,6 +1695,7 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         model_policy_decision=model_policy_decision,
         model_policy_decision_source=model_policy_decision_source,
         inspection_receipt=inspection_receipt,
+        model_policy_snapshot_sha256=str(value["model_policy_snapshot_sha256"]),
         evidence_records=evidence,
         formula_version=value.get("formula_version", "aptus-memory-v2"),
         plan_id=value["plan_id"],

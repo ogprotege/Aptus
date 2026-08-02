@@ -1452,7 +1452,7 @@ export interface components {
              * Required Schema
              * @constant
              */
-            required_schema: "aptus.training-plan.v4";
+            required_schema: "aptus.training-plan.v5";
             /**
              * Source
              * @enum {string}
@@ -1584,6 +1584,8 @@ export interface components {
              * @enum {string}
              */
             model_policy_decision_source: "provider-inspection" | "user-attested";
+            /** Model Policy Snapshot Sha256 */
+            model_policy_snapshot_sha256: string;
             /** Plan Id */
             plan_id: string;
             /** Project Id */
@@ -1597,7 +1599,7 @@ export interface components {
              * Schema Version
              * @constant
              */
-            schema_version: "aptus.training-plan.v4";
+            schema_version: "aptus.training-plan.v5";
             /** Warnings */
             warnings: string[];
         } & {

@@ -305,8 +305,9 @@ const EXAMPLE_CANDIDATES: CandidatePlan[] = [
 const EXAMPLE_RECOMMENDED = EXAMPLE_CANDIDATES[3];
 
 export const EXAMPLE_PLAN: TrainingPlan = {
-  schema_version: "aptus.training-plan.v4",
+  schema_version: "aptus.training-plan.v5",
   plan_id: "plan_eeeeeeeeeeeeeeeeeeee",
+  model_policy_snapshot_sha256: "e".repeat(64),
   example: true,
   model_policy_decision: EXAMPLE_POLICY_DECISION,
   model_policy_decision_source: "user-attested",

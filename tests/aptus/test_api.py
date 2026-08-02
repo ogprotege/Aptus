@@ -26,6 +26,7 @@ from aptus.execution import ActiveJobError, JobPrerequisiteError
 from aptus.local_store import atomic_write_json
 from aptus.model_compatibility import (
     create_model_inspection_receipt,
+    current_model_policy_snapshot,
     subject_from_model,
     validate_registered_compatibility_path,
 )
@@ -859,7 +860,7 @@ class ApiEndpointTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 409, response.text)
                 self.assertEqual(response.json()["error"], "replan_required")
                 self.assertEqual(
-                    response.json()["required_schema"], "aptus.training-plan.v4"
+                    response.json()["required_schema"], "aptus.training-plan.v5"
                 )
                 self.assertEqual(response.json()["found_schema"], found_schema)
                 self.assertEqual(path.read_bytes(), before)
@@ -876,8 +877,8 @@ class ApiEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(response.json()["error"], "replan_required")
-        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v4")
-        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v4")
+        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v5")
+        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v5")
 
     def owned_bundle_request(self, bundle: Path) -> dict[str, str]:
         planned = self.client.post("/api/v1/plan", json=self.plan_payload())
@@ -1053,7 +1054,7 @@ class ApiEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.text)
         plan = response.json()
-        self.assertEqual(plan["schema_version"], "aptus.training-plan.v4")
+        self.assertEqual(plan["schema_version"], "aptus.training-plan.v5")
         self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
         self.assertEqual(
             len(plan["model"]["quantization_layout"]["module_overrides"]), 48
@@ -1390,7 +1391,7 @@ class ApiEndpointTests(unittest.TestCase):
                 "status": "replan_required",
                 "plan_id": plan_id,
                 "found_schema": "aptus.training-plan.v2",
-                "required_schema": "aptus.training-plan.v4",
+                "required_schema": "aptus.training-plan.v5",
                 "source": "project-revision",
                 "project_id": project["project_id"],
                 "project_revision_id": revision["revision_id"],
@@ -1405,7 +1406,7 @@ class ApiEndpointTests(unittest.TestCase):
             self.assertEqual(response.status_code, 409, response.text)
             self.assertEqual(response.json()["error"], "replan_required")
             self.assertEqual(
-                response.json()["required_schema"], "aptus.training-plan.v4"
+                response.json()["required_schema"], "aptus.training-plan.v5"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
         self.assertFalse((self.root / "legacy-output").exists())
@@ -1498,13 +1499,13 @@ class ApiEndpointTests(unittest.TestCase):
         )
         self.assertEqual(
             bootstrap.json()["replan_required"]["found_schema"],
-            "aptus.training-plan.v4",
+            "aptus.training-plan.v5",
         )
         for response in (loaded, compiled, recovered):
             self.assertEqual(response.status_code, 409, response.text)
             self.assertEqual(response.json()["error"], "replan_required")
             self.assertEqual(
-                response.json()["required_schema"], "aptus.training-plan.v4"
+                response.json()["required_schema"], "aptus.training-plan.v5"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
         self.assertFalse((self.root / "stale-v4-output").exists())
@@ -2054,6 +2055,52 @@ class ApiEndpointTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(response.json()["error"], "active_job_conflict")
+
+    def test_stale_policy_job_submission_requires_replanning(self) -> None:
+        bundle = self.root / "bundle"
+        identity = self.owned_bundle_request(bundle)
+        plan_id = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))[
+            "plan_id"
+        ]
+        (bundle / "validation-report.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "pilot-pass",
+                }
+            ),
+            encoding="utf-8",
+        )
+        changed_snapshot = copy.deepcopy(current_model_policy_snapshot())
+        changed_snapshot["dense_families"] = sorted(
+            [*changed_snapshot["dense_families"], "future-dense-family"]
+        )
+
+        with patch(
+            "aptus.model_compatibility.current_model_policy_snapshot",
+            return_value=changed_snapshot,
+        ):
+            response = self.client.post(
+                "/api/v1/jobs",
+                json={
+                    "bundle_dir": str(bundle),
+                    "action": "train",
+                    "confirm_full_train": True,
+                    **identity,
+                },
+            )
+
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["error"], "replan_required")
+        self.assertEqual(response.json()["plan_id"], plan_id)
+        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v5")
+        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v5")
+        self.assertEqual(response.json()["project_id"], identity["project_id"])
+        self.assertEqual(
+            response.json()["project_revision_id"],
+            identity["expected_project_revision_id"],
+        )
+        self.assertEqual(self.client.app.state.aptus.jobs.list(), [])
 
     def test_job_prerequisite_failure_is_typed_as_http_409(self) -> None:
         bundle = self.root / "bundle"

@@ -278,7 +278,7 @@ class CliIntegrationTests(unittest.TestCase):
             self.assertTrue(profile_path.is_file())
             self.assertEqual(
                 json.loads(plan_path.read_text())["schema_version"],
-                "aptus.training-plan.v4",
+                "aptus.training-plan.v5",
             )
             self.assertIsNone(
                 json.loads(plan_path.read_text())["target"]["training_runtime"]
@@ -397,7 +397,7 @@ class CliIntegrationTests(unittest.TestCase):
             )
 
             plan = json.loads(plan_path.read_text(encoding="utf-8"))
-            self.assertEqual(plan["schema_version"], "aptus.training-plan.v4")
+            self.assertEqual(plan["schema_version"], "aptus.training-plan.v5")
             self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
             self.assertEqual(plan["model"]["architecture"], "Qwen3MoeForCausalLM")
             self.assertEqual(plan["model"]["quantization_bits"], 4)

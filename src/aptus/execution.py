@@ -33,8 +33,12 @@ from .attestation import require_trainable_parameter_census
 from .domain import RunState, ValidationState
 from .local_store import atomic_write_json, private_directory, quarantine_file
 from .plan_contract import (
+    MODEL_POLICY_SNAPSHOT_PATH,
+    StaleModelPolicyError,
     expected_model_architecture_contract,
     mlx_quantized_storage_bytes_for_contract,
+    require_current_model_policy,
+    require_current_model_policy_snapshot,
     sha256_file,
     validate_bundle_manifest,
     validate_plan_payload,
@@ -46,6 +50,7 @@ from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
 JOB_ACTIONS = {"dependency", "model-data", "preflight", "pilot", "train"}
 JOB_RECORD_SCHEMA_VERSION = "aptus.job-record.v1"
+PARENT_PROMOTION_SCHEMA_VERSION = "aptus.parent-promotion.v1"
 _GLOBAL_LEASE_THREAD_LOCK = threading.RLock()
 
 
@@ -146,6 +151,13 @@ for entry in manifest.get("files", []):
         or hashlib.sha256(payload).hexdigest() != entry.get("sha256")
     ):
         raise SystemExit("Aptus launch blocked: manifested file changed")
+plan = json.loads(Path("plan.json").read_text(encoding="utf-8"))
+expected_policy_snapshot = spec.get("authorized_model_policy_snapshot_sha256")
+if (
+    not isinstance(expected_policy_snapshot, str)
+    or plan.get("model_policy_snapshot_sha256") != expected_policy_snapshot
+):
+    raise SystemExit("Aptus launch blocked: host policy authorization changed")
 command = spec["command"]
 if os.name == "nt":
     raise SystemExit(subprocess.run(command, check=False).returncode)
@@ -282,6 +294,103 @@ def _read_json_object(path: Path, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object.")
     return value
+
+
+def _read_json_object_bytes(path: Path, label: str) -> tuple[dict[str, Any], bytes]:
+    try:
+        payload = path.read_bytes()
+        value = json.loads(payload)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"{label} is unreadable: {error}") from error
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be a JSON object.")
+    return value, payload
+
+
+def _require_current_bundle_model_policy(
+    bundle: Path,
+    *,
+    expected_artifact_fingerprint: str | None = None,
+    enforce_current_policy: bool = True,
+) -> tuple[dict[str, Any], str]:
+    manifest_path = bundle / "bundle-manifest.json"
+    plan_path = bundle / "plan.json"
+    snapshot_path = bundle / MODEL_POLICY_SNAPSHOT_PATH
+    manifest, manifest_bytes = _read_json_object_bytes(manifest_path, "Bundle manifest")
+    plan, plan_bytes = _read_json_object_bytes(plan_path, "Bundle plan")
+    snapshot, snapshot_bytes = _read_json_object_bytes(
+        snapshot_path, "Bundle model policy snapshot"
+    )
+    manifest_fingerprint = hashlib.sha256(manifest_bytes).hexdigest()
+    plan_digest = hashlib.sha256(plan_bytes).hexdigest()
+    if manifest.get("plan_sha256") != plan_digest:
+        raise ValueError("Bundle manifest plan digest does not match plan.json.")
+    if manifest.get("policy_snapshot_path") != MODEL_POLICY_SNAPSHOT_PATH:
+        raise ValueError(
+            "Bundle manifest does not bind the required model policy snapshot path."
+        )
+    if manifest.get("policy_snapshot_sha256") != plan.get(
+        "model_policy_snapshot_sha256"
+    ):
+        raise ValueError(
+            "Bundle manifest and plan disagree on the model policy snapshot digest."
+        )
+    if expected_artifact_fingerprint is not None and (
+        len(expected_artifact_fingerprint) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in expected_artifact_fingerprint
+        )
+        or manifest_fingerprint != expected_artifact_fingerprint
+    ):
+        raise ValueError(
+            "The bundle manifest does not match the expected project artifact "
+            "fingerprint; the bundle changed from its project-bound artifact."
+        )
+    manifest_errors = validate_bundle_manifest(bundle)
+    if manifest_errors:
+        raise ValueError(
+            "Bundle integrity check failed: " + " | ".join(manifest_errors)
+        )
+    try:
+        stable = (
+            manifest_path.read_bytes() == manifest_bytes
+            and plan_path.read_bytes() == plan_bytes
+            and snapshot_path.read_bytes() == snapshot_bytes
+        )
+    except OSError as error:
+        raise ValueError(
+            f"Bundle changed while policy was being validated: {error}"
+        ) from error
+    if not stable:
+        raise ValueError("Bundle changed while its model policy was being validated.")
+    try:
+        require_current_model_policy(plan, policy_snapshot=snapshot)
+    except StaleModelPolicyError as error:
+        raise ValueError(
+            "Bundle plan is inconsistent with its embedded model policy snapshot: "
+            f"{error}"
+        ) from error
+    except ValueError as error:
+        raise ValueError(
+            "Bundle plan is inconsistent with its embedded model policy snapshot: "
+            f"{error}"
+        ) from error
+    if enforce_current_policy:
+        require_current_model_policy_snapshot(plan)
+    try:
+        stable = (
+            manifest_path.read_bytes() == manifest_bytes
+            and plan_path.read_bytes() == plan_bytes
+            and snapshot_path.read_bytes() == snapshot_bytes
+        )
+    except OSError as error:
+        raise ValueError(
+            f"Bundle changed while policy was being validated: {error}"
+        ) from error
+    if not stable:
+        raise ValueError("Bundle changed while its model policy was being validated.")
+    return plan, manifest_fingerprint
 
 
 def _verify_run_metrics(metrics: dict[str, Any], candidate: dict[str, Any]) -> None:
@@ -1656,45 +1765,58 @@ def _bundle_report_lock(bundle: Path) -> Any:
 
 
 def _promote_cuda_train_attestation(
-    record: dict[str, Any], evidence: dict[str, Any]
+    record: dict[str, Any],
+    evidence: dict[str, Any],
+    *,
+    _report: dict[str, Any] | None = None,
+    _persist: bool = True,
 ) -> dict[str, Any]:
     bundle = Path(record["bundle_dir"]).resolve(strict=True)
     report_path = bundle / "validation-report.json"
-    with _bundle_report_lock(bundle):
-        report = _read_json_object(report_path, "Validation report")
-        if (
-            report.get("state") == "measured-run-pass"
-            and report.get("final_export") == evidence["final_export"]
-            and report.get("measured_run") == evidence["measured_run"]
-            and sha256_file(report_path) == evidence.get("source_report_sha256")
-        ):
-            return {
-                "state": report["state"],
-                "measured_run_completed_at": report.get("measured_run_completed_at"),
-                "final_export": report["final_export"],
-                "measured_run": report["measured_run"],
-            }
-        if (
-            report.get("state") != "execution-approved"
-            or report.get("active_run") != evidence["active_run"]
-            or report.get("pending_final_export") != evidence["final_export"]
-            or report.get("pending_measured_run") != evidence["measured_run"]
-            or report.get("measured_run_pending_at") != evidence["pending_at"]
-        ):
-            raise ValueError(
-                "Pending measured-run evidence changed before parent promotion."
+    if _report is None:
+        with _bundle_report_lock(bundle):
+            return _promote_cuda_train_attestation(
+                record,
+                evidence,
+                _report=_read_json_object(report_path, "Validation report"),
+                _persist=True,
             )
-        report["state"] = "measured-run-pass"
-        report["measured_run_completed_at"] = _now()
-        report["final_export"] = evidence["final_export"]
-        report["measured_run"] = evidence["measured_run"]
-        for name in (
-            "active_run",
-            "measured_run_pending_at",
-            "pending_final_export",
-            "pending_measured_run",
-        ):
-            report.pop(name, None)
+    report = _report
+    if (
+        report.get("state") == "measured-run-pass"
+        and report.get("final_export") == evidence["final_export"]
+        and report.get("measured_run") == evidence["measured_run"]
+        and sha256_file(report_path) == evidence.get("source_report_sha256")
+    ):
+        return {
+            "state": report["state"],
+            "measured_run_completed_at": report.get("measured_run_completed_at"),
+            "final_export": report["final_export"],
+            "measured_run": report["measured_run"],
+        }
+    if (
+        report.get("state") != "execution-approved"
+        or report.get("active_run") != evidence["active_run"]
+        or report.get("pending_final_export") != evidence["final_export"]
+        or report.get("pending_measured_run") != evidence["measured_run"]
+        or report.get("measured_run_pending_at") != evidence["pending_at"]
+    ):
+        raise ValueError(
+            "Pending measured-run evidence changed before parent promotion."
+        )
+    report["state"] = "measured-run-pass"
+    report["validation_level"] = "measured-run"
+    report["measured_run_completed_at"] = _now()
+    report["final_export"] = evidence["final_export"]
+    report["measured_run"] = evidence["measured_run"]
+    for name in (
+        "active_run",
+        "measured_run_pending_at",
+        "pending_final_export",
+        "pending_measured_run",
+    ):
+        report.pop(name, None)
+    if _persist:
         _atomic_write_json(report_path, report)
     return {
         "state": report["state"],
@@ -1705,52 +1827,135 @@ def _promote_cuda_train_attestation(
 
 
 def _promote_mlx_train_attestation(
-    record: dict[str, Any], evidence: dict[str, Any]
+    record: dict[str, Any],
+    evidence: dict[str, Any],
+    *,
+    _report: dict[str, Any] | None = None,
+    _persist: bool = True,
 ) -> dict[str, Any]:
     bundle = Path(record["bundle_dir"]).resolve(strict=True)
     report_path = bundle / "validation-report.json"
-    with _bundle_report_lock(bundle):
-        report = _read_json_object(report_path, "Validation report")
-        if (
-            report.get("state") == "measured-run-pass"
-            and report.get("final_export") == evidence["final_export"]
-            and report.get("measured_run") == evidence["measured_run"]
-        ):
-            return {
-                "state": report["state"],
-                "measured_run_completed_at": report.get("measured_run_completed_at"),
-                "final_export": report["final_export"],
-                "measured_run": report["measured_run"],
-            }
-        if (
-            report.get("state") != evidence.get("source_report_state")
-            or report.get("bindings") != evidence.get("source_bindings")
-            or sha256_file(report_path) != evidence.get("source_report_sha256")
-            or report.get("state") not in {"pilot-pass", "execution-approved"}
-        ):
-            raise ValueError(
-                "MLX pilot evidence changed before parent measured-run promotion."
+    if _report is None:
+        with _bundle_report_lock(bundle):
+            return _promote_mlx_train_attestation(
+                record,
+                evidence,
+                _report=_read_json_object(report_path, "Validation report"),
+                _persist=True,
             )
-        report["state"] = "measured-run-pass"
-        report["validation_level"] = "measured-run"
-        report["measured_run_completed_at"] = _now()
-        report["final_export"] = evidence["final_export"]
-        report["measured_run"] = evidence["measured_run"]
-        runtime_evidence = report.get("runtime_evidence")
-        if not isinstance(runtime_evidence, list):
-            runtime_evidence = []
-        report["runtime_evidence"] = [
-            *runtime_evidence,
-            "Parent verification accepted an uninterrupted MLX-LM measured run.",
-        ]
-        for name in (
-            "active_run",
-            "measured_run_pending_at",
-            "pending_final_export",
-            "pending_measured_run",
-        ):
-            report.pop(name, None)
+    report = _report
+    if (
+        report.get("state") == "measured-run-pass"
+        and report.get("final_export") == evidence["final_export"]
+        and report.get("measured_run") == evidence["measured_run"]
+    ):
+        return {
+            "state": report["state"],
+            "measured_run_completed_at": report.get("measured_run_completed_at"),
+            "final_export": report["final_export"],
+            "measured_run": report["measured_run"],
+        }
+    if (
+        report.get("state") != evidence.get("source_report_state")
+        or report.get("bindings") != evidence.get("source_bindings")
+        or sha256_file(report_path) != evidence.get("source_report_sha256")
+        or report.get("state") not in {"pilot-pass", "execution-approved"}
+    ):
+        raise ValueError(
+            "MLX pilot evidence changed before parent measured-run promotion."
+        )
+    report["state"] = "measured-run-pass"
+    report["validation_level"] = "measured-run"
+    report["measured_run_completed_at"] = _now()
+    report["final_export"] = evidence["final_export"]
+    report["measured_run"] = evidence["measured_run"]
+    runtime_evidence = report.get("runtime_evidence")
+    if not isinstance(runtime_evidence, list):
+        runtime_evidence = []
+    report["runtime_evidence"] = [
+        *runtime_evidence,
+        "Parent verification accepted an uninterrupted MLX-LM measured run.",
+    ]
+    for name in (
+        "active_run",
+        "measured_run_pending_at",
+        "pending_final_export",
+        "pending_measured_run",
+    ):
+        report.pop(name, None)
+    if _persist:
         _atomic_write_json(report_path, report)
+    return {
+        "state": report["state"],
+        "measured_run_completed_at": report["measured_run_completed_at"],
+        "final_export": report["final_export"],
+        "measured_run": report["measured_run"],
+    }
+
+
+def _parent_promotion_receipt(
+    record: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    *,
+    promoted_at: Any,
+) -> dict[str, Any]:
+    job_id = record.get("id")
+    run_id = record.get("run_id")
+    fingerprint = record.get("artifact_fingerprint")
+    if not isinstance(job_id, str) or not job_id.startswith("job_"):
+        raise ValueError("Parent promotion requires the immutable Aptus job ID.")
+    if not isinstance(run_id, str) or not run_id.startswith("run_"):
+        raise ValueError("Parent promotion requires the immutable Aptus run ID.")
+    if not isinstance(fingerprint, str) or len(fingerprint) != 64:
+        raise ValueError("Parent promotion requires the bound artifact fingerprint.")
+    if not isinstance(promoted_at, str) or not promoted_at:
+        raise ValueError("Parent promotion requires its completion timestamp.")
+    return {
+        "schema_version": PARENT_PROMOTION_SCHEMA_VERSION,
+        "job_id": job_id,
+        "run_id": run_id,
+        "artifact_fingerprint": fingerprint,
+        "evidence_sha256": _json_hash(evidence),
+        "promoted_at": promoted_at,
+    }
+
+
+def _already_promoted_train_attestation(
+    record: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    report: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if (
+        report.get("state") != "measured-run-pass"
+        or report.get("final_export") != evidence.get("final_export")
+        or report.get("measured_run") != evidence.get("measured_run")
+    ):
+        return None
+    pending_fields = {
+        "active_run",
+        "measured_run_pending_at",
+        "pending_final_export",
+        "pending_measured_run",
+    }
+    try:
+        expected_receipt = _parent_promotion_receipt(
+            record,
+            evidence,
+            promoted_at=report.get("measured_run_completed_at"),
+        )
+    except ValueError as error:
+        raise ValueError(
+            "Matching measured-run state lacks a valid parent-promotion receipt."
+        ) from error
+    if (
+        report.get("schema_version") != "aptus.validation.v2"
+        or report.get("validation_level") != "measured-run"
+        or pending_fields.intersection(report)
+        or report.get("parent_promotion") != expected_receipt
+    ):
+        raise ValueError(
+            "Matching measured-run state lacks a valid parent-promotion receipt."
+        )
     return {
         "state": report["state"],
         "measured_run_completed_at": report["measured_run_completed_at"],
@@ -1762,9 +1967,57 @@ def _promote_mlx_train_attestation(
 def _promote_train_attestation(
     record: dict[str, Any], evidence: dict[str, Any]
 ) -> dict[str, Any]:
-    if evidence.get("training_runtime") == "mlx-lm":
-        return _promote_mlx_train_attestation(record, evidence)
-    return _promote_cuda_train_attestation(record, evidence)
+    bundle = Path(record["bundle_dir"]).resolve(strict=True)
+    expected_fingerprint = record.get("artifact_fingerprint")
+    if not isinstance(expected_fingerprint, str):
+        raise ValueError(
+            "Pending measured-run promotion requires the submission-bound bundle fingerprint."
+        )
+    report_path = bundle / "validation-report.json"
+    with _bundle_report_lock(bundle):
+        _require_current_bundle_model_policy(
+            bundle,
+            expected_artifact_fingerprint=expected_fingerprint,
+            enforce_current_policy=False,
+        )
+        report = _read_json_object(report_path, "Validation report")
+        promoted = _already_promoted_train_attestation(record, evidence, report)
+        if promoted is not None:
+            _require_current_bundle_model_policy(
+                bundle,
+                expected_artifact_fingerprint=expected_fingerprint,
+                enforce_current_policy=False,
+            )
+            return promoted
+        _require_current_bundle_model_policy(
+            bundle,
+            expected_artifact_fingerprint=expected_fingerprint,
+        )
+        if evidence.get("training_runtime") == "mlx-lm":
+            attestation = _promote_mlx_train_attestation(
+                record,
+                evidence,
+                _report=report,
+                _persist=False,
+            )
+        else:
+            attestation = _promote_cuda_train_attestation(
+                record,
+                evidence,
+                _report=report,
+                _persist=False,
+            )
+        _require_current_bundle_model_policy(
+            bundle,
+            expected_artifact_fingerprint=expected_fingerprint,
+        )
+        report["parent_promotion"] = _parent_promotion_receipt(
+            record,
+            evidence,
+            promoted_at=report.get("measured_run_completed_at"),
+        )
+        _atomic_write_json(report_path, report)
+        return attestation
 
 
 def _verify_checkpoint_manifest(checkpoint: Path, contract: dict[str, Any]) -> None:
@@ -2519,8 +2772,10 @@ class JobService:
         *,
         resume_from: str | None,
         run_id: str | None = None,
+        plan: Mapping[str, Any] | None = None,
     ) -> list[str]:
-        plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
+        if plan is None:
+            plan = _read_json_object(bundle / "plan.json", "Bundle plan")
         recommended = plan.get("recommended")
         runtime_contract = (
             recommended.get("runtime_contract")
@@ -2580,20 +2835,38 @@ class JobService:
             *train_arguments,
         ]
 
-    @staticmethod
-    def _require_record_bundle_binding(record: Mapping[str, Any]) -> None:
+    def _require_record_bundle_binding(self, record: Mapping[str, Any]) -> None:
         bundle = Path(str(record["bundle_dir"]))
-        manifest_errors = validate_bundle_manifest(bundle)
-        if manifest_errors:
-            raise ValueError(
-                "Bundle changed before worker launch: " + " | ".join(manifest_errors)
-            )
         expected_fingerprint = record.get("artifact_fingerprint")
-        if isinstance(expected_fingerprint, str) and (
-            sha256_file(bundle / "bundle-manifest.json") != expected_fingerprint
+        if not isinstance(expected_fingerprint, str):
+            raise ValueError(
+                "Job record lacks the submission-bound bundle fingerprint required before worker launch."
+            )
+        plan, _ = _require_current_bundle_model_policy(
+            bundle,
+            expected_artifact_fingerprint=expected_fingerprint,
+        )
+        authorized_snapshot = record.get("authorized_model_policy_snapshot_sha256")
+        if (
+            not isinstance(authorized_snapshot, str)
+            or plan.get("model_policy_snapshot_sha256") != authorized_snapshot
         ):
             raise ValueError(
-                "Bundle changed from its project-bound artifact before worker launch."
+                "Job record lacks the host-authorized model policy snapshot binding."
+            )
+        action = record.get("action")
+        if action not in JOB_ACTIONS:
+            raise ValueError("Job record has an unsupported action.")
+        expected_command = self._command(
+            bundle,
+            action,
+            resume_from=record.get("resume_from"),
+            run_id=record.get("run_id"),
+            plan=plan,
+        )
+        if record.get("command") != expected_command:
+            raise ValueError(
+                "Job command does not match its submission-bound bundle plan."
             )
 
     def _require_action_prerequisite(self, bundle: Path, action: JobAction) -> None:
@@ -2643,12 +2916,16 @@ class JobService:
                 reason="insufficient_state",
             )
 
-    def _require_current_pilot(self, bundle: Path) -> dict[str, Any]:
-        manifest_errors = validate_bundle_manifest(bundle)
-        if manifest_errors:
-            raise ValueError(
-                "Bundle changed after compilation: " + " | ".join(manifest_errors)
-            )
+    def _require_current_pilot(
+        self,
+        bundle: Path,
+        *,
+        expected_artifact_fingerprint: str | None = None,
+    ) -> dict[str, Any]:
+        plan, _ = _require_current_bundle_model_policy(
+            bundle,
+            expected_artifact_fingerprint=expected_artifact_fingerprint,
+        )
         report_path = bundle / "validation-report.json"
         if not report_path.is_file():
             raise ValueError("Full training requires a passing pilot for this bundle.")
@@ -2663,9 +2940,6 @@ class JobService:
             raise ValueError(
                 "Full training requires pilot-pass before execution approval."
             )
-        plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
-        if not isinstance(plan, dict):
-            raise ValueError("Bundle plan must be a JSON object.")
         plan_errors = validate_plan_payload(plan, root=bundle, verify_dataset=True)
         if plan_errors:
             raise ValueError("Bundle plan is invalid: " + " | ".join(plan_errors))
@@ -2900,30 +3174,24 @@ class JobService:
         bundle = bundle_dir.resolve(strict=True)
         if not bundle.is_dir() or not (bundle / "plan.json").is_file():
             raise ValueError(f"Not an Aptus bundle: {bundle}")
-        manifest_errors = validate_bundle_manifest(bundle)
-        if manifest_errors:
-            raise ValueError(
-                "Bundle integrity check failed: " + " | ".join(manifest_errors)
+        admitted_plan, observed_artifact_fingerprint = (
+            _require_current_bundle_model_policy(
+                bundle,
+                expected_artifact_fingerprint=expected_artifact_fingerprint,
             )
-        if expected_artifact_fingerprint is not None:
-            if (
-                len(expected_artifact_fingerprint) != 64
-                or any(
-                    character not in "0123456789abcdef"
-                    for character in expected_artifact_fingerprint
-                )
-                or sha256_file(bundle / "bundle-manifest.json")
-                != expected_artifact_fingerprint
-            ):
-                raise ValueError(
-                    "The bundle manifest does not match the expected project artifact fingerprint."
-                )
+        )
         if action == "train":
             if not confirm_full_train:
                 raise ValueError("Full training requires confirm_full_train=true.")
         job_id = "job_" + uuid.uuid4().hex
         run_id = f"run_{job_id[4:]}" if action == "train" else None
-        command = self._command(bundle, action, resume_from=resume_from, run_id=run_id)
+        command = self._command(
+            bundle,
+            action,
+            resume_from=resume_from,
+            run_id=run_id,
+            plan=admitted_plan,
+        )
         record: dict[str, Any] = {
             "id": job_id,
             "job_id": job_id,
@@ -2946,7 +3214,10 @@ class JobService:
             "process_identity": None,
             "process_group_id": None,
             "prelaunch_capacity_check": None,
-            "artifact_fingerprint": expected_artifact_fingerprint,
+            "artifact_fingerprint": observed_artifact_fingerprint,
+            "authorized_model_policy_snapshot_sha256": admitted_plan[
+                "model_policy_snapshot_sha256"
+            ],
         }
         worker = threading.Thread(
             target=self._run, args=(job_id,), name=f"aptus-{job_id}", daemon=True
@@ -2960,7 +3231,12 @@ class JobService:
                     if action == "train":
                         try:
                             record["prelaunch_capacity_check"] = (
-                                self._require_current_pilot(bundle)
+                                self._require_current_pilot(
+                                    bundle,
+                                    expected_artifact_fingerprint=(
+                                        observed_artifact_fingerprint
+                                    ),
+                                )
                             )
                         except RuntimeError as error:
                             raise ValueError(
@@ -3050,6 +3326,9 @@ class JobService:
                 {
                     "command": record["command"],
                     "expected_artifact_fingerprint": record.get("artifact_fingerprint"),
+                    "authorized_model_policy_snapshot_sha256": record.get(
+                        "authorized_model_policy_snapshot_sha256"
+                    ),
                 },
             )
             launch_permit.unlink(missing_ok=True)
@@ -3079,6 +3358,12 @@ class JobService:
                         **os.environ,
                         "PYTHONDONTWRITEBYTECODE": "1",
                         "APTUS_GPU_LEASE_TOKEN": record["id"],
+                        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT": record[
+                            "artifact_fingerprint"
+                        ],
+                        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256": record[
+                            "authorized_model_policy_snapshot_sha256"
+                        ],
                     },
                     **process_options,
                 )

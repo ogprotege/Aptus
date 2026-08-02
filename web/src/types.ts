@@ -361,8 +361,9 @@ export interface EvidenceRecord {
 }
 
 export interface TrainingPlan {
-  schema_version: "aptus.training-plan.v4";
+  schema_version: "aptus.training-plan.v5";
   plan_id: string;
+  model_policy_snapshot_sha256: string;
   project_id?: string;
   project_revision_id?: string;
   recommended: CandidatePlan;
@@ -764,7 +765,7 @@ export interface ReplanRequired {
   status: "replan_required";
   plan_id?: string | null;
   found_schema?: string | null;
-  required_schema: "aptus.training-plan.v4";
+  required_schema: "aptus.training-plan.v5";
   source: "project-revision" | "compiled-bundle";
   project_id?: string | null;
   project_revision_id?: string | null;

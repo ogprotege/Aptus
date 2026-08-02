@@ -4,8 +4,8 @@
 | --- | --- |
 | Status | Active |
 | Audience | Bundle operators, compiler maintainers, and security reviewers |
-| Authority | Normative reference for `aptus.bundle.v2` and its mutable runtime boundary |
-| Last reviewed | 2026-07-29 |
+| Authority | Normative reference for `aptus.bundle.v3` and its mutable runtime boundary |
+| Last reviewed | 2026-07-30 |
 | Next review | 2026-10-22, or sooner when generation or manifest validation changes |
 
 `bundle-manifest.json` is the immutable integrity root for a compiled Aptus
@@ -23,11 +23,13 @@ revision's recorded identity with the exact bundle they use.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `schema_version` | string | Exact value `aptus.bundle.v2` |
+| `schema_version` | string | Exact value `aptus.bundle.v3` |
 | `compiler` | object | Compiler `name` and `version` |
 | `stack_versions` | object | Exact direct runtime package versions |
 | `plan_id` | string | Bound plan identity |
 | `plan_sha256` | string | SHA-256 of the bundled `plan.json` bytes |
+| `policy_snapshot_path` | string | Exact path `policy/model-policy-snapshot.v1.json` |
+| `policy_snapshot_sha256` | string | SHA-256 of the canonical snapshot bytes; must equal the plan binding and manifested file digest |
 | `candidate_id` | string | Bound recommended candidate |
 | `formula_version` | string | Bound memory formula version |
 | `entrypoints` | object | Paths for `run`, `train`, `preflight`, `validate`, and MLX `reload` when present |
@@ -62,6 +64,7 @@ bundle/
   evidence.jsonl
   plan.json
   plan_contract.py
+  policy_snapshot.py
   preflight.py
   requirements.txt
   run.py
@@ -86,6 +89,8 @@ bundle/
     dataset.json
     hardware.json
     model.json
+  policy/
+    model-policy-snapshot.v1.json
 ```
 
 After compilation, the directory also contains mutable
@@ -110,6 +115,8 @@ manifested.
 | `config/accelerate.yaml` | Canonical Accelerate launch configuration |
 | `accelerate_config.yaml` | Compatibility copy of the canonical Accelerate configuration |
 | `plan_contract.py` | Self-contained plan and manifest validation |
+| `policy_snapshot.py` | Self-contained schema validator and generic policy evaluator; it does not import Aptus |
+| `policy/model-policy-snapshot.v1.json` | Canonical deterministic snapshot generated from the host registry |
 | `runtime_lease.py` | Self-contained per-user host execution lease |
 | `reload.py` | MLX-only fresh-process adapter reload and one-to-four-token generation verifier |
 | `validate.py` | Public portable validator and report writer |

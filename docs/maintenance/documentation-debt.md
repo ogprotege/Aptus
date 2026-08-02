@@ -316,6 +316,23 @@ when its evidence, owner, or resolution changes.
   receipt, decision, binding, migration, and documentation boundaries.
 - **Owner:** Domain, inspection, planning, API, client, and documentation maintainers
 
+### DOC-022: Make the model-policy contract portable
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** `aptus.training-plan.v5` binds the SHA-256 of deterministic
+  canonical `aptus.model-policy-snapshot.v1` bytes. `aptus.bundle.v3` contains
+  those bytes, repeats the digest, manifests the snapshot file, and includes a
+  generic evaluator that runs without an installed Aptus package.
+- **Failure boundary:** V4 and older plans return `replan_required`. Missing,
+  malformed, noncanonical, stale, or tampered snapshots fail closed. The plan,
+  manifest, and snapshot-file digests must agree exactly.
+- **Boundary:** Browser policy reconstruction remains Phase 5. A second reviewed
+  policy remains Phase 6.
+- **Verification:** Deterministic double generation, host-versus-portable parity,
+  digest disagreement, and snapshot mutation tests protect the contract.
+- **Owner:** Policy, planning, compiler, validation, and documentation maintainers
+
 ## Resolved in the 2026-07-22 governance batch
 
 ### DOC-013: Separate raw Reference material from current authority

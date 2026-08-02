@@ -7,7 +7,8 @@ directory and deterministic ZIP. It does not train a model.
 
 ## Inputs
 
-- Valid `aptus.training-plan.v4` payload whose current policy decision,
+- Valid `aptus.training-plan.v5` payload whose current policy decision,
+  canonical policy-snapshot digest,
   decision source, optional inspection receipt, candidate decision links, and
   exact-path binding all revalidate.
 - Recommended candidate embedded in that plan.
@@ -76,13 +77,14 @@ original mode only when the Aptus-created directory still owns the path.
 
 Generated code reads semantic values from `plan.json`. It validates plan and
 candidate identities before runtime use. The v4 host compiler also rejects an
-obsolete registered policy version with `replan_required`. V3, v2, and
+obsolete registered policy version with `replan_required`. V4, v3, v2, and
 schema-less plans are preserved but never compiled or relabeled. Distributed
 launch uses the active Python interpreter's Accelerate module rather than an
 unbound shell executable.
 
 The Phase 3 bundle still uses the handwritten self-contained policy checks. A
-portable policy snapshot and generic evaluator belong to Phase 4, not this
+portable policy snapshot and generic evaluator were added in Phase 4; browser
+policy reconstruction removal belongs to Phase 5, not this
 compiler contract.
 
 The canonical program bytes live under

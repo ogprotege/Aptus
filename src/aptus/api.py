@@ -1760,6 +1760,27 @@ def create_app(
                 ),
                 before_start=persist_job_revision,
             )
+        except StaleModelPolicyError as error:
+            plan_id: str | None = None
+            try:
+                plan_value = json.loads(
+                    (bundle_dir / "plan.json").read_text(encoding="utf-8")
+                )
+                if isinstance(plan_value, dict) and isinstance(
+                    plan_value.get("plan_id"), str
+                ):
+                    plan_id = plan_value["plan_id"]
+            except (OSError, json.JSONDecodeError):
+                pass
+            raise HTTPException(
+                status_code=409,
+                detail=_stale_policy_error_payload(
+                    message=str(error),
+                    plan_id=plan_id,
+                    project_id=request.project_id,
+                    project_revision_id=request.expected_project_revision_id,
+                ),
+            ) from error
         except JobPrerequisiteError as error:
             raise HTTPException(
                 status_code=409,

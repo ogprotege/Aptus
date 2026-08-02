@@ -134,9 +134,10 @@ not mean “best model” or “guaranteed fit.”
 
 Receipt and identity hashes are tamper-evident, not authenticated signatures.
 The workbench trusts the local authenticated service boundary and still treats
-any server rejection as final. Phase 4 owns a portable policy snapshot and
-generic evaluator. Phase 5 owns removal of browser-side policy reconstruction.
-The Phase 3 UI must not claim either later boundary is complete.
+any server rejection as final. Phase 4 now supplies a portable policy snapshot
+and generic evaluator. Phase 5 owns removal of browser-side policy
+reconstruction. The UI must not claim the separate Phase 5 boundary is
+complete.
 
 ## Compile and validate stages
 

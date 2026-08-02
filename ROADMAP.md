@@ -50,7 +50,7 @@ The first implementation slice recognizes only an exact `qwen3_moe` checkpoint
 whose architecture is `Qwen3MoeForCausalLM`, whose reviewed MLX layout uses
 four-bit group-64 defaults with one eight-bit group-64 router-gate override per
 layer, and which declares no shared expert. It carries the provider topology
-into `aptus.training-plan.v4`, derives active parameters and sparse-layer count,
+into `aptus.training-plan.v5`, derives active parameters and sparse-layer count,
 and permits only single-device MLX-LM QLoRA with attention `q_proj`, `k_proj`,
 `v_proj`, and `o_proj` adapters. Every candidate remains pilot-required. This
 slice is not released until a real target-host model run passes the gates below.
@@ -102,10 +102,18 @@ links to the plan decision. Plans created from direct facts remain explicitly
 `user-attested`; provider-backed plans require a valid receipt. Parameter count
 and training permission remain outside that receipt.
 
-Phase 4 will make the policy snapshot and evaluator portable inside the bundle.
-Phase 5 will remove the remaining browser-side policy reconstruction. Phase 3
-does neither. `aptus.api.v1`, `aptus.facts.v3`,
-`aptus.runtime-contract.v1`, and `aptus.bundle.v2` remain unchanged.
+Phase 4 is complete. The host registry now emits deterministic canonical
+`aptus.model-policy-snapshot.v1` bytes. `aptus.training-plan.v5` binds their
+SHA-256, and every `aptus.bundle.v3` contains the snapshot, the same digest,
+and a generic portable evaluator. Saved v4, v3, v2, and schema-less plans return
+`replan_required`; Aptus preserves their bytes and requires deterministic
+replanning under v5.
+
+Phase 5 remains limited to removing browser-side policy reconstruction and
+presenting the server-produced decision and selected candidate binding. Phase 6
+remains limited to adding a second reviewed policy with real runtime evidence.
+Neither boundary belongs in the portable-contract change. `aptus.api.v1`,
+`aptus.facts.v3`, and `aptus.runtime-contract.v1` remain unchanged.
 
 ## Planner depth
 

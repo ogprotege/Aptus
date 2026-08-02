@@ -11,14 +11,15 @@ compatible. Decide the semantic effect before editing code.
 | Contract | Current identifier | Primary authority |
 |---|---|---|
 | Facts | `aptus.facts.v3` | `domain.py` and interface request models |
-| Training plan | `aptus.training-plan.v4` | `domain.py` and `plan_contract.py` |
+| Training plan | `aptus.training-plan.v5` | `domain.py` and `plan_contract.py` |
+| Model-policy snapshot | `aptus.model-policy-snapshot.v1` | `model_compatibility.py` and `policy_snapshot.py` |
 | Model compatibility decision | `aptus.model-compatibility.v2` | `domain.py`, `model_compatibility.py`, and `plan_contract.py` |
 | Model inspection receipt | `aptus.model-inspection-receipt.v1` | `inspection.py`, `model_compatibility.py`, and interface response models |
 | Model policy binding | `aptus.model-policy-binding.v1` | `model_compatibility.py`, `planning.py`, and `plan_contract.py` |
 | Memory formula | `aptus-memory-v2` | `planning.py` |
 | MLX memory formula | `aptus-memory-mlx-v2` | `planning.py` and the method registry |
 | Method descriptor | `aptus.method-descriptor.v1` | `methods/contracts.py` and registry |
-| Bundle manifest | `aptus.bundle.v2` | `generation.py` and `plan_contract.py` |
+| Bundle manifest | `aptus.bundle.v3` | `generation.py` and `plan_contract.py` |
 | Trainer configuration | `aptus.trainer-config.v2` | `generation.py` |
 | CUDA trainable census | `aptus.trainable-parameter-census.v1` | `attestation.py` and generated CUDA runtime |
 | MLX target binding | `aptus.mlx-trainable-target-binding.v1` | generated MLX runtime and parent verifier |
@@ -120,16 +121,18 @@ Current plan and bundle validators require exact schema identifiers. There is no
 general artifact migration command. Never reinterpret an old artifact under new
 semantics without an explicit reader and migration policy.
 
-The current plan reader accepts only `aptus.training-plan.v4`. A saved v3 plan,
-v2 plan, or plan with no schema identifier stays byte-for-byte preserved but
-enters `replan_required`. A v4 plan also requires replanning when its decision,
-policy version, or registered path differs from the current registry. The CLI
+The current plan reader accepts only `aptus.training-plan.v5`. A saved v4, v3,
+or v2 plan, or a plan with no schema identifier, stays byte-for-byte preserved but
+enters `replan_required`. A v5 plan also requires replanning when its decision,
+snapshot digest, policy version, or registered path differs from the current
+registry. The CLI
 cannot compile it. The API cannot rehydrate, compile, or recover it, and project
 recovery does not append a revision. Bootstrap omits the old plan from the
 executable workspace and returns the source identity plus the required schema.
-The operator must create a deterministic v4 plan from the preserved facts.
-Changing only `schema_version` is not migration because v4 binds policy
-decision, provenance source, receipt, candidate links, and exact path binding.
+The operator must create a deterministic v5 plan from the preserved facts.
+Changing only `schema_version` is not migration because v5 binds the policy
+snapshot digest in addition to the decision, provenance source, receipt,
+candidate links, and exact path binding.
 
 For an incompatible change, choose one of these:
 
@@ -165,11 +168,16 @@ updated policy and method references, and a regenerated plan identity. The
 portable validator must continue to require exact canonical record content and
 the exact union cited by candidates.
 
-Phase 4 owns a portable policy snapshot and generic evaluator. Phase 5 owns
-removal of browser-side policy reconstruction. Do not fold either change into a
-Phase 3-compatible patch. The Phase 3 migration intentionally preserves
-`aptus.api.v1`, `aptus.facts.v3`, `aptus.runtime-contract.v1`, and
-`aptus.bundle.v2`.
+Phase 4 introduced a deterministic `aptus.model-policy-snapshot.v1`, its generic
+portable evaluator, `aptus.training-plan.v5`, and `aptus.bundle.v3`. Generate
+the snapshot twice and require byte-for-byte identity. Its SHA-256 must agree
+across the plan, manifest, and manifested snapshot file. Host-versus-portable
+decision parity is a required contract test.
+
+Phase 5 owns removal of browser-side policy reconstruction. Phase 6 owns the
+second reviewed policy. Do not fold either change into a Phase 4-compatible
+patch. `aptus.api.v1`, `aptus.facts.v3`, and `aptus.runtime-contract.v1`
+remain unchanged.
 
 ## API and workbench changes
 

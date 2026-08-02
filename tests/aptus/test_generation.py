@@ -22,10 +22,15 @@ from aptus.generation import (
     create_bundle_archive,
     generate_bundle,
 )
+from aptus.model_compatibility import (
+    current_model_policy_snapshot_bytes,
+    current_model_policy_snapshot_sha256,
+)
 from aptus.planning import plan_training
 from aptus.plan_contract import (
     expected_model_architecture_contract,
     mlx_quantized_storage_bytes_for_contract,
+    sha256_file,
 )
 from aptus.profiling import build_hardware_spec, profile_dataset
 from aptus.validation import validate_bundle
@@ -495,6 +500,8 @@ class BundleGenerationTests(unittest.TestCase):
             }
         required = {
             "plan.json",
+            "policy_snapshot.py",
+            "policy/model-policy-snapshot.v1.json",
             "profiles/model.json",
             "profiles/dataset.json",
             "profiles/hardware.json",
@@ -517,6 +524,43 @@ class BundleGenerationTests(unittest.TestCase):
         }
         self.assertTrue(required <= files)
         self.assertEqual(report.state, ValidationState.STATIC_PASS)
+
+    def test_bundle_binds_canonical_policy_snapshot_across_plan_and_manifest(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "bundle"
+            generate_bundle(make_plan(root), output)
+            snapshot_path = output / "policy/model-policy-snapshot.v1.json"
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads(
+                (output / "bundle-manifest.json").read_text(encoding="utf-8")
+            )
+            entries = {item["path"]: item for item in manifest["files"]}
+            snapshot_bytes = snapshot_path.read_bytes()
+
+        expected_bytes = current_model_policy_snapshot_bytes()
+        expected_digest = current_model_policy_snapshot_sha256()
+        self.assertEqual(snapshot_bytes, expected_bytes)
+        self.assertEqual(manifest["schema_version"], "aptus.bundle.v3")
+        self.assertEqual(
+            manifest["policy_snapshot_path"],
+            "policy/model-policy-snapshot.v1.json",
+        )
+        self.assertEqual(manifest["policy_snapshot_sha256"], expected_digest)
+        self.assertEqual(plan["model_policy_snapshot_sha256"], expected_digest)
+        self.assertEqual(
+            entries[manifest["policy_snapshot_path"]]["sha256"], expected_digest
+        )
+
+    def test_compilation_rejects_plan_bound_to_another_policy_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            plan = replace(make_plan(root), model_policy_snapshot_sha256="0" * 64)
+
+            with self.assertRaisesRegex(ValueError, "current host policy"):
+                generate_bundle(plan, root / "bundle")
 
     def test_compiles_honest_mlx_bundle_slice_without_cuda_assumptions(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -2045,6 +2089,67 @@ class BundleGenerationTests(unittest.TestCase):
                 generate_bundle(make_plan(root), output)
             self.assertFalse(output.exists())
 
+    def test_static_validation_parses_the_portable_policy_evaluator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            policy_source = output / "policy_snapshot.py"
+            policy_source.write_text("def broken(:\n", encoding="utf-8")
+            manifest_path = output / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            entry = next(
+                item
+                for item in manifest["files"]
+                if item["path"] == "policy_snapshot.py"
+            )
+            entry["sha256"] = hashlib.sha256(policy_source.read_bytes()).hexdigest()
+            entry["size_bytes"] = policy_source.stat().st_size
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            report = validate_bundle(output, level="static", run=False)
+
+            self.assertEqual(report.state, ValidationState.INVALID)
+            self.assertTrue(
+                any(
+                    finding.path == "policy_snapshot.py"
+                    and finding.code == "PYTHON_PARSE_ERROR"
+                    for finding in report.findings
+                )
+            )
+
+    def test_cuda_preflight_parses_the_portable_policy_evaluator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            policy_source = output / "policy_snapshot.py"
+            policy_source.write_text("def broken(:\n", encoding="utf-8")
+            manifest_path = output / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            entry = next(
+                item
+                for item in manifest["files"]
+                if item["path"] == "policy_snapshot.py"
+            )
+            entry["sha256"] = hashlib.sha256(policy_source.read_bytes()).hexdigest()
+            entry["size_bytes"] = policy_source.stat().st_size
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                [sys.executable, str(output / "preflight.py"), "--level", "static"],
+                cwd=output,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("policy_snapshot.py", completed.stderr)
+        self.assertIn("SyntaxError", completed.stderr)
+
     def test_pilot_retention_deletes_only_marked_aptus_roots(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = self._bundle(Path(temporary))
@@ -2476,6 +2581,117 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(report["state"], "static-pass")
         self.assertFalse(cache_created)
+
+    def test_standalone_preflight_uses_snapshot_after_host_policy_changes(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            source_root = Path(__file__).resolve().parents[2] / "src"
+            script = """
+import copy
+import json
+import runpy
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+source_root = Path(sys.argv[1])
+bundle = Path(sys.argv[2])
+sys.path.insert(0, str(source_root))
+from aptus import model_compatibility as host_policy
+
+changed_snapshot = copy.deepcopy(host_policy.current_model_policy_snapshot())
+changed_snapshot["dense_families"] = sorted(
+    [*changed_snapshot["dense_families"], "future-dense-family"]
+)
+plan = json.loads((bundle / "plan.json").read_text(encoding="utf-8"))
+assert (
+    host_policy.model_policy_snapshot_sha256(changed_snapshot)
+    != plan["model_policy_snapshot_sha256"]
+)
+host_policy.current_model_policy_snapshot = lambda: changed_snapshot
+sys.path.insert(0, str(bundle))
+sys.argv = [str(bundle / "preflight.py"), "--level", "static"]
+runpy.run_path(bundle / "preflight.py", run_name="__main__")
+"""
+            completed = subprocess.run(
+                [sys.executable, "-c", script, str(source_root), str(output)],
+                cwd=output,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("Aptus static validation passed.", completed.stdout)
+
+    def test_managed_preflight_rejects_mismatched_host_launch_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            manifest_digest = sha256_file(output / "bundle-manifest.json")
+            policy_digest = current_model_policy_snapshot_sha256()
+            cases = (
+                ("artifact", "0" * 64, policy_digest),
+                ("policy", manifest_digest, "0" * 64),
+            )
+            for label, artifact_binding, policy_binding in cases:
+                with self.subTest(label=label):
+                    environment = {
+                        **os.environ,
+                        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT": artifact_binding,
+                        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256": (
+                            policy_binding
+                        ),
+                    }
+                    completed = subprocess.run(
+                        [
+                            sys.executable,
+                            str(output / "preflight.py"),
+                            "--level",
+                            "static",
+                        ],
+                        cwd=output,
+                        env=environment,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("host-authorized", completed.stderr)
+
+    def test_managed_cuda_train_load_plan_rejects_mismatched_host_launch_bindings(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            manifest_digest = sha256_file(output / "bundle-manifest.json")
+            policy_digest = current_model_policy_snapshot_sha256()
+            cases = (
+                ("artifact", "0" * 64, policy_digest),
+                ("policy", manifest_digest, "0" * 64),
+            )
+            for label, artifact_binding, policy_binding in cases:
+                with self.subTest(label=label):
+                    environment = {
+                        **os.environ,
+                        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT": artifact_binding,
+                        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256": (
+                            policy_binding
+                        ),
+                    }
+                    completed = subprocess.run(
+                        [sys.executable, "-B", "-c", "import train; train.load_plan()"],
+                        cwd=output,
+                        env=environment,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("host-authorized", completed.stderr)
 
     def test_generated_entrypoint_rejects_preexisting_bytecode_cache(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

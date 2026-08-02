@@ -73,10 +73,29 @@ def report_lock():
 
 
 def load_plan() -> dict[str, Any]:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan_path = ROOT / "plan.json"
+    plan_bytes = plan_path.read_bytes()
+    plan = json.loads(plan_bytes)
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     if errors:
         raise ValueError("Invalid Aptus plan: " + " | ".join(errors))
+    authorized_policy_snapshot = os.environ.get(
+        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256"
+    )
+    if (
+        authorized_policy_snapshot is not None
+        and plan.get("model_policy_snapshot_sha256") != authorized_policy_snapshot
+    ):
+        raise RuntimeError(
+            "Bundle plan does not match the host-authorized model policy snapshot."
+        )
+    manifest_errors = validate_bundle_manifest(ROOT)
+    if manifest_errors:
+        raise RuntimeError(
+            "Bundle changed after compilation: " + " | ".join(manifest_errors)
+        )
+    if plan_path.read_bytes() != plan_bytes:
+        raise RuntimeError("Bundle plan changed while its manifest was validated.")
     return plan
 
 

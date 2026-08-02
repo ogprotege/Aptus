@@ -562,6 +562,220 @@ def install_measured_run_attestation(bundle: Path) -> dict:
 
 
 class ValidationAttestationTests(unittest.TestCase):
+    def test_host_rejects_resource_hostile_policy_snapshot_json_without_escaping(
+        self,
+    ) -> None:
+        mutations = {
+            "oversized integer": "9" * 5_000,
+            "excessive nesting": "[" * 10_000 + "0" + "]" * 10_000,
+        }
+        for name, contents in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                (bundle / "policy/model-policy-snapshot.v1.json").write_text(
+                    contents,
+                    encoding="utf-8",
+                )
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(
+                    "POLICY_SNAPSHOT_JSON_ERROR",
+                    {item.code for item in report.findings},
+                )
+                self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_resource_hostile_digest_documents_without_escaping(
+        self,
+    ) -> None:
+        for relative, key, code in (
+            ("plan.json", "model_policy_snapshot_sha256", "PLAN_JSON_ERROR"),
+            (
+                "bundle-manifest.json",
+                "policy_snapshot_sha256",
+                "MANIFEST_JSON_ERROR",
+            ),
+        ):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                path = bundle / relative
+                path.write_text(
+                    f'{{"{key}":' + "9" * 5_000 + "}",
+                    encoding="utf-8",
+                )
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(code, {item.code for item in report.findings})
+                self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_json_null_policy_snapshot_as_contract_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+            (bundle / "policy/model-policy-snapshot.v1.json").write_text(
+                "null\n", encoding="utf-8"
+            )
+
+            report = validate_bundle(bundle, level="contract", run=False)
+
+        self.assertIn(
+            "POLICY_SNAPSHOT_CONTRACT",
+            {item.code for item in report.findings},
+        )
+        self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_malformed_policy_snapshot_digest_bindings_without_escaping(
+        self,
+    ) -> None:
+        invalid_values = (
+            ("unhashable", ["0" * 64]),
+            ("non-string", 7),
+            ("uppercase", "A" * 64),
+            ("wrong-length", "a" * 63),
+            ("non-hexadecimal", "g" * 64),
+        )
+        bindings = (
+            ("snapshot", None, None),
+            ("plan", "plan.json", "model_policy_snapshot_sha256"),
+            ("manifest", "bundle-manifest.json", "policy_snapshot_sha256"),
+            ("host", None, None),
+        )
+        for binding, relative, key in bindings:
+            for mutation, invalid_value in invalid_values:
+                with (
+                    self.subTest(binding=binding, mutation=mutation),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    root = Path(temporary)
+                    bundle = root / "bundle"
+                    generate_bundle(make_plan(root), bundle)
+                    if relative is not None:
+                        path = bundle / relative
+                        payload = json.loads(path.read_text(encoding="utf-8"))
+                        assert key is not None
+                        payload[key] = invalid_value
+                        path.write_text(json.dumps(payload), encoding="utf-8")
+
+                    if binding == "snapshot":
+                        with patch(
+                            "aptus.validation.model_policy_snapshot_sha256",
+                            return_value=invalid_value,
+                        ):
+                            report = validate_bundle(
+                                bundle, level="contract", run=False
+                            )
+                    elif binding == "host":
+                        with patch(
+                            "aptus.validation.current_model_policy_snapshot_sha256",
+                            return_value=invalid_value,
+                        ):
+                            report = validate_bundle(
+                                bundle, level="contract", run=False
+                            )
+                    else:
+                        report = validate_bundle(bundle, level="contract", run=False)
+
+                    digest_findings = [
+                        item
+                        for item in report.findings
+                        if item.code == "POLICY_SNAPSHOT_DIGEST"
+                    ]
+                    self.assertTrue(digest_findings, report.findings)
+                    self.assertIn(binding, digest_findings[0].message)
+                    self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_reports_invalid_and_different_policy_snapshot_digest_bindings(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["model_policy_snapshot_sha256"] = ["0" * 64]
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["policy_snapshot_sha256"] = "0" * 64
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            report = validate_bundle(bundle, level="contract", run=False)
+
+        digest_finding = next(
+            item for item in report.findings if item.code == "POLICY_SNAPSHOT_DIGEST"
+        )
+        self.assertIn("invalid bindings: plan", digest_finding.message)
+        self.assertIn(
+            "bindings differing from snapshot: manifest", digest_finding.message
+        )
+        self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_malformed_policy_constraint_operands_without_escaping(
+        self,
+    ) -> None:
+        mutations = (
+            (
+                "template-non-string",
+                "quantization_layout",
+                "override_module_template",
+                ["model.layers.{layer}.mlp.gate"],
+            ),
+            (
+                "template-unknown-placeholder",
+                "quantization_layout",
+                "override_module_template",
+                "model.layers.{layer}.{unknown}.mlp.gate",
+            ),
+            (
+                "quantization-integer-boolean",
+                "quantization_layout",
+                "default_bits",
+                True,
+            ),
+            (
+                "quantization-integer-nonpositive",
+                "quantization_layout",
+                "override_group_size",
+                0,
+            ),
+            ("field-name-unhashable", "field_equals", "field", []),
+            ("exact-identity-missing", "exact_identity", None, None),
+        )
+        for name, kind, field, invalid_value in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                path = bundle / "policy/model-policy-snapshot.v1.json"
+                snapshot = json.loads(path.read_text(encoding="utf-8"))
+                constraints = snapshot["policies"][0]["constraints"]
+                constraint = next(
+                    item for item in constraints if item.get("kind") == kind
+                )
+                if field is None:
+                    constraints.remove(constraint)
+                else:
+                    constraint[field] = invalid_value
+                path.write_text(
+                    json.dumps(snapshot, sort_keys=True, separators=(",", ":")) + "\n",
+                    encoding="utf-8",
+                )
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(
+                    "POLICY_SNAPSHOT_CONTRACT",
+                    {item.code for item in report.findings},
+                )
+                self.assertEqual(report.state, ValidationState.INVALID)
+
     def test_host_rejects_missing_malformed_noncanonical_and_tampered_policy_snapshot(
         self,
     ) -> None:
@@ -583,7 +797,11 @@ class ValidationAttestationTests(unittest.TestCase):
             (
                 "tampered",
                 lambda path: path.write_bytes(
-                    path.read_bytes().replace(b"qwen3", b"qwen4", 1)
+                    path.read_bytes().replace(
+                        b"malformed or contradictory",
+                        b"malformed or inconsistent",
+                        1,
+                    )
                 ),
                 "POLICY_SNAPSHOT_DIGEST",
             ),
@@ -623,6 +841,12 @@ class ValidationAttestationTests(unittest.TestCase):
                     "POLICY_SNAPSHOT_DIGEST",
                     {item.code for item in report.findings},
                 )
+                digest_finding = next(
+                    item
+                    for item in report.findings
+                    if item.code == "POLICY_SNAPSHOT_DIGEST"
+                )
+                self.assertIn(name, digest_finding.message)
                 self.assertEqual(report.state, ValidationState.INVALID)
 
     def test_planner_parity_preserves_provider_inspection_receipt(self) -> None:

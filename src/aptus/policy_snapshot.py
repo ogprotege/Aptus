@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from string import Formatter
 from typing import Any, Mapping
 
 
@@ -36,6 +37,32 @@ _COMPATIBILITY_SUBJECT_FIELDS = (
     "quantization_layout",
     "moe",
 )
+_IDENTITY_FIELDS = {"family", "model_type", "architecture"}
+_QUANTIZATION_INTEGER_OPERANDS = (
+    "default_bits",
+    "default_group_size",
+    "override_bits",
+    "override_group_size",
+)
+_PATH_FIELDS = {
+    "path_id",
+    "method",
+    "distribution",
+    "adapter_profile_id",
+    "target_modules",
+    "runtime_contract",
+    "required_validation_levels",
+    "evidence_ids",
+}
+_RUNTIME_CONTRACT_FIELDS = {
+    "compute_backend",
+    "training_runtime",
+    "compiler_id",
+    "estimator_id",
+    "evidence_requirement",
+    "export_kind",
+    "schema_version",
+}
 
 
 def _canonical_json(value: Any, *, newline: bool) -> bytes:
@@ -75,9 +102,100 @@ def model_policy_snapshot_sha256(snapshot: Mapping[str, Any]) -> str:
 
 
 def _require_string(value: Any, label: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"Model policy snapshot {label} must be non-empty text.")
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        raise ValueError(
+            f"Model policy snapshot {label} must be non-empty unpadded text."
+        )
     return value
+
+
+def _require_text_list(
+    value: Any,
+    label: str,
+    *,
+    non_empty: bool,
+) -> list[str]:
+    if (
+        not isinstance(value, list)
+        or (non_empty and not value)
+        or any(
+            not isinstance(item, str) or not item.strip() or item != item.strip()
+            for item in value
+        )
+    ):
+        qualifier = "non-empty " if non_empty else ""
+        raise ValueError(
+            f"Model policy snapshot {label} must be a {qualifier}unpadded text list."
+        )
+    if len(set(value)) != len(value):
+        raise ValueError(f"Model policy snapshot {label} must be unique.")
+    return value
+
+
+def _require_positive_integer(value: Any, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ValueError(f"Model policy snapshot {label} must be a positive integer.")
+    return value
+
+
+def _validate_override_module_template(value: Any) -> None:
+    _require_string(value, "override module template")
+    remainder = value.replace("{layer}", "", 1)
+    if "{" in remainder or "}" in remainder:
+        raise ValueError(
+            "Model policy snapshot override module template may only contain "
+            "the {layer} placeholder."
+        )
+    try:
+        parsed = list(Formatter().parse(value))
+    except ValueError as error:
+        raise ValueError(
+            "Model policy snapshot override module template is malformed."
+        ) from error
+    placeholders = [
+        (field_name, format_spec, conversion)
+        for _, field_name, format_spec, conversion in parsed
+        if field_name is not None
+    ]
+    if placeholders != [("layer", "", None)]:
+        raise ValueError(
+            "Model policy snapshot override module template must contain exactly "
+            "one plain {layer} placeholder."
+        )
+
+
+def _validate_path(path: Any, path_ids: set[str]) -> None:
+    if not isinstance(path, Mapping) or set(path) != _PATH_FIELDS:
+        raise ValueError(
+            "Each model policy snapshot path must have the exact portable shape."
+        )
+    path_id = _require_string(path.get("path_id"), "path id")
+    if path_id in path_ids:
+        raise ValueError("Model policy snapshot path ids must be unique.")
+    path_ids.add(path_id)
+
+    for field in ("method", "distribution"):
+        _require_string(path[field], f"path {field}")
+    if path["adapter_profile_id"] is not None:
+        _require_string(path["adapter_profile_id"], "path adapter profile id")
+    for field in ("target_modules", "required_validation_levels", "evidence_ids"):
+        _require_text_list(
+            path[field],
+            f"path {field.replace('_', ' ')}",
+            non_empty=True,
+        )
+
+    contract = path["runtime_contract"]
+    if not isinstance(contract, Mapping) or set(contract) != _RUNTIME_CONTRACT_FIELDS:
+        raise ValueError(
+            "Model policy snapshot path runtime contract must have the exact "
+            "portable shape."
+        )
+    for field in _RUNTIME_CONTRACT_FIELDS - {"compiler_id", "export_kind"}:
+        _require_string(contract[field], f"path runtime contract {field}")
+    for field in ("compiler_id", "export_kind"):
+        if contract[field] is not None:
+            _require_string(contract[field], f"path runtime contract {field}")
 
 
 def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
@@ -96,18 +214,12 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
     )
     dense = snapshot.get("dense_families")
     markers = snapshot.get("sparse_identity_markers")
-    if not isinstance(dense, list) or not all(isinstance(item, str) for item in dense):
-        raise ValueError("Model policy snapshot dense families must be a text list.")
+    _require_text_list(dense, "dense families", non_empty=False)
     if dense != sorted(set(dense)):
         raise ValueError(
             "Model policy snapshot dense families must be sorted and unique."
         )
-    if (
-        not isinstance(markers, list)
-        or not markers
-        or not all(isinstance(item, str) and item for item in markers)
-    ):
-        raise ValueError("Model policy snapshot sparse markers must be a text list.")
+    _require_text_list(markers, "sparse markers", non_empty=True)
     if markers != sorted(set(markers)):
         raise ValueError(
             "Model policy snapshot sparse markers must be sorted and unique."
@@ -122,6 +234,7 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
     if not isinstance(policies, list):
         raise ValueError("Model policy snapshot policies must be a list.")
     identities: set[str] = set()
+    path_ids: set[str] = set()
     for policy in policies:
         if not isinstance(policy, Mapping):
             raise ValueError("Each model policy snapshot policy must be a mapping.")
@@ -132,28 +245,34 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
         for field in ("policy_version", "family", "matched_reason"):
             _require_string(policy.get(field), field.replace("_", " "))
         claims = policy.get("claims")
-        any_identity = (
-            claims.get("any_identity") if isinstance(claims, Mapping) else None
-        )
+        if not isinstance(claims, Mapping) or set(claims) != {"any_identity"}:
+            raise ValueError(
+                "Model policy snapshot claims must contain only any_identity data."
+            )
+        any_identity = claims.get("any_identity")
         if not isinstance(any_identity, Mapping) or not any_identity:
             raise ValueError("Model policy snapshot claims require any_identity data.")
         for field, values in any_identity.items():
-            if (
-                field not in {"family", "model_type", "architecture"}
-                or not isinstance(values, list)
-                or not values
-            ):
+            if field not in _IDENTITY_FIELDS:
                 raise ValueError("Model policy snapshot identity claims are malformed.")
+            _require_text_list(
+                values,
+                f"identity claims for {field}",
+                non_empty=True,
+            )
         constraints = policy.get("constraints")
         if not isinstance(constraints, list) or not constraints:
             raise ValueError(
                 "Model policy snapshot constraints must be a non-empty list."
             )
+        exact_identities: list[Mapping[str, Any]] = []
         for constraint in constraints:
-            if (
-                not isinstance(constraint, Mapping)
-                or constraint.get("kind") not in _CONSTRAINT_KINDS
-            ):
+            if not isinstance(constraint, Mapping):
+                raise ValueError(
+                    "Model policy snapshot contains an unknown constraint."
+                )
+            kind = constraint.get("kind")
+            if not isinstance(kind, str) or kind not in _CONSTRAINT_KINDS:
                 raise ValueError(
                     "Model policy snapshot contains an unknown constraint."
                 )
@@ -163,8 +282,7 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
                     "Model policy snapshot constraint reason is undefined."
                 )
             _require_string(constraint.get("reason_code"), "constraint reason code")
-            kind = constraint["kind"]
-            required = {
+            operands = {
                 "exact_identity": {"values"},
                 "quantization_layout": {
                     "default_bits",
@@ -177,25 +295,68 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
                 "no_shared_expert": set(),
                 "field_equals": {"field", "value"},
             }[kind]
-            if not required.issubset(constraint):
+            expected_fields = {"kind", "reason", "reason_code"} | operands
+            if set(constraint) != expected_fields:
                 raise ValueError(
-                    f"Model policy snapshot {kind} constraint is incomplete."
+                    f"Model policy snapshot {kind} constraint shape is malformed."
                 )
-            if kind == "exact_identity" and (
-                not isinstance(constraint["values"], Mapping)
-                or set(constraint["values"]) != {"family", "model_type", "architecture"}
-            ):
-                raise ValueError(
-                    "Model policy snapshot exact identity constraint is malformed."
+            if kind == "exact_identity":
+                values = constraint["values"]
+                if not isinstance(values, Mapping) or set(values) != _IDENTITY_FIELDS:
+                    raise ValueError(
+                        "Model policy snapshot exact identity constraint is malformed."
+                    )
+                for value in values.values():
+                    _require_string(value, "exact identity value")
+                exact_identities.append(constraint)
+            elif kind == "quantization_layout":
+                for field in _QUANTIZATION_INTEGER_OPERANDS:
+                    _require_positive_integer(
+                        constraint[field],
+                        f"quantization {field.replace('_', ' ')}",
+                    )
+                _validate_override_module_template(
+                    constraint["override_module_template"]
                 )
-        if not isinstance(policy.get("paths"), list) or not policy["paths"]:
-            raise ValueError("Model policy snapshot paths must be a non-empty list.")
-        if not isinstance(policy.get("matched_reason_codes"), list):
+            elif kind == "field_equals":
+                _require_string(constraint["field"], "field equals field")
+
+        if len(exact_identities) != 1:
             raise ValueError(
-                "Model policy snapshot matched reason codes must be a list."
+                "Each model policy snapshot policy must contain exactly one "
+                "exact identity constraint."
             )
-        if not isinstance(policy.get("evidence_ids"), list):
-            raise ValueError("Model policy snapshot evidence ids must be a list.")
+        exact_values = exact_identities[0]["values"]
+        if any(
+            exact_values[field] not in any_identity.get(field, [])
+            for field in _IDENTITY_FIELDS
+        ):
+            raise ValueError(
+                "Model policy snapshot exact identity values must be represented "
+                "by the policy claims."
+            )
+
+        paths = policy.get("paths")
+        if not isinstance(paths, list) or not paths:
+            raise ValueError("Model policy snapshot paths must be a non-empty list.")
+        for path in paths:
+            _validate_path(path, path_ids)
+        _require_text_list(
+            policy.get("matched_reason_codes"),
+            "matched reason codes",
+            non_empty=True,
+        )
+        _require_text_list(
+            policy.get("evidence_ids"),
+            "evidence ids",
+            non_empty=True,
+        )
+        if "required_provenance_fields" in policy:
+            _require_text_list(
+                policy["required_provenance_fields"],
+                "required provenance fields",
+                non_empty=True,
+            )
         if policy["matched_reason"] not in reasons:
             raise ValueError("Model policy snapshot matched reason is undefined.")
 

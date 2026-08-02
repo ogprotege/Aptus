@@ -53,10 +53,38 @@ DMG. The unchanged npm installation still reports three high-severity
 development-dependency advisories. No CUDA or exact-model MLX runtime acceptance
 was claimed or collected in this policy-contract slice.
 
-The other review findings remain open, notably B1/B2, the remaining C-series
-negative-path coverage, D1/D2, and the listed minor cleanup. The pull request
-should therefore remain draft and disclose those follow-ups rather than treating
-this disposition as a full review closeout.
+A second follow-up now resolves B1 and B2:
+
+- Host validation accepts only exact lowercase 64-character hexadecimal text
+  for the snapshot, plan, manifest, and current-host digest bindings. It never
+  coerces hostile values, and one `POLICY_SNAPSHOT_DIGEST` finding identifies
+  every invalid binding and every valid binding that differs from the snapshot.
+- JSON `null`, oversized integer, and excessive-nesting snapshot documents now
+  produce typed INVALID findings instead of escaping the host or portable
+  manifest boundaries.
+- The portable validator checks every constraint kind's exact operand set,
+  requires one plain `{layer}` template, positive non-boolean quantization
+  integers, non-empty unpadded field and identity values, exactly one
+  `exact_identity`, coherent claims, exact path/runtime-contract primitives, and
+  well-formed reason, evidence, and provenance collections before evaluation.
+- Mutation regressions cover hostile digest values in all four bindings,
+  simultaneous invalid/different bindings, null/resource-hostile JSON, and the
+  full constraint/claim/path/reason/evidence shape matrix. Independent recursive,
+  structural, and template fuzzing found no escaped evaluator exception in this
+  scope.
+
+The second follow-up's authoritative gate passed 481 Python tests, 90 web tests,
+Ruff, `compileall`, TypeScript, OpenAPI/client/version parity, and 81 native
+tests. The Release app passed signature verification and produced its ZIP and
+DMG. A clean installed-wheel smoke verified the packaged snapshot and portable
+manifest behavior. No CUDA or exact-model MLX runtime evidence was required or
+collected because this packet changes contract rejection only, not runtime
+execution semantics.
+
+The other review findings remain open, notably C1/C2, the remaining smaller
+C4 gaps, D1/D2, and the listed minor cleanup. The follow-up pull request should
+therefore remain draft and disclose those follow-ups rather than treating this
+disposition as a full review closeout.
 
 ## Verdict
 

@@ -300,7 +300,7 @@ def validate_bundle_manifest(root: Path) -> tuple[str, ...]:
         return ("Bundle manifest is missing.",)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
+    except (OSError, ValueError, RecursionError) as error:
         return (f"Bundle manifest is invalid JSON: {error}",)
     if (
         not isinstance(manifest, dict)
@@ -362,7 +362,7 @@ def validate_bundle_manifest(root: Path) -> tuple[str, ...]:
                     errors.append(
                         "Bundle plan does not bind the emitted model policy snapshot."
                     )
-        except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as error:
+        except (OSError, ValueError, RecursionError) as error:
             errors.append(f"Bundle model policy snapshot is malformed: {error}")
     entries = manifest.get("files")
     if not isinstance(entries, list) or not entries:

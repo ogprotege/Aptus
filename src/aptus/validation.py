@@ -108,12 +108,21 @@ REQUIRED_BUNDLE_FILES = (
     "train.py",
     "validate.py",
 )
+_LOWERCASE_HEXADECIMAL = frozenset("0123456789abcdef")
 
 
 def _finding(
     code: str, message: str, *, severity: str = "error", path: str | None = None
 ) -> ValidationFinding:
     return ValidationFinding(code=code, message=message, severity=severity, path=path)
+
+
+def _is_sha256_digest(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in _LOWERCASE_HEXADECIMAL for character in value)
+    )
 
 
 def _json_hash(value: Any) -> str:
@@ -182,7 +191,7 @@ def _actual_hardware_binding(device_indices: list[int]) -> str:
 def _load_json(path: Path, findings: list[ValidationFinding], code: str) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         findings.append(_finding(code, str(error), path=path.name))
         return None
 
@@ -1226,6 +1235,7 @@ def validate_bundle(
     snapshot_path = bundle_dir / "policy/model-policy-snapshot.v1.json"
     snapshot: Any = None
     snapshot_digest: str | None = None
+    snapshot_loaded = False
     if not snapshot_path.is_file():
         findings.append(
             _finding(
@@ -1239,7 +1249,7 @@ def validate_bundle(
         try:
             snapshot_bytes = snapshot_path.read_bytes()
             snapshot = json.loads(snapshot_bytes)
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        except (OSError, ValueError, RecursionError):
             findings.append(
                 _finding(
                     "POLICY_SNAPSHOT_JSON_ERROR",
@@ -1247,7 +1257,9 @@ def validate_bundle(
                     path="policy/model-policy-snapshot.v1.json",
                 )
             )
-        if snapshot is not None:
+        else:
+            snapshot_loaded = True
+        if snapshot_loaded:
             try:
                 validate_model_policy_snapshot(snapshot)
                 canonical_bytes = model_policy_snapshot_bytes(snapshot)
@@ -1269,7 +1281,7 @@ def validate_bundle(
                             path="policy/model-policy-snapshot.v1.json",
                         )
                     )
-                bindings = {
+                bindings: dict[str, Any] = {
                     "snapshot": snapshot_digest,
                     "plan": plan.get("model_policy_snapshot_sha256")
                     if isinstance(plan, dict)
@@ -1279,11 +1291,38 @@ def validate_bundle(
                     else None,
                     "host": current_model_policy_snapshot_sha256(),
                 }
-                if len(set(bindings.values())) != 1:
+                invalid_bindings = [
+                    name
+                    for name, value in bindings.items()
+                    if not _is_sha256_digest(value)
+                ]
+                differing_bindings = (
+                    [
+                        name
+                        for name in ("plan", "manifest", "host")
+                        if name not in invalid_bindings
+                        and bindings[name] != bindings["snapshot"]
+                    ]
+                    if "snapshot" not in invalid_bindings
+                    else []
+                )
+                if invalid_bindings or differing_bindings:
+                    message_parts = []
+                    if invalid_bindings:
+                        message_parts.append(
+                            "digest bindings must be lowercase 64-character "
+                            "hexadecimal text; invalid bindings: "
+                            + ", ".join(invalid_bindings)
+                        )
+                    if differing_bindings:
+                        message_parts.append(
+                            "valid bindings differing from snapshot: "
+                            + ", ".join(differing_bindings)
+                        )
                     findings.append(
                         _finding(
                             "POLICY_SNAPSHOT_DIGEST",
-                            "Policy snapshot, plan, manifest, and current host digests must match.",
+                            "Policy snapshot " + "; ".join(message_parts) + ".",
                             path="policy/model-policy-snapshot.v1.json",
                         )
                     )

@@ -163,10 +163,18 @@ is versioned and idempotent. Source records remain in place.
 
 ## Bundle integrity
 
-`bundle-manifest.json` uses schema `aptus.bundle.v2`. It binds the plan digest,
+`bundle-manifest.json` uses schema `aptus.bundle.v3`. It binds the plan digest,
 plan ID, selected candidate ID, formula version, compiler version, direct stack
 versions, entrypoints, validation levels, and every compiler-managed file by
-relative path, size, and SHA-256.
+relative path, size, and SHA-256. It also names
+`policy/model-policy-snapshot.v1.json` and binds its digest. That digest must
+equal `model_policy_snapshot_sha256` in the v5 plan and the snapshot file's
+manifested SHA-256.
+
+The host registry serializes `aptus.model-policy-snapshot.v1` canonically and
+deterministically. The bundle carries those exact bytes plus a generic evaluator
+that has no installed-Aptus dependency. Host and portable evaluation must
+produce the same decision for the same compatibility subject.
 
 The bundle fingerprint is the SHA-256 of that manifest when it exists. Bundle
 validation rejects symlink roots, symlink entries, unsafe paths, missing files,

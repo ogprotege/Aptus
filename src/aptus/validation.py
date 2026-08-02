@@ -40,6 +40,12 @@ from .execution import (
     _require_mlx_model_load_binding,
     _verify_mlx_admission,
 )
+from .model_compatibility import current_model_policy_snapshot_sha256
+from .policy_snapshot import (
+    model_policy_snapshot_bytes,
+    model_policy_snapshot_sha256,
+    validate_model_policy_snapshot,
+)
 from .plan_contract import (
     bundle_fingerprint,
     sha256_file,
@@ -89,6 +95,8 @@ REQUIRED_BUNDLE_FILES = (
     "evidence.jsonl",
     "plan.json",
     "plan_contract.py",
+    "policy/model-policy-snapshot.v1.json",
+    "policy_snapshot.py",
     "preflight.py",
     "profiles/dataset.json",
     "profiles/hardware.json",
@@ -1210,6 +1218,75 @@ def validate_bundle(
         if (bundle_dir / "plan.json").is_file()
         else None
     )
+    manifest = (
+        _load_json(bundle_dir / "bundle-manifest.json", findings, "MANIFEST_JSON_ERROR")
+        if (bundle_dir / "bundle-manifest.json").is_file()
+        else None
+    )
+    snapshot_path = bundle_dir / "policy/model-policy-snapshot.v1.json"
+    snapshot: Any = None
+    snapshot_digest: str | None = None
+    if not snapshot_path.is_file():
+        findings.append(
+            _finding(
+                "POLICY_SNAPSHOT_MISSING",
+                "Portable model policy snapshot is missing.",
+                path="policy/model-policy-snapshot.v1.json",
+            )
+        )
+    else:
+        checked.add("policy/model-policy-snapshot.v1.json")
+        try:
+            snapshot_bytes = snapshot_path.read_bytes()
+            snapshot = json.loads(snapshot_bytes)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            findings.append(
+                _finding(
+                    "POLICY_SNAPSHOT_JSON_ERROR",
+                    "Portable model policy snapshot is not valid UTF-8 JSON.",
+                    path="policy/model-policy-snapshot.v1.json",
+                )
+            )
+        if snapshot is not None:
+            try:
+                validate_model_policy_snapshot(snapshot)
+                canonical_bytes = model_policy_snapshot_bytes(snapshot)
+                snapshot_digest = model_policy_snapshot_sha256(snapshot)
+            except (TypeError, ValueError) as error:
+                findings.append(
+                    _finding(
+                        "POLICY_SNAPSHOT_CONTRACT",
+                        f"Portable model policy snapshot is invalid: {error}",
+                        path="policy/model-policy-snapshot.v1.json",
+                    )
+                )
+            else:
+                if snapshot_bytes != canonical_bytes:
+                    findings.append(
+                        _finding(
+                            "POLICY_SNAPSHOT_NONCANONICAL",
+                            "Portable model policy snapshot is not canonically encoded.",
+                            path="policy/model-policy-snapshot.v1.json",
+                        )
+                    )
+                bindings = {
+                    "snapshot": snapshot_digest,
+                    "plan": plan.get("model_policy_snapshot_sha256")
+                    if isinstance(plan, dict)
+                    else None,
+                    "manifest": manifest.get("policy_snapshot_sha256")
+                    if isinstance(manifest, dict)
+                    else None,
+                    "host": current_model_policy_snapshot_sha256(),
+                }
+                if len(set(bindings.values())) != 1:
+                    findings.append(
+                        _finding(
+                            "POLICY_SNAPSHOT_DIGEST",
+                            "Policy snapshot, plan, manifest, and current host digests must match.",
+                            path="policy/model-policy-snapshot.v1.json",
+                        )
+                    )
     is_mlx_bundle = False
     if plan is not None:
         runtime_contract = plan.get("recommended", {}).get("runtime_contract")
@@ -1267,17 +1344,23 @@ def validate_bundle(
                         )
                     )
 
-    manifest = (
-        _load_json(bundle_dir / "bundle-manifest.json", findings, "MANIFEST_JSON_ERROR")
-        if (bundle_dir / "bundle-manifest.json").is_file()
-        else None
-    )
     if isinstance(manifest, dict):
-        if manifest.get("schema_version") != "aptus.bundle.v2":
+        if manifest.get("schema_version") != "aptus.bundle.v3":
             findings.append(
                 _finding(
                     "MANIFEST_SCHEMA",
-                    "Manifest schema must be aptus.bundle.v2.",
+                    "Manifest schema must be aptus.bundle.v3.",
+                    path="bundle-manifest.json",
+                )
+            )
+        if (
+            manifest.get("policy_snapshot_path")
+            != "policy/model-policy-snapshot.v1.json"
+        ):
+            findings.append(
+                _finding(
+                    "POLICY_SNAPSHOT_PATH",
+                    "Manifest policy snapshot path is invalid.",
                     path="bundle-manifest.json",
                 )
             )
@@ -1357,6 +1440,7 @@ def validate_bundle(
     if LEVELS.index(level) >= LEVELS.index("static"):
         python_sources = [
             "plan_contract.py",
+            "policy_snapshot.py",
             "preflight.py",
             "run.py",
             "runtime_lease.py",

@@ -58,7 +58,7 @@ Lifecycle conflicts use structured fields:
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
-| `409` | `replan_required` | A saved plan uses v3, v2, or no schema identifier, or a v4 plan uses an obsolete registered policy version; recreate it deterministically under the v4 contract |
+| `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a v5 plan uses an obsolete policy decision or snapshot; recreate it deterministically under the v5 contract |
 | `409` | `project_revision_conflict` | The named project advanced after the caller loaded its expected revision |
 | `409` | `project_plan_mismatch` | The requested plan does not belong to the named project revision |
 | `409` | `project_plan_snapshot_mismatch` | The persisted plan no longer equals the immutable plan snapshot that authorized compilation |
@@ -141,7 +141,7 @@ Host validation sets report state to `invalid` when any finding has severity
 
 | Code | Severity | Meaning |
 | --- | --- | --- |
-| `MANIFEST_SCHEMA` | error | Schema is not `aptus.bundle.v2` |
+| `MANIFEST_SCHEMA` | error | Schema is not `aptus.bundle.v3` |
 | `MANIFEST_PLAN_DIGEST` | error | `plan_sha256` does not match `plan.json` |
 | `MANIFEST_EMPTY` | error | `files` is absent, invalid, or empty |
 | `MANIFEST_ENTRY_INVALID` | error | A file entry lacks a string path |

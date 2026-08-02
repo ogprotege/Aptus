@@ -170,6 +170,26 @@ class DomainContractTests(unittest.TestCase):
             restored = training_plan_from_primitive(payload)
         self.assertEqual(restored, plan)
 
+    def test_plan_requires_lowercase_policy_snapshot_sha256(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(Path(temporary))
+        for invalid_digest in ("", "A" * 64, "g" * 64, "a" * 63):
+            with self.subTest(digest=invalid_digest):
+                with self.assertRaisesRegex(ValueError, "snapshot SHA-256"):
+                    plan.__class__(
+                        **{
+                            **plan.__dict__,
+                            "model_policy_snapshot_sha256": invalid_digest,
+                        }
+                    )
+
+    def test_persisted_plan_requires_policy_snapshot_sha256(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = to_primitive(make_plan(Path(temporary)))
+        payload.pop("model_policy_snapshot_sha256")
+        with self.assertRaisesRegex(ValueError, "model_policy_snapshot_sha256"):
+            training_plan_from_primitive(payload)
+
     def test_moe_quantization_layout_round_trips_through_strict_json(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_qwen3_moe_plan(Path(temporary))
@@ -179,6 +199,7 @@ class DomainContractTests(unittest.TestCase):
 
     def test_legacy_plan_requires_replan_without_mutating_source(self) -> None:
         for legacy_schema in (
+            "aptus.training-plan.v4",
             "aptus.training-plan.v3",
             "aptus.training-plan.v2",
             None,
@@ -198,7 +219,7 @@ class DomainContractTests(unittest.TestCase):
                     after = json.dumps(payload, sort_keys=True, separators=(",", ":"))
                 self.assertEqual(raised.exception.found_schema, legacy_schema)
                 self.assertEqual(
-                    raised.exception.required_schema, "aptus.training-plan.v4"
+                    raised.exception.required_schema, "aptus.training-plan.v5"
                 )
                 self.assertEqual(after, before)
 

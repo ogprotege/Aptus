@@ -165,8 +165,9 @@ every one keeps its verdict:
 Against 22.0 GiB usable device memory, full fine-tuning is rejected outright,
 LoRA is conditional because its envelope exceeds what is usable, and int8-LoRA
 wins under the quality objective while QLoRA remains the lower-memory
-alternative. The plan is written as `aptus.training-plan.v4` with formula
-`aptus-memory-v2` and a content-addressed `plan_id`.
+alternative. The plan is written as `aptus.training-plan.v5` with formula
+`aptus-memory-v2`, a content-addressed `plan_id`, and the SHA-256 of the
+canonical `aptus.model-policy-snapshot.v1` used to evaluate compatibility.
 
 The dataset profile and the planning decision are real. The model and hardware
 facts are declared examples. Target-host model loading, measurement, and pilot

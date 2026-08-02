@@ -104,13 +104,14 @@ Record the exact registry and planner facts from the candidate build:
 | Experimental IDs | `dora`, `bitfit`, `adalora`, `sharelora` | `[fill]` | `[fill]` |
 | Research-only IDs | `loreft`, `aflora`, `bilora` | `[fill]` | `[fill]` |
 | Planner rows | 12 | `[fill]` | `[fill]` |
-| Plan schema | `aptus.training-plan.v4` | `[fill]` | `[fill]` |
+| Plan schema | `aptus.training-plan.v5` | `[fill]` | `[fill]` |
+| Policy snapshot schema and digest | `aptus.model-policy-snapshot.v1` | `[fill]` | `[fill]` |
 | Model policy decision | `aptus.model-compatibility.v2` | `[fill]` | `[fill]` |
 | Inspection receipt | `aptus.model-inspection-receipt.v1` or explicit null | `[fill]` | `[fill]` |
 | Candidate policy binding | `aptus.model-policy-binding.v1` on exact path only | `[fill]` | `[fill]` |
 | Memory formula | `aptus-memory-v2` | `[fill]` | `[fill]` |
 | MLX memory formula | `aptus-memory-mlx-v2` | `[fill]` | `[fill]` |
-| Bundle schema | `aptus.bundle.v2` | `[fill]` | `[fill]` |
+| Bundle schema | `aptus.bundle.v3` | `[fill]` | `[fill]` |
 
 Attach evidence for:
 
@@ -128,7 +129,7 @@ Attach evidence for:
       the receipt;
 - [ ] malformed, stale, mismatched, and modified receipts fail without
       downgrading to user-attested;
-- [ ] v3, v2, schema-less, and stale-policy v4 plans return
+- [ ] v4, v3, v2, schema-less, and stale-policy or stale-snapshot v5 plans return
       `replan_required` without changing saved bytes;
 - [ ] identity mutation tests pass;
 - [ ] memory component and upper-bound arithmetic passes;

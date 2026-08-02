@@ -30,10 +30,12 @@ from aptus.model_compatibility import (
     UNREVIEWED_SPARSE_MODEL_REASON,
     adapter_target_modules,
     compatibility_response_v1,
+    current_model_policy_snapshot,
     evaluate_model_compatibility,
     subject_from_model,
     validate_execution_path_selection,
 )
+from aptus.policy_snapshot import evaluate_model_policy_snapshot
 from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
 
 
@@ -81,6 +83,139 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             to_primitive(decision)["kind"],
             "path-matched",
         )
+
+    def test_host_and_snapshot_evaluators_have_exact_decision_parity(self) -> None:
+        assert self.subject.moe is not None
+        assert self.subject.quantization_layout is not None
+        cases = (
+            self.subject,
+            replace(self.subject, architecture="OtherForCausalLM"),
+            replace(self.subject, quantization_layout=QuantizationLayout(4, 64)),
+            replace(self.subject, moe=None),
+            replace(
+                self.subject,
+                moe=replace(
+                    self.subject.moe,
+                    shared_expert_intermediate_size=1024,
+                ),
+            ),
+            replace(self.subject, quantization_bits=8),
+            replace(
+                self.subject,
+                family="llama",
+                model_type="llama",
+                architecture="LlamaForCausalLM",
+                quantization_layout=None,
+                moe=None,
+            ),
+            replace(
+                self.subject,
+                family="custom",
+                model_type="custom",
+                architecture="CustomForCausalLM",
+                quantization_layout=None,
+                moe=None,
+            ),
+            replace(
+                self.subject,
+                family="mixtral_custom",
+                model_type="custom",
+                architecture="CustomForCausalLM",
+                quantization_layout=None,
+                moe=None,
+            ),
+        )
+        snapshot = current_model_policy_snapshot()
+        for subject in cases:
+            with self.subTest(family=subject.family, architecture=subject.architecture):
+                self.assertEqual(
+                    evaluate_model_policy_snapshot(snapshot, to_primitive(subject)),
+                    to_primitive(evaluate_model_compatibility(subject)),
+                )
+
+    def test_host_and_snapshot_evaluators_have_exact_fact_error_parity(
+        self,
+    ) -> None:
+        dense = replace(
+            self.subject,
+            family="llama",
+            model_type="llama",
+            architecture="LlamaForCausalLM",
+            quantization_layout=None,
+            moe=None,
+        )
+        unknown = replace(
+            dense,
+            family="custom",
+            model_type="custom",
+            architecture="CustomForCausalLM",
+        )
+        sparse = replace(
+            unknown,
+            family="mixtral_custom",
+            model_type="mixtral",
+            architecture="MixtralForCausalLM",
+        )
+        cases = {
+            "exact Qwen": (
+                replace(
+                    self.subject,
+                    fact_errors=("quantization: contradictory",),
+                ),
+                ["invalid-compatibility-facts"],
+            ),
+            "Qwen identity near-match": (
+                replace(
+                    self.subject,
+                    model_type="not_qwen",
+                    architecture="NotQwen",
+                    fact_errors=("quantization: contradictory",),
+                ),
+                ["identity-mismatch"],
+            ),
+            "dense": (
+                replace(
+                    dense,
+                    fact_errors=("quantization: contradictory",),
+                ),
+                ["invalid-compatibility-facts"],
+            ),
+            "sparse": (
+                replace(
+                    sparse,
+                    fact_errors=("quantization: contradictory",),
+                ),
+                ["invalid-compatibility-facts"],
+            ),
+            "unknown": (
+                replace(
+                    unknown,
+                    fact_errors=("quantization: contradictory",),
+                ),
+                ["invalid-compatibility-facts"],
+            ),
+            "unsorted multi-error": (
+                replace(
+                    self.subject,
+                    fact_errors=(
+                        "quantization: conflicting provider facts",
+                        "moe: conflicting provider facts",
+                    ),
+                ),
+                ["invalid-compatibility-facts"],
+            ),
+        }
+        snapshot = current_model_policy_snapshot()
+        for name, (subject, expected_reason_codes) in cases.items():
+            with self.subTest(name=name):
+                portable = evaluate_model_policy_snapshot(
+                    snapshot, to_primitive(subject)
+                )
+                self.assertEqual(
+                    portable,
+                    to_primitive(evaluate_model_compatibility(subject)),
+                )
+                self.assertEqual(portable["reason_codes"], expected_reason_codes)
 
     def test_qwen_policy_mutations_fail_at_the_first_predicate(self) -> None:
         shared_expert = replace(

@@ -180,8 +180,9 @@ function exactQwen3MoEPlan(): TrainingPlan {
     runtime_contract: runtimeContract,
   };
   return {
-    schema_version: "aptus.training-plan.v4",
+    schema_version: "aptus.training-plan.v5",
     plan_id: "plan_qwen3_moe",
+    model_policy_snapshot_sha256: "a".repeat(64),
     model: {
       model_id: "Qwen/Qwen3-30B-A3B",
       revision: QWEN3_REVISION,
@@ -419,7 +420,7 @@ describe("desktop workbench readiness", () => {
     ));
   });
 
-  it("restores the inspection receipt from a v4 plan during bootstrap", async () => {
+  it("restores the inspection receipt from a v5 plan during bootstrap", async () => {
     const plan = exactQwen3MoEPlan();
     const receipt = inspectionReceipt("Qwen/Qwen3-30B-A3B", QWEN3_REVISION);
     plan.inspection_receipt = receipt;
@@ -562,7 +563,7 @@ describe("desktop workbench readiness", () => {
     expect(screen.getByText(
       "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
       + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v4 plan preserves the reviewed "
+      + "Evidence requirement: pilot-required. The current v5 plan preserves the reviewed "
       + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
       + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
       + "mandatory.",
@@ -594,7 +595,7 @@ describe("desktop workbench readiness", () => {
     expect(screen.getByText(
       "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
       + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v4 plan preserves the reviewed "
+      + "Evidence requirement: pilot-required. The current v5 plan preserves the reviewed "
       + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
       + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
       + "mandatory.",
@@ -615,7 +616,7 @@ describe("desktop workbench readiness", () => {
         status: "replan_required",
         plan_id: "plan_legacy",
         found_schema: "aptus.training-plan.v2",
-        required_schema: "aptus.training-plan.v4",
+        required_schema: "aptus.training-plan.v5",
         source: "project-revision",
         message: "This saved plan predates the current executable contract.",
       },
@@ -710,7 +711,7 @@ describe("desktop workbench readiness", () => {
       latest_revision: null,
     };
     const plan = {
-      schema_version: "aptus.training-plan.v4",
+      schema_version: "aptus.training-plan.v5",
       plan_id: "plan_retained",
       project_id: projectId,
       model: {},

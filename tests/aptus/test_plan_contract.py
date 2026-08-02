@@ -17,6 +17,8 @@ from aptus.domain import (
 from aptus.methods import selectable_method_descriptors
 from aptus.model_compatibility import (
     create_model_inspection_receipt,
+    current_model_policy_snapshot,
+    current_model_policy_snapshot_bytes,
     evaluate_model_compatibility,
     subject_from_model,
 )
@@ -55,9 +57,49 @@ class PlanContractTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_real_v4_plan_is_valid(self) -> None:
+    def test_real_v5_plan_is_valid(self) -> None:
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
-        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v4")
+        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v5")
+
+    def test_installed_host_uses_current_policy_before_bundle_snapshot(self) -> None:
+        snapshot_path = self.root / "policy" / "model-policy-snapshot.v1.json"
+        snapshot_path.parent.mkdir()
+        snapshot_path.write_bytes(current_model_policy_snapshot_bytes())
+        changed_snapshot = copy.deepcopy(current_model_policy_snapshot())
+        changed_snapshot["dense_families"] = sorted(
+            [*changed_snapshot["dense_families"], "future-dense-family"]
+        )
+
+        with patch(
+            "aptus.model_compatibility.current_model_policy_snapshot",
+            return_value=changed_snapshot,
+        ):
+            errors = validate_plan_payload(
+                self.payload,
+                root=self.root,
+                verify_dataset=False,
+            )
+
+        self.assertTrue(any("replan_required" in error for error in errors), errors)
+
+    def test_explicit_policy_snapshot_overrides_current_host_policy(self) -> None:
+        snapshot = current_model_policy_snapshot()
+        changed_snapshot = copy.deepcopy(snapshot)
+        changed_snapshot["dense_families"] = sorted(
+            [*changed_snapshot["dense_families"], "future-dense-family"]
+        )
+
+        with patch(
+            "aptus.model_compatibility.current_model_policy_snapshot",
+            return_value=changed_snapshot,
+        ):
+            errors = validate_plan_payload(
+                self.payload,
+                verify_dataset=False,
+                policy_snapshot=snapshot,
+            )
+
+        self.assertEqual(errors, ())
 
     def test_host_and_portable_policy_decisions_match_every_supported_state(
         self,
@@ -139,7 +181,9 @@ class PlanContractTests(unittest.TestCase):
         for label, subject, model in cases:
             with self.subTest(label=label):
                 self.assertEqual(
-                    _current_model_policy_decision(model),
+                    _current_model_policy_decision(
+                        model, current_model_policy_snapshot()
+                    ),
                     to_primitive(evaluate_model_compatibility(subject)),
                 )
 

@@ -4,28 +4,30 @@
 | --- | --- |
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
-| Authority | Normative field reference for `aptus.training-plan.v4` |
-| Last reviewed | 2026-07-29 |
+| Authority | Normative field reference for `aptus.training-plan.v5` |
+| Last reviewed | 2026-07-30 |
 | Next review | 2026-10-27, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
-The current schema identifier is `aptus.training-plan.v4`. Numbers must be
+The current schema identifier is `aptus.training-plan.v5`. Numbers must be
 finite JSON values. The self-contained bundle validator recomputes candidate and
-plan identities and rejects semantic mutation. Plans with
-`aptus.training-plan.v3`, `aptus.training-plan.v2`, or no schema identifier do
-not contain the policy provenance required by v4. Aptus preserves those saved
-bytes, but it does not reinterpret, compile, or recover them. Create a
-deterministic v4 plan from the preserved source facts. Do not relabel the old
-plan. A syntactically valid v4 plan also enters `replan_required` when its
-persisted policy decision no longer matches the current registered policy.
+plan identities and rejects semantic mutation. The plan binds the exact
+canonical model-policy snapshot through `model_policy_snapshot_sha256`. Plans
+with `aptus.training-plan.v4`, v3, v2, or no schema identifier lack this v5
+binding. Aptus preserves those saved bytes, but it does not reinterpret,
+compile, or recover them. Create a deterministic v5 plan from the preserved
+source facts. Do not relabel the old plan. A syntactically valid v5 plan also
+enters `replan_required` when its decision or snapshot digest no longer matches
+the current registry.
 
 ## Top-level object
 
 ```json
 {
-  "schema_version": "aptus.training-plan.v4",
+  "schema_version": "aptus.training-plan.v5",
   "plan_id": "plan_0123456789abcdef0123",
   "formula_version": "aptus-memory-v2",
+  "model_policy_snapshot_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "model": {},
   "dataset": {},
   "hardware": {},
@@ -46,6 +48,7 @@ persisted policy decision no longer matches the current registered policy.
 | `schema_version` | string | Exact plan schema identifier |
 | `plan_id` | string | `plan_` plus a 20-hex content identity |
 | `formula_version` | string | Plan-level baseline formula identity; each candidate memory object carries its exact estimator version |
+| `model_policy_snapshot_sha256` | string | Lowercase SHA-256 of the canonical `aptus.model-policy-snapshot.v1` used for the decision |
 | `model` | object | Explicit model identity, structure, permission, and provenance |
 | `dataset` | object | Source identity and profile |
 | `hardware` | object | Planned devices, host capacity, and provenance |
@@ -89,7 +92,7 @@ remain user-attested and are excluded from the inspection receipt.
 
 ## Model policy decision
 
-Every v4 plan contains one `aptus.model-compatibility.v2` decision. The planner
+Every v5 plan contains one `aptus.model-compatibility.v2` decision. The planner
 evaluates it once and links every candidate to its `decision_id`.
 
 | Field | Type | Meaning |
@@ -443,8 +446,9 @@ with the code-owned record.
 
 Narrative warnings and rationale do not replace content identity. A payload must
 also pass deterministic replanning parity and current-policy validation during
-loading, compilation, recovery, and host static validation. A stale v4 policy
-version, policy addition or removal, or changed registered path requires
+loading, compilation, recovery, and host static validation. A v4 plan, stale v5
+policy decision or snapshot digest, policy-version change, policy addition or
+removal, or changed registered path requires
 replanning. Aptus returns `replan_required` only after the saved decision,
 receipt, candidate links and bindings, candidate IDs, recommendation, evidence,
 and plan ID form a coherent historical chain. Broken dependencies are malformed

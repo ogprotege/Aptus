@@ -86,7 +86,7 @@ current free host RAM as the live unified-memory headroom cap when available.
 
 The planner evaluates the model policy once per plan and intersects every
 candidate with the emitted paths. Policy matching does not decide hardware fit,
-memory fit, ranking, or evidence readiness. `aptus.training-plan.v4` persists
+memory fit, ranking, or evidence readiness. `aptus.training-plan.v5` persists
 that decision and its `provider-inspection` or `user-attested` source. Every
 candidate carries the decision ID. Only the candidate that exactly matches an
 emitted path carries an `aptus.model-policy-binding.v1` object.
@@ -102,7 +102,7 @@ The host policy registry keeps sparse planning narrower than general MLX-LM
 support. It emits one path only for an
 exact `qwen3_moe` and `Qwen3MoeForCausalLM` identity with four-bit group-64
 defaults, one eight-bit group-64 router-gate override per layer, no shared
-expert, QLoRA, `single`, and attention-only adapter targets. The v4 plan carries
+expert, QLoRA, `single`, and attention-only adapter targets. The v5 plan carries
 the full topology and canonical quantization layout. Resident weights use total
 parameters. Routed activity can inform compute and activation terms but never
 reduces base-weight residency.
@@ -110,10 +110,14 @@ reduces base-weight residency.
 Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
 
-Phase 4 will place a portable policy snapshot and generic evaluator in generated
-bundles. Phase 5 will remove browser-side policy reconstruction. Phase 3 keeps
-the current self-contained validator and browser boundary, so neither later
-change is claimed here.
+Phase 4 places canonical `aptus.model-policy-snapshot.v1` bytes and a generic
+evaluator in every generated bundle. `aptus.training-plan.v5` and
+`aptus.bundle.v3` cross-bind the snapshot digest. Portable validation rejects a
+missing, malformed, noncanonical, stale, or tampered snapshot and does not need
+an installed Aptus package.
+
+Phase 5 remains the browser-reconstruction removal. Phase 6 remains the second
+reviewed policy. Neither is part of the portable policy contract.
 
 ## 3. Compilation
 

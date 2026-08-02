@@ -171,7 +171,7 @@ class DocumentationTests(unittest.TestCase):
             schema["components"]["schemas"]["TrainingPlanResponse"]["properties"][
                 "schema_version"
             ]["const"],
-            "aptus.training-plan.v4",
+            "aptus.training-plan.v5",
         )
 
     def test_model_compatibility_reference_matches_discriminated_contract(
@@ -350,12 +350,13 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("same host-side model policy registry", system)
         self.assertIn("method registry constructs its runtime contract", system)
 
-    def test_phase3_policy_provenance_docs_match_persisted_contracts(self) -> None:
+    def test_phase4_portable_policy_docs_match_persisted_contracts(self) -> None:
         plan_schema = (REPOSITORY / "docs/reference/plan-schema.md").read_text(
             encoding="utf-8"
         )
         for contract in (
-            "aptus.training-plan.v4",
+            "aptus.training-plan.v5",
+            "aptus.model-policy-snapshot.v1",
             "aptus.model-compatibility.v2",
             "aptus.model-inspection-receipt.v1",
             "aptus.model-policy-binding.v1",
@@ -374,13 +375,14 @@ class DocumentationTests(unittest.TestCase):
             "model_policy_decision_source",
             "model_policy_decision_id",
             "policy_binding",
+            "model_policy_snapshot_sha256",
         ):
             self.assertIn(field, plan_schema)
         self.assertIn("Every candidate carries the plan decision link", plan_schema)
         self.assertIn('`"policy_binding": null`', plan_schema)
         self.assertIn("`parameters` and `training_allowed` never", plan_schema)
         self.assertIn("tamper-evident content bindings, not authenticated", plan_schema)
-        self.assertIn("stale v4 policy", plan_schema)
+        self.assertIn("A v4 plan, stale v5", plan_schema)
 
         api = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
         cli = (REPOSITORY / "docs/reference/cli.md").read_text(encoding="utf-8")
@@ -392,8 +394,8 @@ class DocumentationTests(unittest.TestCase):
         error_codes = (REPOSITORY / "docs/reference/error-codes.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("under the v4 contract", error_codes)
-        self.assertIn("obsolete registered policy version", error_codes)
+        self.assertIn("under the v5 contract", error_codes)
+        self.assertIn("obsolete policy decision or snapshot", error_codes)
         self.assertIn("downgrading a bad receipt", error_codes)
 
         ui_contract = (REPOSITORY / "docs/product/ui-ux.md").read_text(encoding="utf-8")
@@ -410,7 +412,7 @@ class DocumentationTests(unittest.TestCase):
             "aptus.api.v1",
             "aptus.facts.v3",
             "aptus.runtime-contract.v1",
-            "aptus.bundle.v2",
+            "aptus.bundle.v3",
         ):
             self.assertIn(unchanged, overview)
 
@@ -419,6 +421,20 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertIn("Phase 4", system)
         self.assertIn("Phase 5", system)
+        self.assertIn("aptus.model-policy-snapshot.v1", system)
+        self.assertIn("aptus.training-plan.v5", system)
+        self.assertIn("aptus.bundle.v3", system)
+
+        bundle = (REPOSITORY / "docs/reference/bundle-manifest.md").read_text(
+            encoding="utf-8"
+        )
+        for portable_contract in (
+            "policy/model-policy-snapshot.v1.json",
+            "policy_snapshot_sha256",
+            "generic policy evaluator",
+            "does not import Aptus",
+        ):
+            self.assertIn(portable_contract, bundle)
 
         debt = (REPOSITORY / "docs/maintenance/documentation-debt.md").read_text(
             encoding="utf-8"

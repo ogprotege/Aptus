@@ -17,6 +17,7 @@ if (ROOT / "__pycache__").exists():
         "Bundle contains an unmanifested __pycache__; remove it before execution."
     )
 sys.dont_write_bytecode = True
+from plan_contract import validate_bundle_manifest
 from runtime_lease import portable_execution_lease, run_with_lease
 
 
@@ -33,11 +34,15 @@ def bind_visible_cuda_devices(plan: dict) -> None:
         )
         or len(set(device_indices)) != len(device_indices)
     ):
-        raise RuntimeError("Selected CUDA device indices do not match the planned world.")
+        raise RuntimeError(
+            "Selected CUDA device indices do not match the planned world."
+        )
     marker = os.environ.get("APTUS_BOUND_DEVICE_CANDIDATE")
     if marker is not None:
         if marker != candidate["candidate_id"]:
-            raise RuntimeError("Inherited Aptus CUDA visibility belongs to another candidate.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility belongs to another candidate."
+            )
         inherited = os.environ.get("CUDA_VISIBLE_DEVICES")
         inherited_tokens = (
             [token.strip() for token in inherited.split(",") if token.strip()]
@@ -45,21 +50,27 @@ def bind_visible_cuda_devices(plan: dict) -> None:
             else []
         )
         if len(inherited_tokens) != world_size or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in inherited_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in inherited_tokens
         ):
-            raise RuntimeError("Inherited Aptus CUDA visibility is missing or malformed.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility is missing or malformed."
+            )
         return
     existing = os.environ.get("CUDA_VISIBLE_DEVICES")
     if existing is not None:
-        visible_tokens = [token.strip() for token in existing.split(",") if token.strip()]
+        visible_tokens = [
+            token.strip() for token in existing.split(",") if token.strip()
+        ]
         if not visible_tokens or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in visible_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in visible_tokens
         ):
-            raise RuntimeError("CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices.")
+            raise RuntimeError(
+                "CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices."
+            )
         if any(index >= len(visible_tokens) for index in device_indices):
-            raise RuntimeError("Selected CUDA device index is outside CUDA_VISIBLE_DEVICES.")
+            raise RuntimeError(
+                "Selected CUDA device index is outside CUDA_VISIBLE_DEVICES."
+            )
         selected_tokens = [visible_tokens[index] for index in device_indices]
     else:
         selected_tokens = [str(index) for index in device_indices]
@@ -105,10 +116,14 @@ def recover_pending_run() -> int | None:
     ):
         return None
     if report.get("state") != "execution-approved":
-        raise RuntimeError("Pending run evidence exists outside execution-approved state.")
+        raise RuntimeError(
+            "Pending run evidence exists outside execution-approved state."
+        )
     active = report.get("active_run")
     if not isinstance(active, dict) or not isinstance(active.get("output_dir"), str):
-        raise RuntimeError("Pending run evidence lacks a bound active output directory.")
+        raise RuntimeError(
+            "Pending run evidence lacks a bound active output directory."
+        )
     resolved = normalize_run_output(Path(active["output_dir"]), fresh=False)
     promoted = run_with_lease(
         [sys.executable, str(ROOT / "train.py"), "--promote-pending", str(resolved)],
@@ -165,6 +180,9 @@ def launch_full_training(arguments: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    manifest_errors = validate_bundle_manifest(ROOT)
+    if manifest_errors:
+        raise RuntimeError("Invalid Aptus bundle: " + " | ".join(manifest_errors))
     parser = argparse.ArgumentParser(
         description="Launch, wait for, verify, and attest one Aptus full-training run."
     )

@@ -1,20 +1,50 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import math
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "aptus.training-plan.v4"
+SCHEMA_VERSION = "aptus.training-plan.v5"
 FORMULA_VERSION = "aptus-memory-v2"
 MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
 MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION = "aptus.model-inspection-receipt.v1"
 MODEL_POLICY_BINDING_SCHEMA_VERSION = "aptus.model-policy-binding.v1"
+MODEL_POLICY_SNAPSHOT_SCHEMA_VERSION = "aptus.model-policy-snapshot.v1"
+MODEL_POLICY_SNAPSHOT_PATH = "policy/model-policy-snapshot.v1.json"
+_POLICY_SNAPSHOT_MODULE: Any | None = None
+
+
+def _policy_snapshot_module():
+    global _POLICY_SNAPSHOT_MODULE
+    if _POLICY_SNAPSHOT_MODULE is not None:
+        return _POLICY_SNAPSHOT_MODULE
+    try:
+        from . import policy_snapshot
+
+        _POLICY_SNAPSHOT_MODULE = policy_snapshot
+        return _POLICY_SNAPSHOT_MODULE
+    except ImportError:
+        source = Path(__file__).with_name("policy_snapshot.py")
+        spec = importlib.util.spec_from_file_location(
+            "aptus_portable_policy_snapshot", source
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError("Portable model policy snapshot module is unavailable.")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _POLICY_SNAPSHOT_MODULE = module
+        return _POLICY_SNAPSHOT_MODULE
+
+
+_policy_snapshot_module()
 CANDIDATE_STATUSES = {"feasible", "conditional", "infeasible", "unsupported"}
 METHODS = {"full", "lora", "int8-lora", "qlora"}
 DISTRIBUTIONS = {"single", "ddp", "fsdp"}
@@ -274,12 +304,66 @@ def validate_bundle_manifest(root: Path) -> tuple[str, ...]:
         return (f"Bundle manifest is invalid JSON: {error}",)
     if (
         not isinstance(manifest, dict)
-        or manifest.get("schema_version") != "aptus.bundle.v2"
+        or manifest.get("schema_version") != "aptus.bundle.v3"
     ):
-        errors.append("Bundle manifest schema must be aptus.bundle.v2.")
+        errors.append("Bundle manifest schema must be aptus.bundle.v3.")
+    expected_artifact_fingerprint = os.environ.get(
+        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT"
+    )
+    if expected_artifact_fingerprint is not None and (
+        not _valid_sha256(expected_artifact_fingerprint)
+        or sha256_file(manifest_path) != expected_artifact_fingerprint
+    ):
+        errors.append(
+            "Bundle manifest does not match the host-authorized artifact fingerprint."
+        )
+    authorized_policy_snapshot = os.environ.get(
+        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256"
+    )
+    if authorized_policy_snapshot is not None and (
+        not _valid_sha256(authorized_policy_snapshot)
+        or manifest.get("policy_snapshot_sha256") != authorized_policy_snapshot
+    ):
+        errors.append(
+            "Bundle model policy snapshot does not match the host-authorized digest."
+        )
     plan_path = root / "plan.json"
     if not plan_path.is_file() or manifest.get("plan_sha256") != sha256_file(plan_path):
         errors.append("Bundle manifest plan digest does not match plan.json.")
+    snapshot_relative = manifest.get("policy_snapshot_path")
+    if snapshot_relative != MODEL_POLICY_SNAPSHOT_PATH:
+        errors.append(
+            f"Bundle manifest policy snapshot path must be {MODEL_POLICY_SNAPSHOT_PATH}."
+        )
+    snapshot_path = root / MODEL_POLICY_SNAPSHOT_PATH
+    snapshot_digest = manifest.get("policy_snapshot_sha256")
+    if not snapshot_path.is_file():
+        errors.append("Bundle model policy snapshot is missing.")
+    else:
+        try:
+            snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            if not isinstance(snapshot, Mapping):
+                raise ValueError("snapshot must be an object")
+            actual_snapshot_digest = _policy_snapshot_sha256(snapshot)
+            if (
+                snapshot_path.read_bytes()
+                != _policy_snapshot_module().model_policy_snapshot_bytes(snapshot)
+            ):
+                errors.append("Bundle model policy snapshot is not canonical JSON.")
+            if snapshot_digest != actual_snapshot_digest:
+                errors.append("Bundle model policy snapshot digest does not match.")
+            if plan_path.is_file():
+                plan_value = json.loads(plan_path.read_text(encoding="utf-8"))
+                if (
+                    not isinstance(plan_value, Mapping)
+                    or plan_value.get("model_policy_snapshot_sha256")
+                    != actual_snapshot_digest
+                ):
+                    errors.append(
+                        "Bundle plan does not bind the emitted model policy snapshot."
+                    )
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as error:
+            errors.append(f"Bundle model policy snapshot is malformed: {error}")
     entries = manifest.get("files")
     if not isinstance(entries, list) or not entries:
         errors.append("Bundle manifest files must be a non-empty list.")
@@ -551,7 +635,10 @@ def _semantic_inspection_receipt(value: Any) -> Any:
     }
 
 
-def _current_model_policy_decision(model: Mapping[str, Any]) -> dict[str, Any]:
+def _retired_handwritten_model_policy_decision(
+    model: Mapping[str, Any],
+    policy_snapshot: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Recompute the current portable policy without importing Aptus.
 
     This remains an explicit Qwen3 MoE policy check. A portable policy snapshot
@@ -559,6 +646,10 @@ def _current_model_policy_decision(model: Mapping[str, Any]) -> dict[str, Any]:
     """
 
     subject = _compatibility_subject_payload(model)
+    if policy_snapshot is not None:
+        return _policy_snapshot_module().evaluate_model_policy_snapshot(
+            policy_snapshot, subject
+        )
     subject_digest = _sha256_json(subject)
     family = subject["family"]
     model_type = subject["model_type"]
@@ -674,10 +765,81 @@ def _current_model_policy_decision(model: Mapping[str, Any]) -> dict[str, Any]:
     )
 
 
-def require_current_model_policy(plan_value: Any) -> None:
+def _current_model_policy_decision(
+    model: Mapping[str, Any],
+    policy_snapshot: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Evaluate model compatibility from the versioned portable snapshot."""
+
+    snapshot = (
+        policy_snapshot
+        if policy_snapshot is not None
+        else _policy_snapshot_for_validation()
+    )
+    return _policy_snapshot_module().evaluate_model_policy_snapshot(
+        snapshot,
+        _compatibility_subject_payload(model),
+    )
+
+
+def _policy_snapshot_for_validation(
+    *,
+    root: Path | None = None,
+    policy_snapshot: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    if policy_snapshot is not None:
+        return policy_snapshot
+    if __package__:
+        try:
+            from .model_compatibility import current_model_policy_snapshot
+
+            return current_model_policy_snapshot()
+        except ImportError as error:
+            raise ValueError(
+                "Current host model policy snapshot is unavailable."
+            ) from error
+    if root is not None:
+        path = root / MODEL_POLICY_SNAPSHOT_PATH
+        if path.is_file():
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(value, Mapping):
+                raise ValueError("Model policy snapshot must be an object.")
+            return value
+    raise ValueError("Portable model policy snapshot is unavailable.")
+
+
+def _policy_snapshot_sha256(snapshot: Mapping[str, Any]) -> str:
+    return _policy_snapshot_module().model_policy_snapshot_sha256(snapshot)
+
+
+def require_current_model_policy_snapshot(plan_value: Any) -> None:
+    """Require a bundle-bound snapshot to match the installed host registry.
+
+    Bundle-manifest validation establishes that the recorded digest belongs to
+    the bundle's frozen snapshot. When that digest is no longer current, the
+    complete historical plan chain is checked before the mismatch is classified
+    as a replanning condition rather than malformed state.
+    """
+
+    if not isinstance(plan_value, Mapping):
+        raise ValueError("Persisted plan must be an object.")
+    recorded_digest = plan_value.get("model_policy_snapshot_sha256")
+    if not isinstance(recorded_digest, str):
+        raise ValueError("Persisted plan must bind a model policy snapshot digest.")
+    snapshot = _policy_snapshot_for_validation()
+    if recorded_digest == _policy_snapshot_sha256(snapshot):
+        return
+    require_current_model_policy(plan_value, policy_snapshot=snapshot)
+
+
+def require_current_model_policy(
+    plan_value: Any,
+    *,
+    policy_snapshot: Mapping[str, Any] | None = None,
+) -> None:
     """Raise a distinct error when a same-schema plan needs policy replanning.
 
-    Malformed or tampered v4 state remains a plain ``ValueError``. A decision is
+    Malformed or tampered v5 state remains a plain ``ValueError``. A decision is
     classified as stale only after its full historical receipt, candidate,
     recommendation, evidence, and plan identity chain validates independently
     of today's policy registry.
@@ -690,9 +852,10 @@ def require_current_model_policy(plan_value: Any) -> None:
     model = plan_value.get("model")
     decision = plan_value.get("model_policy_decision")
     if not isinstance(model, Mapping) or not isinstance(decision, Mapping):
-        raise ValueError("Persisted v4 plans require model policy state.")
+        raise ValueError("Persisted v5 plans require model policy state.")
     try:
-        expected = _current_model_policy_decision(model)
+        snapshot = _policy_snapshot_for_validation(policy_snapshot=policy_snapshot)
+        expected = _current_model_policy_decision(model, snapshot)
     except (OverflowError, TypeError, ValueError) as error:
         raise ValueError(
             "Saved model policy could not be recomputed from malformed model facts."
@@ -700,8 +863,6 @@ def require_current_model_policy(plan_value: Any) -> None:
     reason = decision.get("reason")
     if not isinstance(reason, str) or not reason.strip() or reason != reason.strip():
         raise ValueError("Saved model policy reason must be unpadded non-empty text.")
-    if _semantic_policy_decision(decision) == _semantic_policy_decision(expected):
-        return
     required_decision_fields = {
         "schema_version",
         "decision_id",
@@ -727,6 +888,13 @@ def require_current_model_policy(plan_value: Any) -> None:
             "Saved model policy state is malformed, tampered, or inconsistent "
             "with the current model facts."
         )
+    snapshot_digest = _policy_snapshot_sha256(snapshot)
+    if plan_value.get(
+        "model_policy_snapshot_sha256"
+    ) == snapshot_digest and _semantic_policy_decision(
+        decision
+    ) == _semantic_policy_decision(expected):
+        return
     try:
         historical_errors = _validate_plan_payload_impl(
             plan_value,
@@ -2019,6 +2187,7 @@ def plan_id_for_payload(plan: Mapping[str, Any]) -> str:
             plan.get("model_policy_decision")
         ),
         "model_policy_decision_source": plan.get("model_policy_decision_source"),
+        "model_policy_snapshot_sha256": plan.get("model_policy_snapshot_sha256"),
         "inspection_receipt": _semantic_inspection_receipt(
             plan.get("inspection_receipt")
         ),
@@ -2033,6 +2202,7 @@ def _validate_plan_payload_impl(
     root: Path | None = None,
     verify_dataset: bool = True,
     expected_policy_decision_override: Mapping[str, Any] | None = None,
+    policy_snapshot: Mapping[str, Any] | None = None,
     enforce_current_policy: bool = True,
 ) -> tuple[str, ...]:
     errors: list[str] = []
@@ -2068,6 +2238,7 @@ def _validate_plan_payload_impl(
         "model_policy_decision",
         "model_policy_decision_source",
         "inspection_receipt",
+        "model_policy_snapshot_sha256",
     ):
         if key not in plan:
             errors.append(f"Plan requires {key}.")
@@ -2121,14 +2292,36 @@ def _validate_plan_payload_impl(
     except ValueError as error:
         errors.append(str(error))
 
+    snapshot: Mapping[str, Any] | None = None
     current_policy_decision: Mapping[str, Any] | None = None
     try:
-        current_policy_decision = _current_model_policy_decision(model)
+        snapshot = _policy_snapshot_for_validation(
+            root=root,
+            policy_snapshot=policy_snapshot,
+        )
+        current_policy_decision = _current_model_policy_decision(model, snapshot)
     except (TypeError, ValueError) as error:
         errors.append(
             "Model compatibility decision could not be recomputed from bound facts: "
             f"{error}"
         )
+    snapshot_digest = plan.get("model_policy_snapshot_sha256")
+    if (
+        not isinstance(snapshot_digest, str)
+        or len(snapshot_digest) != 64
+        or any(character not in "0123456789abcdef" for character in snapshot_digest)
+    ):
+        errors.append(
+            "Plan model_policy_snapshot_sha256 must be a lowercase SHA-256 digest."
+        )
+    elif enforce_current_policy and snapshot is not None:
+        try:
+            if snapshot_digest != _policy_snapshot_sha256(snapshot):
+                errors.append(
+                    "Plan model policy snapshot digest is stale or tampered; replan_required."
+                )
+        except ValueError as error:
+            errors.append(f"Model policy snapshot is malformed: {error}")
     expected_policy_decision = (
         expected_policy_decision_override
         if expected_policy_decision_override is not None
@@ -3068,6 +3261,7 @@ def validate_plan_payload(
     *,
     root: Path | None = None,
     verify_dataset: bool = True,
+    policy_snapshot: Mapping[str, Any] | None = None,
 ) -> tuple[str, ...]:
     """Validate a plan against the current portable policy contract."""
 
@@ -3076,6 +3270,7 @@ def validate_plan_payload(
             plan_value,
             root=root,
             verify_dataset=verify_dataset,
+            policy_snapshot=policy_snapshot,
         )
     except (IndexError, KeyError, OverflowError, TypeError, ValueError) as error:
         return (f"Plan structure is malformed: {error}",)

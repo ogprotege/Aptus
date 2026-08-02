@@ -211,6 +211,14 @@ documentation suite passes 17 tests, including semantic Phase 3 coverage and
 the local link-and-anchor check. This is documentation and contract evidence,
 not a passing real-model pilot.
 
+Phase 4 advances the current plan to `aptus.training-plan.v5` and the bundle to
+`aptus.bundle.v3`. The canonical `aptus.model-policy-snapshot.v1` is generated
+deterministically from the host registry, cross-bound by digest in the plan and
+manifest, and evaluated inside the bundle without importing Aptus. V4 and older
+plans require replanning. Missing, malformed, noncanonical, stale, or tampered
+snapshots fail closed. Phase 5 browser cleanup and Phase 6 policy expansion
+remain separate.
+
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature
 checks, and DMG verification. Two clean real MLX workflows and ten consecutive

@@ -52,8 +52,8 @@ boundaries.
 | MLX memory | `aptus-memory-mlx-v2` | Apple unified-memory envelopes, including exact routed-expert activation terms |
 | Ranking | `aptus-ranking-v2` | Pareto annotation and lexicographic objective policy |
 | Preflight | `aptus-preflight-v2` | Runtime-specific bounded update evidence before the real pilot; CUDA uses a synthetic model, while MLX uses the pinned model and compiled data |
-| Bundle | `aptus.bundle.v2` | Atomic file manifest and execution contract |
-| Plan | `aptus.training-plan.v4` | Selected candidate, policy provenance, and full decision trace |
+| Bundle | `aptus.bundle.v3` | Atomic manifest, portable policy snapshot, and execution contract |
+| Plan | `aptus.training-plan.v5` | Selected candidate, snapshot digest, policy provenance, and full decision trace |
 | Trainable census | `aptus.trainable-parameter-census.v1` | Method-scope tensor and parameter counts, finite state, and descriptor digest |
 | Dataset split | `aptus.dataset-split.v1` | Full-run assignment strategy, counts, canonical digest, assignment digest, and realized error |
 | MLX dataset split | `aptus.mlx-split.v1` | Disjoint compiled train and validation counts with repeat-within-split microbatch padding |
@@ -64,8 +64,10 @@ requires a new version or an explicitly compatible patch.
 
 The HTTP API remains `aptus.api.v1`, facts remain `aptus.facts.v3`, candidate
 runtime records remain `aptus.runtime-contract.v1`, and bundle manifests remain
-`aptus.bundle.v2`. The v4 migration changes only the plan and new policy
-provenance contracts.
+`aptus.bundle.v3`. The v5 migration changes the plan and bundle so the canonical
+policy snapshot digest is cross-bound across both artifacts. The
+`aptus.model-policy-snapshot.v1` bytes are deterministic, and the bundled
+generic evaluator reproduces the host decision without importing Aptus.
 
 ## Abstention
 

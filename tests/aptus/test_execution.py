@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import shutil
@@ -17,6 +18,8 @@ from aptus.execution import (
     _environment_binding,
     _json_hash,
     _promote_mlx_train_attestation,
+    _promote_train_attestation,
+    _require_current_bundle_model_policy,
     _verify_mlx_completed_run,
     _verify_mlx_pilot_attestation,
     _verify_mlx_runtime_metrics,
@@ -24,7 +27,21 @@ from aptus.execution import (
     _verify_pilot_artifacts,
     _verify_safetensors_structure,
 )
-from aptus.plan_contract import expected_model_architecture_contract, sha256_file
+from aptus.domain import to_primitive
+from aptus.generation import generate_bundle
+from aptus.model_compatibility import (
+    current_model_policy_snapshot,
+    current_model_policy_snapshot_bytes,
+    current_model_policy_snapshot_sha256,
+)
+from aptus.plan_contract import (
+    StaleModelPolicyError,
+    _current_model_policy_decision,
+    expected_model_architecture_contract,
+    sha256_file,
+)
+
+from tests.aptus.helpers import make_plan
 
 
 def write_validation_state(bundle: Path, state: str) -> None:
@@ -34,14 +51,26 @@ def write_validation_state(bundle: Path, state: str) -> None:
     )
 
 
+def changed_model_policy_snapshot() -> dict:
+    snapshot = copy.deepcopy(current_model_policy_snapshot())
+    snapshot["dense_families"] = sorted(
+        [*snapshot["dense_families"], "future-dense-family"]
+    )
+    return snapshot
+
+
 def fake_bundle(
     root: Path, *, validation_state: str | None = "model-data-pass"
 ) -> Path:
     bundle = root / "bundle"
     bundle.mkdir()
+    policy_plan = to_primitive(make_plan(root, gpu_count=1))
     plan = {
+        "schema_version": policy_plan["schema_version"],
         "plan_id": "plan_" + "a" * 20,
-        "model": {"revision": "b" * 40},
+        "model_policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
+        "model": policy_plan["model"],
+        "model_policy_decision": policy_plan["model_policy_decision"],
         "dataset": {"source_sha256": "c" * 64},
         "hardware": {"reserve_per_device_bytes": 0},
         "recommended": {
@@ -59,14 +88,19 @@ def fake_bundle(
     )
     (bundle / "train.py").write_text('print("training job passed")\n', encoding="utf-8")
     (bundle / "requirements.txt").write_text("", encoding="utf-8")
+    snapshot_path = bundle / "policy" / "model-policy-snapshot.v1.json"
+    snapshot_path.parent.mkdir()
+    snapshot_path.write_bytes(current_model_policy_snapshot_bytes())
     (bundle / "config").mkdir()
     (bundle / "config" / "accelerate.yaml").write_text(
         "distributed_type: NO\n", encoding="utf-8"
     )
     paths = [item for item in bundle.rglob("*") if item.is_file()]
     manifest = {
-        "schema_version": "aptus.bundle.v2",
+        "schema_version": "aptus.bundle.v3",
         "plan_sha256": sha256_file(bundle / "plan.json"),
+        "policy_snapshot_path": "policy/model-policy-snapshot.v1.json",
+        "policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
         "files": [
             {
                 "path": path.relative_to(bundle).as_posix(),
@@ -163,8 +197,10 @@ def mlx_model_load_binding(plan: dict) -> dict:
 
 def fake_mlx_plan() -> dict:
     reserve = 8 * 1024**3
-    return {
+    plan = {
+        "schema_version": "aptus.training-plan.v5",
         "plan_id": "plan_" + "a" * 20,
+        "model_policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
         "model": {
             "model_id": "example/model",
             "revision": "b" * 40,
@@ -210,6 +246,8 @@ def fake_mlx_plan() -> dict:
             },
         },
     }
+    plan["model_policy_decision"] = _current_model_policy_decision(plan["model"])
+    return plan
 
 
 def write_fake_mlx_split_contract(bundle: Path) -> None:
@@ -778,7 +816,10 @@ class ExecutionJobTests(unittest.TestCase):
             service = JobService(Path(temporary) / "jobs")
             reserve = 8 * 1024**3
             with (
-                patch("aptus.execution.validate_bundle_manifest", return_value=()),
+                patch(
+                    "aptus.execution._require_current_bundle_model_policy",
+                    return_value=(plan, "a" * 64),
+                ),
                 patch("aptus.execution.validate_plan_payload", return_value=()),
                 patch(
                     "aptus.execution._verify_mlx_pilot_attestation",
@@ -1153,6 +1194,514 @@ class ExecutionJobTests(unittest.TestCase):
                 )
                 _verify_safetensors_structure(misindexed, misindexed_paths)
 
+    def test_host_submission_rejects_a_bundle_after_policy_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            write_validation_state(bundle, "pilot-pass")
+            service = JobService(root / "jobs")
+
+            with (
+                patch(
+                    "aptus.model_compatibility.current_model_policy_snapshot",
+                    return_value=changed_model_policy_snapshot(),
+                ),
+                self.assertRaises(StaleModelPolicyError) as raised,
+            ):
+                service.submit(bundle, action="train", confirm_full_train=True)
+
+            self.assertIn("replan_required", str(raised.exception))
+            self.assertEqual(service.list(), [])
+            self.assertEqual(service._threads, {})
+            self.assertFalse(service._lease_path.exists())
+
+    def test_pilot_authorization_is_non_current_after_policy_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            write_validation_state(bundle, "pilot-pass")
+
+            with patch(
+                "aptus.model_compatibility.current_model_policy_snapshot",
+                return_value=changed_model_policy_snapshot(),
+            ):
+                authorization = JobService(root / "jobs").pilot_authorization(bundle)
+
+        self.assertFalse(authorization["current"])
+        self.assertIn("replan_required", authorization["error"])
+        self.assertIsNone(authorization["capacity"])
+
+    def test_recovery_does_not_promote_evidence_under_a_new_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            service = JobService(root / "jobs")
+            job_id = "job_" + "f" * 32
+            service._write(
+                {
+                    "id": job_id,
+                    "job_id": job_id,
+                    "state": "running",
+                    "action": "train",
+                    "bundle_dir": str(bundle),
+                    "artifact_fingerprint": sha256_file(
+                        bundle / "bundle-manifest.json"
+                    ),
+                    "return_code": 0,
+                    "owner_pid": -1,
+                    "process_pid": None,
+                    "created_at": "2026-08-02T00:00:00+00:00",
+                    "verified_pending_evidence": {
+                        "training_runtime": "transformers-peft-cuda"
+                    },
+                }
+            )
+
+            with (
+                patch(
+                    "aptus.model_compatibility.current_model_policy_snapshot",
+                    return_value=changed_model_policy_snapshot(),
+                ),
+                patch(
+                    "aptus.execution._promote_cuda_train_attestation",
+                    return_value={"state": "measured-run-pass"},
+                ) as promote,
+            ):
+                recovered = service.get(job_id, include_validation_report=False)
+
+        promote.assert_not_called()
+        self.assertEqual(recovered["state"], "failed")
+        self.assertIn("replan_required", recovered["error"])
+        self.assertNotIn("completion_attestation", recovered)
+
+    def test_host_guard_rejects_policy_state_incoherent_with_embedded_snapshot(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            plan_path = bundle / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            plan["model_policy_decision"]["unexpected"] = "not-contract-state"
+            write_json(plan_path, plan)
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["plan_sha256"] = sha256_file(plan_path)
+            plan_entry = next(
+                item for item in manifest["files"] if item["path"] == "plan.json"
+            )
+            plan_entry["sha256"] = sha256_file(plan_path)
+            plan_entry["size_bytes"] = plan_path.stat().st_size
+            write_json(manifest_path, manifest)
+
+            with self.assertRaisesRegex(ValueError, "embedded model policy"):
+                _require_current_bundle_model_policy(bundle)
+
+    def test_host_guard_detects_plan_change_during_manifest_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            plan_path = bundle / "plan.json"
+
+            def swap_plan(_bundle: Path) -> tuple[str, ...]:
+                write_json(
+                    plan_path,
+                    {
+                        "model_policy_snapshot_sha256": (
+                            current_model_policy_snapshot_sha256()
+                        )
+                    },
+                )
+                return ()
+
+            with (
+                patch(
+                    "aptus.execution.validate_bundle_manifest",
+                    side_effect=swap_plan,
+                ),
+                self.assertRaisesRegex(ValueError, "changed while"),
+            ):
+                _require_current_bundle_model_policy(bundle)
+
+    def test_host_guard_detects_change_during_current_policy_check(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            plan_path = bundle / "plan.json"
+
+            def mutate_after_embedded_check(_plan: object) -> None:
+                plan_path.write_bytes(plan_path.read_bytes() + b" ")
+
+            with (
+                patch(
+                    "aptus.execution.require_current_model_policy_snapshot",
+                    side_effect=mutate_after_embedded_check,
+                ),
+                self.assertRaisesRegex(ValueError, "changed while"),
+            ):
+                _require_current_bundle_model_policy(bundle)
+
+    def test_submission_builds_command_from_the_admitted_plan_capture(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            plan_path = bundle / "plan.json"
+            admitted_bytes = plan_path.read_bytes()
+            tampered = json.loads(admitted_bytes)
+            tampered["recommended"]["runtime_contract"] = {"training_runtime": "mlx-lm"}
+            service = JobService(root / "jobs")
+            admitted_command = service._command
+
+            def swap_during_command(
+                command_bundle: Path,
+                action: str,
+                **arguments: object,
+            ) -> list[str]:
+                write_json(plan_path, tampered)
+                try:
+                    return admitted_command(
+                        command_bundle,
+                        action,  # type: ignore[arg-type]
+                        **arguments,  # type: ignore[arg-type]
+                    )
+                finally:
+                    plan_path.write_bytes(admitted_bytes)
+
+            submitted: dict | None = None
+            try:
+                with (
+                    patch.object(service, "_command", side_effect=swap_during_command),
+                    patch(
+                        "aptus.execution.resolve_runtime_interpreter",
+                        return_value=types.SimpleNamespace(path="/tampered/mlx-python"),
+                    ),
+                    patch("aptus.execution.threading.Thread.start"),
+                ):
+                    submitted = service.submit(bundle, action="preflight")
+                self.assertEqual(submitted["command"][0], sys.executable)
+            finally:
+                if submitted is not None:
+                    service._threads.pop(submitted["id"], None)
+                    service._clear_global_lease(submitted["id"])
+
+    def test_train_pilot_check_is_bound_to_the_admitted_fingerprint(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root, validation_state="pilot-pass")
+            fingerprint = sha256_file(bundle / "bundle-manifest.json")
+            service = JobService(root / "jobs")
+            submitted: dict | None = None
+            try:
+                with (
+                    patch.object(
+                        service,
+                        "_require_current_pilot",
+                        return_value={"measured_peak_bytes": 1},
+                    ) as require_pilot,
+                    patch("aptus.execution.threading.Thread.start"),
+                ):
+                    submitted = service.submit(
+                        bundle,
+                        action="train",
+                        confirm_full_train=True,
+                    )
+                require_pilot.assert_called_once_with(
+                    bundle.resolve(),
+                    expected_artifact_fingerprint=fingerprint,
+                )
+            finally:
+                if submitted is not None:
+                    service._threads.pop(submitted["id"], None)
+                    service._clear_global_lease(submitted["id"])
+
+    def test_worker_launch_rechecks_current_policy_and_observed_fingerprint(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            service = JobService(root / "jobs")
+            submitted: dict | None = None
+            try:
+                with patch("aptus.execution.threading.Thread.start"):
+                    submitted = service.submit(bundle, action="dependency")
+                self.assertEqual(
+                    submitted["artifact_fingerprint"],
+                    sha256_file(bundle / "bundle-manifest.json"),
+                )
+                with (
+                    patch(
+                        "aptus.model_compatibility.current_model_policy_snapshot",
+                        return_value=changed_model_policy_snapshot(),
+                    ),
+                    self.assertRaises(StaleModelPolicyError),
+                ):
+                    service._require_record_bundle_binding(submitted)
+            finally:
+                if submitted is not None:
+                    service._threads.pop(submitted["id"], None)
+                    service._clear_global_lease(submitted["id"])
+
+    def test_recovery_preserves_evidence_already_promoted_before_policy_change(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            job_id = "job_" + "e" * 32
+            run_id = "run_" + "e" * 32
+            active_run = {"run_id": run_id}
+            pending_at = "2026-08-02T00:00:01+00:00"
+            final_export = {
+                "schema_version": "aptus.final-export.v1",
+                "manifest_sha256": "a" * 64,
+            }
+            measured_run = {
+                "schema_version": "aptus.measured-run.v1",
+                "metrics_sha256": "b" * 64,
+            }
+            write_json(
+                bundle / "validation-report.json",
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "execution-approved",
+                    "active_run": active_run,
+                    "measured_run_pending_at": pending_at,
+                    "pending_final_export": final_export,
+                    "pending_measured_run": measured_run,
+                },
+            )
+            service = JobService(root / "jobs")
+            evidence = {
+                "training_runtime": "transformers-peft-cuda",
+                "active_run": active_run,
+                "pending_at": pending_at,
+                "final_export": final_export,
+                "measured_run": measured_run,
+            }
+            record = {
+                "id": job_id,
+                "job_id": job_id,
+                "run_id": run_id,
+                "state": "running",
+                "action": "train",
+                "bundle_dir": str(bundle),
+                "artifact_fingerprint": sha256_file(bundle / "bundle-manifest.json"),
+                "return_code": 0,
+                "owner_pid": -1,
+                "process_pid": None,
+                "created_at": "2026-08-02T00:00:00+00:00",
+                "verified_pending_evidence": evidence,
+            }
+            promoted = _promote_train_attestation(record, evidence)
+            promoted_report = json.loads(
+                (bundle / "validation-report.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(promoted["state"], "measured-run-pass")
+            self.assertEqual(
+                promoted_report["parent_promotion"]["artifact_fingerprint"],
+                record["artifact_fingerprint"],
+            )
+            service._write(record)
+
+            with (
+                patch(
+                    "aptus.model_compatibility.current_model_policy_snapshot",
+                    return_value=changed_model_policy_snapshot(),
+                ),
+                patch("aptus.execution._promote_cuda_train_attestation") as promote,
+            ):
+                recovered = service.get(job_id, include_validation_report=False)
+
+        promote.assert_not_called()
+        self.assertEqual(recovered["state"], "completed")
+        self.assertEqual(
+            recovered["completion_attestation"]["state"], "measured-run-pass"
+        )
+
+    def test_recovery_rejects_unreceipted_matching_terminal_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            final_export = {"manifest_sha256": "a" * 64}
+            measured_run = {"metrics_sha256": "b" * 64}
+            write_json(
+                bundle / "validation-report.json",
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "measured-run-pass",
+                    "final_export": final_export,
+                    "measured_run": measured_run,
+                },
+            )
+            service = JobService(root / "jobs")
+            job_id = "job_" + "d" * 32
+            service._write(
+                {
+                    "id": job_id,
+                    "job_id": job_id,
+                    "run_id": "run_" + "d" * 32,
+                    "state": "running",
+                    "action": "train",
+                    "bundle_dir": str(bundle),
+                    "artifact_fingerprint": sha256_file(
+                        bundle / "bundle-manifest.json"
+                    ),
+                    "return_code": 0,
+                    "owner_pid": -1,
+                    "process_pid": None,
+                    "created_at": "2026-08-02T00:00:00+00:00",
+                    "verified_pending_evidence": {
+                        "training_runtime": "transformers-peft-cuda",
+                        "final_export": final_export,
+                        "measured_run": measured_run,
+                    },
+                }
+            )
+
+            with patch(
+                "aptus.model_compatibility.current_model_policy_snapshot",
+                return_value=changed_model_policy_snapshot(),
+            ):
+                recovered = service.get(job_id, include_validation_report=False)
+
+        self.assertEqual(recovered["state"], "failed")
+        self.assertIn("parent-promotion receipt", recovered["error"])
+        self.assertNotIn("completion_attestation", recovered)
+
+    def test_parent_promotion_rechecks_bundle_before_committing_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            job_id = "job_" + "c" * 32
+            run_id = "run_" + "c" * 32
+            active_run = {"run_id": run_id}
+            pending_at = "2026-08-02T00:00:01+00:00"
+            final_export = {"manifest_sha256": "a" * 64}
+            measured_run = {"metrics_sha256": "b" * 64}
+            write_json(
+                bundle / "validation-report.json",
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "execution-approved",
+                    "active_run": active_run,
+                    "measured_run_pending_at": pending_at,
+                    "pending_final_export": final_export,
+                    "pending_measured_run": measured_run,
+                },
+            )
+            record = {
+                "id": job_id,
+                "run_id": run_id,
+                "bundle_dir": str(bundle),
+                "artifact_fingerprint": sha256_file(bundle / "bundle-manifest.json"),
+            }
+            evidence = {
+                "training_runtime": "transformers-peft-cuda",
+                "active_run": active_run,
+                "pending_at": pending_at,
+                "final_export": final_export,
+                "measured_run": measured_run,
+            }
+            manifest_path = bundle / "bundle-manifest.json"
+            original_guard = _require_current_bundle_model_policy
+            changed = False
+
+            def change_after_current_check(*args: object, **kwargs: object) -> object:
+                nonlocal changed
+                result = original_guard(*args, **kwargs)  # type: ignore[arg-type]
+                if kwargs.get("enforce_current_policy", True) and not changed:
+                    changed = True
+                    manifest_path.write_bytes(manifest_path.read_bytes() + b" ")
+                return result
+
+            with (
+                patch(
+                    "aptus.execution._require_current_bundle_model_policy",
+                    side_effect=change_after_current_check,
+                ),
+                self.assertRaisesRegex(ValueError, "project-bound artifact"),
+            ):
+                _promote_train_attestation(record, evidence)
+
+            report = json.loads(
+                (bundle / "validation-report.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(report["state"], "execution-approved")
+        self.assertNotIn("parent_promotion", report)
+
+    def test_parent_promotion_crash_before_receipt_keeps_pending_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root, gpu_count=1), bundle)
+            job_id = "job_" + "b" * 32
+            run_id = "run_" + "b" * 32
+            active_run = {"run_id": run_id}
+            pending_at = "2026-08-02T00:00:01+00:00"
+            final_export = {"manifest_sha256": "a" * 64}
+            measured_run = {"metrics_sha256": "b" * 64}
+            write_json(
+                bundle / "validation-report.json",
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "execution-approved",
+                    "active_run": active_run,
+                    "measured_run_pending_at": pending_at,
+                    "pending_final_export": final_export,
+                    "pending_measured_run": measured_run,
+                },
+            )
+            record = {
+                "id": job_id,
+                "run_id": run_id,
+                "bundle_dir": str(bundle),
+                "artifact_fingerprint": sha256_file(bundle / "bundle-manifest.json"),
+            }
+            evidence = {
+                "training_runtime": "transformers-peft-cuda",
+                "active_run": active_run,
+                "pending_at": pending_at,
+                "final_export": final_export,
+                "measured_run": measured_run,
+            }
+            original_guard = _require_current_bundle_model_policy
+            guard_calls = 0
+
+            def interrupt_final_check(*args: object, **kwargs: object) -> object:
+                nonlocal guard_calls
+                guard_calls += 1
+                if guard_calls == 3:
+                    raise KeyboardInterrupt("simulated promotion crash")
+                return original_guard(*args, **kwargs)  # type: ignore[arg-type]
+
+            with (
+                patch(
+                    "aptus.execution._require_current_bundle_model_policy",
+                    side_effect=interrupt_final_check,
+                ),
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                _promote_train_attestation(record, evidence)
+
+            report = json.loads(
+                (bundle / "validation-report.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(report["state"], "execution-approved")
+        self.assertNotIn("parent_promotion", report)
+
     def test_direct_action_jumps_are_rejected_with_typed_prerequisites(self) -> None:
         cases = (
             ("dependency", None, "static-pass"),
@@ -1471,15 +2020,18 @@ class ExecutionJobTests(unittest.TestCase):
             self.assertIn("project-bound artifact", finished["error"])
             self.assertFalse(replacement_marker.exists())
 
-    def test_managed_child_inherits_the_matching_global_lease_token(self) -> None:
+    def test_managed_child_inherits_lease_and_host_policy_bindings(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             bundle = fake_bundle(root)
             token_path = bundle / "observed-lease-token.txt"
             (bundle / "validate.py").write_text(
-                "import os\nfrom pathlib import Path\n"
-                "Path('observed-lease-token.txt').write_text("
-                "os.environ.get('APTUS_GPU_LEASE_TOKEN', ''), encoding='utf-8')\n",
+                "import json\nimport os\nfrom pathlib import Path\n"
+                "Path('observed-lease-token.txt').write_text(json.dumps({"
+                "'lease': os.environ.get('APTUS_GPU_LEASE_TOKEN'), "
+                "'artifact': os.environ.get('APTUS_EXPECTED_ARTIFACT_FINGERPRINT'), "
+                "'policy': os.environ.get("
+                "'APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256')}), encoding='utf-8')\n",
                 encoding="utf-8",
             )
             manifest = json.loads(
@@ -1495,9 +2047,14 @@ class ExecutionJobTests(unittest.TestCase):
             service = JobService(root / "jobs")
             submitted = service.submit(bundle, action="preflight")
             finished = wait_for(service, submitted["id"])
-            observed_token = token_path.read_text(encoding="utf-8")
+            observed = json.loads(token_path.read_text(encoding="utf-8"))
         self.assertEqual(finished["state"], "completed")
-        self.assertEqual(observed_token, submitted["id"])
+        self.assertEqual(observed["lease"], submitted["id"])
+        self.assertEqual(observed["artifact"], submitted["artifact_fingerprint"])
+        self.assertEqual(
+            observed["policy"],
+            submitted["authorized_model_policy_snapshot_sha256"],
+        )
 
     def test_job_refresh_includes_current_bundle_validation_report(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

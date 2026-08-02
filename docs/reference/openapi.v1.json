@@ -3146,7 +3146,7 @@
             "title": "Project Revision Id"
           },
           "required_schema": {
-            "const": "aptus.training-plan.v4",
+            "const": "aptus.training-plan.v5",
             "title": "Required Schema",
             "type": "string"
           },
@@ -3427,6 +3427,11 @@
             "title": "Model Policy Decision Source",
             "type": "string"
           },
+          "model_policy_snapshot_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Model Policy Snapshot Sha256",
+            "type": "string"
+          },
           "plan_id": {
             "pattern": "^plan_[0-9a-f]{20}$",
             "title": "Plan Id",
@@ -3465,7 +3470,7 @@
             "$ref": "#/components/schemas/PlanCandidateResponse"
           },
           "schema_version": {
-            "const": "aptus.training-plan.v4",
+            "const": "aptus.training-plan.v5",
             "title": "Schema Version",
             "type": "string"
           },
@@ -3480,6 +3485,7 @@
         "required": [
           "schema_version",
           "plan_id",
+          "model_policy_snapshot_sha256",
           "recommended",
           "candidates",
           "warnings",

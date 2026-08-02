@@ -72,6 +72,24 @@ def _provider_receipt(model):
 
 
 class PlannerTests(unittest.TestCase):
+    def test_plan_binds_policy_snapshot_digest_into_identity(self) -> None:
+        with patch(
+            "aptus.planning.current_model_policy_snapshot_sha256",
+            return_value="a" * 64,
+        ):
+            with tempfile.TemporaryDirectory() as temporary:
+                first = make_plan(Path(temporary))
+        with patch(
+            "aptus.planning.current_model_policy_snapshot_sha256",
+            return_value="b" * 64,
+        ):
+            with tempfile.TemporaryDirectory() as temporary:
+                second = make_plan(Path(temporary))
+
+        self.assertEqual(first.model_policy_snapshot_sha256, "a" * 64)
+        self.assertEqual(second.model_policy_snapshot_sha256, "b" * 64)
+        self.assertNotEqual(first.plan_id, second.plan_id)
+
     def test_user_attested_plan_binds_current_policy_to_every_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_qwen3_moe_plan(Path(temporary))

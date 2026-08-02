@@ -46,6 +46,11 @@ from .methods import (
     runtime_binding,
     runtime_contract_for,
 )
+from .policy_snapshot import (
+    model_policy_snapshot_bytes,
+    model_policy_snapshot_payload,
+    model_policy_snapshot_sha256,
+)
 
 
 QWEN3_MOE_IDENTITY_REASON = (
@@ -378,6 +383,109 @@ def _validate_model_compatibility_policies() -> None:
 
 
 _validate_model_compatibility_policies()
+
+
+def current_model_policy_snapshot() -> dict[str, Any]:
+    """Return the canonical portable snapshot generated from the host registry."""
+
+    policies = []
+    for policy in MODEL_COMPATIBILITY_POLICIES:
+        if policy.policy_id != QWEN3_MOE_POLICY_ID:
+            raise RuntimeError(
+                "Every registered model policy requires portable rule data."
+            )
+        policies.append(
+            {
+                "policy_id": policy.policy_id,
+                "policy_version": policy.policy_version,
+                "family": policy.family,
+                "claims": {
+                    "any_identity": {
+                        "architecture": [QWEN3_MOE_ARCHITECTURE],
+                        "family": [QWEN3_MOE_FAMILY],
+                        "model_type": [QWEN3_MOE_MODEL_TYPE],
+                    }
+                },
+                "constraints": [
+                    {
+                        "kind": "exact_identity",
+                        "values": {
+                            "architecture": QWEN3_MOE_ARCHITECTURE,
+                            "family": QWEN3_MOE_FAMILY,
+                            "model_type": QWEN3_MOE_MODEL_TYPE,
+                        },
+                        "reason": "identity",
+                        "reason_code": "identity-mismatch",
+                    },
+                    {
+                        "kind": "quantization_layout",
+                        "default_bits": 4,
+                        "default_group_size": 64,
+                        "override_module_template": "model.layers.{layer}.mlp.gate",
+                        "override_bits": 8,
+                        "override_group_size": 64,
+                        "reason": "layout",
+                        "reason_code": "quantization-layout-mismatch",
+                    },
+                    {
+                        "kind": "sparse_topology",
+                        "reason": "topology",
+                        "reason_code": "topology-incomplete",
+                    },
+                    {
+                        "kind": "no_shared_expert",
+                        "reason": "shared",
+                        "reason_code": "shared-expert-unsupported",
+                    },
+                    {
+                        "kind": "field_equals",
+                        "field": "quantization_bits",
+                        "value": 4,
+                        "reason": "four_bit",
+                        "reason_code": "four-bit-required",
+                    },
+                ],
+                "paths": [to_primitive(path) for path in policy.paths],
+                "matched_reason": "matched",
+                "matched_reason_codes": [
+                    item.value for item in policy.matched_reason_codes
+                ],
+                "evidence_ids": list(policy.evidence_ids),
+                "required_provenance_fields": list(policy.required_provenance_fields),
+            }
+        )
+    return model_policy_snapshot_payload(
+        {
+            "compatibility_schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
+            "dense_families": sorted(
+                family
+                for family, modules in TARGET_MODULES.items()
+                if modules == DENSE_CAUSAL_LM_TARGET_MODULES
+            ),
+            "sparse_identity_markers": ["mixtral", "moe"],
+            "reasons": {
+                "identity": QWEN3_MOE_IDENTITY_REASON,
+                "layout": QWEN3_MOE_LAYOUT_REASON,
+                "topology": QWEN3_MOE_TOPOLOGY_REASON,
+                "shared": QWEN3_MOE_SHARED_EXPERT_REASON,
+                "four_bit": QWEN3_MOE_FOUR_BIT_REASON,
+                "invalid": INVALID_COMPATIBILITY_FACTS_REASON,
+                "matched": QWEN3_MOE_MATCHED_REASON,
+                "dense": FAMILY_RECOGNIZED_REASON,
+                "sparse": UNREVIEWED_SPARSE_MODEL_REASON,
+                "unknown": UNKNOWN_POLICY_REASON,
+            },
+            "policies": policies,
+        }
+    )
+
+
+def current_model_policy_snapshot_bytes() -> bytes:
+    return model_policy_snapshot_bytes(current_model_policy_snapshot())
+
+
+def current_model_policy_snapshot_sha256() -> str:
+    return model_policy_snapshot_sha256(current_model_policy_snapshot())
 
 
 def validate_model_policy_path(

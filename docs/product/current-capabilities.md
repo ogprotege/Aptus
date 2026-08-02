@@ -36,7 +36,8 @@ acceptance remain open.
   near-matches are blocked before dense-family recognition, including sparse
   model-type or architecture markers whose topology is missing. Conditional API
   claims must match a registered path for the stated model family.
-- Persisted `aptus.training-plan.v4` compatibility provenance. One
+- Persisted `aptus.training-plan.v5` compatibility provenance and the digest of
+  one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
   IDs, policy ID `model.qwen3-moe.mlx-qlora`, policy version `1.0.0`, and path ID
   `mlx-lm.qlora.single.attention-qkvo.v1` when the exact row matches. Every
@@ -48,10 +49,12 @@ acceptance remain open.
   and training permission remain user-attested and are excluded. Direct facts
   without a receipt use the explicit `user-attested` decision source. A supplied
   invalid receipt fails instead of silently degrading to that source.
-- Strict replanning for v3, v2, schema-less, and stale-policy v4 plans. Aptus
+- Strict replanning for v4, v3, v2, schema-less, and stale-policy or
+  stale-snapshot v5 plans. Aptus
   preserves old saved bytes and does not relabel them. The HTTP API remains
   `aptus.api.v1`; facts remain `aptus.facts.v3`; candidate runtime contracts
-  remain `aptus.runtime-contract.v1`; and bundles remain `aptus.bundle.v2`.
+  remain `aptus.runtime-contract.v1`; bundles use `aptus.bundle.v3` and carry
+  the deterministic snapshot plus a generic evaluator independent of Aptus.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory

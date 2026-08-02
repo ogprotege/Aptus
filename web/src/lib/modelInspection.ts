@@ -158,7 +158,7 @@ export function applyPlanDerivedModelFacts(
   if (!("schema_version" in plan)) return current;
   const model = plan.model;
   if (
-    plan.schema_version !== "aptus.training-plan.v4"
+    plan.schema_version !== "aptus.training-plan.v5"
     || !isRecord(model)
     || !matchesCurrentModel(model, current)
   ) {
@@ -240,7 +240,7 @@ export function moeCompatibilityFromPlan(
         distribution: "single",
         evidence_requirement: "pilot-required",
         adapter_profile_id: "attention-qkvo.v1",
-        reason: "The current v4 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
+        reason: "The current v5 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
       }
     : {
         status: "unsupported",

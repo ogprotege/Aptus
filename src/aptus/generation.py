@@ -22,6 +22,10 @@ from .domain import (
     to_primitive,
 )
 from .methods import method_descriptor
+from .model_compatibility import (
+    current_model_policy_snapshot_bytes,
+    current_model_policy_snapshot_sha256,
+)
 from .profiling import canonical_training_rows, pilot_sample_rows
 
 
@@ -634,11 +638,13 @@ def _write_manifest(root: Path, plan: TrainingPlan) -> None:
     _write_json(
         root / "bundle-manifest.json",
         {
-            "schema_version": "aptus.bundle.v2",
+            "schema_version": "aptus.bundle.v3",
             "compiler": {"name": "aptus", "version": __version__},
             "stack_versions": STACK_VERSIONS,
             "plan_id": plan.plan_id,
             "plan_sha256": _sha256(root / "plan.json"),
+            "policy_snapshot_path": "policy/model-policy-snapshot.v1.json",
+            "policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
             "candidate_id": plan.recommended.candidate_id,
             "formula_version": plan.formula_version,
             "entrypoints": entrypoints,
@@ -664,6 +670,11 @@ def _compile_into(plan: TrainingPlan, root: Path) -> TrainingPlan:
         raise ValueError(f"Unsupported portable dataset suffix: {suffix or '<none>'}")
     relative_dataset = f"data/dataset{suffix}"
     portable = _portable_plan(plan, relative_dataset)
+    policy_snapshot_sha256 = current_model_policy_snapshot_sha256()
+    if portable.model_policy_snapshot_sha256 != policy_snapshot_sha256:
+        raise ValueError(
+            "Plan model policy snapshot digest does not match the current host policy."
+        )
     dataset_destination = root / relative_dataset
     dataset_destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(plan.dataset.source_path, dataset_destination)
@@ -758,6 +769,9 @@ def _compile_into(plan: TrainingPlan, root: Path) -> TrainingPlan:
 
     payload = to_primitive(portable)
     _write_json(root / "plan.json", payload)
+    policy_snapshot_path = root / "policy" / "model-policy-snapshot.v1.json"
+    policy_snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    policy_snapshot_path.write_bytes(current_model_policy_snapshot_bytes())
     _write_json(root / "profiles" / "model.json", payload["model"])
     _write_json(root / "profiles" / "dataset.json", payload["dataset"])
     _write_json(root / "profiles" / "hardware.json", payload["hardware"])
@@ -801,6 +815,12 @@ def _compile_into(plan: TrainingPlan, root: Path) -> TrainingPlan:
         .read_text(encoding="utf-8")
     )
     (root / "plan_contract.py").write_text(contract_source, encoding="utf-8")
+    policy_snapshot_source = (
+        resources.files("aptus")
+        .joinpath("policy_snapshot.py")
+        .read_text(encoding="utf-8")
+    )
+    (root / "policy_snapshot.py").write_text(policy_snapshot_source, encoding="utf-8")
     runtime_lease_source = (
         resources.files("aptus")
         .joinpath("runtime_lease.py")

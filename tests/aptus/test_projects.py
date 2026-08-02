@@ -10,6 +10,10 @@ from typing import Any
 from unittest.mock import patch
 
 from aptus.local_store import atomic_write_json, quarantine_file
+from aptus.model_compatibility import (
+    current_model_policy_snapshot_bytes,
+    current_model_policy_snapshot_sha256,
+)
 from aptus.projects import (
     CURRENT_PROJECT_SCHEMA_VERSION,
     PROJECT_REVISION_SCHEMA_VERSION,
@@ -50,8 +54,9 @@ def _revision_worker(
 class ProjectRepositoryTests(unittest.TestCase):
     def _saved_plan(self, state: Path, plan_id: str) -> dict[str, Any]:
         plan = {
-            "schema_version": "aptus.training-plan.v4",
+            "schema_version": "aptus.training-plan.v5",
             "plan_id": plan_id,
+            "model_policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
             "recommended": {"candidate_id": "candidate_a"},
         }
         plans = state / "plans"
@@ -65,19 +70,24 @@ class ProjectRepositoryTests(unittest.TestCase):
         payload_path = root / "payload.txt"
         atomic_write_json(plan_path, plan, mode=0o600)
         payload_path.write_text("immutable bundle input\n", encoding="utf-8")
+        snapshot_path = root / "policy" / "model-policy-snapshot.v1.json"
+        snapshot_path.parent.mkdir()
+        snapshot_path.write_bytes(current_model_policy_snapshot_bytes())
         entries = [
             {
-                "path": path.name,
+                "path": path.relative_to(root).as_posix(),
                 "sha256": _sha256(path),
                 "size_bytes": path.stat().st_size,
             }
-            for path in (payload_path, plan_path)
+            for path in (payload_path, plan_path, snapshot_path)
         ]
         manifest = {
-            "schema_version": "aptus.bundle.v2",
+            "schema_version": "aptus.bundle.v3",
             "plan_id": plan["plan_id"],
             "plan_sha256": _sha256(plan_path),
             "candidate_id": plan["recommended"]["candidate_id"],
+            "policy_snapshot_path": "policy/model-policy-snapshot.v1.json",
+            "policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
             "files": entries,
         }
         manifest_path = root / "bundle-manifest.json"
@@ -808,7 +818,7 @@ class ProjectRepositoryTests(unittest.TestCase):
         self.assertIsNone(repeated)
         self.assertTrue(source_preserved)
         self.assertEqual(imported["plan_snapshot"], plan)
-        self.assertEqual(imported["bundle"]["artifact_fingerprint"], bundle_fingerprint)
+        self.assertEqual(imported["bundle"], {})
         self.assertTrue(receipt_written)
         self.assertEqual(revision_count, 1)
 

@@ -350,12 +350,18 @@ function normalizeProfile(payload: Record<string, unknown>): ProfileResponse {
   } as ProfileResponse;
 }
 
-function requireV4PlanProvenance(payload: Record<string, unknown>): void {
-  if (payload.schema_version !== "aptus.training-plan.v4") {
-    throw new Error("Plan response requires aptus.training-plan.v4.");
+function requireV5PlanProvenance(payload: Record<string, unknown>): void {
+  if (payload.schema_version !== "aptus.training-plan.v5") {
+    throw new Error("Plan response requires aptus.training-plan.v5.");
   }
   if (typeof payload.plan_id !== "string" || !payload.plan_id.startsWith("plan_")) {
     throw new Error("Plan response requires its immutable plan ID.");
+  }
+  if (
+    typeof payload.model_policy_snapshot_sha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(payload.model_policy_snapshot_sha256)
+  ) {
+    throw new Error("Plan response requires its model policy snapshot digest.");
   }
   const decision = payload.model_policy_decision;
   if (!isRecord(decision) || typeof decision.decision_id !== "string") {
@@ -458,7 +464,7 @@ function normalizeNoFeasibleComparison(
 }
 
 function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
-  requireV4PlanProvenance(payload);
+  requireV5PlanProvenance(payload);
   const hardware = payload.hardware as Record<string, unknown> | undefined;
   const devices = hardware?.devices as Array<Record<string, unknown>> | undefined;
   const reserveValue = hardware?.reserve_per_device_bytes;

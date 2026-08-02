@@ -562,6 +562,69 @@ def install_measured_run_attestation(bundle: Path) -> dict:
 
 
 class ValidationAttestationTests(unittest.TestCase):
+    def test_host_rejects_missing_malformed_noncanonical_and_tampered_policy_snapshot(
+        self,
+    ) -> None:
+        mutations = (
+            ("missing", lambda path: path.unlink(), "POLICY_SNAPSHOT_MISSING"),
+            (
+                "malformed",
+                lambda path: path.write_text("{", encoding="utf-8"),
+                "POLICY_SNAPSHOT_JSON_ERROR",
+            ),
+            (
+                "noncanonical",
+                lambda path: path.write_text(
+                    json.dumps(json.loads(path.read_text(encoding="utf-8"))),
+                    encoding="utf-8",
+                ),
+                "POLICY_SNAPSHOT_NONCANONICAL",
+            ),
+            (
+                "tampered",
+                lambda path: path.write_bytes(
+                    path.read_bytes().replace(b"qwen3", b"qwen4", 1)
+                ),
+                "POLICY_SNAPSHOT_DIGEST",
+            ),
+        )
+        for name, mutate, expected_code in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                mutate(bundle / "policy/model-policy-snapshot.v1.json")
+
+                report = validate_bundle(bundle, level="static", run=False)
+
+                self.assertIn(expected_code, {item.code for item in report.findings})
+                self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_policy_snapshot_digest_disagreement_between_bindings(
+        self,
+    ) -> None:
+        mutations = (
+            ("plan", "plan.json", "model_policy_snapshot_sha256"),
+            ("manifest", "bundle-manifest.json", "policy_snapshot_sha256"),
+        )
+        for name, relative, key in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                path = bundle / relative
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                payload[key] = "0" * 64
+                path.write_text(json.dumps(payload), encoding="utf-8")
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(
+                    "POLICY_SNAPSHOT_DIGEST",
+                    {item.code for item in report.findings},
+                )
+                self.assertEqual(report.state, ValidationState.INVALID)
+
     def test_planner_parity_preserves_provider_inspection_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

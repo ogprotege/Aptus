@@ -2608,6 +2608,50 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("Bundle manifest must be a JSON object.", completed.stderr)
         self.assertNotIn("AttributeError", completed.stderr)
 
+    def test_package_free_entrypoint_rejects_corrupted_policy_snapshot_data(
+        self,
+    ) -> None:
+        mutations = (
+            (
+                "missing",
+                lambda path: path.unlink(),
+                "Bundle model policy snapshot is missing.",
+            ),
+            (
+                "malformed",
+                lambda path: path.write_text("{", encoding="utf-8"),
+                "Bundle model policy snapshot is malformed:",
+            ),
+            (
+                "noncanonical",
+                lambda path: path.write_text(
+                    json.dumps(json.loads(path.read_text(encoding="utf-8"))),
+                    encoding="utf-8",
+                ),
+                "Bundle model policy snapshot is not canonical JSON.",
+            ),
+            (
+                "tampered",
+                lambda path: path.write_bytes(
+                    path.read_bytes().replace(
+                        b"malformed or contradictory",
+                        b"malformed or inconsistent",
+                        1,
+                    )
+                ),
+                "Bundle model policy snapshot digest does not match.",
+            ),
+        )
+        for name, mutate, expected_error in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                output = self._bundle(Path(temporary))
+                mutate(output / "policy/model-policy-snapshot.v1.json")
+
+                completed = self._run_package_free_static_validation(output)
+
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIn(expected_error, completed.stderr)
+
     def test_standalone_preflight_uses_snapshot_after_host_policy_changes(
         self,
     ) -> None:

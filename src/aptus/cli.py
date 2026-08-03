@@ -301,7 +301,7 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     for name, help_text in (
-        ("spec-plan", "Write a persisted v4 plan JSON without compiling."),
+        ("spec-plan", "Write a persisted v5 plan JSON without compiling."),
         ("plan", "Compatibility flow: plan, compile, validate, and archive."),
         ("build", "Plan, compile, validate, and archive."),
     ):
@@ -324,7 +324,7 @@ def _parser() -> argparse.ArgumentParser:
         "compile", help="Compile a persisted plan JSON into a portable bundle."
     )
     compile_command.add_argument(
-        "--plan", required=True, type=Path, help="Persisted Aptus v4 plan JSON."
+        "--plan", required=True, type=Path, help="Persisted Aptus v5 plan JSON."
     )
     compile_command.add_argument(
         "--output", required=True, type=Path, help="New or empty bundle directory."

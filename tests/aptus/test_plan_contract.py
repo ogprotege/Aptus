@@ -20,6 +20,7 @@ from aptus.model_compatibility import (
     current_model_policy_snapshot,
     current_model_policy_snapshot_bytes,
     evaluate_model_compatibility,
+    model_policy_snapshot_sha256,
     subject_from_model,
 )
 from aptus.plan_contract import (
@@ -109,6 +110,35 @@ class PlanContractTests(unittest.TestCase):
             )
 
         self.assertEqual(errors, ())
+
+    def test_stale_snapshot_digest_requires_replan_when_decision_is_unchanged(
+        self,
+    ) -> None:
+        value = copy.deepcopy(self.payload)
+        changed_snapshot = copy.deepcopy(current_model_policy_snapshot())
+        changed_snapshot["dense_families"] = sorted(
+            [*changed_snapshot["dense_families"], "future-dense-family"]
+        )
+
+        self.assertEqual(validate_plan_payload(value, verify_dataset=False), ())
+        self.assertNotEqual(
+            value["model_policy_snapshot_sha256"],
+            model_policy_snapshot_sha256(changed_snapshot),
+        )
+        self.assertEqual(
+            value["model_policy_decision"],
+            _current_model_policy_decision(value["model"], changed_snapshot),
+        )
+
+        errors = validate_plan_payload(
+            value,
+            verify_dataset=False,
+            policy_snapshot=changed_snapshot,
+        )
+
+        self.assertTrue(any("replan_required" in error for error in errors), errors)
+        with self.assertRaisesRegex(StaleModelPolicyError, "replan_required"):
+            require_current_model_policy(value, policy_snapshot=changed_snapshot)
 
     def test_host_and_portable_policy_decisions_match_every_supported_state(
         self,
@@ -241,9 +271,9 @@ class PlanContractTests(unittest.TestCase):
             )
         )
 
-    def test_pre_v4_plan_requires_replanning(self) -> None:
+    def test_v4_plan_requires_replanning(self) -> None:
         value = copy.deepcopy(self.payload)
-        value["schema_version"] = "aptus.training-plan.v3"
+        value["schema_version"] = "aptus.training-plan.v4"
         value["plan_id"] = plan_id_for_payload(value)
 
         errors = validate_plan_payload(value, verify_dataset=False)

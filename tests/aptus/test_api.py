@@ -839,12 +839,17 @@ class ApiEndpointTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400, response.text)
                 self.assertEqual(response.json()["error"], "invalid_request")
 
-    def test_every_pre_v4_saved_plan_schema_requires_replanning_without_rewrite(
+    def test_every_pre_v5_saved_plan_schema_requires_replanning_without_rewrite(
         self,
     ) -> None:
         context = self.client.app.state.aptus
         for index, found_schema in enumerate(
-            ("aptus.training-plan.v3", "aptus.training-plan.v2", None)
+            (
+                "aptus.training-plan.v4",
+                "aptus.training-plan.v3",
+                "aptus.training-plan.v2",
+                None,
+            )
         ):
             with self.subTest(found_schema=found_schema):
                 plan_id = "plan_" + format(index + 1, "020x")
@@ -1414,7 +1419,7 @@ class ApiEndpointTests(unittest.TestCase):
             context.projects.get(project["project_id"])["revision_count"], 1
         )
 
-    def test_coherent_stale_v4_plan_requires_replan_across_saved_workflows(
+    def test_coherent_stale_v5_plan_requires_replan_across_saved_workflows(
         self,
     ) -> None:
         context = self.client.app.state.aptus
@@ -1469,7 +1474,7 @@ class ApiEndpointTests(unittest.TestCase):
         project = context.projects.create("Stale policy plan")
         revision = context.projects.create_revision(
             project["project_id"],
-            reason="stale-v4-imported",
+            reason="stale-v5-imported",
             plan_id=plan_id,
             plan_snapshot=stale_plan,
             selected_candidate_id=stale_plan["recommended"]["candidate_id"],
@@ -1482,7 +1487,7 @@ class ApiEndpointTests(unittest.TestCase):
             "/api/v1/compile",
             json={
                 "plan_id": plan_id,
-                "output_dir": str(self.root / "stale-v4-output"),
+                "output_dir": str(self.root / "stale-v5-output"),
                 "project_id": project["project_id"],
                 "expected_project_revision_id": revision["revision_id"],
             },
@@ -1508,7 +1513,7 @@ class ApiEndpointTests(unittest.TestCase):
                 response.json()["required_schema"], "aptus.training-plan.v5"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
-        self.assertFalse((self.root / "stale-v4-output").exists())
+        self.assertFalse((self.root / "stale-v5-output").exists())
         self.assertEqual(
             context.projects.get(project["project_id"])["revision_count"], 1
         )

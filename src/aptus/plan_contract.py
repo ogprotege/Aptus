@@ -53,13 +53,6 @@ EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
 QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
-QWEN3_MOE_POLICY_ID = "model.qwen3-moe.mlx-qlora"
-QWEN3_MOE_POLICY_VERSION = "1.0.0"
-QWEN3_MOE_PATH_ID = "mlx-lm.qlora.single.attention-qkvo.v1"
-QWEN3_MOE_POLICY_EVIDENCE_IDS = [
-    "policy.qwen3-moe.mlx-qlora.v1",
-    "admission.qwen3-30b-a3b.memory-blocked.2026-07-28",
-]
 QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS = {
     "architecture",
     "layers",
@@ -99,39 +92,6 @@ COMPATIBILITY_SUBJECT_FACT_FIELDS = {
     "quantization_layout",
 }
 POLICY_DECISION_SOURCES = {"provider-inspection", "user-attested"}
-QWEN3_MOE_IDENTITY_REASON = (
-    "MoE execution requires the exact reviewed qwen3_moe and "
-    "Qwen3MoeForCausalLM provider identity."
-)
-QWEN3_MOE_LAYOUT_REASON = (
-    "Qwen3 MoE execution requires the exact four-bit plus eight-bit "
-    "router-gate MLX quantization layout."
-)
-QWEN3_MOE_TOPOLOGY_REASON = (
-    "Qwen3 MoE execution requires the complete provider-declared expert topology."
-)
-QWEN3_MOE_SHARED_EXPERT_REASON = (
-    "The first Qwen3 MoE MLX-LM contract does not support a shared expert."
-)
-QWEN3_MOE_FOUR_BIT_REASON = (
-    "The first Qwen3 MoE MLX-LM contract requires explicit four-bit model metadata."
-)
-QWEN3_MOE_MATCHED_REASON = (
-    "The model identity, mixed-precision layout, routed-expert topology, and "
-    "attention-only q/k/v/o target policy match the reviewed Qwen3 MoE slice. "
-    "Measured preflight and a real-model pilot remain mandatory."
-)
-FAMILY_RECOGNIZED_REASON = (
-    "The provider identity maps to an existing dense Aptus family; the planner "
-    "still decides the executable runtime and method."
-)
-UNKNOWN_POLICY_REASON = (
-    "No exact Aptus model-family compatibility policy matches this provider "
-    "model type and architecture."
-)
-UNREVIEWED_SPARSE_MODEL_REASON = (
-    "Sparse model execution requires an exact reviewed model compatibility policy."
-)
 DENSE_TARGET_MODULES = [
     "q_proj",
     "k_proj",
@@ -500,31 +460,6 @@ def _valid_timestamp(value: Any) -> bool:
     return parsed.tzinfo is not None and parsed.utcoffset() is not None
 
 
-def _qwen3_moe_policy_path() -> dict[str, Any]:
-    return {
-        "path_id": QWEN3_MOE_PATH_ID,
-        "method": "qlora",
-        "distribution": "single",
-        "adapter_profile_id": "attention-qkvo.v1",
-        "target_modules": list(MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY]),
-        "runtime_contract": {
-            "schema_version": RUNTIME_CONTRACT_VERSION,
-            "compute_backend": "mps",
-            "training_runtime": "mlx-lm",
-            "compiler_id": "mlx-lm.qlora.v1",
-            "estimator_id": MLX_FORMULA_VERSION,
-            "evidence_requirement": "pilot-required",
-            "export_kind": "mlx-lm-adapter",
-        },
-        "required_validation_levels": [
-            "model-data",
-            "measured-preflight",
-            "pilot",
-        ],
-        "evidence_ids": list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
-    }
-
-
 def _compatibility_subject_payload(model: Mapping[str, Any]) -> dict[str, Any]:
     family = model.get("family")
     if isinstance(family, str) and family != family.lower():
@@ -544,44 +479,6 @@ def _compatibility_subject_payload(model: Mapping[str, Any]) -> dict[str, Any]:
         "quantization_layout": quantization_layout,
         "moe": moe,
         "fact_errors": [],
-    }
-
-
-def _policy_decision(
-    *,
-    subject_facts_sha256: str,
-    kind: str,
-    family: Any,
-    policy_id: str | None,
-    policy_version: str | None,
-    paths: list[dict[str, Any]],
-    reason_codes: list[str],
-    evidence_ids: list[str],
-    reason: str,
-) -> dict[str, Any]:
-    identity = {
-        "schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
-        "subject_facts_sha256": subject_facts_sha256,
-        "kind": kind,
-        "family": family,
-        "policy_id": policy_id,
-        "policy_version": policy_version,
-        "paths": paths,
-        "reason_codes": reason_codes,
-        "evidence_ids": evidence_ids,
-    }
-    return {
-        "schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
-        "decision_id": "compat_" + _sha256_json(identity)[:20],
-        "subject_facts_sha256": subject_facts_sha256,
-        "kind": kind,
-        "family": family,
-        "policy_id": policy_id,
-        "policy_version": policy_version,
-        "paths": paths,
-        "reason_codes": reason_codes,
-        "evidence_ids": evidence_ids,
-        "reason": reason,
     }
 
 
@@ -633,136 +530,6 @@ def _semantic_inspection_receipt(value: Any) -> Any:
         key: (_semantic_policy_decision(item) if key == "decision" else item)
         for key, item in value.items()
     }
-
-
-def _retired_handwritten_model_policy_decision(
-    model: Mapping[str, Any],
-    policy_snapshot: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Recompute the current portable policy without importing Aptus.
-
-    This remains an explicit Qwen3 MoE policy check. A portable policy snapshot
-    and generic evaluator belong to a later contract version.
-    """
-
-    subject = _compatibility_subject_payload(model)
-    if policy_snapshot is not None:
-        return _policy_snapshot_module().evaluate_model_policy_snapshot(
-            policy_snapshot, subject
-        )
-    subject_digest = _sha256_json(subject)
-    family = subject["family"]
-    model_type = subject["model_type"]
-    architecture = subject["architecture"]
-    normalized_family = family.lower() if isinstance(family, str) else None
-    claimed_qwen = bool(
-        normalized_family == QWEN3_MOE_FAMILY
-        or model_type == QWEN3_MOE_MODEL_TYPE
-        or architecture == QWEN3_MOE_ARCHITECTURE
-    )
-    if claimed_qwen:
-        reason: str | None = None
-        reason_code: str | None = None
-        exact_identity = bool(
-            family == QWEN3_MOE_FAMILY
-            and model_type == QWEN3_MOE_MODEL_TYPE
-            and architecture == QWEN3_MOE_ARCHITECTURE
-        )
-        if not exact_identity:
-            reason = QWEN3_MOE_IDENTITY_REASON
-            reason_code = "identity-mismatch"
-        elif subject["quantization_layout"] != _reviewed_qwen3_moe_quantization_layout(
-            subject["layers"]
-        ):
-            reason = QWEN3_MOE_LAYOUT_REASON
-            reason_code = "quantization-layout-mismatch"
-        else:
-            moe = subject["moe"]
-            layers = subject["layers"]
-            executable_sparse_layer = bool(
-                isinstance(moe, Mapping)
-                and _positive_int(layers)
-                and any(
-                    (index + 1) % moe["decoder_sparse_step"] == 0
-                    and index not in set(moe["mlp_only_layers"])
-                    for index in range(layers)
-                )
-            )
-            if not executable_sparse_layer:
-                reason = QWEN3_MOE_TOPOLOGY_REASON
-                reason_code = "topology-incomplete"
-            elif moe.get("shared_expert_intermediate_size") is not None:
-                reason = QWEN3_MOE_SHARED_EXPERT_REASON
-                reason_code = "shared-expert-unsupported"
-            elif subject["quantization_bits"] != 4:
-                reason = QWEN3_MOE_FOUR_BIT_REASON
-                reason_code = "four-bit-required"
-        if reason is not None:
-            assert reason_code is not None
-            return _policy_decision(
-                subject_facts_sha256=subject_digest,
-                kind="blocked",
-                family=QWEN3_MOE_FAMILY,
-                policy_id=QWEN3_MOE_POLICY_ID,
-                policy_version=QWEN3_MOE_POLICY_VERSION,
-                paths=[],
-                reason_codes=[reason_code],
-                evidence_ids=list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
-                reason=reason,
-            )
-        return _policy_decision(
-            subject_facts_sha256=subject_digest,
-            kind="path-matched",
-            family=QWEN3_MOE_FAMILY,
-            policy_id=QWEN3_MOE_POLICY_ID,
-            policy_version=QWEN3_MOE_POLICY_VERSION,
-            paths=[_qwen3_moe_policy_path()],
-            reason_codes=["exact-reviewed-artifact", "pilot-not-yet-proven"],
-            evidence_ids=list(QWEN3_MOE_POLICY_EVIDENCE_IDS),
-            reason=QWEN3_MOE_MATCHED_REASON,
-        )
-
-    sparse_identity = subject["moe"] is not None or any(
-        marker in value.lower()
-        for value in (family, model_type, architecture)
-        if isinstance(value, str)
-        for marker in ("moe", "mixtral")
-    )
-    if sparse_identity:
-        return _policy_decision(
-            subject_facts_sha256=subject_digest,
-            kind="blocked",
-            family=family,
-            policy_id=None,
-            policy_version=None,
-            paths=[],
-            reason_codes=["unreviewed-sparse-model"],
-            evidence_ids=[],
-            reason=UNREVIEWED_SPARSE_MODEL_REASON,
-        )
-    if normalized_family in {"gemma", "llama", "mistral", "qwen"}:
-        return _policy_decision(
-            subject_facts_sha256=subject_digest,
-            kind="family-recognized",
-            family=normalized_family,
-            policy_id=None,
-            policy_version=None,
-            paths=[],
-            reason_codes=["family-recognized"],
-            evidence_ids=[],
-            reason=FAMILY_RECOGNIZED_REASON,
-        )
-    return _policy_decision(
-        subject_facts_sha256=subject_digest,
-        kind="unknown",
-        family=family,
-        policy_id=None,
-        policy_version=None,
-        paths=[],
-        reason_codes=["no-policy-match"],
-        evidence_ids=[],
-        reason=UNKNOWN_POLICY_REASON,
-    )
 
 
 def _current_model_policy_decision(

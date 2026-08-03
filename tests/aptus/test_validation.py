@@ -717,6 +717,28 @@ class ValidationAttestationTests(unittest.TestCase):
         )
         self.assertEqual(report.state, ValidationState.INVALID)
 
+    def test_host_rejects_valid_but_stale_policy_snapshot_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+
+            with patch(
+                "aptus.validation.current_model_policy_snapshot_sha256",
+                return_value="0" * 64,
+            ):
+                report = validate_bundle(bundle, level="contract", run=False)
+
+        digest_finding = next(
+            item for item in report.findings if item.code == "POLICY_SNAPSHOT_DIGEST"
+        )
+        self.assertIn(
+            "valid bindings differing from snapshot: host",
+            digest_finding.message,
+        )
+        self.assertNotIn("invalid bindings", digest_finding.message)
+        self.assertEqual(report.state, ValidationState.INVALID)
+
     def test_host_rejects_malformed_policy_constraint_operands_without_escaping(
         self,
     ) -> None:
@@ -848,6 +870,24 @@ class ValidationAttestationTests(unittest.TestCase):
                 )
                 self.assertIn(name, digest_finding.message)
                 self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_invalid_policy_snapshot_manifest_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+            path = bundle / "bundle-manifest.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            manifest["policy_snapshot_path"] = "policy/other-snapshot.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            report = validate_bundle(bundle, level="contract", run=False)
+
+        path_finding = next(
+            item for item in report.findings if item.code == "POLICY_SNAPSHOT_PATH"
+        )
+        self.assertEqual(path_finding.path, "bundle-manifest.json")
+        self.assertEqual(report.state, ValidationState.INVALID)
 
     def test_planner_parity_preserves_provider_inspection_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

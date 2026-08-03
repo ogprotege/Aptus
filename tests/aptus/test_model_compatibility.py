@@ -510,7 +510,7 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             completed.stderr,
         )
 
-    def test_qwen_v4_identities_are_deterministic_and_policy_bound(self) -> None:
+    def test_qwen_v5_identities_are_deterministic_and_policy_bound(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repeated = make_qwen3_moe_plan(Path(temporary))
 
@@ -533,7 +533,7 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
         self.assertEqual(len(bound), 1)
         self.assertEqual(bound[0].candidate_id, self.plan.recommended.candidate_id)
 
-    def test_dense_cuda_v4_identities_are_deterministic_and_decision_bound(
+    def test_dense_cuda_v5_identities_are_deterministic_and_decision_bound(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as temporary:

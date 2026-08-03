@@ -254,7 +254,7 @@ describe("typed API client", () => {
     expect(body).not.toHaveProperty("inspection_receipt");
   });
 
-  it("rejects v4 plan responses with missing provenance links", async () => {
+  it("rejects v5 plan responses with missing provenance links", async () => {
     const cases: Array<(payload: Record<string, unknown>) => void> = [
       (payload) => { delete payload.model_policy_decision; },
       (payload) => { delete payload.inspection_receipt; },
@@ -278,6 +278,34 @@ describe("typed API client", () => {
       );
 
       await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/plan.*provenance|plan response|candidate/i);
+    }
+  });
+
+  it("rejects plan responses with a missing or malformed policy snapshot digest", async () => {
+    const cases: Array<(payload: Record<string, unknown>) => void> = [
+      (payload) => { delete payload.model_policy_snapshot_sha256; },
+      (payload) => { payload.model_policy_snapshot_sha256 = 7; },
+      (payload) => { payload.model_policy_snapshot_sha256 = "A".repeat(64); },
+      (payload) => { payload.model_policy_snapshot_sha256 = "a".repeat(63); },
+      (payload) => { payload.model_policy_snapshot_sha256 = "g".repeat(64); },
+    ];
+
+    for (const mutate of cases) {
+      const payload = trainingPlanResponse();
+      mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+        /model policy snapshot digest/i,
+      );
     }
   });
 

@@ -302,10 +302,10 @@ def validate_bundle_manifest(root: Path) -> tuple[str, ...]:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, RecursionError) as error:
         return (f"Bundle manifest is invalid JSON: {error}",)
-    if (
-        not isinstance(manifest, dict)
-        or manifest.get("schema_version") != "aptus.bundle.v3"
-    ):
+    if not isinstance(manifest, dict):
+        errors.append("Bundle manifest must be a JSON object.")
+        return tuple(errors)
+    if manifest.get("schema_version") != "aptus.bundle.v3":
         errors.append("Bundle manifest schema must be aptus.bundle.v3.")
     expected_artifact_fingerprint = os.environ.get(
         "APTUS_EXPECTED_ARTIFACT_FINGERPRINT"

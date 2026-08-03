@@ -275,6 +275,21 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertEqual(report.state, ValidationState.STATIC_PASS)
         return output
 
+    def _run_package_free_static_validation(
+        self, output: Path
+    ) -> subprocess.CompletedProcess[str]:
+        environment = os.environ.copy()
+        environment.pop("PYTHONPATH", None)
+        environment.pop("PYTHONHOME", None)
+        return subprocess.run(
+            [sys.executable, "-S", str(output / "validate.py"), "--level", "static"],
+            cwd=output,
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
     def _load_generated(self, output: Path, name: str):
         return self._load_generated_path(output, "train.py", name)
 
@@ -2581,6 +2596,17 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(report["state"], "static-pass")
         self.assertFalse(cache_created)
+
+    def test_package_free_entrypoint_rejects_a_non_object_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            (output / "bundle-manifest.json").write_text("null\n", encoding="utf-8")
+
+            completed = self._run_package_free_static_validation(output)
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("Bundle manifest must be a JSON object.", completed.stderr)
+        self.assertNotIn("AttributeError", completed.stderr)
 
     def test_standalone_preflight_uses_snapshot_after_host_policy_changes(
         self,

@@ -1,6 +1,6 @@
 # Methodology Overview
 
-> **Status:** Active | **Authority:** Normative methodology index | **Applies to:** Aptus 0.2 | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-22 or when a methodology version changes
+> **Status:** Active | **Authority:** Normative methodology index | **Applies to:** Aptus 0.2 | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when a methodology version changes
 
 Methodology version: `aptus-methodology-v2`.
 
@@ -62,12 +62,19 @@ The plan records its schema and memory-formula versions. Related documentation
 names the other rule sets. A changed execution-affecting equation or rule
 requires a new version or an explicitly compatible patch.
 
-The HTTP API remains `aptus.api.v1`, facts remain `aptus.facts.v3`, candidate
-runtime records remain `aptus.runtime-contract.v1`, and bundle manifests remain
-`aptus.bundle.v3`. The v5 migration changes the plan and bundle so the canonical
-policy snapshot digest is cross-bound across both artifacts. The
+The HTTP API remains `aptus.api.v1`, facts remain `aptus.facts.v3`, and
+candidate runtime records remain `aptus.runtime-contract.v1`.
+
+Phase 4 changed the bundle contract from `aptus.bundle.v2` to
+`aptus.bundle.v3` and the plan contract from `aptus.training-plan.v4` to
+`aptus.training-plan.v5` so the canonical policy snapshot digest is cross-bound
+across both artifacts and included in plan identity as
+`model_policy_snapshot_sha256`. The
 `aptus.model-policy-snapshot.v1` bytes are deterministic, and the bundled
-generic evaluator reproduces the host decision without importing Aptus.
+generic evaluator reproduces the frozen-snapshot decision without importing
+Aptus. Package-free validation establishes snapshot integrity and parity, not
+current-registry currency; only an installed Aptus host can enforce that
+currency boundary.
 
 ## Abstention
 

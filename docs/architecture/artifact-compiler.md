@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -72,20 +72,24 @@ original mode only when the Aptus-created directory still owns the path.
 - `reload.py`: fresh-process adapter reload and bounded generation for MLX
   bundles.
 - `plan_contract.py`: self-contained plan and manifest contract checks.
+- `policy_snapshot.py`: self-contained snapshot validation and generic policy
+  evaluation.
 - `runtime_lease.py`: self-contained per-user host lease and process-group
   coordination used by portable entrypoints.
 
 Generated code reads semantic values from `plan.json`. It validates plan and
-candidate identities before runtime use. The v4 host compiler also rejects an
-obsolete registered policy version with `replan_required`. V4, v3, v2, and
+candidate identities before runtime use. The installed Aptus host compiler also
+compares a v5 plan's snapshot digest and decision with the current registry and
+returns `replan_required` when either is non-current. V4, v3, v2, and
 schema-less plans are preserved but never compiled or relabeled. Distributed
 launch uses the active Python interpreter's Accelerate module rather than an
 unbound shell executable.
 
-The Phase 3 bundle still uses the handwritten self-contained policy checks. A
-portable policy snapshot and generic evaluator were added in Phase 4; browser
-policy reconstruction removal belongs to Phase 5, not this
-compiler contract.
+The historical Phase 3 `aptus.bundle.v2` contract used handwritten
+self-contained policy checks. Phase 4 changed the bundle contract to
+`aptus.bundle.v3` and added the portable policy snapshot plus generic evaluator;
+browser policy reconstruction removal belongs to Phase 5, not this compiler
+contract.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through

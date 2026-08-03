@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-07-29 |
-| Next review | 2026-10-22, or sooner when domain, evidence, validation, or execution contracts change |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when domain, evidence, validation, or execution contracts change |
 
 Aptus separates seven concepts that answer different questions:
 
@@ -86,11 +86,12 @@ every non-null compatibility subject field and includes at least one
 provider-declared subject observation. A registered path can impose a stricter
 provider-declared field set.
 
-Every v4 candidate carries `model_policy_decision_id`, including candidates
-that match no policy path. Only the candidate whose method, distribution,
-target modules, and runtime contract match a registered path carries an
-`aptus.model-policy-binding.v1`. Its source is `provider-inspection` with a
-receipt ID or `user-attested` with no receipt ID.
+Every candidate in an `aptus.training-plan.v5` plan carries
+`model_policy_decision_id`, including candidates that match no policy path.
+Only the candidate whose method, distribution, target modules, and runtime
+contract match a registered path carries an `aptus.model-policy-binding.v1`.
+Its source is `provider-inspection` with a receipt ID or `user-attested` with no
+receipt ID.
 
 Receipt and decision hashes are tamper-evident content bindings, not
 authenticated signatures. They detect mismatched content but do not prove the
@@ -186,11 +187,13 @@ object per line. The bundle manifest binds that file by path, size, and digest.
 
 ## Evidence identity rules
 
-Evidence-record content is a direct `plan_id` input. The v4 plan ID binds schema
-and formula versions, normalized facts, the policy decision and source, any
-receipt, the sorted canonical evidence records, ordered candidate IDs, and the
-recommended candidate ID. Changing a claim, source, source kind, scope,
-confidence, or revision changes the plan ID. The portable validator also
+Evidence-record content is a direct `plan_id` input. The v5 plan ID binds schema
+and formula versions, normalized facts, the semantic policy decision and source,
+the `model_policy_snapshot_sha256` binding, the optional inspection receipt with its
+nested explanatory decision reason excluded, the sorted canonical evidence
+records, ordered candidate IDs, and the recommended candidate ID. Changing a
+claim, source, source kind, scope, confidence, revision, or snapshot digest
+changes the plan ID. The portable validator also
 requires each known evidence ID to resolve to its exact code-owned record and
 requires the record set to equal the candidates' cited evidence union.
 

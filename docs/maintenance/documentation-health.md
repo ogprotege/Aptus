@@ -2,12 +2,12 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #22, merge `e7ce942`, plus
-> the current Phase 2 and Phase 3 compatibility-policy follow-ups
+> **Applies to:** Repository documentation through PR #28, merge `e842963`, plus
+> the current Phase 4 documentation closeout
 >
-> **Last reviewed:** 2026-07-29
+> **Last reviewed:** 2026-08-03
 >
-> **Next scheduled review:** 2026-10-27, or after the next contract-changing pull request
+> **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
 ## Overall assessment
 
@@ -31,14 +31,23 @@ sealed the producer, and added browser fail-closed normalization. PR #22 closed
 the remaining open vocabulary. Conditional compatibility now
 uses known runtime, compute-backend, method, distribution, and adapter-profile
 IDs, validates the tuple against the method registry, and describes only
-eligibility for a reviewed pilot path. The Phase 2 follow-up introduced
-one host-side policy registry for provider inspection, sparse candidate
-admission, and API execution-path validation. That historical phase
-intentionally preserved the v1 API, v3 plan identity, portable contract, and
-evidence boundary. The current Phase 3 follow-up migrates plans to v4, persists
-versioned decisions, receipts, and exact-path bindings, and keeps the API,
-facts, runtime-contract, and bundle versions unchanged. PR #15 preserved and
+eligibility for a reviewed pilot path. PR #23 implemented the Phase 2
+host-side policy registry for provider inspection, sparse candidate admission,
+and API execution-path validation. That historical phase intentionally
+preserved the v1 API, v3 plan identity, portable contract, and evidence
+boundary. PR #24 implemented the historical Phase 3 v4 plan, versioned
+decisions, inspection receipts, and exact-path bindings. PR #25 advanced the
+current Phase 4 contract to `aptus.training-plan.v5` and `aptus.bundle.v3` with
+a deterministic portable policy snapshot. PRs #26 through #28 hardened
+malformed-input handling, rejected non-object manifests, and completed the
+remaining contract and package-free regression coverage. PR #15 preserved and
 indexed the historical audit without making it current authority.
+
+The current Phase 4 contract uses a frozen snapshot for package-free portable
+integrity and policy-decision parity. Portable validation cannot determine host
+policy currency. Validation under an installed Aptus host additionally compares
+the bundle bindings with the current host registry and requires replanning when
+that registry has changed.
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it
 stopped before model loading. It is not a passing pilot or training result. The
 release itself remains blocked until qualifying CUDA target-host evidence and a
@@ -56,11 +65,11 @@ status, and response field from one source.
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, a status-discriminated compatibility contract with closed execution IDs, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; host model-policy decisions have one named authority, and v4 plans bind decision, receipt source, and exact matching path |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the portable snapshot digest, while installed-host registry currency remains a separate admission check |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, Phase 3 decision, receipt, and binding documentation, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
 | Release evidence | Partial | Two clean MLX-LM workflows reached `measured-run-pass`, and 10 of 10 local desktop engineering builds passed at their tested commit; CUDA target-host and public notarized distribution evidence remain open |
 
 ## Freshness and classification
@@ -200,24 +209,30 @@ Qwen3 MoE plan and candidate identities match the merged Phase 1 baseline. The
 final independent adversarial pass found no remaining code or schema blocker.
 These checks do not claim target-host pilot evidence or public notarization.
 
-The current Phase 3 candidate adds `aptus.training-plan.v4`,
+The historical Phase 3 implementation added `aptus.training-plan.v4`,
 `aptus.model-compatibility.v2`, `aptus.model-inspection-receipt.v1`, and
-`aptus.model-policy-binding.v1`. Current guidance now distinguishes the
+`aptus.model-policy-binding.v1`. That phase's guidance distinguished the
 compatibility-subject digest from the broader observed-planning-facts digest,
 provider-inspection from user-attested plans, and tamper evidence from
-authentication. It also records strict replanning for pre-v4 and obsolete-policy
-plans while preserving historical Phase 2 and dated audit statements. The full
-documentation suite passes 17 tests, including semantic Phase 3 coverage and
-the local link-and-anchor check. This is documentation and contract evidence,
-not a passing real-model pilot.
+authentication. It also recorded strict replanning for pre-v4 and then-obsolete
+v4 policy state while preserving historical Phase 2 and dated audit statements.
+The full documentation suite passed 17 tests, including semantic Phase 3
+coverage and the local link-and-anchor check. This was documentation and
+contract evidence, not a passing real-model pilot.
 
-Phase 4 advances the current plan to `aptus.training-plan.v5` and the bundle to
+The current Phase 4 contract uses `aptus.training-plan.v5` and
 `aptus.bundle.v3`. The canonical `aptus.model-policy-snapshot.v1` is generated
 deterministically from the host registry, cross-bound by digest in the plan and
 manifest, and evaluated inside the bundle without importing Aptus. V4 and older
-plans require replanning. Missing, malformed, noncanonical, stale, or tampered
-snapshots fail closed. Phase 5 browser cleanup and Phase 6 policy expansion
-remain separate.
+plans require replanning. The package-free portable validator checks its frozen
+snapshot for contract validity, canonical encoding, digest and path integrity,
+and decision parity; it cannot determine host policy currency. Validation under
+an installed Aptus host additionally compares the bindings with the current
+host registry and requires replanning when the host digest has changed. PRs #26
+through #28 add typed malformed-snapshot findings, controlled scalar-manifest
+rejection, package-free negative coverage, the complete legacy/API matrices,
+and removal of the retired handwritten policy branch. Phase 5 browser cleanup
+and Phase 6 policy expansion remain separate.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature

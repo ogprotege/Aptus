@@ -382,24 +382,35 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn('`"policy_binding": null`', plan_schema)
         self.assertIn("`parameters` and `training_allowed` never", plan_schema)
         self.assertIn("tamper-evident content bindings, not authenticated", plan_schema)
-        self.assertIn("A v4 plan, stale v5", plan_schema)
+        normalized_plan_schema = " ".join(plan_schema.split())
+        self.assertIn(
+            "Every v4, v3, v2, or schema-less plan requires replanning",
+            normalized_plan_schema,
+        )
+        self.assertIn(
+            "A coherent v5 plan also requires replanning after a snapshot-digest "
+            "or policy-semantic change",
+            normalized_plan_schema,
+        )
 
         api = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
         cli = (REPOSITORY / "docs/reference/cli.md").read_text(encoding="utf-8")
         self.assertIn("`inspection_receipt`", api)
         self.assertIn("never falls back to the user-attested path", api)
         self.assertIn("`--inspection-receipt PATH`", cli)
-        self.assertIn("stale policy fails with", cli)
+        self.assertIn("aptus.training-plan.v5", cli)
 
         error_codes = (REPOSITORY / "docs/reference/error-codes.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("under the v5 contract", error_codes)
-        self.assertIn("obsolete policy decision or snapshot", error_codes)
+        self.assertIn("`aptus.training-plan.v5` contract", error_codes)
+        self.assertIn("coherent v5 plan", error_codes)
+        self.assertIn("current host registry", error_codes)
         self.assertIn("downgrading a bad receipt", error_codes)
 
         ui_contract = (REPOSITORY / "docs/product/ui-ux.md").read_text(encoding="utf-8")
-        self.assertIn("Saved v3 plans, v2 plans", ui_contract)
+        self.assertIn("Saved v4, v3, and v2 plans", ui_contract)
+        self.assertIn("plans with no schema identifier", ui_contract)
         self.assertIn("`aptus.model-inspection-receipt.v1`", ui_contract)
         self.assertIn("only the exact registered path", ui_contract)
         self.assertIn("Phase 4", ui_contract)
@@ -412,7 +423,6 @@ class DocumentationTests(unittest.TestCase):
             "aptus.api.v1",
             "aptus.facts.v3",
             "aptus.runtime-contract.v1",
-            "aptus.bundle.v3",
         ):
             self.assertIn(unchanged, overview)
 
@@ -446,8 +456,273 @@ class DocumentationTests(unittest.TestCase):
         health = (REPOSITORY / "docs/maintenance/documentation-health.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("The current Phase 3 candidate adds", health)
+        self.assertIn("The historical Phase 3 implementation added", health)
         self.assertIn("`aptus.training-plan.v4`", health)
+        self.assertIn("The current Phase 4 contract uses", health)
+        self.assertIn("`aptus.training-plan.v5`", health)
+
+    def test_policy_snapshot_finding_codes_are_fully_documented(self) -> None:
+        validation = (REPOSITORY / "src/aptus/validation.py").read_text(
+            encoding="utf-8"
+        )
+        source_codes = set(re.findall(r'"(POLICY_SNAPSHOT_[A-Z_]+)"', validation))
+        expected_codes = {
+            "POLICY_SNAPSHOT_CONTRACT",
+            "POLICY_SNAPSHOT_DIGEST",
+            "POLICY_SNAPSHOT_JSON_ERROR",
+            "POLICY_SNAPSHOT_MISSING",
+            "POLICY_SNAPSHOT_NONCANONICAL",
+            "POLICY_SNAPSHOT_PATH",
+        }
+        self.assertEqual(source_codes, expected_codes)
+
+        error_codes = (REPOSITORY / "docs/reference/error-codes.md").read_text(
+            encoding="utf-8"
+        )
+        actual_rows = {
+            code: next(line for line in error_codes.splitlines() if f"`{code}`" in line)
+            for code in source_codes
+        }
+        expected_rows = {
+            "POLICY_SNAPSHOT_MISSING": (
+                "| `POLICY_SNAPSHOT_MISSING` | error | "
+                "`policy/model-policy-snapshot.v1.json` | "
+                "The required snapshot file is absent |"
+            ),
+            "POLICY_SNAPSHOT_JSON_ERROR": (
+                "| `POLICY_SNAPSHOT_JSON_ERROR` | error | "
+                "`policy/model-policy-snapshot.v1.json` | Snapshot bytes cannot "
+                "be read or decoded and parsed as valid UTF-8 JSON |"
+            ),
+            "POLICY_SNAPSHOT_CONTRACT": (
+                "| `POLICY_SNAPSHOT_CONTRACT` | error | "
+                "`policy/model-policy-snapshot.v1.json` | The parsed value is not "
+                "an exact valid `aptus.model-policy-snapshot.v1`, including JSON "
+                "`null` or malformed constraint operands |"
+            ),
+            "POLICY_SNAPSHOT_NONCANONICAL": (
+                "| `POLICY_SNAPSHOT_NONCANONICAL` | error | "
+                "`policy/model-policy-snapshot.v1.json` | Snapshot bytes differ "
+                "from the deterministic canonical JSON encoding |"
+            ),
+            "POLICY_SNAPSHOT_DIGEST": (
+                "| `POLICY_SNAPSHOT_DIGEST` | error | "
+                "`policy/model-policy-snapshot.v1.json` | One or more `snapshot`, "
+                "`plan`, `manifest`, or `host` bindings is not lowercase "
+                "64-character hexadecimal text, or a valid `plan`, `manifest`, "
+                "or `host` binding differs from the snapshot; the finding message "
+                "names each invalid and differing binding |"
+            ),
+            "POLICY_SNAPSHOT_PATH": (
+                "| `POLICY_SNAPSHOT_PATH` | error | `bundle-manifest.json` | "
+                "`policy_snapshot_path` is not exactly "
+                "`policy/model-policy-snapshot.v1.json` |"
+            ),
+        }
+        self.assertEqual(actual_rows, expected_rows)
+
+    def test_every_plan_identity_enumeration_binds_the_snapshot_digest(self) -> None:
+        documents = (
+            "docs/reference/plan-schema.md",
+            "docs/reference/evidence-records.md",
+            "docs/architecture/data-and-identity-flow.md",
+            "docs/methodology/candidate-enumeration.md",
+            "docs/methodology/method-taxonomy.md",
+            "docs/contributing/changing-contracts.md",
+        )
+        for relative_path in documents:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            paragraphs = [
+                " ".join(paragraph.split()) for paragraph in re.split(r"\n\s*\n", text)
+            ]
+            identity_enumerations = [
+                paragraph
+                for paragraph in paragraphs
+                if re.search(
+                    r"\b(?:plan ID|plan identity)\b.*\b"
+                    r"(?:binds?|hashes?|includes?|contains?|covers?|comprises?)\b",
+                    paragraph,
+                    re.I,
+                )
+            ]
+            self.assertTrue(identity_enumerations, relative_path)
+            missing_digest = [
+                paragraph
+                for paragraph in identity_enumerations
+                if "model_policy_snapshot_sha256" not in paragraph
+                and "snapshot digest" not in paragraph.lower()
+            ]
+            self.assertEqual(
+                missing_digest,
+                [],
+                f"Plan identity enumeration omits snapshot digest: {relative_path}",
+            )
+
+    def test_policy_docs_separate_portable_integrity_from_host_currency(
+        self,
+    ) -> None:
+        for relative_path in (
+            "README.md",
+            "docs/architecture/system.md",
+            "docs/architecture/data-and-identity-flow.md",
+            "docs/contributing/changing-contracts.md",
+            "docs/maintenance/documentation-debt.md",
+            "docs/maintenance/documentation-health.md",
+            "docs/methodology/overview.md",
+            "docs/product/current-capabilities.md",
+            "docs/product/ui-ux.md",
+            "docs/reference/api.md",
+            "docs/reference/bundle-manifest.md",
+            "docs/reference/cli.md",
+            "docs/reference/error-codes.md",
+            "docs/reference/plan-schema.md",
+            "docs/reference/validation-states.md",
+        ):
+            text = " ".join(
+                (REPOSITORY / relative_path).read_text(encoding="utf-8").lower().split()
+            )
+            self.assertRegex(text, r"frozen[- ]snapshot", relative_path)
+            for term in ("integrity", "currency"):
+                self.assertIn(term, text, relative_path)
+            self.assertRegex(
+                text,
+                r"(?:portable|package-free).{0,800}"
+                r"(?:cannot|does not|\bnot\b).{0,200}"
+                r"(?:currency|current[- ](?:host[- ])?registry)",
+                relative_path,
+            )
+            self.assertRegex(
+                text,
+                r"installed[- ](?:host|aptus)",
+                relative_path,
+            )
+            self.assertRegex(
+                text,
+                r"current[- ](?:host[- ])?registry",
+                relative_path,
+            )
+
+    def test_phase4_current_contract_wording_preserves_phase3_history(self) -> None:
+        required_current_fragments = {
+            "README.md": (
+                "Write a persisted v5 plan JSON without compiling",
+                "Every v5 plan persists",
+            ),
+            "docs/reference/api.md": (
+                "required v5 schema",
+                "The OpenAPI response requires the v5 schema",
+                "Create a new v5 plan from the source facts",
+            ),
+            "docs/reference/cli.md": (
+                "Write a standalone v5 plan",
+                "exact v5 domain contract",
+            ),
+            "docs/reference/error-codes.md": ("create a new v5 plan",),
+            "docs/reference/evidence-records.md": (
+                "Every candidate in an `aptus.training-plan.v5` plan",
+                "The v5 plan ID binds",
+            ),
+            "docs/reference/plan-schema.md": (
+                "The current schema identifier is `aptus.training-plan.v5`",
+                "Every v4, v3, v2, or schema-less plan requires replanning",
+            ),
+            "docs/reference/validation-states.md": (
+                "Every v4, v3, v2, or schema-less plan requires replanning",
+            ),
+            "docs/architecture/artifact-compiler.md": (
+                "Valid `aptus.training-plan.v5` payload",
+                "The installed Aptus host compiler",
+            ),
+            "docs/architecture/data-and-identity-flow.md": (
+                "`aptus.training-plan.v5` model payload",
+                "compare a v5 decision and snapshot digest",
+            ),
+            "docs/architecture/system.md": (
+                "`aptus.training-plan.v5` and `aptus.bundle.v3` cross-bind",
+            ),
+            "docs/contributing/changing-contracts.md": (
+                "The current plan reader accepts only `aptus.training-plan.v5`",
+            ),
+            "docs/maintenance/documentation-health.md": (
+                "The historical Phase 3 implementation added",
+                "The current Phase 4 contract uses `aptus.training-plan.v5`",
+            ),
+            "docs/methodology/overview.md": (
+                "the plan contract from `aptus.training-plan.v4` to "
+                "`aptus.training-plan.v5`",
+            ),
+            "docs/product/current-capabilities.md": (
+                "Persisted `aptus.training-plan.v5` compatibility provenance",
+            ),
+            "docs/product/ui-ux.md": (
+                "creates a new deterministic v5 plan",
+                "The `aptus.training-plan.v5` carries one",
+            ),
+            "docs/methodology/facts-and-provenance.md": (
+                "Changing an input requires a new `aptus.training-plan.v5` plan",
+            ),
+        }
+        stale_current_v4_claim = re.compile(
+            r"\b(?:create|emit|generate|produce|write|persist|rehydrate|carry|use|"
+            r"accept|require)\w*\b.{0,80}\b"
+            r"(?:a |an )?(?:current |active |new |deterministic |standalone |"
+            r"persisted )*v4 plan\b",
+            re.I,
+        )
+        for relative_path, fragments in required_current_fragments.items():
+            text = " ".join(
+                (REPOSITORY / relative_path).read_text(encoding="utf-8").split()
+            )
+            self.assertIn("aptus.training-plan.v5", text, relative_path)
+            self.assertIsNone(stale_current_v4_claim.search(text), relative_path)
+            for fragment in fragments:
+                self.assertIn(fragment, text, relative_path)
+
+        debt = (REPOSITORY / "docs/maintenance/documentation-debt.md").read_text(
+            encoding="utf-8"
+        )
+        phase3_record = debt.split(
+            "### DOC-021: Bind model-policy provenance into persisted plans", 1
+        )[1].split("### DOC-022: Make the model-policy contract portable", 1)[0]
+        self.assertIn("Phase 3 intentionally preserves", phase3_record)
+        self.assertIn("`aptus.training-plan.v4`", phase3_record)
+        self.assertIn("`aptus.bundle.v2`", phase3_record)
+
+    def test_phase4_static_and_bundle_migration_docs_do_not_drift(self) -> None:
+        validation_states = (
+            REPOSITORY / "docs/reference/validation-states.md"
+        ).read_text(encoding="utf-8")
+        static_section = validation_states.split("### Static", 1)[1].split(
+            "### Dependency", 1
+        )[0]
+        normalized_static_section = " ".join(static_section.split())
+        for expected in (
+            "`policy_snapshot.py`",
+            "For MLX bundles, the host also parses `reload.py`",
+            "The generated CUDA validator parses the seven-file list above",
+            "The generated MLX validator's `static` level",
+            "it does not AST-parse generated programs",
+        ):
+            self.assertIn(expected, normalized_static_section)
+
+        overview = (REPOSITORY / "docs/methodology/overview.md").read_text(
+            encoding="utf-8"
+        )
+        unchanged_paragraph = next(
+            paragraph
+            for paragraph in re.split(r"\n\s*\n", overview)
+            if paragraph.startswith("The HTTP API remains")
+        )
+        self.assertNotIn("aptus.bundle.v3", unchanged_paragraph)
+        normalized_overview = " ".join(overview.split())
+        self.assertRegex(
+            normalized_overview,
+            r"bundle.{0,100}`aptus\.bundle\.v2`.{0,100}`aptus\.bundle\.v3`",
+        )
+        self.assertNotRegex(
+            normalized_overview,
+            r"`aptus\.bundle\.v3`.{0,100}\b(?:remain|unchanged|preserv)",
+        )
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

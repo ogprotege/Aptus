@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -28,13 +28,14 @@ revision detail on demand, and recovers an older state only by creating a new
 revision. The interface must state that recovery does not restore training
 authorization and must require fresh validation and confirmation.
 
-Saved v3 plans, v2 plans, and plans with no schema identifier remain historical
-records, not executable workspaces. A v4 plan with an obsolete registered
-policy version also requires replanning. Bootstrap exposes `replan_required`
-and the source identity. The workbench shows that message, restores no old plan
-or bundle, and does not offer compile or revision recovery for it. The operator
-creates a new deterministic v4 plan from the preserved facts. The UI must never
-imply that changing the old schema label is a migration.
+Saved v4, v3, and v2 plans and plans with no schema identifier remain historical
+records, not executable workspaces. An `aptus.training-plan.v5` whose decision
+or policy snapshot is no longer current also requires replanning. Bootstrap
+exposes `replan_required` and the source identity. The workbench shows that
+message, restores no old plan or bundle, and does not offer compile or revision
+recovery for it. The operator creates a new deterministic v5 plan from the
+preserved facts. The UI must never imply that changing the old schema label is
+a migration.
 
 The Models destination includes a read-only MLX environment doctor. Each likely
 interpreter shows path, discovery source, Python version, import-probe status,
@@ -122,8 +123,9 @@ host RAM, disk, assumptions, and evidence. Unsupported rows remain visible.
 Selecting a row changes only the inspected evidence. Compilation always uses the
 plan's clearly labeled recommended candidate.
 
-The v4 plan carries one `aptus.model-compatibility.v2` decision. Every candidate
-links to it, but only the exact registered path may show a non-null
+The `aptus.training-plan.v5` carries one `aptus.model-compatibility.v2`
+decision. Every candidate links to it, but only the exact registered path may
+show a non-null
 `aptus.model-policy-binding.v1`. The UI must not infer a binding for another
 candidate from family, prefix, method, or presentation text.
 
@@ -144,6 +146,12 @@ complete.
 Compilation requires a new path and explains no-clobber behavior. The artifact
 view lists the bundle and archive. Validation presents each evidence level, its
 bindings, findings, and the difference between analytic and measured evidence.
+
+Package-free portable validation can report frozen-snapshot integrity and
+decision parity, but it cannot determine host policy currency because it has no
+installed host or current registry. The workbench must derive any current or
+replan-required label from the installed Aptus host check, not from portable
+integrity alone.
 
 The dependency file is labeled as direct exact pins, not a transitive lock.
 

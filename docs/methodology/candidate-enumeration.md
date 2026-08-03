@@ -1,6 +1,6 @@
 # Candidate Enumeration
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when candidate rules change
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when candidate rules change
 
 Methodology version: `aptus-candidates-v2`.
 
@@ -101,7 +101,10 @@ and the complete normalized memory record. The public ID uses the first 20
 hexadecimal characters of that digest.
 
 The plan ID separately binds the schema and memory-formula versions, normalized
-facts, the ordered candidate IDs, and the recommended candidate ID.
+facts, the ordered candidate IDs, the recommended candidate ID, the semantic
+model-policy decision and its source, `model_policy_snapshot_sha256`, the
+optional inspection receipt with its nested explanatory decision reason
+excluded, and the canonical evidence records.
 
 ## Current boundary
 

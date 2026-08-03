@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-07-29 |
-| Next review | 2026-10-27, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
 started by `aptus serve`. The default origin is `http://127.0.0.1:8787`.
@@ -161,15 +161,15 @@ When restorable state exists, the response can also contain:
 - `plan`, loaded from the current project's latest valid revision or restorable bundle;
 - `bundle.bundle_dir`, `archive_path`, current file list, and report.
 
-If the current revision or restorable bundle contains a v3 plan, a v2 plan, or
+If the current revision or restorable bundle contains a v4, v3, or v2 plan, or
 a plan with no schema identifier, bootstrap does not return it as `plan` or
 restore its bundle into the executable workspace. It returns `replan_required`
-with `status`, optional `plan_id`, optional `found_schema`, required v4 schema,
-source, project identities when known, and an operator message. The same result
-applies to a v4 plan whose policy decision or registered path is stale. The
-source is `project-revision` or `compiled-bundle`. The saved plan and source
-revision stay unchanged. Create a deterministic v4 plan from the preserved
-facts.
+with `status`, optional `plan_id`, optional `found_schema`, required v5 schema,
+source, project identities when known, and an operator message. A coherent v5
+plan whose policy decision or snapshot digest differs from the current host
+registry has the same result. The source is `project-revision` or
+`compiled-bundle`. The saved plan and source revision stay unchanged. Create a
+deterministic v5 plan from the preserved facts.
 
 A standalone project plan can be restored from the current immutable revision.
 Bootstrap returns a current-project bundle only when its resolved path, plan ID,
@@ -473,20 +473,23 @@ model-derived default. When no candidate is viable, the response is
 `422 no_feasible_plan` and still includes the complete rejected candidate
 matrix.
 
-The OpenAPI response requires the v4 schema and plan ID, recommendation,
-candidates, warnings, rationale, model-policy decision, decision source, and
-nullable inspection receipt. Every candidate requires its candidate ID,
-decision ID, and nullable policy binding. The maintained browser client rejects
-purported v4 plans that omit this provenance chain. A no-feasible comparison is
-an explicitly partial view and cannot be submitted for compilation.
+The OpenAPI response requires the v5 schema and plan ID,
+`model_policy_snapshot_sha256`, recommendation, candidates, warnings,
+rationale, model-policy decision, decision source, and nullable inspection
+receipt. Every candidate requires its candidate ID, decision ID, and nullable
+policy binding. The maintained browser client rejects purported v5 plans that
+omit this provenance chain. A no-feasible comparison is an explicitly partial
+view and cannot be submitted for compilation.
 
 ### `GET /api/v1/plans/{plan_id}`
 
 The ID must have the exact form `plan_` plus 20 lowercase hexadecimal
 characters. Invalid or missing IDs return `404 plan_not_found`. A valid stored
 plan is rehydrated through the strict domain contract before it is returned. A
-saved v3 plan, v2 plan, schema-less plan, or v4 plan with a stale policy returns
-`409 replan_required` without changing the file.
+saved v4, v3, v2, or schema-less plan returns `409 replan_required` without
+changing the file. A coherent v5 plan whose policy decision or snapshot digest
+differs from the current host registry returns the same response. Malformed or
+tampered v5 policy state remains invalid input rather than a migration case.
 
 ## Compilation and direct validation
 
@@ -531,9 +534,10 @@ compilation, Aptus returns `409 project_revision_conflict`. It removes only the
 unchanged bundle and ZIP created by that request. A replacement at either path
 is preserved.
 
-A persisted v2 plan or plan with no schema identifier returns
-`409 replan_required` before bundle creation. The stored plan and project
-revision remain unchanged.
+A persisted v4, v3, v2, or schema-less plan returns `409 replan_required`
+before bundle creation. A coherent v5 plan whose policy decision or snapshot
+digest differs from the current host registry returns the same response. The
+stored plan and project revision remain unchanged.
 
 ### `POST /api/v1/validate`
 
@@ -556,6 +560,13 @@ path, manifest content, or recorded manifest fingerprint. A path that belongs
 to the revision but fails this deeper identity check returns
 `409 project_bundle_binding_mismatch`. Success appends an immutable revision
 and returns `project_id` and `project_revision_id`.
+
+This endpoint uses installed Aptus and therefore compares the plan, manifest,
+and embedded snapshot digest with the current host registry. That currency
+check is distinct from the package-free generated validator, which can prove
+only the integrity and decision parity of the frozen snapshot carried by its
+bundle. A transferred standalone bundle cannot determine host policy currency
+or know whether the current registry has advanced.
 
 ## Jobs
 
@@ -675,11 +686,11 @@ one. It does not rewrite the source revision. Success returns:
 Recovery is not training resume. Revalidate current evidence and submit a new
 explicitly confirmed train action. Missing projects or revisions return the
 corresponding `project_not_found` or `project_revision_not_found` error.
-A revision whose plan snapshot uses v3, v2, or no schema identifier returns
+A revision whose plan snapshot uses v4, v3, v2, or no schema identifier returns
 `409 replan_required`. Aptus preserves the source revision and appends no
-replacement revision. A v4 plan or stale v5 policy decision or snapshot has the
-same result. Create a
-new v4 plan from the source facts instead.
+replacement revision. A coherent v5 plan whose policy decision or snapshot
+digest differs from the current host registry has the same result. Create a new
+v5 plan from the source facts instead.
 
 ## Error envelopes
 

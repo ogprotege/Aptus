@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -76,9 +76,12 @@ but it still needs tests.
 ## Trace identity consumers
 
 Candidate identity normalizes model, dataset, hardware, target, strategy,
-memory, status, and resource facts. Plan identity binds normalized facts, the
-ordered candidate IDs, and the recommendation. Bundle identity binds the plan
-digest and compiler-managed file manifest.
+memory, status, and resource facts. Plan identity binds the schema and formula
+versions, normalized facts, the ordered candidate IDs, the recommendation, the
+semantic policy decision and source, `model_policy_snapshot_sha256`, the
+optional inspection receipt with its nested explanatory decision reason
+excluded, and canonical evidence records. Bundle identity binds the plan digest and
+compiler-managed file manifest.
 
 When a new field changes execution or selection:
 
@@ -95,9 +98,9 @@ creates an unbound setting.
 
 ## Keep host and portable implementations aligned
 
-The bundle copies `plan_contract.py` and `runtime_lease.py`. It emits trainer,
-runner, preflight, validator, and MLX reload programs from package resources
-under `src/aptus/_bundle_programs/`.
+The bundle copies `plan_contract.py`, `policy_snapshot.py`, and
+`runtime_lease.py`. It emits trainer, runner, preflight, validator, and MLX
+reload programs from package resources under `src/aptus/_bundle_programs/`.
 Host-side validation and `JobService` independently verify related evidence.
 
 A contract change may therefore touch:
@@ -114,6 +117,15 @@ A contract change may therefore touch:
 
 Add cross-boundary tests that feed bad generated evidence to the host verifier.
 Do not assume shared field names prove shared semantics.
+
+Package-free portable validation evaluates the bundle's frozen snapshot. It
+must prove snapshot contract, canonical encoding, digest bindings, and decision
+parity, but it has no installed host or current registry and cannot determine
+host policy currency. Installed Aptus owns that separate currency boundary. It
+must compare the bound snapshot digest and decision with the current registry
+before host-managed submission, pilot authorization, or completion promotion.
+A current-registry mismatch requires replanning; portable integrity success does
+not waive that result.
 
 ## Persisted state and compatibility
 
@@ -172,7 +184,9 @@ Phase 4 introduced a deterministic `aptus.model-policy-snapshot.v1`, its generic
 portable evaluator, `aptus.training-plan.v5`, and `aptus.bundle.v3`. Generate
 the snapshot twice and require byte-for-byte identity. Its SHA-256 must agree
 across the plan, manifest, and manifested snapshot file. Host-versus-portable
-decision parity is a required contract test.
+decision parity is a required contract test. Also test package-free frozen
+snapshot integrity independently from installed-host current-registry currency;
+the former cannot establish the latter.
 
 Phase 5 owns removal of browser-side policy reconstruction. Phase 6 owns the
 second reviewed policy. Do not fold either change into a Phase 4-compatible

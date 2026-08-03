@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
 | Authority | Normative field reference for `aptus.training-plan.v5` |
-| Last reviewed | 2026-07-30 |
-| Next review | 2026-10-27, or sooner when domain or plan-contract code changes |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
 The current schema identifier is `aptus.training-plan.v5`. Numbers must be
@@ -16,9 +16,10 @@ canonical model-policy snapshot through `model_policy_snapshot_sha256`. Plans
 with `aptus.training-plan.v4`, v3, v2, or no schema identifier lack this v5
 binding. Aptus preserves those saved bytes, but it does not reinterpret,
 compile, or recover them. Create a deterministic v5 plan from the preserved
-source facts. Do not relabel the old plan. A syntactically valid v5 plan also
-enters `replan_required` when its decision or snapshot digest no longer matches
-the current registry.
+source facts. Do not relabel the old plan. A coherent v5 plan also enters
+`replan_required` when its decision or snapshot digest no longer matches the
+current host registry. Malformed or tampered v5 policy state is invalid input,
+not a stale-plan migration.
 
 ## Top-level object
 
@@ -436,28 +437,41 @@ known evidence ID must resolve to its exact code-owned canonical record.
 Candidate identity binds normalized model, dataset, hardware, and target facts,
 plus the execution strategy, resource fields, status, target modules, memory
 object, policy decision link, and optional exact path binding. Plan identity
-binds schema and formula versions, normalized facts, the complete policy
-decision, its provider-inspection or user-attested source, the optional
-inspection receipt, the complete sorted canonical evidence records, all
-candidate IDs in order, and the recommended candidate ID. Changing an evidence
-claim, source, source kind, scope, confidence, or revision changes plan identity
-and also fails canonical registry validation unless the evidence ID changes
-with the code-owned record.
+binds schema and formula versions, normalized facts, the semantic policy
+decision excluding its explanatory `reason`, its provider-inspection or
+user-attested source, the optional inspection receipt with that same nested-decision
+exclusion, `model_policy_snapshot_sha256`, the complete sorted canonical
+evidence records, all candidate IDs in order, and the recommended candidate ID.
+Changing an evidence claim, source, source kind, scope, confidence, revision,
+or snapshot digest changes plan identity and also fails canonical registry
+validation unless the evidence ID changes with the code-owned record.
 
 Narrative warnings and rationale do not replace content identity. A payload must
 also pass deterministic replanning parity and current-policy validation during
-loading, compilation, recovery, and host static validation. A v4 plan, stale v5
-policy decision or snapshot digest, policy-version change, policy addition or
-removal, or changed registered path requires
-replanning. Aptus returns `replan_required` only after the saved decision,
-receipt, candidate links and bindings, candidate IDs, recommendation, evidence,
-and plan ID form a coherent historical chain. Broken dependencies are malformed
-or tampered input, not legitimate stale policy state.
+loading, compilation, recovery, and host-managed admission. Host static
+validation reports a currency mismatch as an invalid
+`POLICY_SNAPSHOT_DIGEST` finding. Every v4, v3, v2, or schema-less plan requires
+replanning. A coherent v5 plan also requires replanning after a snapshot-digest
+or policy-semantic change, including a policy-version change, policy addition
+or removal, or changed registered path. For a same-schema v5 policy change,
+loaders and host-managed workflows surface `replan_required` only after the
+saved decision, receipt, candidate links and bindings, candidate IDs,
+recommendation, evidence, and plan ID form a coherent historical chain. Broken
+dependencies are malformed or tampered input, not legitimate stale policy
+state.
 Historical classification uses the persisted decision and its internally
 consistent candidate targets. It does not reinterpret the old plan through a
 newer family-target catalog. Current plans still validate against the current
 catalog, so copied targets on an unknown family fail closed. Malformed JSON
 scalar types return validation errors instead of escaping as runtime failures.
+
+The package-free generated validator evaluates the plan against the canonical
+snapshot embedded in its bundle. That proves frozen snapshot integrity and
+decision parity, but portable validation cannot determine host policy currency
+or know whether an installed host's current registry has advanced. Installed
+Aptus supplies the current host snapshot for admission and compares its digest
+with the plan, manifest, and embedded file; only that host context establishes
+policy currency.
 
 Compilation rewrites the dataset path and provenance source to bundle-relative
 values while retaining the same semantic dataset digest and plan identity.

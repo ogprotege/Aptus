@@ -31,6 +31,7 @@ from aptus.plan_contract import (
     expected_model_architecture_contract,
     plan_id_for_payload,
     require_current_model_policy,
+    validate_bundle_manifest,
     validate_model_config_against_plan,
     validate_plan_payload,
 )
@@ -60,6 +61,14 @@ class PlanContractTests(unittest.TestCase):
     def test_real_v5_plan_is_valid(self) -> None:
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
         self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v5")
+
+    def test_bundle_manifest_must_be_a_json_object(self) -> None:
+        (self.root / "bundle-manifest.json").write_text("null\n", encoding="utf-8")
+
+        self.assertEqual(
+            validate_bundle_manifest(self.root),
+            ("Bundle manifest must be a JSON object.",),
+        )
 
     def test_installed_host_uses_current_policy_before_bundle_snapshot(self) -> None:
         snapshot_path = self.root / "policy" / "model-policy-snapshot.v1.json"

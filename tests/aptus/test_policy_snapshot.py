@@ -81,7 +81,30 @@ def _registry() -> dict:
                         "reason_code": "four-bit-required",
                     },
                 ],
-                "paths": [{"path_id": "mlx-lm.qlora.single.attention-qkvo.v1"}],
+                "paths": [
+                    {
+                        "path_id": "mlx-lm.qlora.single.attention-qkvo.v1",
+                        "method": "qlora",
+                        "distribution": "single",
+                        "adapter_profile_id": "attention-qkvo.v1",
+                        "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj"],
+                        "runtime_contract": {
+                            "compute_backend": "mps",
+                            "training_runtime": "mlx-lm",
+                            "compiler_id": "mlx-lm.qlora.v1",
+                            "estimator_id": "aptus-memory-mlx-v2",
+                            "evidence_requirement": "pilot-required",
+                            "export_kind": "mlx-lm-adapter",
+                            "schema_version": "aptus.runtime-contract.v1",
+                        },
+                        "required_validation_levels": [
+                            "model-data",
+                            "measured-preflight",
+                            "pilot",
+                        ],
+                        "evidence_ids": ["policy.qwen3-moe.mlx-qlora.v1"],
+                    }
+                ],
                 "matched_reason": "matched",
                 "matched_reason_codes": [
                     "exact-reviewed-artifact",
@@ -124,6 +147,17 @@ class PolicySnapshotTests(unittest.TestCase):
     def setUp(self) -> None:
         self.snapshot = model_policy_snapshot_payload(_registry())
 
+    def _constraint(self, snapshot: dict, kind: str) -> dict:
+        return next(
+            constraint
+            for constraint in snapshot["policies"][0]["constraints"]
+            if constraint["kind"] == kind
+        )
+
+    def _assert_evaluation_rejects(self, snapshot: dict, pattern: str) -> None:
+        with self.assertRaisesRegex(ValueError, pattern):
+            evaluate_model_policy_snapshot(snapshot, _subject())
+
     def test_canonical_bytes_and_digest_are_stable(self) -> None:
         reversed_registry = dict(reversed(list(_registry().items())))
         other = model_policy_snapshot_payload(reversed_registry)
@@ -145,13 +179,275 @@ class PolicySnapshotTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_model_policy_snapshot(missing)
 
+    def test_validation_rejects_malformed_quantization_constraint_operands(
+        self,
+    ) -> None:
+        for field in (
+            "default_bits",
+            "default_group_size",
+            "override_bits",
+            "override_group_size",
+        ):
+            for value in (None, True, 0, -1, 1.5, "4"):
+                with self.subTest(field=field, value=value):
+                    malformed = copy.deepcopy(self.snapshot)
+                    self._constraint(malformed, "quantization_layout")[field] = value
+                    self._assert_evaluation_rejects(malformed, "positive integer")
+
+    def test_validation_rejects_malformed_quantization_module_templates(self) -> None:
+        for value in (
+            42,
+            "",
+            "model.layers.gate",
+            "model.layers.{other}.gate",
+            "model.layers.{layer.gate}",
+            "model.layers.{layer[0]}.gate",
+            "model.layers.{layer!r}.gate",
+            "model.layers.{layer:03d}.gate",
+            "model.layers.{layer}.{layer}.gate",
+            "model.{{layers}}.{layer}.gate",
+            " model.layers.{layer}.gate",
+            "model.layers.{}.gate",
+            "model.layers.{layer:{width}}.gate",
+            "model.layers.{layer.gate",
+        ):
+            with self.subTest(value=value):
+                malformed = copy.deepcopy(self.snapshot)
+                self._constraint(malformed, "quantization_layout")[
+                    "override_module_template"
+                ] = value
+                self._assert_evaluation_rejects(malformed, "module template")
+
+    def test_validation_rejects_malformed_field_and_identity_operands(self) -> None:
+        for value in (None, "", " ", " quantization_bits", [], {}):
+            with self.subTest(kind="field_equals", value=value):
+                malformed = copy.deepcopy(self.snapshot)
+                self._constraint(malformed, "field_equals")["field"] = value
+                self._assert_evaluation_rejects(malformed, "field")
+
+        for field in ("family", "model_type", "architecture"):
+            for value in (
+                None,
+                "",
+                " ",
+                f" {self._constraint(self.snapshot, 'exact_identity')['values'][field]}",
+                [],
+                {},
+            ):
+                with self.subTest(kind="exact_identity", field=field, value=value):
+                    malformed = copy.deepcopy(self.snapshot)
+                    self._constraint(malformed, "exact_identity")["values"][field] = (
+                        value
+                    )
+                    self._assert_evaluation_rejects(malformed, "exact identity")
+
+    def test_validation_requires_exactly_one_exact_identity_constraint(self) -> None:
+        missing = copy.deepcopy(self.snapshot)
+        missing["policies"][0]["constraints"] = [
+            constraint
+            for constraint in missing["policies"][0]["constraints"]
+            if constraint["kind"] != "exact_identity"
+        ]
+        missing_subject = _subject()
+        missing_subject["fact_errors"] = ["quantization: contradictory"]
+        with self.assertRaisesRegex(ValueError, "exact identity"):
+            evaluate_model_policy_snapshot(missing, missing_subject)
+
+        duplicate = copy.deepcopy(self.snapshot)
+        duplicate["policies"][0]["constraints"].append(
+            copy.deepcopy(self._constraint(duplicate, "exact_identity"))
+        )
+        self._assert_evaluation_rejects(duplicate, "exact identity")
+
+    def test_validation_rejects_malformed_claim_shapes_and_references(self) -> None:
+        mutations = {
+            "claims list": lambda policy: policy.update(claims=[]),
+            "unknown claims key": lambda policy: policy["claims"].update(
+                all_identity={}
+            ),
+            "claim value is not text": lambda policy: policy["claims"]["any_identity"][
+                "family"
+            ].append(42),
+            "claim value is empty": lambda policy: policy["claims"]["any_identity"][
+                "family"
+            ].append(""),
+            "claim value is whitespace": lambda policy: policy["claims"][
+                "any_identity"
+            ]["family"].append(" "),
+            "claim value is padded": lambda policy: policy["claims"]["any_identity"][
+                "family"
+            ].append(" qwen3_moe"),
+            "duplicate claim value": lambda policy: policy["claims"]["any_identity"][
+                "family"
+            ].append("qwen3_moe"),
+            "claim identity field missing": lambda policy: policy["claims"][
+                "any_identity"
+            ].pop("architecture"),
+            "identity not claimed": lambda policy: policy["claims"]["any_identity"][
+                "family"
+            ].remove("qwen3_moe"),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                malformed = copy.deepcopy(self.snapshot)
+                mutate(malformed["policies"][0])
+                self._assert_evaluation_rejects(malformed, "claim")
+
+    def test_validation_rejects_malformed_paths_reasons_and_evidence(self) -> None:
+        mutations = {
+            "path is not a mapping": lambda policy, snapshot: policy["paths"].append(
+                "path-id"
+            ),
+            "path id missing": lambda policy, snapshot: policy["paths"].append({}),
+            "path id empty": lambda policy, snapshot: policy["paths"][0].update(
+                path_id=""
+            ),
+            "path id whitespace": lambda policy, snapshot: policy["paths"][0].update(
+                path_id=" "
+            ),
+            "path id non-text": lambda policy, snapshot: policy["paths"][0].update(
+                path_id=[]
+            ),
+            "duplicate path id": lambda policy, snapshot: policy["paths"].append(
+                copy.deepcopy(policy["paths"][0])
+            ),
+            "path method non-text": lambda policy, snapshot: policy["paths"][0].update(
+                method=[]
+            ),
+            "path distribution empty": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(distribution=""),
+            "path adapter profile padded": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(adapter_profile_id=" profile"),
+            "path adapter profile non-text": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(adapter_profile_id=[]),
+            "path target modules malformed": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(target_modules="q_proj"),
+            "path target modules duplicate": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(target_modules=["q_proj", "q_proj"]),
+            "path runtime contract malformed": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(runtime_contract=[]),
+            "path runtime contract value non-text": lambda policy, snapshot: policy[
+                "paths"
+            ][0].update(runtime_contract={"compiler_id": []}),
+            "path validation levels empty": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(required_validation_levels=[]),
+            "constraint reason missing": lambda policy, snapshot: policy["constraints"][
+                0
+            ].update(reason="not-defined"),
+            "matched reason missing": lambda policy, snapshot: policy.update(
+                matched_reason="not-defined"
+            ),
+            "reason code non-text": lambda policy, snapshot: policy["constraints"][
+                0
+            ].update(reason_code=[]),
+            "reason code whitespace": lambda policy, snapshot: policy["constraints"][
+                0
+            ].update(reason_code=" "),
+            "matched reason code empty": lambda policy, snapshot: policy[
+                "matched_reason_codes"
+            ].append(""),
+            "matched reason code duplicate": lambda policy, snapshot: policy[
+                "matched_reason_codes"
+            ].append(policy["matched_reason_codes"][0]),
+            "evidence id non-text": lambda policy, snapshot: policy[
+                "evidence_ids"
+            ].append({}),
+            "evidence id whitespace": lambda policy, snapshot: policy[
+                "evidence_ids"
+            ].append(" "),
+            "evidence id duplicate": lambda policy, snapshot: policy[
+                "evidence_ids"
+            ].append(policy["evidence_ids"][0]),
+            "path evidence id empty": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(evidence_ids=[""]),
+            "path evidence id duplicate": lambda policy, snapshot: policy["paths"][
+                0
+            ].update(evidence_ids=["evidence", "evidence"]),
+            "reason text non-text": lambda policy, snapshot: snapshot["reasons"].update(
+                matched=[]
+            ),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                malformed = copy.deepcopy(self.snapshot)
+                mutate(malformed["policies"][0], malformed)
+                self._assert_evaluation_rejects(
+                    malformed,
+                    "path|reason|evidence",
+                )
+
+    def test_validation_requires_exact_path_and_runtime_contract_shapes(self) -> None:
+        path_fields = set(self.snapshot["policies"][0]["paths"][0])
+        for field in path_fields:
+            with self.subTest(missing_path_field=field):
+                malformed = copy.deepcopy(self.snapshot)
+                del malformed["policies"][0]["paths"][0][field]
+                self._assert_evaluation_rejects(malformed, "path")
+
+        runtime_fields = set(
+            self.snapshot["policies"][0]["paths"][0]["runtime_contract"]
+        )
+        for field in runtime_fields:
+            with self.subTest(missing_runtime_field=field):
+                malformed = copy.deepcopy(self.snapshot)
+                del malformed["policies"][0]["paths"][0]["runtime_contract"][field]
+                self._assert_evaluation_rejects(malformed, "runtime contract")
+            with self.subTest(non_text_runtime_field=field):
+                malformed = copy.deepcopy(self.snapshot)
+                malformed["policies"][0]["paths"][0]["runtime_contract"][field] = []
+                self._assert_evaluation_rejects(malformed, "runtime contract")
+
+        mutations = {
+            "extra path field": lambda path: path.update(unexpected="value"),
+            "extra runtime field": lambda path: path["runtime_contract"].update(
+                unexpected="value"
+            ),
+            "export kind padded": lambda path: path["runtime_contract"].update(
+                export_kind=" export"
+            ),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                malformed = copy.deepcopy(self.snapshot)
+                mutate(malformed["policies"][0]["paths"][0])
+                self._assert_evaluation_rejects(malformed, "path|runtime contract")
+
+        nullable = copy.deepcopy(self.snapshot)
+        runtime_contract = nullable["policies"][0]["paths"][0]["runtime_contract"]
+        runtime_contract["compiler_id"] = None
+        runtime_contract["export_kind"] = None
+        validate_model_policy_snapshot(nullable)
+
+    def test_validation_rejects_malformed_constraint_kinds_and_provenance(self) -> None:
+        for value in ([], {}):
+            with self.subTest(kind=value):
+                malformed = copy.deepcopy(self.snapshot)
+                malformed["policies"][0]["constraints"][0]["kind"] = value
+                self._assert_evaluation_rejects(malformed, "constraint")
+
+        unexpected = copy.deepcopy(self.snapshot)
+        unexpected["policies"][0]["constraints"][0]["unexpected"] = "operand"
+        self._assert_evaluation_rejects(unexpected, "constraint shape")
+
+        for value in ([], [""], [" "], ["layers", "layers"], "layers"):
+            with self.subTest(required_provenance_fields=value):
+                malformed = copy.deepcopy(self.snapshot)
+                malformed["policies"][0]["required_provenance_fields"] = value
+                self._assert_evaluation_rejects(malformed, "provenance")
+
     def test_generic_evaluator_covers_policy_and_fallback_states(self) -> None:
         matched = evaluate_model_policy_snapshot(self.snapshot, _subject())
         self.assertEqual(matched["kind"], "path-matched")
         self.assertEqual(matched["policy_id"], "model.qwen3-moe.mlx-qlora")
-        self.assertEqual(
-            matched["paths"], [{"path_id": "mlx-lm.qlora.single.attention-qkvo.v1"}]
-        )
+        self.assertEqual(matched["paths"], self.snapshot["policies"][0]["paths"])
         cases = [
             (
                 "identity",

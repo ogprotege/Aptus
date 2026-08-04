@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 from .domain import (
     AdapterProfile,
     Backend,
+    CandidateStatus,
     Distribution,
     EvidenceRequirement,
     Method,
@@ -379,10 +380,50 @@ class ModelInspectionReceiptResponse(ClosedResponseModel):
     resolved_revision: str = Field(pattern=r"^[0-9A-Fa-f]{40,64}$")
     observed_facts_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     decision: InspectedModelPolicyDecisionResponse
-    provenance_summary: list[InspectedModelProvenanceResponse]
+    provenance_summary: list[InspectedModelProvenanceResponse] = Field(min_length=1)
     provenance_requirement: Literal["provider-declared"] | None
     provenance_requirement_met: Annotated[bool, Field(strict=True)]
     evaluated_at: str
+
+    @model_validator(mode="after")
+    def require_coherent_provenance_summary(self) -> Self:
+        fields = [item.field for item in self.provenance_summary]
+        if fields != sorted(set(fields)):
+            raise ValueError(
+                "Inspection receipt provenance fields must be sorted and unique."
+            )
+        if any(
+            item.resolved_revision.lower() != self.resolved_revision.lower()
+            for item in self.provenance_summary
+        ):
+            raise ValueError(
+                "Inspection receipt provenance revisions must match the receipt."
+            )
+        has_provider_declared = any(
+            item.kind == "provider-declared" for item in self.provenance_summary
+        )
+        if self.provenance_requirement_met and (
+            self.provenance_requirement != "provider-declared"
+            or not has_provider_declared
+        ):
+            raise ValueError(
+                "A met inspection provenance requirement requires "
+                "provider-declared evidence."
+            )
+        if not has_provider_declared:
+            raise ValueError("Inspection receipts require provider-declared evidence.")
+        return self
+
+    @model_validator(mode="after")
+    def require_matched_path_provenance(self) -> Self:
+        if self.decision.kind == ModelPolicyDecisionKind.PATH_MATCHED and (
+            self.provenance_requirement != "provider-declared"
+            or not self.provenance_requirement_met
+        ):
+            raise ValueError(
+                "Path-matched provider decisions require provider-declared provenance."
+            )
+        return self
 
 
 class ModelInspectionResponse(ClosedResponseModel):
@@ -474,16 +515,127 @@ class PlanModelPolicyBindingResponse(ClosedResponseModel):
         return self
 
 
+class PlanModelSubjectResponse(ResponseModel):
+    model_id: _NonEmptyCompatibilityText
+    revision: str = Field(pattern=r"^[0-9A-Fa-f]{40,64}$")
+
+
 class PlanCandidateResponse(ResponseModel):
     candidate_id: str = Field(pattern=r"^cand_[0-9a-f]{20}$")
     model_policy_decision_id: str = Field(pattern=r"^compat_[0-9a-f]{20}$")
     policy_binding: PlanModelPolicyBindingResponse | None
+    method: Method
+    distribution: Distribution
+    status: CandidateStatus
+    feasible: Annotated[bool, Field(strict=True)]
+    rejection_reasons: list[str]
+    target_modules: list[str]
+    runtime_contract: InspectedRuntimeContractResponse
+
+    @model_validator(mode="after")
+    def require_status_feasibility_coherence(self) -> Self:
+        expected_feasible = self.status in {
+            CandidateStatus.FEASIBLE,
+            CandidateStatus.CONDITIONAL,
+        }
+        if self.feasible != expected_feasible:
+            raise ValueError("Candidate status and feasibility must agree.")
+        return self
+
+
+def _matching_candidate_policy_path(
+    decision: InspectedModelPolicyDecisionResponse,
+    candidate: PlanCandidateResponse,
+) -> InspectedModelPolicyPathResponse | None:
+    if decision.kind != ModelPolicyDecisionKind.PATH_MATCHED:
+        return None
+    return next(
+        (
+            path
+            for path in decision.paths
+            if path.method == candidate.method
+            and path.distribution == candidate.distribution
+            and path.target_modules == candidate.target_modules
+            and path.runtime_contract == candidate.runtime_contract
+        ),
+        None,
+    )
+
+
+def _require_exact_candidate_policy_bindings(
+    *,
+    candidates: list[PlanCandidateResponse],
+    decision: InspectedModelPolicyDecisionResponse,
+    source: Literal["provider-inspection", "user-attested"],
+    receipt_id: str | None,
+    context: str,
+) -> None:
+    for candidate in candidates:
+        matching_path = _matching_candidate_policy_path(decision, candidate)
+        binding = candidate.policy_binding
+        if matching_path is None:
+            if binding is not None:
+                raise ValueError(
+                    f"Candidate bindings must be null when no {context} policy path "
+                    "matches."
+                )
+            continue
+        if binding is None:
+            raise ValueError(
+                f"Candidates matching a registered {context} policy path require "
+                "a binding."
+            )
+        expected_binding = {
+            "schema_version": "aptus.model-policy-binding.v1",
+            "decision_id": decision.decision_id,
+            "subject_facts_sha256": decision.subject_facts_sha256,
+            "policy_id": decision.policy_id,
+            "policy_version": decision.policy_version,
+            "path_id": matching_path.path_id,
+            "source": source,
+            "inspection_receipt_id": receipt_id,
+            "reason_codes": [item.value for item in decision.reason_codes],
+            "evidence_ids": list(
+                dict.fromkeys(decision.evidence_ids + matching_path.evidence_ids)
+            ),
+        }
+        if binding.model_dump(mode="json") != expected_binding:
+            raise ValueError(
+                f"Candidate bindings must exactly match the registered {context} "
+                "policy path."
+            )
+
+
+def _model_policy_decisions_share_semantics(
+    left: InspectedModelPolicyDecisionResponse,
+    right: InspectedModelPolicyDecisionResponse,
+) -> bool:
+    return left.model_dump(mode="json", exclude={"reason"}) == right.model_dump(
+        mode="json", exclude={"reason"}
+    )
+
+
+def _require_receipt_model_subject(
+    *,
+    receipt: ModelInspectionReceiptResponse,
+    model: PlanModelSubjectResponse,
+    context: str,
+) -> None:
+    if receipt.model_id != model.model_id:
+        raise ValueError(
+            f"The {context} inspection receipt model ID must match the model subject."
+        )
+    if receipt.resolved_revision.lower() != model.revision.lower():
+        raise ValueError(
+            f"The {context} inspection receipt revision must match the model subject."
+        )
 
 
 class TrainingPlanResponse(ResponseModel):
     schema_version: Literal["aptus.training-plan.v5"]
     plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")
     model_policy_snapshot_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model: PlanModelSubjectResponse
     recommended: PlanCandidateResponse
     candidates: list[PlanCandidateResponse] = Field(min_length=1)
     warnings: list[str]
@@ -497,30 +649,122 @@ class TrainingPlanResponse(ResponseModel):
     @model_validator(mode="after")
     def require_complete_policy_chain(self) -> Self:
         decision_id = self.model_policy_decision.decision_id
+        candidate_ids = [candidate.candidate_id for candidate in self.candidates]
+        if len(candidate_ids) != len(set(candidate_ids)):
+            raise ValueError("Plan candidate IDs must be unique.")
         if any(
             candidate.model_policy_decision_id != decision_id
-            for candidate in self.candidates
+            for candidate in [self.recommended, *self.candidates]
         ):
             raise ValueError("Every candidate must link to the plan policy decision.")
         if self.recommended.candidate_id not in {
             candidate.candidate_id for candidate in self.candidates
         }:
             raise ValueError("The recommended candidate must be listed in candidates.")
+        listed_recommendation = next(
+            candidate
+            for candidate in self.candidates
+            if candidate.candidate_id == self.recommended.candidate_id
+        )
+        if self.recommended.model_dump(mode="json") != listed_recommendation.model_dump(
+            mode="json"
+        ):
+            raise ValueError(
+                "The recommended candidate must equal its listed candidate record."
+            )
+        if not self.recommended.feasible:
+            raise ValueError("The recommended candidate must be viable.")
         if self.model_policy_decision_source == "provider-inspection":
             if self.inspection_receipt is None:
                 raise ValueError("Provider-inspection plans require a receipt.")
-            if self.inspection_receipt.decision.decision_id != decision_id:
-                raise ValueError("The inspection receipt must bind the plan decision.")
+            if not _model_policy_decisions_share_semantics(
+                self.inspection_receipt.decision, self.model_policy_decision
+            ):
+                raise ValueError(
+                    "The inspection receipt decision must semantically match the plan."
+                )
+            _require_receipt_model_subject(
+                receipt=self.inspection_receipt,
+                model=self.model,
+                context="plan",
+            )
         elif self.inspection_receipt is not None:
             raise ValueError("User-attested plans cannot carry a receipt.")
-        for candidate in self.candidates:
-            binding = candidate.policy_binding
-            if binding is None:
-                continue
-            if binding.decision_id != decision_id:
-                raise ValueError("Candidate bindings must link to the plan decision.")
-            if binding.source != self.model_policy_decision_source:
-                raise ValueError("Candidate binding sources must match the plan.")
+        expected_receipt_id = (
+            self.inspection_receipt.receipt_id
+            if self.inspection_receipt is not None
+            else None
+        )
+        _require_exact_candidate_policy_bindings(
+            candidates=[self.recommended, *self.candidates],
+            decision=self.model_policy_decision,
+            source=self.model_policy_decision_source,
+            receipt_id=expected_receipt_id,
+            context="plan",
+        )
+        return self
+
+
+class NoFeasiblePlanResponse(ClosedResponseModel):
+    error: Literal["no_feasible_plan"]
+    message: str = Field(min_length=1)
+    model: PlanModelSubjectResponse
+    candidates: list[PlanCandidateResponse] = Field(min_length=1)
+    model_policy_decision: InspectedModelPolicyDecisionResponse
+    model_policy_decision_source: Literal["provider-inspection", "user-attested"]
+    inspection_receipt: ModelInspectionReceiptResponse | None
+
+    @model_validator(mode="after")
+    def require_complete_policy_chain(self) -> Self:
+        decision_id = self.model_policy_decision.decision_id
+        candidate_ids = [candidate.candidate_id for candidate in self.candidates]
+        if len(candidate_ids) != len(set(candidate_ids)):
+            raise ValueError("No-feasible-plan candidate IDs must be unique.")
+        if any(
+            candidate.feasible
+            or candidate.status
+            not in {CandidateStatus.INFEASIBLE, CandidateStatus.UNSUPPORTED}
+            or not candidate.rejection_reasons
+            for candidate in self.candidates
+        ):
+            raise ValueError(
+                "No-feasible-plan candidates must be infeasible or unsupported "
+                "with rejection reasons."
+            )
+        if any(
+            candidate.model_policy_decision_id != decision_id
+            for candidate in self.candidates
+        ):
+            raise ValueError("Every candidate must link to the policy decision.")
+        if self.model_policy_decision_source == "provider-inspection":
+            if self.inspection_receipt is None:
+                raise ValueError("Provider-inspection failures require a receipt.")
+            if not _model_policy_decisions_share_semantics(
+                self.inspection_receipt.decision, self.model_policy_decision
+            ):
+                raise ValueError(
+                    "The inspection receipt decision must semantically match the "
+                    "failure."
+                )
+            _require_receipt_model_subject(
+                receipt=self.inspection_receipt,
+                model=self.model,
+                context="failure",
+            )
+        elif self.inspection_receipt is not None:
+            raise ValueError("User-attested failures cannot carry a receipt.")
+        expected_receipt_id = (
+            self.inspection_receipt.receipt_id
+            if self.inspection_receipt is not None
+            else None
+        )
+        _require_exact_candidate_policy_bindings(
+            candidates=self.candidates,
+            decision=self.model_policy_decision,
+            source=self.model_policy_decision_source,
+            receipt_id=expected_receipt_id,
+            context="failure",
+        )
         return self
 
 
@@ -538,6 +782,55 @@ class ValidationResponse(ResponseModel):
     state: str
     project_id: str
     project_revision_id: str
+    authorization_status: Literal["current", "deferred", "blocked"] | None = None
+    authorization_current: Annotated[bool, Field(strict=True)] | None = None
+    authorization_error: str | None = None
+    prelaunch_capacity_check: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def require_authorization_status_coherence(self) -> Self:
+        if self.authorization_status is None:
+            if (
+                self.authorization_current is not None
+                or self.authorization_error is not None
+                or self.prelaunch_capacity_check is not None
+            ):
+                raise ValueError(
+                    "Validation authorization fields require authorization_status."
+                )
+            return self
+        if self.authorization_current is None:
+            raise ValueError(
+                "Validation authorization status requires authorization_current."
+            )
+        if self.authorization_status == "current":
+            if self.state not in {
+                "pilot-pass",
+                "execution-approved",
+                "measured-run-pass",
+            }:
+                raise ValueError(
+                    "Current validation authorization requires an authorizable state."
+                )
+            if not self.authorization_current or self.authorization_error is not None:
+                raise ValueError(
+                    "Current validation authorization requires true with no error."
+                )
+            return self
+        if self.authorization_current or not isinstance(self.authorization_error, str):
+            raise ValueError(
+                "Deferred or blocked validation authorization requires false and a "
+                "diagnostic."
+            )
+        if (
+            not self.authorization_error.strip()
+            or self.authorization_error != self.authorization_error.strip()
+        ):
+            raise ValueError(
+                "Deferred or blocked validation authorization requires false and a "
+                "diagnostic."
+            )
+        return self
 
 
 class JobResponse(ResponseModel):

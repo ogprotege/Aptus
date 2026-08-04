@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./api";
 import { EXAMPLE_DRAFT } from "./demo";
-import { MALFORMED_COMPATIBILITY_REASON } from "./lib/modelCompatibility";
 import type { ModelInspectionReceipt } from "./types";
 
 const REVIEWED_QWEN3_LAYOUT = {
@@ -39,8 +38,8 @@ function inspectionReceipt(
     },
     provenance_summary: [{
       field: "family",
-      kind: "inferred",
-      source: "Aptus exact model-type compatibility mapping",
+      kind: "provider-declared",
+      source: "Provider config",
       observed_at: "2026-07-29T12:00:00+00:00",
       resolved_revision: revision,
     }],
@@ -64,7 +63,20 @@ function trainingPlanResponse(
     model_policy_decision_id: decision.decision_id,
     policy_binding: null,
     method: "lora",
+    distribution: "single",
     status: "feasible",
+    feasible: true,
+    rejection_reasons: [],
+    target_modules: ["q_proj"],
+    runtime_contract: {
+      schema_version: "aptus.runtime-contract.v1",
+      compute_backend: "mps",
+      training_runtime: "mlx-lm",
+      compiler_id: null,
+      estimator_id: "aptus-memory-mlx-v2",
+      evidence_requirement: "implementation-required",
+      export_kind: null,
+    },
     ...candidateOverrides,
   };
   const rawCandidates = Array.isArray(overrides.candidates)
@@ -75,7 +87,20 @@ function trainingPlanResponse(
     model_policy_decision_id: decision.decision_id,
     policy_binding: null,
     method: "lora",
+    distribution: "single",
     status: "feasible",
+    feasible: true,
+    rejection_reasons: [],
+    target_modules: ["q_proj"],
+    runtime_contract: {
+      schema_version: "aptus.runtime-contract.v1",
+      compute_backend: "mps",
+      training_runtime: "mlx-lm",
+      compiler_id: null,
+      estimator_id: "aptus-memory-mlx-v2",
+      evidence_requirement: "implementation-required",
+      export_kind: null,
+    },
     ...(item as Record<string, unknown>),
   }));
   const listedRecommended = candidates.find(
@@ -90,6 +115,10 @@ function trainingPlanResponse(
     plan_id: overrides.plan_id ?? `plan_${"2".repeat(20)}`,
     model_policy_snapshot_sha256:
       overrides.model_policy_snapshot_sha256 ?? "a".repeat(64),
+    model: overrides.model ?? {
+      model_id: EXAMPLE_DRAFT.model.model_id,
+      revision: EXAMPLE_DRAFT.model.revision,
+    },
     recommended: listedRecommended,
     candidates,
     warnings: overrides.warnings ?? [],
@@ -99,6 +128,67 @@ function trainingPlanResponse(
       overrides.model_policy_decision_source ?? "user-attested",
     inspection_receipt: overrides.inspection_receipt ?? null,
   };
+}
+
+function boundTrainingPlanResponse(): Record<string, unknown> {
+  const decision = {
+    schema_version: "aptus.model-compatibility.v2",
+    decision_id: `compat_${"7".repeat(20)}`,
+    subject_facts_sha256: "8".repeat(64),
+    kind: "path-matched",
+    family: "future_sparse_family",
+    policy_id: "model.future-sparse.mlx-lora",
+    policy_version: "2.0.0",
+    paths: [{
+      path_id: "future-sparse.mlx-lora.single",
+      method: "lora",
+      distribution: "single",
+      adapter_profile_id: "attention-qkvo.v1",
+      target_modules: ["q_proj", "k_proj"],
+      runtime_contract: {
+        schema_version: "aptus.runtime-contract.v1",
+        compute_backend: "mps",
+        training_runtime: "mlx-lm",
+        compiler_id: "mlx-lm.lora.v1",
+        estimator_id: "aptus-memory-mlx-v2",
+        evidence_requirement: "pilot-required",
+        export_kind: "mlx-lm-adapter",
+      },
+      required_validation_levels: ["model-data", "measured-preflight", "pilot"],
+      evidence_ids: ["runtime.future-sparse.mlx-lora.v1"],
+    }],
+    reason_codes: ["exact-reviewed-artifact", "pilot-not-yet-proven"],
+    evidence_ids: ["runtime.future-sparse.mlx-lora.v1"],
+    reason: "The pinned artifact matches a server-registered path.",
+  };
+  const candidate = {
+    candidate_id: `cand_${"7".repeat(20)}`,
+    model_policy_decision_id: decision.decision_id,
+    policy_binding: {
+      schema_version: "aptus.model-policy-binding.v1",
+      decision_id: decision.decision_id,
+      subject_facts_sha256: decision.subject_facts_sha256,
+      policy_id: decision.policy_id,
+      policy_version: decision.policy_version,
+      path_id: decision.paths[0].path_id,
+      source: "user-attested",
+      inspection_receipt_id: null,
+      reason_codes: decision.reason_codes,
+      evidence_ids: decision.evidence_ids,
+    },
+    method: "lora",
+    distribution: "single",
+    status: "conditional",
+    feasible: true,
+    rejection_reasons: [],
+    target_modules: ["q_proj", "k_proj"],
+    runtime_contract: decision.paths[0].runtime_contract,
+  };
+  return trainingPlanResponse({
+    model_policy_decision: decision,
+    recommended: candidate,
+    candidates: [candidate],
+  });
 }
 
 afterEach(() => {
@@ -153,10 +243,10 @@ describe("typed API client", () => {
           JSON.stringify({
             api_contract_version: "aptus.api.v1",
             plan: trainingPlanResponse({
-              plan_id: "plan_restored",
+              plan_id: `plan_${"3".repeat(20)}`,
               hardware: { reserve_per_device_bytes: 0, devices: [] },
               recommended: {
-                candidate_id: "cand_restored",
+                candidate_id: `cand_${"3".repeat(20)}`,
                 method: "lora",
                 memory: { point_estimate_bytes: 10, upper_estimate_bytes: 12 },
               },
@@ -174,7 +264,7 @@ describe("typed API client", () => {
 
     const bootstrap = await api.bootstrap();
 
-    expect(bootstrap.plan?.recommended?.id).toBe("cand_restored");
+    expect(bootstrap.plan?.recommended?.id).toBe(`cand_${"3".repeat(20)}`);
     expect(bootstrap.plan?.rationale).toEqual(["restored"]);
     expect(bootstrap.job?.id).toBe("job_restored");
     expect(bootstrap.job?.state).toBe("cancelling");
@@ -222,7 +312,7 @@ describe("typed API client", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify(trainingPlanResponse({
-          plan_id: "plan_example",
+          plan_id: `plan_${"4".repeat(20)}`,
         })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
@@ -277,7 +367,9 @@ describe("typed API client", () => {
         ),
       );
 
-      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/plan.*provenance|plan response|candidate/i);
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+        /plan.*provenance|plan response|candidate|model policy decision/i,
+      );
     }
   });
 
@@ -309,17 +401,251 @@ describe("typed API client", () => {
     }
   });
 
+  it("deeply decodes policy paths and candidate bindings at plan ingress", async () => {
+    const accepted = boundTrainingPlanResponse();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(accepted), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(api.plan(EXAMPLE_DRAFT)).resolves.toMatchObject({
+      model_policy_decision: { policy_id: "model.future-sparse.mlx-lora" },
+      recommended: {
+        policy_binding: { path_id: "future-sparse.mlx-lora.single" },
+      },
+    });
+
+    const cases: Array<(payload: Record<string, unknown>) => void> = [
+      (payload) => {
+        const decision = payload.model_policy_decision as Record<string, unknown>;
+        decision.schema_version = "aptus.model-compatibility.v3";
+      },
+      (payload) => {
+        const decision = payload.model_policy_decision as { paths: Array<Record<string, unknown>> };
+        const runtime = decision.paths[0].runtime_contract as Record<string, unknown>;
+        runtime.browser_policy_hint = "trust-me";
+      },
+      (payload) => {
+        const candidate = (payload.candidates as Array<Record<string, unknown>>)[0];
+        const binding = candidate.policy_binding as Record<string, unknown>;
+        binding.subject_facts_sha256 = "0".repeat(64);
+      },
+      (payload) => {
+        const candidate = (payload.candidates as Array<Record<string, unknown>>)[0];
+        candidate.method = "qlora";
+      },
+    ];
+
+    for (const mutate of cases) {
+      const payload = boundTrainingPlanResponse();
+      mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/policy|contract|path/i);
+    }
+  });
+
+  it("binds successful plans to the submitted model subject and policy source", async () => {
+    const cases: Array<{
+      payload: Record<string, unknown>;
+      receipt?: ModelInspectionReceipt;
+      pattern: RegExp;
+    }> = [
+      {
+        payload: trainingPlanResponse({
+          model: {
+            model_id: "other/model",
+            revision: EXAMPLE_DRAFT.model.revision,
+          },
+        }),
+        pattern: /model subject differs/i,
+      },
+      {
+        payload: trainingPlanResponse({
+          model: {
+            model_id: EXAMPLE_DRAFT.model.model_id,
+            revision: "f".repeat(40),
+          },
+        }),
+        pattern: /model subject differs/i,
+      },
+      {
+        payload: trainingPlanResponse(),
+        receipt: inspectionReceipt(),
+        pattern: /policy source differs/i,
+      },
+      {
+        payload: trainingPlanResponse({
+          model_policy_decision_source: "provider-inspection",
+          inspection_receipt: inspectionReceipt(),
+        }),
+        pattern: /policy source differs/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(testCase.payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT, null, testCase.receipt)).rejects.toThrow(
+        testCase.pattern,
+      );
+    }
+  });
+
+  it("rejects malformed unbound tuples and exact-path null-binding downgrades", async () => {
+    const malformed = trainingPlanResponse();
+    const malformedCandidate = (malformed.candidates as Array<Record<string, unknown>>)[0];
+    malformedCandidate.distribution = { label: "single" };
+    const downgraded = boundTrainingPlanResponse();
+    const downgradedCandidate = (downgraded.candidates as Array<Record<string, unknown>>)[0];
+    downgradedCandidate.policy_binding = null;
+    (downgraded.recommended as Record<string, unknown>).policy_binding = null;
+
+    for (const payload of [malformed, downgraded]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/plan candidate|policy path/i);
+    }
+  });
+
+  it("rejects a successful response whose canonical recommendation is not viable", async () => {
+    const payload = trainingPlanResponse();
+    for (const candidate of [
+      payload.recommended as Record<string, unknown>,
+      (payload.candidates as Array<Record<string, unknown>>)[0],
+    ]) {
+      candidate.status = "infeasible";
+      candidate.feasible = false;
+      candidate.rejection_reasons = ["Rejected by a hard gate."];
+    }
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(/recommendation must be viable/i);
+  });
+
+  it("requires the complete decoded recommendation to equal its listed candidate", async () => {
+    const planningExtras = {
+      memory: {
+        expected_bytes: 6 * 1024 ** 3,
+        limit_bytes: 12 * 1024 ** 3,
+        device_total_bytes: 16 * 1024 ** 3,
+      },
+      device_indices: [0, 1],
+      batches: {
+        micro_batch_size: 2,
+        gradient_accumulation_steps: 4,
+        effective_batch_size: 8,
+      },
+      precision: "bf16",
+    };
+    const matching = trainingPlanResponse();
+    const listed = (matching.candidates as Array<Record<string, unknown>>)[0];
+    Object.assign(listed, structuredClone(planningExtras));
+    matching.recommended = Object.fromEntries(
+      Object.entries(structuredClone(listed)).reverse(),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(matching), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    await expect(api.plan(EXAMPLE_DRAFT)).resolves.toMatchObject({
+      recommended: planningExtras,
+    });
+
+    for (const omitted of ["memory", "device_indices", "batches", "precision"]) {
+      const payload = trainingPlanResponse();
+      const candidate = (payload.candidates as Array<Record<string, unknown>>)[0];
+      Object.assign(candidate, structuredClone(planningExtras));
+      const recommendation = structuredClone(candidate);
+      delete recommendation[omitted];
+      payload.recommended = recommendation;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+        /recommendation differs from its listed candidate/i,
+      );
+    }
+
+    const reordered = trainingPlanResponse();
+    const reorderedListed = (reordered.candidates as Array<Record<string, unknown>>)[0];
+    Object.assign(reorderedListed, structuredClone(planningExtras));
+    reordered.recommended = {
+      ...structuredClone(reorderedListed),
+      device_indices: [1, 0],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(reordered), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+      /recommendation differs from its listed candidate/i,
+    );
+  });
+
   it("forwards a retained inspection receipt without adding one to manual plans", async () => {
+    const receipt = inspectionReceipt();
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify(trainingPlanResponse({
-          plan_id: "plan_receipt",
+          plan_id: `plan_${"5".repeat(20)}`,
+          model_policy_decision_source: "provider-inspection",
+          inspection_receipt: receipt,
         })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const receipt = inspectionReceipt();
 
     await api.plan(EXAMPLE_DRAFT, null, receipt);
 
@@ -331,7 +657,7 @@ describe("typed API client", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify(trainingPlanResponse({
-          plan_id: "plan_moe",
+          plan_id: `plan_${"6".repeat(20)}`,
         })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
@@ -565,6 +891,18 @@ describe("typed API client", () => {
           requested_revision: "main",
           resolved_revision: "a".repeat(40),
           facts: { family: "llama", parameters: null, training_allowed: null },
+          compatibility: {
+            status: "recognized",
+            family: "llama",
+            supported_runtime: null,
+            compute_backend: null,
+            supported_methods: [],
+            distribution: null,
+            evidence_requirement: "pilot-required",
+            adapter_profile_id: null,
+            reason: "The dense family is recognized.",
+          },
+          provenance: {},
           inspection_receipt: receipt,
         }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -580,7 +918,7 @@ describe("typed API client", () => {
     expect(inspection.inspection_receipt).toEqual(receipt);
   });
 
-  it("fails closed when provider compatibility evidence is malformed", async () => {
+  it("does not require or normalize the retired compatibility projection", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -589,6 +927,8 @@ describe("typed API client", () => {
             status: "ok",
             model_id: "org/model",
             requested_revision: "main",
+            resolved_revision: "a".repeat(40),
+            facts: { family: "llama", parameters: null, training_allowed: null },
             compatibility: {
               status: "conditional",
               family: "qwen3_moe",
@@ -600,6 +940,8 @@ describe("typed API client", () => {
               adapter_profile_id: "attention-qkvo.v1",
               reason: "Incomplete producer data.",
             },
+            provenance: {},
+            inspection_receipt: inspectionReceipt("org/model", "a".repeat(40)),
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
@@ -608,17 +950,47 @@ describe("typed API client", () => {
 
     const inspection = await api.inspectModel("org/model", "main");
 
-    expect(inspection.compatibility).toEqual({
-      status: "unsupported",
-      family: null,
-      supported_runtime: null,
-      compute_backend: null,
-      supported_methods: [],
-      distribution: null,
-      evidence_requirement: "implementation-required",
-      adapter_profile_id: null,
-      reason: MALFORMED_COMPATIBILITY_REASON,
+    expect(inspection.inspection_receipt?.decision.kind).toBe("family-recognized");
+    expect(inspection.compatibility).toMatchObject({
+      status: "conditional",
+      reason: "Incomplete producer data.",
     });
+  });
+
+  it("rejects inspection decisions that the workbench contract cannot decode", async () => {
+    const receipt = inspectionReceipt("org/model", "a".repeat(40));
+    const futureReceipt = structuredClone(receipt) as unknown as Record<string, unknown>;
+    const decision = futureReceipt.decision as Record<string, unknown>;
+    decision.schema_version = "aptus.model-compatibility.v3";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          status: "ok",
+          model_id: "org/model",
+          requested_revision: "main",
+          resolved_revision: "a".repeat(40),
+          facts: { family: "llama", parameters: null, training_allowed: null },
+          compatibility: {
+            status: "recognized",
+            family: "llama",
+            supported_runtime: null,
+            compute_backend: null,
+            supported_methods: [],
+            distribution: null,
+            evidence_requirement: "pilot-required",
+            adapter_profile_id: null,
+            reason: "The dense family is recognized.",
+          },
+          provenance: {},
+          inspection_receipt: futureReceipt,
+        }), { status: 200, headers: { "content-type": "application/json" } }),
+      ),
+    );
+
+    await expect(api.inspectModel("org/model", "main")).rejects.toThrow(
+      /unsupported model policy decision contract.*update aptus/i,
+    );
   });
 
   it("returns the validation report attached to a refreshed job", async () => {
@@ -688,6 +1060,8 @@ describe("typed API client", () => {
   });
 
   it("preserves rejected candidates when no strategy is feasible", async () => {
+    const decision = inspectionReceipt().decision;
+    const candidateId = `cand_${"9".repeat(20)}`;
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -695,13 +1069,32 @@ describe("typed API client", () => {
           JSON.stringify({
             error: "no_feasible_plan",
             message: "No candidate passed every hard gate.",
+            model: {
+              model_id: EXAMPLE_DRAFT.model.model_id,
+              revision: EXAMPLE_DRAFT.model.revision,
+            },
+            model_policy_decision: decision,
+            model_policy_decision_source: "user-attested",
+            inspection_receipt: null,
             candidates: [{
-              candidate_id: "cand_rejected",
-              model_policy_decision_id: `compat_${"c".repeat(20)}`,
+              candidate_id: candidateId,
+              model_policy_decision_id: decision.decision_id,
               policy_binding: null,
               method: "qlora",
+              distribution: "single",
               status: "infeasible",
+              feasible: false,
               rejection_reasons: ["Even the point estimate exceeds usable per-device VRAM."],
+              target_modules: ["q_proj"],
+              runtime_contract: {
+                schema_version: "aptus.runtime-contract.v1",
+                compute_backend: "mps",
+                training_runtime: "mlx-lm",
+                compiler_id: null,
+                estimator_id: "aptus-memory-mlx-v2",
+                evidence_requirement: "implementation-required",
+                export_kind: null,
+              },
               memory: { point_estimate_bytes: 12, upper_estimate_bytes: 15 },
             }],
           }),
@@ -713,8 +1106,204 @@ describe("typed API client", () => {
     const plan = await api.plan(EXAMPLE_DRAFT);
 
     expect(plan.recommended).toBeNull();
-    expect(plan.candidates[0]?.id).toBe("cand_rejected");
+    expect(plan.candidates[0]?.id).toBe(candidateId);
+    expect(plan.model_policy_decision).toEqual(decision);
+    expect(plan.model_policy_decision_source).toBe("user-attested");
     expect(plan.warnings[0]).toContain("No candidate");
+  });
+
+  it("rejects no-feasible responses that omit or mismatch the policy chain", async () => {
+    const decision = inspectionReceipt().decision;
+    const base = {
+      error: "no_feasible_plan",
+      message: "No candidate passed every hard gate.",
+      model: {
+        model_id: EXAMPLE_DRAFT.model.model_id,
+        revision: EXAMPLE_DRAFT.model.revision,
+      },
+      model_policy_decision: decision,
+      model_policy_decision_source: "user-attested",
+      inspection_receipt: null,
+      candidates: [{
+        candidate_id: `cand_${"9".repeat(20)}`,
+        model_policy_decision_id: decision.decision_id,
+        policy_binding: null,
+        method: "qlora",
+        distribution: "single",
+        status: "infeasible",
+        feasible: false,
+        rejection_reasons: ["Rejected."],
+        target_modules: ["q_proj"],
+        runtime_contract: {
+          schema_version: "aptus.runtime-contract.v1",
+          compute_backend: "mps",
+          training_runtime: "mlx-lm",
+          compiler_id: null,
+          estimator_id: "aptus-memory-mlx-v2",
+          evidence_requirement: "implementation-required",
+          export_kind: null,
+        },
+      }],
+    };
+    const cases = [
+      { ...base, model_policy_decision: undefined },
+      { ...base, model_policy_decision_source: "browser-inferred" },
+      { ...base, message: " " },
+      { ...base, browser_recovery_hint: "trust me" },
+      { ...base, model: undefined },
+      {
+        ...base,
+        model: { ...base.model, model_id: "other/model" },
+      },
+      {
+        ...base,
+        model: { ...base.model, revision: "f".repeat(40) },
+      },
+      {
+        ...base,
+        model: { ...base.model, model_id: " " },
+      },
+      {
+        ...base,
+        model: { ...base.model, revision: "main" },
+      },
+      { ...base, candidates: [base.candidates[0], { ...base.candidates[0] }] },
+      {
+        ...base,
+        candidates: [{
+          ...base.candidates[0],
+          status: "feasible",
+          feasible: true,
+          rejection_reasons: [],
+        }],
+      },
+      {
+        ...base,
+        candidates: [{ ...base.candidates[0], rejection_reasons: [] }],
+      },
+      {
+        ...base,
+        candidates: [{ ...base.candidates[0], runtime_contract: null }],
+      },
+      {
+        ...base,
+        candidates: [{ ...base.candidates[0], model_policy_decision_id: `compat_${"0".repeat(20)}` }],
+      },
+    ];
+
+    for (const payload of cases) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 422,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+        /policy|candidate|message|shape|duplicate|model|revision/i,
+      );
+    }
+  });
+
+  it("binds provider-backed no-feasible responses to the submitted receipt and artifact", async () => {
+    const requestReceipt = inspectionReceipt();
+    const candidate = {
+      candidate_id: `cand_${"8".repeat(20)}`,
+      model_policy_decision_id: requestReceipt.decision.decision_id,
+      policy_binding: null,
+      method: "lora",
+      distribution: "single",
+      status: "infeasible",
+      feasible: false,
+      rejection_reasons: ["Rejected by memory admission."],
+      target_modules: ["q_proj"],
+      runtime_contract: {
+        schema_version: "aptus.runtime-contract.v1",
+        compute_backend: "mps",
+        training_runtime: "mlx-lm",
+        compiler_id: null,
+        estimator_id: "aptus-memory-mlx-v2",
+        evidence_requirement: "implementation-required",
+        export_kind: null,
+      },
+    };
+    const base = {
+      error: "no_feasible_plan",
+      message: "No candidate passed every hard gate.",
+      model: {
+        model_id: EXAMPLE_DRAFT.model.model_id,
+        revision: EXAMPLE_DRAFT.model.revision,
+      },
+      candidates: [candidate],
+      model_policy_decision: requestReceipt.decision,
+      model_policy_decision_source: "provider-inspection",
+      inspection_receipt: requestReceipt,
+    };
+    const wrongModel = structuredClone(requestReceipt);
+    wrongModel.model_id = "other/model";
+    const wrongRevision = structuredClone(requestReceipt);
+    wrongRevision.resolved_revision = "f".repeat(40);
+    wrongRevision.provenance_summary[0].resolved_revision = "f".repeat(40);
+    const wrongReceipt = structuredClone(requestReceipt);
+    wrongReceipt.receipt_id = `receipt_${"f".repeat(20)}`;
+    const cases = [
+      { ...base, model_policy_decision_source: "user-attested", inspection_receipt: null },
+      { ...base, inspection_receipt: wrongModel },
+      { ...base, inspection_receipt: wrongRevision },
+      { ...base, inspection_receipt: wrongReceipt },
+    ];
+
+    for (const payload of cases) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 422,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.plan(EXAMPLE_DRAFT, null, requestReceipt)).rejects.toThrow(
+        /source|receipt|model ID|revision/i,
+      );
+    }
+  });
+
+  it("rejects a no-feasible exact-path row with a downgraded null binding", async () => {
+    const success = boundTrainingPlanResponse();
+    const candidate = structuredClone(
+      (success.candidates as Array<Record<string, unknown>>)[0],
+    );
+    candidate.policy_binding = null;
+    candidate.status = "infeasible";
+    candidate.feasible = false;
+    candidate.rejection_reasons = ["Rejected by memory admission."];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          error: "no_feasible_plan",
+          message: "No candidate passed every hard gate.",
+          model: {
+            model_id: EXAMPLE_DRAFT.model.model_id,
+            revision: EXAMPLE_DRAFT.model.revision,
+          },
+          candidates: [candidate],
+          model_policy_decision: success.model_policy_decision,
+          model_policy_decision_source: "user-attested",
+          inspection_receipt: null,
+        }), {
+          status: 422,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(api.plan(EXAMPLE_DRAFT)).rejects.toThrow(
+      /exactly matches a policy path.*cannot omit/i,
+    );
   });
 
   it("uses the limiting returned GPU in the Fit Ledger normalization", async () => {
@@ -724,7 +1313,7 @@ describe("typed API client", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify(trainingPlanResponse({
-            plan_id: "plan_example",
+            plan_id: `plan_${"7".repeat(20)}`,
             hardware: {
               reserve_per_device_bytes: 2 * GiB,
               devices: [
@@ -733,7 +1322,7 @@ describe("typed API client", () => {
               ],
             },
             recommended: {
-              candidate_id: "cand_example",
+              candidate_id: `cand_${"7".repeat(20)}`,
               method: "lora",
               status: "feasible",
               memory: { point_estimate_bytes: 4 * GiB, upper_estimate_bytes: 5 * GiB },
@@ -758,7 +1347,7 @@ describe("typed API client", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify(trainingPlanResponse({
-            plan_id: "plan_selected_device",
+            plan_id: `plan_${"8".repeat(20)}`,
             hardware: {
               reserve_per_device_bytes: 2 * GiB,
               devices: [
@@ -767,7 +1356,7 @@ describe("typed API client", () => {
               ],
             },
             recommended: {
-              candidate_id: "cand_selected_device",
+              candidate_id: `cand_${"8".repeat(20)}`,
               method: "lora",
               status: "feasible",
               device_indices: [0],

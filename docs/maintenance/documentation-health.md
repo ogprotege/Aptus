@@ -3,7 +3,7 @@
 > **Documentation status:** Active governance
 >
 > **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
-> the current Phase 4 documentation synchronization
+> the current Phase 5 maintained-guidance closeout
 >
 > **Last reviewed:** 2026-08-04
 >
@@ -44,21 +44,45 @@ remaining contract and package-free regression coverage. PR #29 synchronized
 the central contract guidance. PR #30 completed the independent re-review,
 closed remaining plan and manifest parser boundaries, and recorded the final
 source/contract verdict. PR #15 preserved and indexed the historical audit
-without making it current authority.
+without making it current authority. The current Phase 5 implementation removes
+browser-side policy reconstruction, adds strict v2 decision, path, receipt, and
+candidate/report ingress, and presents artifact match, selected candidate path,
+and evidence readiness as separate records. The typed HTTP 422
+`no_feasible_plan` path preserves the same server policy chain, correlates it
+with the required model subject, request, and receipt, and requires rejected-only
+complete candidate tuples.
 
 The current Phase 4 contract uses a frozen snapshot for package-free portable
 integrity and policy-decision parity. Portable validation cannot determine host
 policy currency. Validation under an installed Aptus host additionally compares
 the bundle bindings with the current host registry and requires replanning when
 that registry has changed.
+
+Phase 5 leaves that portable contract intact. The workbench rejects malformed or
+misbound server policy records before UI hydration, requires a non-null binding
+for exact path equality, and applies validation evidence only when plan,
+candidate, and model-revision bindings match. Unbound and rejected rows receive
+no synthesized policy ladder or action. The same exact three-field binding gates
+stage completion and validation or run actions. Recommendations structurally
+equal their complete listed candidate records, and provider path-matched receipts
+cannot satisfy provenance with inferred-only observations. Evidence completeness
+stays separate from the optional typed `authorization_status` values `current`,
+`deferred`, and `blocked`; their boolean and diagnostic fields must agree, and a
+tuple with no non-null member means not checked. The client does not infer
+status from prose or mutate the report after a generic training-request failure. Non-current
+authorization does not itself mean stale policy or replanning. The receipt's v2
+decision is the one inspection-time browser policy source; the unused flattened
+compatibility normalizer was removed. The MoE rail owns topology and
+resident-versus-active memory only. Phase 6 remains pending.
+
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
 itself remains blocked until qualifying CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
 capabilities being claimed. Historical real MLX-LM acceptance and a local
 10-build desktop engineering gate passed at their recorded commits, but both
-predate the current Phase 4 source head. No current-head CUDA or MLX
-target-runtime pilot was collected for the Phase 4 closeout. The repository
+predate the current Phase 5 source head. No current-head CUDA or MLX
+target-runtime pilot was collected for the Phase 5 closeout. The repository
 checks its principal navigation and executable-reference surfaces, but it does
 not yet derive every default, status, and response field from one source.
 
@@ -69,13 +93,13 @@ not yet derive every default, status, and response field from one source.
 | Product boundaries | Good | Current capabilities, claim language, roadmap, and release gates distinguish implemented, conditional, unsupported, and future work |
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
-| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, a status-discriminated compatibility contract with closed execution IDs, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the portable snapshot digest, while installed-host registry currency remains a separate admission check |
+| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the portable snapshot digest, installed-host registry currency remains a separate admission check, and workbench presentation no longer reconstructs policy from topology |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 changelog/onboarding/recovery/inventory surfaces, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
-| Release evidence | Partial | Historical evidence records two clean MLX-LM `measured-run-pass` workflows and 10 of 10 local desktop engineering builds at their tested commits; neither binds the current Phase 4 head, and CUDA target-host and public notarized distribution evidence remain open |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress and distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; generated-doc and structured default parity remain partial |
+| Release evidence | Partial | Historical evidence records two clean MLX-LM `measured-run-pass` workflows and 10 of 10 local desktop engineering builds at their tested commits; neither binds the current Phase 5 head, and CUDA target-host and public notarized distribution evidence remain open |
 
 ## Freshness and classification
 
@@ -107,10 +131,12 @@ not become a one-time cleanup.
    Tests cover the parser's commands, subcommands, and long options, but not yet
    every structured value.
 2. Generated OpenAPI JSON and TypeScript schema and path types have stale-file
-   checks. Model compatibility has semantic schema tests for its discriminated
-   variants, known execution IDs, compute backend, adapter profile, and React
-   runtime normalization. Other React normalization code and Swift response
-   decoders remain maintained client boundaries that require contract tests.
+   checks. Model policy now has semantic tests for the typed no-feasible response,
+   strict decision, path, receipt, candidate, binding, and report ingestion;
+   request/receipt correlation; exact report identity; and separate validation
+   and launch-admission states. Other React normalization code and
+   Swift response decoders remain maintained client boundaries that require
+   contract tests.
 3. Generated bundle guidance is operationally important but embedded in large
    source templates. Representative CUDA and MLX README tests now pin the
    policy-snapshot boundary, but complete method-and-placement coverage remains
@@ -243,8 +269,8 @@ semantic reference set, and PR #30 made non-object roots, excessive nesting,
 oversized integers, and nested malformed plan values controlled invalid-input
 results across their covered boundaries. Installed-host validation covers plan,
 manifest, trainer, and snapshot documents; package-free validation covers plan,
-manifest, and snapshot documents. Phase 5 browser cleanup and Phase 6 policy
-expansion remain separate.
+manifest, and snapshot documents. At that closeout, Phase 5 browser cleanup and
+Phase 6 policy expansion remained separate future work.
 
 The Phase 4 closeout source tree passed 505 Python tests, 91 web tests, and 81
 native tests, plus Ruff, bytecode compilation, generated-contract parity, a
@@ -254,7 +280,7 @@ source, contract, packaging, and documentation baseline only. Neither the July
 MLX-LM evidence nor this closeout supplies a current-head MLX or CUDA target
 pilot, and neither establishes public notarized release readiness.
 
-The current documentation synchronization passed 506 Python tests, including
+The Phase 4 documentation synchronization passed 506 Python tests, including
 23 documentation and 61 bundle-generation tests, plus 91 web tests and 81
 native tests. Ruff, bytecode compilation, OpenAPI/client/version parity, the
 production web build, a clean installed-wheel smoke, and the complete
@@ -262,6 +288,18 @@ ad-hoc-signed app/ZIP/DMG engineering gate also passed. No target-runtime pilot
 was run: the generated-bundle change is operator README prose and does not alter
 runtime programs, dependencies, planning, estimation, validation, or execution
 semantics.
+
+The Phase 5 maintained-guidance closeout passed all 24 focused documentation
+tests. That set includes the new semantic check for strict decision, path,
+receipt, candidate, binding, and report ingress; request correlation; the three
+model-policy records; exact-path binding; plan/candidate/revision evidence
+binding and action gating; structural recommendation equality; provider-declared
+path-match provenance; typed authorization coherence without prose inference or
+generic-failure mutation; topology and resident-memory separation; the typed
+no-feasible policy chain; and the pending Phase 6 boundary. Ruff lint and format
+checks passed for the touched Python test file. This focused result does not
+claim the full Python, web, native, packaging, target-runtime, or notarization
+gates.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature

@@ -1858,6 +1858,8 @@ class ExecutionJobTests(unittest.TestCase):
                         "job_id": job_id,
                         "state": "completed",
                         "created_at": "2026-01-01T00:00:00+00:00",
+                        "authorization_status": "current",
+                        "authorization_current": True,
                     }
                 ),
                 encoding="utf-8",
@@ -1869,6 +1871,8 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertEqual(
             persisted["persistence_migrated_from"], "aptus.job-record.legacy"
         )
+        self.assertNotIn("authorization_status", persisted)
+        self.assertNotIn("authorization_current", persisted)
 
     def test_job_record_and_log_are_persisted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -2258,11 +2262,60 @@ class ExecutionJobTests(unittest.TestCase):
             ) as authorization:
                 refreshed = service.get(job_id)
         authorization.assert_not_called()
+        self.assertEqual(
+            refreshed["validation_report"]["authorization_status"], "deferred"
+        )
         self.assertFalse(refreshed["validation_report"]["authorization_current"])
         self.assertIn(
             "performed atomically when full training is submitted",
             refreshed["validation_report"]["authorization_error"],
         )
+
+    def test_active_job_reports_current_or_blocked_authorization_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            (bundle / "validation-report.json").write_text(
+                json.dumps({"state": "pilot-pass", "bindings": {}}),
+                encoding="utf-8",
+            )
+            service = JobService(root / "jobs")
+            cases = (
+                (
+                    "job_" + "a" * 32,
+                    "train",
+                    {"checked_at": "current"},
+                    "current",
+                    True,
+                ),
+                ("job_" + "b" * 32, "pilot", None, "blocked", False),
+            )
+            for job_id, action, capacity, expected_status, expected_current in cases:
+                with self.subTest(status=expected_status):
+                    service._write(
+                        {
+                            "id": job_id,
+                            "job_id": job_id,
+                            "state": "running",
+                            "action": action,
+                            "bundle_dir": str(bundle),
+                            "created_at": "2026-07-21T00:00:00+00:00",
+                            "prelaunch_capacity_check": capacity,
+                        }
+                    )
+                    with patch.object(
+                        service,
+                        "_reconcile_external_record",
+                        side_effect=lambda record: record,
+                    ):
+                        refreshed = service.get(job_id)
+                    report = refreshed["validation_report"]
+                    self.assertEqual(report["authorization_status"], expected_status)
+                    self.assertIs(report["authorization_current"], expected_current)
+                    if expected_current:
+                        self.assertIsNone(report["authorization_error"])
+                    else:
+                        self.assertTrue(report["authorization_error"].strip())
 
     def test_manifested_change_invalidates_pilot_authorization(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

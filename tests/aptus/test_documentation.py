@@ -305,7 +305,16 @@ class DocumentationTests(unittest.TestCase):
             "Unknown IDs and malformed combinations fail closed",
             reference,
         )
-        self.assertIn("without copying the method registry", reference)
+        self.assertIn(
+            "`inspection_receipt.decision` as its single inspection-time "
+            "model-policy source",
+            normalized_reference,
+        )
+        self.assertIn("legacy browser `compatibility` normalizer", reference)
+        self.assertIn(
+            "it is not the workbench policy authority",
+            normalized_reference,
+        )
         self.assertIn("eligible for the reviewed pilot path", normalized_reference)
 
         claim_language = (REPOSITORY / "docs/product/claim-language.md").read_text(
@@ -317,8 +326,12 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertIn("eligible for the reviewed pilot path", claim_language)
         self.assertIn("based only on model inspection", claim_language)
-        self.assertIn("selected runtime and backend match", ui_contract)
-        self.assertIn("eligible for the reviewed pilot path", ui_contract)
+        self.assertIn(
+            "The separate Model policy panel presents the v2 decision",
+            ui_contract,
+        )
+        self.assertIn("The rail is a topology and", ui_contract)
+        self.assertNotIn("selected runtime and backend match", ui_contract)
         self.assertIn("`attention-qkvo.v1`", capabilities)
 
     def test_model_compatibility_policy_has_one_host_authority(self) -> None:
@@ -833,7 +846,7 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY / "docs/product/current-capabilities.md"
         ).read_text(encoding="utf-8")
         opening_boundary = current_capabilities.split("## Available now", 1)[0]
-        self.assertIn("predates Phase 4", opening_boundary)
+        self.assertIn("predates Phases 4 and 5", opening_boundary)
         self.assertIn("No current-head CUDA or MLX", opening_boundary)
 
         install = (REPOSITORY / "docs/getting-started/install.md").read_text(
@@ -889,8 +902,8 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 112)
-        self.assertEqual(len(excluded_documents), 11)
+        self.assertEqual(len(repository_documents), 113)
+        self.assertEqual(len(excluded_documents), 12)
         self.assertEqual(len(governed_documents), 101)
         self.assertEqual(len(active_documents), 85)
         self.assertEqual(len(deprecated_documents), 2)
@@ -902,10 +915,297 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(maintained_documentation()), 92)
         self.assertIn("101 governed tracked Markdown documents", inventory)
         self.assertIn("92 Markdown files", inventory)
-        self.assertIn("112 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("113 tracked Markdown files", " ".join(inventory.split()))
         self.assertIn("| Active | 85 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 14 |", inventory)
+
+    def test_phase5_workbench_policy_authority_is_documented(self) -> None:
+        def normalized(relative_path: str) -> str:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        required_current_claims = {
+            "ROADMAP.md": (
+                "Phase 5 is complete",
+                "typed HTTP 422 `no_feasible_plan` response",
+                "three separate records",
+                "Validation evidence and launch admission remain separate",
+                "typed `authorization_status` values `current`, `deferred`, and `blocked`",
+                "recommendation must structurally equal the complete listed candidate record",
+                "browser never derives a status from diagnostic prose",
+                "Phase 6 remains pending",
+            ),
+            "docs/product/current-capabilities.md": (
+                "Phase 5's server-authoritative workbench policy boundary",
+                "explicit nullable bindings",
+                "Three separate model-policy UI records",
+                "Separate validation-evidence and launch-admission states",
+                "closed failure also requires a `model` subject",
+                "decoded recommendation must structurally equal its complete listed candidate record",
+                "same exact tuple gates stage completion and validation or run actions",
+                "optional typed `authorization_status` is exactly `current`, `deferred`, or `blocked`",
+                "separate MoE topology rail",
+            ),
+            "docs/product/ui-ux.md": (
+                "Facts and Compare render three independent records",
+                "**Model-policy match**",
+                "**Selected candidate path**",
+                "**Evidence readiness**",
+                "`bindings.plan_id`, `bindings.candidate_id`, and "
+                "`bindings.model_revision` match",
+                "same exact tuple gates stage completion and validation or run actions",
+                "exact `authorization_status` vocabulary of `current`, `deferred`, and `blocked`",
+                "never infers a status from diagnostic prose",
+                "Phase 5 is complete",
+                "Phase 6 remains pending",
+            ),
+            "docs/product/user-workflows.md": (
+                "typed HTTP 422 response together with the server decision",
+                "required model subject must match the submitted model ID and "
+                "immutable revision",
+                "same plan ID, candidate ID, and model revision",
+                "successful recommendation must structurally equal its complete listed candidate record",
+                "optional `authorization_status` is exactly `current`, `deferred`, or `blocked`",
+                "does not infer status from that prose diagnostic",
+            ),
+            "docs/architecture/system.md": (
+                "Phase 5 is complete at the client boundary",
+                "closed HTTP 422 `no_feasible_plan` response",
+                "three records separate",
+                "Required validation evidence can be incomplete or complete "
+                "independently of launch admission",
+                "workflow-completion and validation or run action gates reuse that exact binding predicate",
+                "optional `authorization_status` vocabulary is exactly `current`, `deferred`, or `blocked`",
+                "recommendation must structurally equal its complete listed candidate record",
+                "MoE topology rail separately explains routing",
+                "Phase 6 remains pending",
+            ),
+            "docs/architecture/data-and-identity-flow.md": (
+                "HTTP planning boundary preserves this chain on both success and failure",
+                "three independent records",
+                "model subject to match the submitted model ID and immutable revision",
+                "Evidence progress and launch admission are different axes",
+                "Stage-completion and validation or run action gates use the same exact three-field predicate",
+                "browser branches on the typed status rather than diagnostic prose",
+                "recommendation must structurally equal the complete listed candidate record",
+                "all checkpoint weights stay resident",
+            ),
+            "docs/contributing/workbench.md": (
+                "exact object keys and supported schema versions",
+                "inspection receipt's v2 decision is the one browser policy source",
+                "required `model` subject",
+                "model-policy match, selected candidate path, and evidence readiness remain three separate records",
+                "decoded recommendation structurally equals its complete listed candidate record",
+                "optional typed `authorization_status` values `current`, `deferred`, and `blocked`",
+                "generic training-request failure surfaces its error without mutating the prior report",
+            ),
+            "docs/contributing/changing-contracts.md": (
+                "Phase 5 completed removal of browser-side policy reconstruction",
+                "typed HTTP 422 `no_feasible_plan` response",
+                "Require both responses to carry a model subject matching the submitted model ID and immutable revision",
+                "require full structural equality across the complete candidate records",
+                "Reuse that exact predicate for model-policy evidence, workflow-stage completion, and validation or run action enablement",
+                "optional typed tuple: `authorization_status` is exactly `current`, `deferred`, or `blocked`",
+                "surface the request error while preserving the prior report",
+                "Phase 6 remains pending",
+            ),
+            "docs/maintenance/documentation-debt.md": (
+                "### DOC-023: Remove browser-side model-policy reconstruction",
+                "**Status:** Resolved",
+                "receipt decision is the one inspection-time browser policy source",
+                "Required validation is incomplete or complete independently from the optional typed `authorization_status` values",
+                "required model subject must match the submitted ID and immutable revision",
+                "recommendation must structurally equal its complete listed candidate record",
+                "tuple with no non-null member means not checked",
+                "Phase 6 remains pending",
+            ),
+            "docs/maintenance/documentation-health.md": (
+                "current Phase 5 maintained-guidance closeout",
+                "strict v2 decision, path, receipt, and candidate/report ingress",
+                "Evidence completeness stays separate from the optional typed `authorization_status` values",
+                "Recommendations structurally equal their complete listed candidate records",
+                "tuple with no non-null member means not checked",
+                "does not infer status from prose or mutate the report",
+                "unused flattened compatibility normalizer was removed",
+                "Phase 6 remains pending",
+            ),
+            "docs/maintenance/documentation-inventory.md": (
+                "after the Phase 5 closeout",
+                "`web/src/lib/modelPolicy.ts`",
+            ),
+            "docs/reference/api.md": (
+                "closed typed `422 no_feasible_plan` object",
+                "required `model` object carries the submitted `model_id` and immutable `revision`",
+                "Every returned candidate requires this presentation tuple",
+                "All candidates in `no_feasible_plan` must be rejected",
+                "structurally equal that complete decoded candidate record",
+                "`authorization_status` vocabulary is exactly `current`, `deferred`, or `blocked`",
+                "generic failed training request surfaces its API error and leaves that last report unchanged",
+                "`recommended: null`",
+            ),
+            "README.md": (
+                "artifact match, selected candidate path, and evidence readiness",
+                "required model subject with the submitted model ID and immutable revision",
+                "Evidence readiness does not imply launch permission",
+                "successful recommendation must structurally equal its listed candidate",
+                "browser never infers a status from diagnostic prose",
+            ),
+            "CHANGELOG.md": (
+                "server-owned v2 decision as separate artifact-match, selected-path, and evidence-readiness records",
+                "Validation completeness remains separate from the optional typed `authorization_status` vocabulary",
+                "full structural equality between the recommendation and its listed candidate",
+                "browser neither derives status from diagnostic prose nor rewrites a report",
+                "unused legacy browser compatibility projection was removed",
+            ),
+        }
+        for relative_path, claims in required_current_claims.items():
+            text = normalized(relative_path)
+            for claim in claims:
+                self.assertIn(claim, text, (relative_path, claim))
+
+        stale_current_claims = {
+            "ROADMAP.md": "Phase 5 remains limited",
+            "docs/product/ui-ux.md": "Phase 5 owns removal",
+            "docs/architecture/system.md": "Phase 5 remains the browser",
+            "docs/contributing/changing-contracts.md": "Phase 5 owns removal",
+        }
+        for relative_path, claim in stale_current_claims.items():
+            self.assertNotIn(claim, normalized(relative_path), relative_path)
+
+        model_policy = normalized("web/src/lib/modelPolicy.ts")
+        for decoder_contract in (
+            "const DECISION_KEYS",
+            "const PATH_KEYS",
+            "const BINDING_KEYS",
+            "const RECEIPT_KEYS",
+            "export function decodePlanCandidate",
+            "export function decodeValidationReport",
+            "an execution tuple that exactly matches a policy path cannot omit its binding",
+            "no-feasible-plan rows must be rejected",
+            "const AUTHORIZATION_STATUSES",
+            "authorization fields require a typed authorization status",
+            "current authorization requires qualifying evidence, a true current flag, and no error",
+            "deferred or blocked authorization requires a false current flag and a reason",
+            "export function validationReportMatchesBinding",
+            "report.bindings?.plan_id === identity.planId",
+            "report.bindings.candidate_id === identity.candidateId",
+            "report.bindings.model_revision === identity.modelRevision",
+            "expected at least one provider-declared observation",
+            "path-matched provider decisions require satisfied provider-declared provenance",
+            '"validation-complete"',
+            '"admission-deferred"',
+            '"authorized"',
+            '"authorization-blocked"',
+            'authorizationStatus === "deferred"',
+            'authorizationStatus === "blocked"',
+        ):
+            self.assertIn(decoder_contract, model_policy)
+        self.assertNotIn("staleAuthorization", model_policy)
+        self.assertNotIn("qwen3_moe", model_policy)
+
+        api_client = normalized("web/src/api.ts")
+        for ingress_contract in (
+            "interface PlanResponseContext",
+            "Plan response policy source differs from the submitted request",
+            'decodePlanModelSubject(payload.model, "Plan response", context)',
+            "model subject differs from the submitted request",
+            "Plan response receipt differs from the submitted request",
+            "No-feasible-plan policy source differs from the submitted request",
+            "No-feasible-plan receipt differs from the submitted request",
+            'decodePlanModelSubject( payload.model, "No-feasible-plan response", context',
+            "requireRejected: true",
+            "function canonicalJsonValue",
+            "function structurallyEqualJson",
+            "Plan response recommendation differs from its listed candidate",
+        ):
+            self.assertIn(ingress_contract, api_client)
+        self.assertNotIn("normalizeModelCompatibility", api_client)
+
+        app = normalized("web/src/App.tsx")
+        for binding_contract in (
+            "const boundActiveReport = validationReportMatchesBinding",
+            "candidateId: plan.recommended.candidate_id",
+            "reportBinding={validationBinding}",
+        ):
+            self.assertIn(binding_contract, app)
+        create_job_handler = app.split("const handleCreateJob = async", 1)[1].split(
+            "const handleCancelJob = async", 1
+        )[0]
+        self.assertIn("setError(errorMessage(caught))", create_job_handler)
+        self.assertNotIn("setReport(", create_job_handler)
+        self.assertNotIn("authorization_error", create_job_handler)
+
+        validate_stage = normalized("web/src/stages/ValidateStage.tsx")
+        run_stage = normalized("web/src/stages/RunStage.tsx")
+        self.assertIn(
+            "validationReportMatchesBinding(activeReport, reportBinding)",
+            validate_stage,
+        )
+        self.assertIn(
+            "validationReportMatchesBinding(activeReport, reportBinding)", run_stage
+        )
+
+        model_inspection = normalized("web/src/lib/modelInspection.ts")
+        self.assertNotIn("moeCompatibilityFromPlan", model_inspection)
+        self.assertFalse((REPOSITORY / "web/src/lib/modelCompatibility.ts").exists())
+        self.assertFalse(
+            (REPOSITORY / "web/src/lib/modelCompatibility.test.ts").exists()
+        )
+
+        panel = normalized("web/src/components/ModelPolicyPanel.tsx")
+        for presentation_copy in (
+            "Model-policy match",
+            "Selected candidate path",
+            "Evidence readiness",
+            "Evidence complete",
+            "Admission deferred",
+            "Admission blocked",
+            "Not checked",
+        ):
+            self.assertIn(presentation_copy, panel)
+        self.assertNotIn("stale authorization", panel.lower())
+
+        topology = normalized("web/src/components/ExpertTopologyRail.tsx")
+        self.assertIn("All checkpoint weights must remain resident", topology)
+        self.assertNotIn("compatibility", topology.lower())
+
+        api_contracts = normalized("src/aptus/api_contracts.py")
+        for response_contract in (
+            "class NoFeasiblePlanResponse(ClosedResponseModel)",
+            "model: PlanModelSubjectResponse",
+            "model_policy_decision: InspectedModelPolicyDecisionResponse",
+            "inspection_receipt: ModelInspectionReceiptResponse | None",
+            "Every candidate must link to the policy decision",
+            "status: CandidateStatus",
+            "feasible: Annotated[bool",
+            "runtime_contract: InspectedRuntimeContractResponse",
+            "No-feasible-plan candidates must be infeasible or unsupported",
+            "The recommended candidate must equal its listed candidate record",
+            'authorization_status: Literal["current", "deferred", "blocked"] | None',
+            "Validation authorization fields require authorization_status",
+            "def require_authorization_status_coherence",
+            "not isinstance(self.authorization_error, str)",
+            "Path-matched provider decisions require provider-declared provenance",
+        ):
+            self.assertIn(response_contract, api_contracts)
+
+        openapi = json.loads(
+            (REPOSITORY / "docs/reference/openapi.v1.json").read_text(encoding="utf-8")
+        )
+        no_feasible = openapi["components"]["schemas"]["NoFeasiblePlanResponse"]
+        self.assertIn("model", no_feasible["required"])
+        self.assertEqual(
+            no_feasible["properties"]["model"]["$ref"],
+            "#/components/schemas/PlanModelSubjectResponse",
+        )
+        authorization_status = openapi["components"]["schemas"]["ValidationResponse"][
+            "properties"
+        ]["authorization_status"]
+        self.assertEqual(
+            authorization_status["anyOf"][0]["enum"],
+            ["current", "deferred", "blocked"],
+        )
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

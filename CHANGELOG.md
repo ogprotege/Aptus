@@ -98,6 +98,20 @@ All notable changes are recorded here.
 
 ### Changed
 
+- The Phase 5 workbench now presents the server-owned v2 decision as separate
+  artifact-match, selected-path, and evidence-readiness records. Strict ingress
+  correlates the model subject in successful plans and typed 422 no-feasible
+  responses with the submitted artifact, then verifies source, receipt, complete
+  candidate tuple, exact path binding, provider-declared provenance for a
+  provider path match, and full structural equality between the recommendation
+  and its listed candidate. Validation evidence, stage completion, and runtime
+  actions use a report only when plan, candidate, and model revision match.
+  Validation completeness remains separate from the optional typed
+  `authorization_status` vocabulary `current`, `deferred`, or `blocked`; the
+  companion boolean and diagnostic must agree, and a tuple with no non-null
+  member means not checked. The browser neither derives status from diagnostic prose
+  nor rewrites a report after a generic training-request failure. The unused
+  legacy browser compatibility projection was removed.
 - Provider inspection, sparse candidate admission, and API execution-path
   validation now consume one host-side model compatibility registry. Runtime
   contracts remain derived from the method registry. The API remains

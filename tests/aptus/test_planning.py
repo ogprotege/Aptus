@@ -165,6 +165,89 @@ class PlannerTests(unittest.TestCase):
             receipt.receipt_id,
         )
 
+    def test_no_feasible_provider_plan_preserves_policy_receipt_chain(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_qwen3_moe_plan(Path(temporary))
+            receipt = _provider_receipt(base.model)
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=9,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=9,
+                host_ram_free_gib=9,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+
+            with self.assertRaises(NoFeasiblePlanError) as raised:
+                plan_training(
+                    model=base.model,
+                    dataset=base.dataset,
+                    hardware=hardware,
+                    target=base.target,
+                    inspection_receipt=receipt,
+                )
+
+        error = raised.exception
+        self.assertEqual(
+            error.model_policy_decision_source,
+            ModelPolicyBindingSource.PROVIDER_INSPECTION,
+        )
+        self.assertEqual(error.inspection_receipt, receipt)
+        self.assertEqual(error.model.model_id, base.model.model_id)
+        self.assertEqual(error.model.revision, base.model.revision)
+        self.assertEqual(
+            error.model_policy_decision.decision_id,
+            receipt.decision.decision_id,
+        )
+        self.assertTrue(
+            all(
+                candidate.model_policy_decision_id
+                == error.model_policy_decision.decision_id
+                for candidate in error.candidates
+            )
+        )
+        bound = [
+            candidate
+            for candidate in error.candidates
+            if candidate.policy_binding is not None
+        ]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual(
+            bound[0].policy_binding.inspection_receipt_id,
+            receipt.receipt_id,
+        )
+        with self.assertRaisesRegex(TypeError, "require a model subject"):
+            NoFeasiblePlanError(
+                error.candidates,
+                model=None,
+                model_policy_decision=error.model_policy_decision,
+                model_policy_decision_source=error.model_policy_decision_source,
+                inspection_receipt=error.inspection_receipt,
+            )
+        for mismatched_model in (
+            replace(error.model, model_id="different/model"),
+            replace(error.model, revision="0" * 40),
+        ):
+            with (
+                self.subTest(
+                    model_id=mismatched_model.model_id,
+                    revision=mismatched_model.revision,
+                ),
+                self.assertRaisesRegex(ValueError, "must match the model"),
+            ):
+                NoFeasiblePlanError(
+                    error.candidates,
+                    model=mismatched_model,
+                    model_policy_decision=error.model_policy_decision,
+                    model_policy_decision_source=error.model_policy_decision_source,
+                    inspection_receipt=error.inspection_receipt,
+                )
+
     def test_receipt_rejects_user_attested_dense_unknown_and_exact_subjects(
         self,
     ) -> None:
@@ -543,8 +626,24 @@ class PlannerTests(unittest.TestCase):
 
     def test_host_ram_and_disk_are_hard_gates(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            with self.assertRaises(NoFeasiblePlanError):
+            with self.assertRaises(NoFeasiblePlanError) as raised:
                 make_plan(Path(temporary), host_ram_gib=1, disk_free_gib=0.1)
+
+        error = raised.exception
+        self.assertEqual(
+            error.model_policy_decision_source,
+            ModelPolicyBindingSource.USER_ATTESTED,
+        )
+        self.assertIsNone(error.inspection_receipt)
+        self.assertEqual(error.model.model_id, "example/model-1b")
+        self.assertEqual(error.model.revision, "a" * 40)
+        self.assertTrue(
+            all(
+                candidate.model_policy_decision_id
+                == error.model_policy_decision.decision_id
+                for candidate in error.candidates
+            )
+        )
 
     def test_non_divisible_multi_gpu_batch_is_infeasible_but_single_can_survive(
         self,

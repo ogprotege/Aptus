@@ -11,8 +11,12 @@ import { summarizeHardwareProbe } from "./lib/hardware";
 import {
   applyPlanDerivedModelFacts,
   applyProviderModelInspection,
-  moeCompatibilityFromPlan,
 } from "./lib/modelInspection";
+import {
+  buildModelPolicyPresentation,
+  validationReportMatchesBinding,
+} from "./lib/modelPolicy";
+import type { ValidationReportBindingIdentity } from "./lib/modelPolicy";
 import {
   MobileStageBar,
   WorkflowRail,
@@ -409,6 +413,7 @@ export default function App() {
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") return;
+        if (caught instanceof Error) setError(caught.message);
         setConnection("unavailable");
       });
     return () => controller.abort();
@@ -457,26 +462,69 @@ export default function App() {
   }, [demoMode, job?.id, job?.state]);
 
   const activeReport = report ?? bundle?.report ?? null;
+  const validationBinding: ValidationReportBindingIdentity | null = isBoundTrainingPlan(plan)
+    && plan.recommended
+    && typeof plan.recommended.candidate_id === "string"
+    && typeof plan.model?.revision === "string"
+    ? {
+        planId: plan.plan_id,
+        candidateId: plan.recommended.candidate_id,
+        modelRevision: plan.model.revision,
+      }
+    : null;
+  const boundActiveReport = validationReportMatchesBinding(
+    activeReport,
+    validationBinding,
+  ) ? activeReport : null;
   const completed = useMemo(() => {
     const values = new Set<WorkflowStage>();
     if (profile) values.add("facts");
     if (plan) values.add("compare");
     if (bundle) values.add("compile");
-    if (validationRank(activeReport?.state) >= validationRank("static-pass")) {
+    if (validationRank(boundActiveReport?.state) >= validationRank("static-pass")) {
       values.add("validate");
     }
     if (
       job?.state === "completed"
       && (job.mode === "train" || job.action === "train")
       && bundle
+      && boundActiveReport
       && job.bundle_dir === bundle.bundle_dir
     ) values.add("run");
     return values;
-  }, [profile, plan, bundle, activeReport?.state, job]);
+  }, [profile, plan, bundle, boundActiveReport, job]);
 
   const selected = selectedCandidate ?? plan?.recommended ?? plan?.candidates[0] ?? null;
-  const moeCompatibility = modelInspection?.compatibility
-    ?? moeCompatibilityFromPlan(plan, draft.model);
+  const modelPolicyPresentation = useMemo(() => {
+    const decision = plan?.model_policy_decision
+      ?? inspectionReceipt?.decision
+      ?? null;
+    if (!decision) return null;
+    const source = plan?.model_policy_decision_source ?? "provider-inspection";
+    const planModel = plan?.model ?? null;
+    const modelId = typeof planModel?.model_id === "string"
+      ? planModel.model_id
+      : draft.model.model_id;
+    const revision = typeof planModel?.revision === "string"
+      ? planModel.revision
+      : draft.model.revision;
+    return buildModelPolicyPresentation({
+      decision,
+      source,
+      candidate: plan ? selected : null,
+      report: plan ? activeReport : null,
+      modelId,
+      revision,
+      planId: isBoundTrainingPlan(plan) ? plan.plan_id : null,
+    });
+  }, [
+    plan,
+    inspectionReceipt,
+    selected,
+    activeReport,
+    draft.model.model_id,
+    draft.model.revision,
+  ]);
   const currentStageLabel = WORKFLOW_STAGES.find((item) => item.id === stage)?.label ?? "Facts";
   const activeJob = isActiveJob(job);
 
@@ -781,13 +829,6 @@ export default function App() {
         try { await refreshProjectSurface(projectId); } catch { /* Primary job result remains valid. */ }
       }
     } catch (caught) {
-      if (mode === "train") {
-        setReport((current) => current ? {
-          ...current,
-          authorization_current: false,
-          authorization_error: "The latest training launch was rejected by the server's atomic pilot-binding and capacity admission.",
-        } : current);
-      }
       setError(errorMessage(caught));
     } finally {
       finishAction();
@@ -1096,7 +1137,7 @@ export default function App() {
               onHardwareScan={handleHardwareScan}
               hardwareScanned={hardwareScanned}
               modelInspection={modelInspection}
-              moeCompatibility={moeCompatibility}
+              modelPolicyPresentation={modelPolicyPresentation}
               methodCatalog={methodCatalog}
             />
           ) : null}
@@ -1106,6 +1147,7 @@ export default function App() {
               selected={selected}
               busy={busy}
               demoMode={demoMode}
+              modelPolicyPresentation={modelPolicyPresentation}
               onInspectCandidate={setSelectedCandidate}
               onCompile={handleCompile}
               onReturnToFacts={() => setStage("facts")}
@@ -1128,6 +1170,7 @@ export default function App() {
             <ValidateStage
               bundle={bundle}
               report={report}
+              reportBinding={validationBinding}
               busy={busy}
               demoMode={demoMode}
               onValidate={handleValidate}
@@ -1141,6 +1184,7 @@ export default function App() {
             <RunStage
               bundle={bundle}
               report={report}
+              reportBinding={validationBinding}
               job={job}
               busy={busy}
               demoMode={demoMode}

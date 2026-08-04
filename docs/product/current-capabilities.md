@@ -4,10 +4,10 @@
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
-isolated checkout, but that July evidence predates Phase 4 and does not bind the
-current source head. No current-head CUDA or MLX target-runtime pilot was
-collected for the Phase 4 closeout. A separate local desktop gate completed 10
-of 10 clean engineering builds at implementation commit
+isolated checkout, but that July evidence predates Phases 4 and 5 and does not
+bind the current source head. No current-head CUDA or MLX target-runtime pilot
+was collected for the Phase 5 closeout. A separate local desktop gate completed
+10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
 target-host and public Developer ID signed and notarized desktop-distribution
@@ -51,6 +51,52 @@ acceptance remain open.
   and training permission remain user-attested and are excluded. Direct facts
   without a receipt use the explicit `user-attested` decision source. A supplied
   invalid receipt fails instead of silently degrading to that source.
+- Phase 5's server-authoritative workbench policy boundary. Model-inspection,
+  bootstrap, successful planning, and typed HTTP 422 `no_feasible_plan` payloads
+  are decoded at client ingress as exact `aptus.model-compatibility.v2`
+  decisions, nested paths, optional receipts, candidate decision links, and
+  explicit nullable bindings. Missing keys, extra keys, unknown contract
+  versions or closed vocabulary, malformed identities, and cross-record drift
+  fail before UI hydration. Successful and no-feasible planning responses must
+  match the submitted model ID, immutable revision, policy source, and receipt
+  identity. Candidate ingestion requires method, distribution, status,
+  feasibility, rejection reasons, targets, runtime contract, decision link, and
+  binding; every no-feasible row must be rejected. Generated TypeScript types do
+  not replace these runtime checks. The closed failure also requires a `model`
+  subject whose ID and immutable revision match the submitted artifact, so
+  user-attested failures remain request-bound without a receipt. The browser
+  contains no family-specific policy predicate or legacy flattened compatibility
+  projection. Provider path-matched receipts require provider-declared
+  provenance rather than inferred-only observations. A successful response's
+  decoded recommendation must structurally equal its complete listed candidate
+  record.
+- Three separate model-policy UI records: model-policy match, selected candidate
+  path, and evidence readiness. The path record uses only the selected
+  candidate's explicit binding and never promotes an unbound execution contract
+  into a policy claim. An exact emitted-path tuple cannot carry a null binding.
+  Truly unbound and rejected candidates receive no synthesized policy gate
+  ladder or impossible validation action. Readiness uses a validation report
+  only when its `plan_id`, `candidate_id`, and `model_revision` bind the current
+  selection. That same exact tuple gates stage completion and validation or run
+  actions.
+- Separate validation-evidence and launch-admission states. Required evidence is
+  either incomplete or complete. The optional typed `authorization_status` is
+  exactly `current`, `deferred`, or `blocked`. Current requires
+  `authorization_current: true` with no error; deferred or blocked requires false
+  with a non-empty diagnostic. A tuple with no non-null member means not checked,
+  and partial or incoherent claims are rejected. The browser never derives
+  status from the diagnostic or mutates the prior report after a generic training-request
+  failure. Non-current authorization is not itself a stale-policy or replan
+  result. HTTP 409 `replan_required` remains the distinct lifecycle authority.
+  The separate MoE topology rail describes routing, total resident weights, and
+  active-per-token computation without deciding compatibility or subtracting
+  inactive experts from resident memory.
+- A closed typed HTTP 422 `no_feasible_plan` response that preserves rejected
+  candidates together with the server decision, decision source, and nullable
+  inspection receipt. Provider-inspection failures require the matching receipt;
+  user-attested failures forbid one; all candidate links and bindings must agree
+  with the same chain and the submitted request. The resulting comparison is a
+  non-compilable partial view.
 - Strict replanning for v4, v3, v2, schema-less, and stale-policy or
   stale-snapshot v5 plans. Aptus preserves old saved bytes and does not relabel
   them. The HTTP API remains `aptus.api.v1`; facts remain `aptus.facts.v3`;
@@ -239,10 +285,10 @@ reload, confirmed full training, final export, and `measured-run-pass`. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. The July MLX-LM acceptance also predates Phase 4 and does not bind
-the current source head. No current-head MLX or CUDA target-runtime pilot was
-collected for the Phase 4 closeout, and no real CUDA pilot has run on a CUDA
-target for this release. The default Mac artifact is ad-hoc signed, not a
+that identity. The July MLX-LM acceptance also predates Phases 4 and 5 and does
+not bind the current source head. No current-head MLX or CUDA target-runtime
+pilot was collected for the Phase 5 closeout, and no real CUDA pilot has run on
+a CUDA target for this release. The default Mac artifact is ad-hoc signed, not a
 Developer ID signed and notarized public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory

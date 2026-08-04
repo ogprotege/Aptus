@@ -206,7 +206,17 @@ class ProjectRepositoryTests(unittest.TestCase):
                 plan_id=plan_id,
                 plan_snapshot=plan,
                 selected_candidate_id="candidate_a",
-                validation={"authorization_current": True},
+                validation={
+                    "authorization_status": "current",
+                    "authorization_current": True,
+                    "authorization_error": None,
+                    "report": {
+                        "authorization_status": "current",
+                        "authorization_current": True,
+                        "authorization_error": None,
+                        "prelaunch_capacity_check": {"checked_at": "ephemeral"},
+                    },
+                },
             )
             recovered = repository.recover(project["project_id"], source["revision_id"])
 
@@ -214,7 +224,9 @@ class ProjectRepositoryTests(unittest.TestCase):
         self.assertEqual(recovered["parent_revision_id"], source["revision_id"])
         self.assertFalse(recovered["training_authorization"]["current"])
         self.assertFalse(recovered["validation"]["training_authorization_current"])
+        self.assertNotIn("authorization_status", recovered["validation"])
         self.assertNotIn("authorization_current", recovered["validation"])
+        self.assertNotIn("authorization_status", recovered["validation"]["report"])
 
     def test_corrupt_manifest_is_quarantined_without_hiding_other_projects(
         self,

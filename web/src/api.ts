@@ -14,6 +14,8 @@ import type {
   MethodDescriptor,
   ModelInspectionReceipt,
   ModelInspectionResponse,
+  ModelPolicyBindingSource,
+  ModelPolicyDecision,
   NoFeasibleComparisonPlan,
   PlanRequest,
   ProjectDetail,
@@ -28,7 +30,12 @@ import type {
   ValidationReport,
 } from "./types";
 import type { components, paths } from "./generated/openapi";
-import { normalizeModelCompatibility } from "./lib/modelCompatibility";
+import {
+  decodeModelInspectionReceipt,
+  decodePlanCandidate,
+  decodeModelPolicyDecision,
+  decodeValidationReport,
+} from "./lib/modelPolicy";
 
 export type OpenApiBootstrapResponse = components["schemas"]["BootstrapResponse"];
 export type OpenApiCompileResponse = components["schemas"]["CompileResponse"];
@@ -108,6 +115,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function requireNonblankText(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.trim().length === 0 || value.trim() !== value) {
+    throw new Error(`${label} requires non-empty unpadded text.`);
+  }
+  return value;
+}
+
+function requireExactKeys(
+  value: Record<string, unknown>,
+  expectedKeys: readonly string[],
+  label: string,
+): void {
+  const expected = new Set(expectedKeys);
+  const missing = expectedKeys.filter((key) => !(key in value));
+  const extra = Object.keys(value).filter((key) => !expected.has(key));
+  if (missing.length || extra.length) {
+    throw new Error(
+      `${label} has an invalid shape: ${[
+        missing.length ? `missing ${missing.join(", ")}` : "",
+        extra.length ? `unexpected ${extra.join(", ")}` : "",
+      ].filter(Boolean).join("; ")}.`,
+    );
+  }
 }
 
 function normalizeMethodCatalog(value: unknown): MethodDescriptor[] {
@@ -300,13 +332,23 @@ function normalizeJob(payload: Record<string, unknown>): Job {
       typeof payload.return_code === "number" ? payload.return_code : null,
     validation_report:
       typeof payload.validation_report === "object" && payload.validation_report !== null
-        ? payload.validation_report as ValidationReport
+        ? decodeValidationReport(payload.validation_report)
         : undefined,
     validation_report_error:
       typeof payload.validation_report_error === "string"
         ? payload.validation_report_error
         : undefined,
   } as Job;
+}
+
+function normalizeCompileResponse(payload: Record<string, unknown>): CompileResponse {
+  const rawReport = payload.report;
+  return {
+    ...payload,
+    ...(rawReport === undefined || rawReport === null
+      ? {}
+      : { report: decodeValidationReport(rawReport) }),
+  } as CompileResponse;
 }
 
 function normalizeProfile(payload: Record<string, unknown>): ProfileResponse {
@@ -350,11 +392,77 @@ function normalizeProfile(payload: Record<string, unknown>): ProfileResponse {
   } as ProfileResponse;
 }
 
-function requireV5PlanProvenance(payload: Record<string, unknown>): void {
+interface DecodedPlanPolicyContext {
+  decision: ModelPolicyDecision;
+  source: ModelPolicyBindingSource;
+  receipt: ModelInspectionReceipt | null;
+  candidates: Map<string, CandidatePlan>;
+  recommendedCandidateId: string;
+}
+
+
+interface PlanResponseContext {
+  modelId: string;
+  revision: string;
+  expectedSource: ModelPolicyBindingSource;
+  expectedReceiptId: string | null;
+}
+
+interface DecodedPlanModelSubject {
+  model_id: string;
+  revision: string;
+  [key: string]: unknown;
+}
+
+function decodePlanModelSubject(
+  value: unknown,
+  label: string,
+  context?: Pick<PlanResponseContext, "modelId" | "revision">,
+): DecodedPlanModelSubject {
+  if (!isRecord(value)) {
+    throw new Error(`${label} requires its model subject.`);
+  }
+  const modelId = requireNonblankText(value.model_id, `${label} model`);
+  const revision = requireNonblankText(value.revision, `${label} revision`);
+  if (!/^[0-9a-fA-F]{40,64}$/.test(revision)) {
+    throw new Error(`${label} revision requires an immutable commit identity.`);
+  }
+  if (context && (modelId !== context.modelId || revision !== context.revision)) {
+    throw new Error(`${label} model subject differs from the submitted request.`);
+  }
+  return { model_id: modelId, revision };
+}
+
+function canonicalJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalJsonValue);
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function structurallyEqualJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(canonicalJsonValue(left))
+    === JSON.stringify(canonicalJsonValue(right));
+}
+
+function requireV5PlanProvenance(
+  payload: Record<string, unknown>,
+  context?: PlanResponseContext,
+): DecodedPlanPolicyContext {
   if (payload.schema_version !== "aptus.training-plan.v5") {
     throw new Error("Plan response requires aptus.training-plan.v5.");
   }
-  if (typeof payload.plan_id !== "string" || !payload.plan_id.startsWith("plan_")) {
+  if (
+    typeof payload.plan_id !== "string"
+    || !/^plan_[0-9a-f]{20}$/.test(payload.plan_id)
+  ) {
     throw new Error("Plan response requires its immutable plan ID.");
   }
   if (
@@ -363,83 +471,148 @@ function requireV5PlanProvenance(payload: Record<string, unknown>): void {
   ) {
     throw new Error("Plan response requires its model policy snapshot digest.");
   }
-  const decision = payload.model_policy_decision;
-  if (!isRecord(decision) || typeof decision.decision_id !== "string") {
-    throw new Error("Plan response requires a typed model policy decision.");
-  }
+  const decision = decodeModelPolicyDecision(payload.model_policy_decision);
   const source = payload.model_policy_decision_source;
   if (source !== "provider-inspection" && source !== "user-attested") {
     throw new Error("Plan response requires a known model policy decision source.");
   }
+  if (context && source !== context.expectedSource) {
+    throw new Error("Plan response policy source differs from the submitted request.");
+  }
   if (!("inspection_receipt" in payload)) {
     throw new Error("Plan response requires an explicit nullable inspection receipt.");
   }
-  const receipt = payload.inspection_receipt;
+  const receiptValue = payload.inspection_receipt;
+  const planModel = decodePlanModelSubject(payload.model, "Plan response", context);
+  let receipt: ModelInspectionReceipt | null = null;
   if (source === "provider-inspection") {
-    if (!isRecord(receipt) || !isRecord(receipt.decision)) {
+    if (!isRecord(receiptValue)) {
       throw new Error("Provider-inspection plans require a typed inspection receipt.");
     }
-    if (receipt.decision.decision_id !== decision.decision_id) {
-      throw new Error("Plan inspection receipt does not bind the plan decision.");
+    receipt = decodeModelInspectionReceipt(receiptValue, {
+      decision,
+      modelId: planModel.model_id,
+      resolvedRevision: planModel.revision,
+    });
+    if (context && receipt.receipt_id !== context.expectedReceiptId) {
+      throw new Error("Plan response receipt differs from the submitted request.");
     }
-  } else if (receipt !== null) {
+  } else if (receiptValue !== null) {
     throw new Error("User-attested plans cannot carry an inspection receipt.");
   }
   if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
     throw new Error("Plan response requires candidates with provenance links.");
   }
   const candidateIds = new Set<string>();
-  for (const candidate of payload.candidates) {
-    if (
-      !isRecord(candidate)
-      || typeof candidate.candidate_id !== "string"
-      || candidate.model_policy_decision_id !== decision.decision_id
-      || !("policy_binding" in candidate)
-    ) {
-      throw new Error("Every plan candidate must bind the plan policy decision.");
+  const candidates = new Map<string, CandidatePlan>();
+  for (const value of payload.candidates) {
+    const candidate = decodePlanCandidate(value, {
+      decision,
+      source,
+      inspectionReceiptId: receipt?.receipt_id ?? null,
+    });
+    if (candidateIds.has(candidate.candidate_id)) {
+      throw new Error("Plan candidate IDs must be unique.");
     }
     candidateIds.add(candidate.candidate_id);
-    const binding = candidate.policy_binding;
-    if (binding !== null) {
-      if (
-        !isRecord(binding)
-        || binding.decision_id !== decision.decision_id
-        || binding.source !== source
-      ) {
-        throw new Error("Candidate policy binding is inconsistent with the plan.");
-      }
-    }
+    candidates.set(candidate.candidate_id, candidate);
   }
-  const recommended = payload.recommended;
-  if (
-    !isRecord(recommended)
-    || typeof recommended.candidate_id !== "string"
-    || !candidateIds.has(recommended.candidate_id)
-  ) {
+  const recommended = decodePlanCandidate(payload.recommended, {
+    decision,
+    source,
+    inspectionReceiptId: receipt?.receipt_id ?? null,
+  });
+  const listedRecommended = candidates.get(recommended.candidate_id);
+  if (!listedRecommended) {
     throw new Error("Plan response recommendation must reference a listed candidate.");
   }
+  if (
+    recommended.feasible !== true
+    || (recommended.status !== "feasible" && recommended.status !== "conditional")
+  ) {
+    throw new Error("Plan response recommendation must be viable.");
+  }
+  if (!structurallyEqualJson(recommended, listedRecommended)) {
+    throw new Error("Plan response recommendation differs from its listed candidate.");
+  }
+  return {
+    decision,
+    source,
+    receipt,
+    candidates,
+    recommendedCandidateId: recommended.candidate_id,
+  };
 }
 
 function normalizeNoFeasibleComparison(
-  candidatesValue: unknown[],
-  message: string,
+  payload: Record<string, unknown>,
+  context: PlanResponseContext,
 ): NoFeasibleComparisonPlan {
-  const candidates = candidatesValue.map((value) => {
-    if (
-      !isRecord(value)
-      || typeof value.candidate_id !== "string"
-      || typeof value.model_policy_decision_id !== "string"
-      || !("policy_binding" in value)
-      || typeof value.method !== "string"
-    ) {
-      throw new Error(
-        "No-feasible-plan candidates require decision links and explicit bindings.",
-      );
+  requireExactKeys(
+    payload,
+    [
+      "error",
+      "message",
+      "candidates",
+      "model_policy_decision",
+      "model_policy_decision_source",
+      "inspection_receipt",
+      "model",
+    ],
+    "No-feasible-plan response",
+  );
+  if (payload.error !== "no_feasible_plan") {
+    throw new Error("No-feasible-plan response requires its typed error code.");
+  }
+  const decision = decodeModelPolicyDecision(payload.model_policy_decision);
+  const source = payload.model_policy_decision_source;
+  if (source !== "provider-inspection" && source !== "user-attested") {
+    throw new Error("No-feasible-plan response requires a known policy source.");
+  }
+  if (source !== context.expectedSource) {
+    throw new Error("No-feasible-plan policy source differs from the submitted request.");
+  }
+  const model = decodePlanModelSubject(
+    payload.model,
+    "No-feasible-plan response",
+    context,
+  );
+  const message = requireNonblankText(payload.message, "No-feasible-plan response message");
+  const receiptValue = payload.inspection_receipt;
+  const receipt = source === "provider-inspection"
+    ? decodeModelInspectionReceipt(receiptValue, {
+        decision,
+        modelId: context.modelId,
+        resolvedRevision: context.revision,
+      })
+    : null;
+  if (source === "provider-inspection" && !receipt) {
+    throw new Error("Provider-inspection no-feasible-plan responses require a receipt.");
+  }
+  if (source === "user-attested" && receiptValue !== null) {
+    throw new Error("User-attested no-feasible-plan responses cannot carry a receipt.");
+  }
+  if (receipt && receipt.receipt_id !== context.expectedReceiptId) {
+    throw new Error("No-feasible-plan receipt differs from the submitted request.");
+  }
+  if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
+    throw new Error("No-feasible-plan response requires rejected candidates.");
+  }
+  const candidateIds = new Set<string>();
+  const candidates = payload.candidates.map((value) => {
+    const candidate = decodePlanCandidate(value, {
+      decision,
+      source,
+      inspectionReceiptId: receipt?.receipt_id ?? null,
+      requireRejected: true,
+    });
+    if (candidateIds.has(candidate.candidate_id)) {
+      throw new Error("No-feasible-plan candidate IDs must be unique.");
     }
-    const memory = isRecord(value.memory) ? value.memory : {};
+    candidateIds.add(candidate.candidate_id);
+    const memory = isRecord(candidate.memory) ? candidate.memory : {};
     return {
-      ...value,
-      id: value.candidate_id,
+      ...candidate,
       memory: {
         ...memory,
         expected_bytes: memory.expected_bytes
@@ -453,6 +626,10 @@ function normalizeNoFeasibleComparison(
     no_feasible_plan: true,
     recommended: null,
     candidates,
+    model_policy_decision: decision,
+    model_policy_decision_source: source,
+    inspection_receipt: receipt,
+    model,
     warnings: [message],
     rationale: [
       "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
@@ -463,8 +640,11 @@ function normalizeNoFeasibleComparison(
   };
 }
 
-function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
-  requireV5PlanProvenance(payload);
+function normalizePlan(
+  payload: Record<string, unknown>,
+  context?: PlanResponseContext,
+): TrainingPlan {
+  const policy = requireV5PlanProvenance(payload, context);
   const hardware = payload.hardware as Record<string, unknown> | undefined;
   const devices = hardware?.devices as Array<Record<string, unknown>> | undefined;
   const reserveValue = hardware?.reserve_per_device_bytes;
@@ -491,7 +671,16 @@ function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
   const limitBytes = limitingDevice?.limit;
 
   const normalizeCandidate = (value: unknown): CandidatePlan => {
-    const candidate = value as CandidatePlan;
+    if (!isRecord(value) || typeof value.candidate_id !== "string") {
+      throw new Error("Plan response contains an invalid candidate.");
+    }
+    const rawCandidate = policy.candidates.get(value.candidate_id);
+    if (!rawCandidate) {
+      throw new Error("Plan response candidate was not decoded at ingress.");
+    }
+    const candidate = {
+      ...rawCandidate,
+    };
     const memory = candidate.memory ?? {};
     const selectedIndices = Array.isArray(candidate.device_indices)
       ? new Set(candidate.device_indices)
@@ -524,9 +713,12 @@ function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
   const candidates = Array.isArray(payload.candidates)
     ? payload.candidates.map(normalizeCandidate)
     : [];
-  const recommended = payload.recommended
-    ? normalizeCandidate(payload.recommended)
-    : null;
+  const recommended = candidates.find(
+    (candidate) => candidate.candidate_id === policy.recommendedCandidateId,
+  );
+  if (!recommended) {
+    throw new Error("Plan response recommendation must reference a listed candidate.");
+  }
   const rationale = Array.isArray(payload.rationale)
     ? payload.rationale as string[]
     : Array.isArray(payload.recommendation_rationale)
@@ -534,6 +726,9 @@ function normalizePlan(payload: Record<string, unknown>): TrainingPlan {
       : [];
   return {
     ...payload,
+    model_policy_decision: policy.decision,
+    model_policy_decision_source: policy.source,
+    inspection_receipt: policy.receipt,
     recommended,
     candidates,
     warnings: Array.isArray(payload.warnings) ? payload.warnings as string[] : [],
@@ -629,7 +824,7 @@ export const api = {
       plan,
       bundle:
         typeof payload.bundle === "object" && payload.bundle !== null
-          ? payload.bundle as CompileResponse
+          ? normalizeCompileResponse(payload.bundle as Record<string, unknown>)
           : null,
       job,
       projects: Array.isArray(payload.projects)
@@ -664,9 +859,39 @@ export const api = {
       body: JSON.stringify({ model_id: modelId, revision }),
     });
     const payload = response as unknown as Record<string, unknown>;
+    if (
+      !["ok", "unavailable", "unsupported"].includes(String(payload.status))
+      || payload.model_id !== modelId
+      || payload.requested_revision !== revision
+    ) {
+      throw new Error("Model inspection response does not match the requested artifact.");
+    }
+    const resolvedRevision = typeof payload.resolved_revision === "string"
+      ? payload.resolved_revision
+      : undefined;
+    let receipt: ModelInspectionReceipt | null = null;
+    if (payload.status === "ok") {
+      if (
+        !resolvedRevision
+        || !/^[0-9a-fA-F]{40,64}$/.test(resolvedRevision)
+        || !isRecord(payload.facts)
+        || !isRecord(payload.provenance)
+      ) {
+        throw new Error(
+          "Successful model inspection requires revision-bound facts, policy, and provenance.",
+        );
+      }
+      receipt = decodeModelInspectionReceipt(payload.inspection_receipt, {
+        modelId,
+        resolvedRevision,
+      });
+    }
+    if (payload.status !== "ok" && payload.inspection_receipt != null) {
+      throw new Error("Unsuccessful model inspection cannot carry a policy receipt.");
+    }
     return {
       ...payload,
-      compatibility: normalizeModelCompatibility(payload.compatibility),
+      inspection_receipt: receipt,
     } as unknown as ModelInspectionResponse;
   },
 
@@ -676,12 +901,18 @@ export const api = {
     inspectionReceipt?: ModelInspectionReceipt | null,
   ) {
     const body = planRequest(facts, projectId, inspectionReceipt);
+    const responseContext: PlanResponseContext = {
+      modelId: body.model.model_id,
+      revision: body.model.revision,
+      expectedSource: inspectionReceipt ? "provider-inspection" : "user-attested",
+      expectedReceiptId: inspectionReceipt?.receipt_id ?? null,
+    };
     try {
       const response = await request<OpenApiTrainingPlanResponse>(API_PATHS.plan, {
         method: "POST",
         body: JSON.stringify(body),
       });
-      return normalizePlan(response as unknown as Record<string, unknown>);
+      return normalizePlan(response as unknown as Record<string, unknown>, responseContext);
     } catch (error) {
       const detail = error instanceof ApiError && typeof error.detail === "object" && error.detail !== null
         ? error.detail as Record<string, unknown>
@@ -693,8 +924,8 @@ export const api = {
         Array.isArray(detail.candidates)
       ) {
         return normalizeNoFeasibleComparison(
-          detail.candidates,
-          typeof detail.message === "string" ? detail.message : error.message,
+          detail,
+          responseContext,
         );
       }
       throw error;
@@ -718,13 +949,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     });
-    return payload as unknown as CompileResponse & {
+    return normalizeCompileResponse(payload as unknown as Record<string, unknown>) as CompileResponse & {
       project_id: string;
       project_revision_id: string;
     };
   },
 
-  validate(
+  async validate(
     bundleDir: string,
     level: ValidateRequest["level"],
     run: boolean,
@@ -738,13 +969,14 @@ export const api = {
       level,
       run,
     };
-    return request<OpenApiValidationResponse>(API_PATHS.validate, {
+    const payload = await request<OpenApiValidationResponse>(API_PATHS.validate, {
       method: "POST",
       body: JSON.stringify(body),
-    }) as Promise<ValidationReport & {
+    });
+    return decodeValidationReport(payload) as ValidationReport & {
       project_id: string;
       project_revision_id: string;
-    }>;
+    };
   },
 
   async createJob(body: JobRequest) {

@@ -26,8 +26,8 @@ Completed evidence:
   cover lifecycle, session, shutdown, navigation, and packaging contracts.
 - Phase 4's repository, installed-wheel, and desktop package gates closed the
   portable policy-snapshot source and contract review. They did not renew
-  target-runtime acceptance: the July MLX-LM record predates Phase 4, and no
-  current-head MLX or CUDA target-runtime pilot was collected.
+  target-runtime acceptance: the July MLX-LM record predates Phases 4 and 5, and
+  no current-head MLX or CUDA target-runtime pilot was collected.
 
 Remaining release work:
 
@@ -121,11 +121,49 @@ finding. Aptus preserves saved bytes and requires deterministic replanning under
 v5. Contract boundaries also reject non-object or resource-hostile JSON as
 controlled invalid input instead of leaking parser or traversal exceptions.
 
-Phase 5 remains limited to removing browser-side policy reconstruction and
-presenting the server-produced decision and selected candidate binding. Phase 6
-remains limited to adding a second reviewed policy with real runtime evidence.
-Neither boundary belongs in the portable-contract change. `aptus.api.v1`,
-`aptus.facts.v3`, and `aptus.runtime-contract.v1` remain unchanged.
+Phase 5 is complete. The browser no longer reconstructs model-policy predicates
+from topology, family, candidate, or presentation fields. Its maintained ingress
+strictly decodes the server-produced `aptus.model-compatibility.v2` decision,
+nested paths, optional `aptus.model-inspection-receipt.v1`, and each candidate's
+explicit nullable `aptus.model-policy-binding.v1`. A plan success or typed HTTP
+422 `no_feasible_plan` response must preserve that complete decision, source,
+receipt, candidate-link, and binding chain or the client rejects it. Planning
+responses must also carry a required model subject matching the submitted model
+ID and immutable revision, then match the expected policy source and receipt
+identity. No-feasible rows must be rejected and carry the complete method,
+distribution, status, feasibility, rejection, target, runtime, and policy tuple.
+A provider path-matched receipt must satisfy its provider-declared provenance
+requirement with at least one provider-declared observation, not inferred-only
+provenance. On success, the recommendation must structurally equal the complete
+listed candidate record with the same ID.
+
+The Facts and Compare stages present model-policy match, selected candidate
+path, and evidence readiness as three separate records. The selected record
+uses only that candidate's explicit binding. An execution tuple that exactly
+matches an emitted path cannot silently carry null; a genuinely unbound or
+rejected row receives no browser-invented validation ladder or impossible
+action. Readiness uses a validation report only when its plan ID, selected
+candidate ID, and immutable model revision all match. The same exact tuple gates
+workflow completion and validation or run actions.
+
+Validation evidence and launch admission remain separate. The UI distinguishes
+incomplete from complete required evidence, then consumes only the optional
+typed `authorization_status` values `current`, `deferred`, and `blocked`.
+`current` must pair with `authorization_current: true` and no error;
+`deferred` or `blocked` must pair with false and a non-empty diagnostic. If the
+tuple has no non-null member, admission is not checked. The browser never
+derives a status from diagnostic prose or mutates the last report when a generic
+training request fails. A non-current status does not by itself mean stale policy or
+require replanning; a genuine `replan_required` lifecycle response is the
+separate authority for that action.
+The MoE topology rail remains separate: it explains routed activity and total
+resident weight memory without making a policy claim or reducing residency by
+active parameters.
+
+Phase 6 remains pending: it adds a second reviewed policy only with its own real
+runtime evidence. Phase 5 did not add that policy or change the portable-policy
+contract. `aptus.api.v1`, `aptus.facts.v3`, and
+`aptus.runtime-contract.v1` remain unchanged.
 
 ## Planner depth
 

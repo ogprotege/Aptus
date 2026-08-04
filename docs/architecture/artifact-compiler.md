@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -88,8 +88,8 @@ unbound shell executable.
 The historical Phase 3 `aptus.bundle.v2` contract used handwritten
 self-contained policy checks. Phase 4 changed the bundle contract to
 `aptus.bundle.v3` and added the portable policy snapshot plus generic evaluator;
-browser policy reconstruction removal belongs to Phase 5, not this compiler
-contract.
+Phase 5 subsequently removed browser policy reconstruction without changing
+this compiler contract. Phase 6 remains pending.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through

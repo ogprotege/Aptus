@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-04 |
 | Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -177,10 +177,15 @@ selected candidate, and manifest fingerprint match that exact revision. It also
 validates the manifest and copied dataset digest. An active or completed job
 must appear in the revision's job IDs and use the same resolved bundle path.
 An identical plan or bundle from another project cannot enter the restored
-surface. Bootstrap does not deep-hash large pilot or completed-run trees.
-For a historical pilot or run, `authorization_current` is false unless an
-active admitted train job carries the matching cached capacity check. Train
-submission remains the authoritative deep authorization transaction.
+surface. Bootstrap does not deep-hash large pilot or completed-run trees. Its
+validation report carries the typed authorization tuple when an admission claim
+is available. A qualifying historical report with no active job is `deferred`
+with `authorization_current: false` and a diagnostic. While another active job
+prevents the bootstrap re-probe it is `blocked` with false and a diagnostic. An
+active admitted train job for the same bundle with the matching cached capacity
+check is `current` with true and no error. When the tuple has no non-null member,
+admission was not checked. Train submission remains the authoritative deep
+authorization transaction.
 
 ## Fact inspection
 
@@ -307,11 +312,9 @@ IDs are `cuda`, `rocm`, `mps`, and `cpu`. Method IDs are `full`, `lora`,
 The closed adapter-profile vocabulary contains `attention-qkvo.v1`, which binds
 the attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` target policy.
 Unknown IDs and malformed combinations fail closed at the producer, API, and
-browser client. A known tuple that is not registered for the stated model family
-fails at the producer and API response boundary. The browser validates the
-closed IDs, runtime-backend pairing, adapter-method applicability, and response
-shape without copying the method registry into a second policy authority.
-Invalid evidence cannot be presented as eligible for the reviewed pilot path.
+response-model boundaries. A known tuple that is not registered for the stated
+model family fails at the producer and API response boundary. Invalid evidence
+cannot be returned as eligible for the reviewed pilot path.
 
 Provider inspection and candidate planning call the same host-side policy
 evaluator. The API model delegates model-family path coherence to the same
@@ -327,10 +330,19 @@ registered policy ID, semantic version, and path ID. Its
 actually carried from inspection. Each covered field has a provenance kind,
 source, observation time, and the same resolved revision.
 
+The maintained browser uses `inspection_receipt.decision` as its single
+inspection-time model-policy source. A complete importer audit found no
+production consumer of the legacy browser `compatibility` normalizer, so Phase 5
+removed that client projection instead of maintaining two policy views. The
+flattened field remains in the v1 HTTP response for API compatibility; it is not
+the workbench policy authority.
+
 Receipt entries use only `provider-declared` or `inferred`. They cover every
 non-null compatibility subject fact and include at least one provider-declared
 subject observation. Registered policies can require additional fields to be
-provider-declared.
+provider-declared. In particular, a provider path-matched receipt must name and
+satisfy the `provider-declared` requirement with provider-declared evidence;
+inferred-only observations cannot satisfy the match.
 
 Receipt content IDs and digests are tamper-evident, not authenticated
 signatures. A caller that passes the receipt to planning must trust its local
@@ -470,16 +482,47 @@ Success persists and returns one full `aptus.training-plan.v5` object plus
 `project_id` and `project_revision_id`. Supplying `project_id` appends to that
 project. Otherwise Aptus creates a named project, using `project_name` or a
 model-derived default. When no candidate is viable, the response is
-`422 no_feasible_plan` and still includes the complete rejected candidate
-matrix.
+the closed typed `422 no_feasible_plan` object. It contains exactly `error`,
+`message`, `model`, rejected `candidates`, `model_policy_decision`,
+`model_policy_decision_source`, and nullable `inspection_receipt`. Its required
+`model` object carries the submitted `model_id` and immutable `revision`.
 
 The OpenAPI response requires the v5 schema and plan ID,
 `model_policy_snapshot_sha256`, recommendation, candidates, warnings,
 rationale, model-policy decision, decision source, and nullable inspection
-receipt. Every candidate requires its candidate ID, decision ID, and nullable
-policy binding. The maintained browser client rejects purported v5 plans that
-omit this provenance chain. A no-feasible comparison is an explicitly partial
-view and cannot be submitted for compilation.
+receipt. The maintained browser correlates either outcome's required model
+subject with the submitted model ID and immutable revision, then verifies the
+expected `provider-inspection` or `user-attested` source and expected receipt
+ID. A provider-backed response requires that exact receipt and its matching
+decision; a user-attested response requires null. This makes even an
+unreceipted user-attested failure request-bound. A mismatch fails before UI
+hydration.
+
+Every returned candidate requires this presentation tuple:
+
+| Field | Requirement |
+| --- | --- |
+| `candidate_id` | Unique `cand_` plus 20 lowercase hex |
+| `model_policy_decision_id` | Equals the response decision ID |
+| `policy_binding` | Explicit object or null; exact emitted-path equality requires the object |
+| `method`, `distribution` | Known IDs that participate in path equality |
+| `status`, `feasible` | Known status and coherent boolean; `feasible` is true only for `feasible` or `conditional` |
+| `rejection_reasons` | Text array, present even when empty |
+| `target_modules` | Text array used for exact path equality |
+| `runtime_contract` | Complete schema, backend, runtime, compiler, estimator, evidence-requirement, and export tuple |
+
+All candidates in `no_feasible_plan` must be rejected: none can be feasible or
+conditional, and each carries at least one rejection reason. On success, the
+recommendation must reference a listed candidate and structurally equal that
+complete decoded candidate record. This compares every field, treats object key
+order as irrelevant, and preserves array order as contract data. A candidate
+whose method, distribution, targets, and runtime exactly equal an emitted policy
+path cannot silently carry a null binding. Truly unbound rows receive no
+browser-invented policy validation ladder.
+
+The no-feasible result is an explicitly partial comparison with
+`recommended: null` in the maintained view. It has no persisted plan ID or
+project revision and cannot be submitted for compilation.
 
 ### `GET /api/v1/plans/{plan_id}`
 
@@ -561,6 +604,15 @@ to the revision but fails this deeper identity check returns
 `409 project_bundle_binding_mismatch`. Success appends an immutable revision
 and returns `project_id` and `project_revision_id`.
 
+The validation response optionally adds an admission tuple to the report. Its
+`authorization_status` vocabulary is exactly `current`, `deferred`, or
+`blocked`. `current` requires `authorization_current: true` and a null or absent
+`authorization_error`; `deferred` or `blocked` requires false and a non-empty,
+trimmed diagnostic. If the tuple has no non-null member, admission was not
+checked. Partial or contradictory claims are rejected by the response model and
+the maintained browser. The browser consumes the typed status and never
+classifies diagnostic prose.
+
 This endpoint uses installed Aptus and therefore compares the plan, manifest,
 and embedded snapshot digest with the current host registry. That currency
 check is distinct from the package-free generated validator, which can prove
@@ -614,6 +666,13 @@ An exact-path bundle whose deeper identity changed returns
 `409 project_bundle_binding_mismatch` before launch.
 Successful submission appends a revision and returns its project identities
 with the job.
+
+The maintained workbench enables evidence, stage completion, and validation or
+run actions only from a report whose `bindings.plan_id`,
+`bindings.candidate_id`, and `bindings.model_revision` match the current
+compiled recommendation. A generic failed training request surfaces its API
+error and leaves that last report unchanged; only a newly decoded server report
+can change the displayed admission status.
 
 MLX `pilot` means an uninterrupted exact-model run with at least two optimizer
 updates plus fresh-process adapter reload and one-to-four-token generation. MLX

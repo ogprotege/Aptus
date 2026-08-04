@@ -80,10 +80,12 @@ def _durable_validation(value: Mapping[str, Any]) -> dict[str, Any]:
     report = durable.get("report")
     if isinstance(report, dict):
         report = dict(report)
+        report.pop("authorization_status", None)
         report.pop("authorization_current", None)
         report.pop("authorization_error", None)
         report.pop("prelaunch_capacity_check", None)
         durable["report"] = report
+    durable.pop("authorization_status", None)
     durable.pop("authorization_current", None)
     durable.pop("authorization_error", None)
     durable.pop("prelaunch_capacity_check", None)

@@ -454,6 +454,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * CandidateStatus
+         * @enum {string}
+         */
+        CandidateStatus: "feasible" | "conditional" | "infeasible" | "unsupported";
         /** CapabilitiesResponse */
         CapabilitiesResponse: {
             /** Backends */
@@ -1084,6 +1089,26 @@ export interface components {
             /** Shared Expert Intermediate Size */
             shared_expert_intermediate_size?: number | null;
         };
+        /** NoFeasiblePlanResponse */
+        NoFeasiblePlanResponse: {
+            /** Candidates */
+            candidates: components["schemas"]["PlanCandidateResponse"][];
+            /**
+             * Error
+             * @constant
+             */
+            error: "no_feasible_plan";
+            inspection_receipt: components["schemas"]["ModelInspectionReceiptResponse"] | null;
+            /** Message */
+            message: string;
+            model: components["schemas"]["PlanModelSubjectResponse"];
+            model_policy_decision: components["schemas"]["InspectedModelPolicyDecisionResponse"];
+            /**
+             * Model Policy Decision Source
+             * @enum {string}
+             */
+            model_policy_decision_source: "provider-inspection" | "user-attested";
+        };
         /**
          * Objective
          * @enum {string}
@@ -1093,9 +1118,19 @@ export interface components {
         PlanCandidateResponse: {
             /** Candidate Id */
             candidate_id: string;
+            distribution: components["schemas"]["Distribution"];
+            /** Feasible */
+            feasible: boolean;
+            method: components["schemas"]["Method"];
             /** Model Policy Decision Id */
             model_policy_decision_id: string;
             policy_binding: components["schemas"]["PlanModelPolicyBindingResponse"] | null;
+            /** Rejection Reasons */
+            rejection_reasons: string[];
+            runtime_contract: components["schemas"]["InspectedRuntimeContractResponse"];
+            status: components["schemas"]["CandidateStatus"];
+            /** Target Modules */
+            target_modules: string[];
         } & {
             [key: string]: unknown;
         };
@@ -1127,6 +1162,15 @@ export interface components {
             source: "provider-inspection" | "user-attested";
             /** Subject Facts Sha256 */
             subject_facts_sha256: string;
+        };
+        /** PlanModelSubjectResponse */
+        PlanModelSubjectResponse: {
+            /** Model Id */
+            model_id: string;
+            /** Revision */
+            revision: string;
+        } & {
+            [key: string]: unknown;
         };
         /** PlanRequest */
         PlanRequest: {
@@ -1578,6 +1622,7 @@ export interface components {
             /** Candidates */
             candidates: components["schemas"]["PlanCandidateResponse"][];
             inspection_receipt: components["schemas"]["ModelInspectionReceiptResponse"] | null;
+            model: components["schemas"]["PlanModelSubjectResponse"];
             model_policy_decision: components["schemas"]["InspectedModelPolicyDecisionResponse"];
             /**
              * Model Policy Decision Source
@@ -1659,6 +1704,16 @@ export interface components {
         };
         /** ValidationResponse */
         ValidationResponse: {
+            /** Authorization Current */
+            authorization_current?: boolean | null;
+            /** Authorization Error */
+            authorization_error?: string | null;
+            /** Authorization Status */
+            authorization_status?: ("current" | "deferred" | "blocked") | null;
+            /** Prelaunch Capacity Check */
+            prelaunch_capacity_check?: {
+                [key: string]: unknown;
+            } | null;
             /** Project Id */
             project_id: string;
             /** Project Revision Id */
@@ -2761,7 +2816,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
+                    "application/json": components["schemas"]["NoFeasiblePlanResponse"] | components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Bad Gateway */

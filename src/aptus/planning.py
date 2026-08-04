@@ -58,8 +58,81 @@ MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 
 
 class NoFeasiblePlanError(ValueError):
-    def __init__(self, candidates: tuple[CandidatePlan, ...]) -> None:
+    def __init__(
+        self,
+        candidates: tuple[CandidatePlan, ...],
+        *,
+        model: ModelSpec,
+        model_policy_decision: ModelPolicyDecision,
+        model_policy_decision_source: ModelPolicyBindingSource,
+        inspection_receipt: ModelInspectionReceipt | None,
+    ) -> None:
+        if not isinstance(model, ModelSpec):
+            raise TypeError("No-feasible-plan errors require a model subject.")
+        if not isinstance(model_policy_decision, ModelPolicyDecision):
+            raise TypeError("No-feasible-plan errors require a policy decision.")
+        if not isinstance(model_policy_decision_source, ModelPolicyBindingSource):
+            raise TypeError("No-feasible-plan errors require a policy source.")
+        if not candidates or any(
+            candidate.model_policy_decision_id != model_policy_decision.decision_id
+            for candidate in candidates
+        ):
+            raise ValueError(
+                "No-feasible-plan candidates must bind the policy decision."
+            )
+        if (
+            model_policy_decision_source == ModelPolicyBindingSource.PROVIDER_INSPECTION
+            and inspection_receipt is None
+        ):
+            raise ValueError(
+                "Provider-inspection no-feasible-plan errors require a receipt."
+            )
+        if (
+            model_policy_decision_source == ModelPolicyBindingSource.USER_ATTESTED
+            and inspection_receipt is not None
+        ):
+            raise ValueError(
+                "User-attested no-feasible-plan errors cannot carry a receipt."
+            )
+        if inspection_receipt is not None and (
+            inspection_receipt.decision.decision_id != model_policy_decision.decision_id
+        ):
+            raise ValueError(
+                "The inspection receipt must bind the no-feasible-plan decision."
+            )
+        if (
+            inspection_receipt is not None
+            and inspection_receipt.model_id != model.model_id
+        ):
+            raise ValueError(
+                "The no-feasible-plan inspection receipt model ID must match the model."
+            )
+        if inspection_receipt is not None and (
+            inspection_receipt.resolved_revision.lower() != model.revision.lower()
+        ):
+            raise ValueError(
+                "The no-feasible-plan inspection receipt revision must match the model."
+            )
+        expected_receipt_id = (
+            inspection_receipt.receipt_id if inspection_receipt is not None else None
+        )
+        for candidate in candidates:
+            binding = candidate.policy_binding
+            if binding is None:
+                continue
+            if binding.source != model_policy_decision_source:
+                raise ValueError(
+                    "Candidate policy binding source must match the error source."
+                )
+            if binding.inspection_receipt_id != expected_receipt_id:
+                raise ValueError(
+                    "Candidate policy binding receipt must match the error receipt."
+                )
         self.candidates = candidates
+        self.model = model
+        self.model_policy_decision = model_policy_decision
+        self.model_policy_decision_source = model_policy_decision_source
+        self.inspection_receipt = inspection_receipt
         reasons = sorted(
             {reason for item in candidates for reason in item.rejection_reasons}
         )
@@ -963,7 +1036,13 @@ def plan_training(
     candidates = _mark_frontier(candidates)
     viable = [item for item in candidates if item.feasible]
     if not viable:
-        raise NoFeasiblePlanError(candidates)
+        raise NoFeasiblePlanError(
+            candidates,
+            model=model,
+            model_policy_decision=policy_decision,
+            model_policy_decision_source=policy_source,
+            inspection_receipt=inspection_receipt,
+        )
     ordered = sorted(viable, key=lambda item: _rank_key(item, target))
     ranked_ids = {item.candidate_id: index for index, item in enumerate(ordered)}
     candidates = tuple(

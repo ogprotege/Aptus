@@ -1,6 +1,6 @@
 # Data and Identity Flow
 
-> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27
 
 Aptus binds decisions and runtime evidence to exact content. It uses separate
 identities for projects, revisions, source data, candidates, plans, bundles,
@@ -127,6 +127,44 @@ pending completion evidence is not promoted. Host static validation records the
 same currency mismatch as an invalid `POLICY_SNAPSHOT_DIGEST` finding. V4, v3,
 v2, and schema-less plans receive the corresponding fail-closed result and
 remain unchanged on disk.
+
+The HTTP planning boundary preserves this chain on both success and failure. A
+successful v5 response and a typed 422 `no_feasible_plan` response each carry
+the server-produced v2 decision, its source, the nullable inspection receipt,
+candidate decision links, and an explicit null or object binding per candidate.
+The maintained browser client verifies exact record shapes and versions, then
+cross-checks decision, path, receipt, binding, and candidate execution identity.
+It also requires the response's model subject to match the submitted model ID
+and immutable revision, then verifies the expected source and receipt ID. Every
+no-feasible candidate must be rejected. Every candidate must supply method,
+distribution, status, feasibility, rejection reasons, target modules, runtime
+contract, decision link, and binding. It does not derive policy from topology or
+candidate fields. A provider path-matched receipt proves its provider-declared
+requirement with provider-declared provenance; inferred-only observations cannot
+satisfy that match. A successful response's recommendation must structurally
+equal the complete listed candidate record with the same candidate ID.
+
+The workbench projects that verified state into three independent records:
+artifact match, selected candidate path, and evidence readiness. The second
+uses only the selected candidate's explicit nullable binding. Exact policy-path
+equality requires a non-null binding; unbound or rejected candidates get no
+invented policy-validation ladder or impossible action. The third accepts a
+validation state and admission value only when the report binds the current plan
+ID, selected candidate ID, and immutable model revision. Stage-completion and
+validation or run action gates use the same exact three-field predicate.
+
+Evidence progress and launch admission are different axes. Evidence can remain
+incomplete or become complete while the optional admission tuple has no non-null
+member, meaning not checked. When present, `authorization_status` is exactly
+`current`, `deferred`, or `blocked`. Current pairs with
+`authorization_current: true` and no error; deferred or blocked pairs with false
+and a non-empty `authorization_error`. Partial or contradictory tuples fail at ingress. The
+browser branches on the typed status rather than diagnostic prose and preserves
+the last report when a generic training request fails. A non-current status does
+not itself mean stale policy or replanning. An explicit `replan_required`
+lifecycle response owns that result. The MoE rail remains a separate topology
+and memory view in which all checkpoint weights stay resident even when only a
+subset of experts is active per token.
 
 The historical coherence pass uses the persisted decision and one internally
 consistent adapter-target set, not the current mutable family catalog. The

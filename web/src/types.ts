@@ -90,64 +90,13 @@ export type InspectionReceiptProvenanceKind =
   | "provider-declared"
   | "inferred";
 
-export type ModelPolicyDecisionKind =
-  | "path-matched"
-  | "family-recognized"
-  | "blocked"
-  | "unknown";
+export type ModelPolicyDecisionKind = components["schemas"]["ModelPolicyDecisionKind"];
 
-export type ModelPolicyBindingSource = "provider-inspection" | "user-attested";
-
-export interface ModelPolicyPath {
-  path_id: string;
-  method: string;
-  distribution: string;
-  adapter_profile_id: string | null;
-  target_modules: string[];
-  runtime_contract: NonNullable<CandidatePlan["runtime_contract"]>;
-  required_validation_levels: string[];
-  evidence_ids: string[];
-}
-
-export interface ModelPolicyDecision {
-  schema_version: "aptus.model-compatibility.v2";
-  decision_id: string;
-  subject_facts_sha256: string;
-  kind: ModelPolicyDecisionKind;
-  family: string | null;
-  policy_id: string | null;
-  policy_version: string | null;
-  paths: ModelPolicyPath[];
-  reason_codes: string[];
-  evidence_ids: string[];
-  reason: string;
-}
-
-export interface ModelInspectionReceipt {
-  schema_version: "aptus.model-inspection-receipt.v1";
-  receipt_id: string;
-  model_id: string;
-  resolved_revision: string;
-  observed_facts_sha256: string;
-  decision: ModelPolicyDecision;
-  provenance_summary: Array<ModelInspectionFactProvenance & { field: string }>;
-  provenance_requirement: "provider-declared" | null;
-  provenance_requirement_met: boolean;
-  evaluated_at: string;
-}
-
-export interface ModelPolicyBinding {
-  schema_version: "aptus.model-policy-binding.v1";
-  decision_id: string;
-  subject_facts_sha256: string;
-  policy_id: string;
-  policy_version: string;
-  path_id: string;
-  source: ModelPolicyBindingSource;
-  inspection_receipt_id: string | null;
-  reason_codes: string[];
-  evidence_ids: string[];
-}
+export type ModelPolicyPath = components["schemas"]["InspectedModelPolicyPathResponse"];
+export type ModelPolicyDecision = components["schemas"]["InspectedModelPolicyDecisionResponse"];
+export type ModelInspectionReceipt = components["schemas"]["ModelInspectionReceiptResponse"];
+export type ModelPolicyBinding = components["schemas"]["PlanModelPolicyBindingResponse"];
+export type ModelPolicyBindingSource = ModelPolicyBinding["source"];
 
 export interface ModelInspectionResponse {
   status: "ok" | "unavailable" | "unsupported" | string;
@@ -282,13 +231,10 @@ export interface BatchStrategy {
   [key: string]: unknown;
 }
 
-export interface CandidatePlan {
+type PlanCandidateResponseContract = components["schemas"]["PlanCandidateResponse"];
+
+export interface CandidatePlan extends PlanCandidateResponseContract {
   id?: string;
-  candidate_id: string;
-  method: string;
-  distribution?: string;
-  status?: "feasible" | "infeasible" | "unknown" | string;
-  feasible?: boolean;
   precision?: string;
   quantization?: string | null;
   batches?: BatchStrategy;
@@ -299,12 +245,10 @@ export interface CandidatePlan {
   assumptions?: string[];
   evidence?: string[];
   rationale?: string[];
-  rejection_reasons?: string[];
   confidence?: string;
   rank?: number;
   alpha?: number;
   learning_rate?: number;
-  target_modules?: string[];
   preference_score?: number;
   user_reserve_bytes?: number;
   world_size?: number;
@@ -315,17 +259,6 @@ export interface CandidatePlan {
   required_disk_bytes?: number;
   checkpoint_retention_bytes?: number;
   final_export_bytes?: number;
-  runtime_contract?: {
-    schema_version: string;
-    compute_backend: string;
-    training_runtime: string;
-    compiler_id: string | null;
-    estimator_id: string;
-    evidence_requirement: string;
-    export_kind: string | null;
-  };
-  model_policy_decision_id: string;
-  policy_binding: ModelPolicyBinding | null;
   [key: string]: unknown;
 }
 
@@ -377,7 +310,7 @@ export interface TrainingPlan {
   model_policy_decision: ModelPolicyDecision;
   model_policy_decision_source: ModelPolicyBindingSource;
   inspection_receipt: ModelInspectionReceipt | null;
-  model?: Record<string, unknown>;
+  model: components["schemas"]["PlanModelSubjectResponse"];
   dataset?: Record<string, unknown>;
   hardware?: Record<string, unknown>;
   target?: Record<string, unknown>;
@@ -389,6 +322,10 @@ export interface NoFeasibleComparisonPlan {
   no_feasible_plan: true;
   recommended: null;
   candidates: CandidatePlan[];
+  model_policy_decision: ModelPolicyDecision;
+  model_policy_decision_source: ModelPolicyBindingSource;
+  inspection_receipt: ModelInspectionReceipt | null;
+  model: components["schemas"]["PlanModelSubjectResponse"];
   warnings: string[];
   rationale: string[];
   recommendation_rationale: string[];
@@ -643,7 +580,8 @@ export interface ValidationReport {
     phase_two_resumed?: Record<string, unknown>;
     [key: string]: unknown;
   } | null;
-  authorization_current?: boolean;
+  authorization_status?: "current" | "deferred" | "blocked" | null;
+  authorization_current?: boolean | null;
   authorization_error?: string | null;
   project_id?: string;
   project_revision_id?: string;

@@ -15,11 +15,12 @@ model.
 | [`web/src/App.tsx`](../../web/src/App.tsx) | Application state, bootstrap restoration, stage transitions, polling, and active-job guards |
 | [`docs/reference/openapi.v1.json`](../reference/openapi.v1.json) | Generated server contract from explicit Pydantic response models |
 | [`web/src/generated/openapi.ts`](../../web/src/generated/openapi.ts) | Generated TypeScript schema and path types; not a complete SDK |
-| [`web/src/api.ts`](../../web/src/api.ts) | Maintained API requests, strict response normalization, generated-type consumption, and error handling |
-| [`web/src/types.ts`](../../web/src/types.ts) | Maintained browser-side facts, plans, candidates, reports, jobs, and presentation types |
+| [`web/src/api.ts`](../../web/src/api.ts) | Maintained API requests, request/receipt-correlated plan and typed no-feasible ingress, generated-type consumption, and error handling |
+| [`web/src/types.ts`](../../web/src/types.ts) | Generated model-policy aliases plus maintained browser facts, plans, candidates, reports, jobs, and presentation types |
 | [`web/src/stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
-| [`web/src/components/`](../../web/src/components) | Workflow rail, candidate comparison, fit ledger, validation gates, artifact tree, and run console |
-| [`web/src/lib/`](../../web/src/lib) | Hardware, model-inspection, and plan presentation helpers |
+| [`web/src/components/`](../../web/src/components) | Workflow rail, model-policy records, candidate comparison, fit ledger, validation gates, artifact tree, and run console |
+| [`web/src/lib/modelPolicy.ts`](../../web/src/lib/modelPolicy.ts) | Strict v2 decision, path, receipt, candidate, binding, and validation-report decoders plus policy presentation |
+| [`web/src/lib/modelInspection.ts`](../../web/src/lib/modelInspection.ts) | Provider and plan-derived fact application without browser policy reconstruction |
 | [`web/src/demo.ts`](../../web/src/demo.ts) | Labeled non-executed example content |
 | [`web/src/desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete native-bridge feature detection and browser fallback |
 | [`web/src/styles.css`](../../web/src/styles.css) | Fonts, tokens, layout, status treatments, responsive rules, focus, and reduced motion |
@@ -85,6 +86,27 @@ Generated TypeScript types provide compile-time alignment. They do not validate
 untrusted responses at runtime. Keep the maintained normalizers fail closed on
 missing, malformed, unknown-version, or misbound data.
 
+For model policy, decode the exact object keys and supported schema versions for
+the server-produced `aptus.model-compatibility.v2` decision, every nested path,
+the optional `aptus.model-inspection-receipt.v1`, and each candidate's explicit
+nullable `aptus.model-policy-binding.v1`. Cross-check decision IDs, subject
+digests, source and receipt identities, path membership, and the candidate's
+method, distribution, targets, and runtime contract. Do not add family-specific
+policy predicates to React. The inspection receipt's v2 decision is the one
+browser policy source; do not restore the retired flattened-compatibility
+normalizer or create a second inspection projection.
+
+The planning endpoint's HTTP 422 `no_feasible_plan` variant is a closed typed
+response, not merely a candidate list. Its decision, source, nullable receipt,
+required `model` subject, candidate links, and any non-null bindings must pass
+the same chain validation as a successful plan. Correlate `model.model_id` and
+`model.revision` with the submitted artifact even for an unreceipted
+user-attested failure, then verify the expected policy source and receipt ID.
+Decode every candidate's method, distribution, status, feasibility, rejection
+reasons, target modules, runtime contract, decision link, and binding; require
+all rows to be rejected. Preserve them only as a non-compilable partial
+comparison.
+
 In particular, every purported v5 plan response must carry
 `model_policy_snapshot_sha256` as lowercase 64-character hexadecimal text. The
 normalizer rejects a missing, non-string, uppercase, short, or non-hexadecimal
@@ -111,6 +133,30 @@ Keep these behaviors visible and tested:
 - LM Studio and oMLX remain inference-only;
 - experimental and research-only methods remain nonselectable;
 - conditional candidates retain their unresolved reasons;
+- model-policy match, selected candidate path, and evidence readiness remain
+  three separate records;
+- exact path equality requires a non-null candidate binding, while truly unbound
+  and rejected rows receive no synthesized policy ladder or validation action;
+- a provider path-matched receipt requires provider-declared provenance and
+  cannot be satisfied by inferred-only observations;
+- the decoded recommendation structurally equals its complete listed candidate
+  record, not merely a subset of execution fields;
+- validation evidence applies only when its report binds the current plan ID,
+  selected candidate ID, and immutable model revision, and that same exact tuple
+  gates stage completion plus validation and run actions;
+- evidence incomplete/complete remains distinct from the optional typed
+  `authorization_status` values `current`, `deferred`, and `blocked`; a tuple
+  with no non-null member means not checked;
+- `current` pairs with `authorization_current: true` and no error, while
+  `deferred` or `blocked` pairs with false and a non-empty diagnostic; partial or
+  contradictory tuples fail closed;
+- authorization state is never inferred from diagnostic prose, and a generic
+  training-request failure surfaces its error without mutating the prior report;
+- non-current authorization is not itself a stale-policy or replan result;
+- the MoE topology rail explains routed activity and resident weights without
+  reconstructing policy or reducing residency by active parameters;
+- typed `no_feasible_plan` responses preserve and validate the complete policy
+  chain before rejected candidates render;
 - compile requires a new path and explains no-clobber behavior;
 - v5 plan responses require an exact model-policy snapshot digest;
 - `replan_required` preserves the old plan and directs the user to create and

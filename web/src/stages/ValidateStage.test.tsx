@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { ValidateStage } from "./ValidateStage";
 import type { CompileResponse, ValidationReport } from "../types";
 
+const reportBinding = {
+  planId: "plan_bound",
+  candidateId: "cand_bound",
+  modelRevision: "a".repeat(40),
+};
+
 describe("ValidateStage", () => {
   it("renders attestation bindings and both pilot phases", () => {
     const report: ValidationReport = {
@@ -13,6 +19,8 @@ describe("ValidateStage", () => {
       findings: [],
       bindings: {
         plan_id: "plan_bound",
+        candidate_id: "cand_bound",
+        model_revision: reportBinding.modelRevision,
         pilot_metrics: "metrics_digest",
       },
       preflight_metrics: {
@@ -53,6 +61,7 @@ describe("ValidateStage", () => {
       <ValidateStage
         bundle={bundle}
         report={report}
+        reportBinding={reportBinding}
         busy={null}
         demoMode={false}
         onValidate={vi.fn(async () => undefined)}
@@ -72,7 +81,7 @@ describe("ValidateStage", () => {
     expect(screen.getByText("phase-one-digest")).toBeInTheDocument();
     expect(screen.getByText("phase-two-digest")).toBeInTheDocument();
     expect(screen.getByText("Measured synthetic preflight")).toBeInTheDocument();
-    expect(screen.getByText("cand_bound")).toBeInTheDocument();
+    expect(screen.getAllByText("cand_bound").length).toBeGreaterThan(0);
     expect(screen.getByText("nf4-double-quant")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GiB").length).toBeGreaterThan(0);
   });
@@ -86,6 +95,8 @@ describe("ValidateStage", () => {
       findings: [],
       bindings: {
         plan_id: "plan_mlx",
+        candidate_id: "cand_mlx_qlora",
+        model_revision: reportBinding.modelRevision,
         pilot_metrics: "mlx-metrics-digest",
       },
       preflight_metrics: {
@@ -156,6 +167,11 @@ describe("ValidateStage", () => {
       <ValidateStage
         bundle={bundle}
         report={report}
+        reportBinding={{
+          planId: "plan_mlx",
+          candidateId: "cand_mlx_qlora",
+          modelRevision: reportBinding.modelRevision,
+        }}
         busy={null}
         demoMode={false}
         onValidate={vi.fn(async () => undefined)}
@@ -182,11 +198,20 @@ describe("ValidateStage", () => {
 
   it("opens Run from static-pass so the dependency gate can run", () => {
     const onOpenRun = vi.fn();
-    const report: ValidationReport = { state: "static-pass", findings: [] };
+    const report: ValidationReport = {
+      state: "static-pass",
+      findings: [],
+      bindings: {
+        plan_id: reportBinding.planId,
+        candidate_id: reportBinding.candidateId,
+        model_revision: reportBinding.modelRevision,
+      },
+    };
     render(
       <ValidateStage
         bundle={{ bundle_dir: "/tmp/bundle", files: [], report }}
         report={report}
+        reportBinding={reportBinding}
         busy={null}
         demoMode={false}
         onValidate={vi.fn(async () => undefined)}
@@ -201,5 +226,35 @@ describe("ValidateStage", () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
     expect(onOpenRun).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["wrong", {
+      plan_id: reportBinding.planId,
+      candidate_id: "cand_other",
+      model_revision: reportBinding.modelRevision,
+    }],
+  ])("does not open Run for pilot-pass evidence with %s bindings", (_label, bindings) => {
+    const onOpenRun = vi.fn();
+    const report: ValidationReport = { state: "pilot-pass", findings: [], bindings };
+    render(
+      <ValidateStage
+        bundle={{ bundle_dir: "/tmp/bundle", files: [], report }}
+        report={report}
+        reportBinding={reportBinding}
+        busy={null}
+        demoMode={false}
+        onValidate={vi.fn(async () => undefined)}
+        onOpenRun={onOpenRun}
+        onReturnToCompile={vi.fn()}
+        validationLevel="static"
+        onValidationLevelChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/does not belong to the compiled recommendation/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open run actions" })).toBeDisabled();
+    expect(onOpenRun).not.toHaveBeenCalled();
   });
 });

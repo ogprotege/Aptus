@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -122,8 +122,43 @@ returns `replan_required`, pilot authorization and worker launch reject
 non-current policy, and pending completion evidence is not promoted across a
 policy change.
 
-Phase 5 remains the browser-reconstruction removal. Phase 6 remains the second
-reviewed policy. Neither is part of the portable policy contract.
+Phase 5 is complete at the client boundary. The React workbench strictly decodes
+the server's v2 decision, every nested path, the optional inspection receipt,
+and each candidate's explicit nullable binding before hydration. Both a normal
+plan and the closed HTTP 422 `no_feasible_plan` response carry one coherent
+decision, source, receipt, candidate-link, and binding chain. The browser does
+not re-evaluate model-family predicates. It also requires a response model
+subject matching the submitted model ID and immutable revision, checks the
+expected policy source and receipt identity, then requires the complete
+execution and policy tuple for every candidate. No-feasible rows must all be
+rejected. A provider path-matched receipt requires provider-declared provenance;
+inferred-only observations cannot satisfy it. On success, the recommendation
+must structurally equal its complete listed candidate record.
+
+Presentation keeps three records separate: the artifact's model-policy match,
+the currently selected candidate's path or explicit nullable binding, and
+evidence readiness. A tuple that exactly matches an emitted policy path cannot
+omit its binding. Unbound and rejected rows get no client-synthesized policy
+ladder or validation action. Readiness consumes a report only when its plan ID,
+candidate ID, and immutable model revision all bind the current selection. The
+workflow-completion and validation or run action gates reuse that exact binding
+predicate.
+
+Required validation evidence can be incomplete or complete independently of
+launch admission. The optional `authorization_status` vocabulary is exactly
+`current`, `deferred`, or `blocked`. Current requires
+`authorization_current: true` with no error; deferred or blocked requires false
+with a non-empty diagnostic. An authorization tuple with no non-null member means
+not checked, and partial or incoherent claims are invalid. The browser never
+derives the status from diagnostic prose or overwrites the report when a generic
+training request fails. Non-current admission does not mean stale policy or require
+replanning by itself. That direction belongs to the separate `replan_required`
+lifecycle result. The MoE topology rail separately explains routing and total
+resident weight memory; active-per-token parameters never reduce base-weight
+residency or establish a policy match.
+
+Phase 6 remains pending and owns a second reviewed policy with its own runtime
+evidence. Phase 5 did not change the portable policy contract.
 
 ## 3. Compilation
 

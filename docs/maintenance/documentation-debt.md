@@ -160,8 +160,8 @@ when its evidence, owner, or resolution changes.
   adds exact fail-closed evidence for the 30B checkpoint. It stopped before
   model loading and is not passing pilot, training, reload, export,
   performance, or quality evidence. The July MLX-LM and desktop records predate
-  the current Phase 4 source head; no current-head CUDA or MLX target-runtime
-  pilot was collected for the Phase 4 closeout.
+  the current Phase 5 source head; no current-head CUDA or MLX target-runtime
+  pilot was collected for the Phase 5 closeout.
 - **Required result:** Renew qualifying current-head MLX-LM target-runtime
   evidence, add equivalent evidence for every claimed CUDA method and placement,
   and add Developer ID signed and notarized desktop evidence for the exact
@@ -221,43 +221,49 @@ when its evidence, owner, or resolution changes.
 
 - **Priority:** P1
 - **Status:** Resolved
-- **Resolution:** `ExpertTopologyRail` remains the single presentation owner for
-  compatibility evidence. Post-merge review found that PR #20's substring check
+- **Resolution:** At the Phase 1 boundary, `ExpertTopologyRail` was the single
+  presentation owner for compatibility evidence. Post-merge review found that
+  PR #20's substring check
   for `single` could pass against `single-device` inside the reason, even if the
   placement clause disappeared. The corrected tests assert each complete support
   or mismatch sentence and assert the reason separately. The API now uses three
   closed, status-discriminated variants. The producer, API response boundary,
   browser ingestion path, and presentation component all fail closed when a
-  conditional result is incomplete or contradictory.
-- **Verification:**
+  conditional result is incomplete or contradictory. Phase 5 later separated
+  topology from current policy presentation; DOC-023 records that boundary.
+- **Historical verification:**
   `test_model_compatibility_contract_rejects_contradictory_evidence`,
   `test_model_inspection_response_rejects_malformed_compatibility`,
   `test_model_compatibility_reference_matches_discriminated_contract`, and
-  `web/src/components/ExpertTopologyRail.test.tsx` pin the corrected contract.
-  Any future compatibility surface must preserve the same fields and fail-closed
-  behavior.
+  the Phase 1 `ExpertTopologyRail` tests pinned the corrected contract. Current
+  policy-presentation verification is listed under DOC-023.
 - **Owner:** Workbench maintainers
 
 ### DOC-019: Close compatibility vocabulary and inspection claim boundaries
 
 - **Priority:** P1
 - **Status:** Resolved
-- **Resolution:** Conditional model compatibility now uses known runtime,
-  compute-backend, method, distribution, and adapter-profile IDs. It carries an
+- **Resolution:** At the Phase 1 boundary, conditional model compatibility used
+  known runtime, compute-backend, method, distribution, and adapter-profile IDs.
+  It carries an
   explicit `compute_backend`, identifies the reviewed attention target policy as
   `attention-qkvo.v1`, and validates each execution tuple against the typed
   method registry. A profile cannot be paired with full fine-tuning. Unknown IDs
   fail closed at the Python and browser boundaries. Known but unregistered
   runtime, backend, method, and distribution tuples fail at the producer and API
-  response boundary. Inspection presentation says that an exact match is
-  eligible for the reviewed pilot path and does not claim that the runtime has
-  passed validation.
-- **Verification:**
+  response boundary. Inspection presentation said that an exact match was
+  eligible for the reviewed pilot path and did not claim that the runtime had
+  passed validation. Phase 5 now presents the decoded v2 decision and selected
+  candidate path separately; DOC-023 records the current surface.
+- **Historical verification:**
   `test_model_compatibility_contract_rejects_contradictory_evidence`,
   `test_model_compatibility_reference_matches_discriminated_contract`,
-  `web/src/lib/modelCompatibility.test.ts`, and
-  `web/src/components/ExpertTopologyRail.test.tsx` pin the vocabulary,
-  fail-closed normalization, backend binding, and complete eligibility copy.
+  the Phase 1 `modelCompatibility` tests, and the Phase 1 `ExpertTopologyRail`
+  tests pinned the vocabulary, fail-closed normalization, backend binding, and
+  complete eligibility copy. The Phase 5 importer audit found no production
+  consumer of that flattened browser projection, so its normalizer and test were
+  removed. Current presentation consumes the receipt's v2 decision and is
+  verified under DOC-023.
 - **Owner:** API, planner-registry, workbench, and documentation maintainers
 
 ### DOC-020: Establish one host model-compatibility policy authority
@@ -337,14 +343,68 @@ when its evidence, owner, or resolution changes.
   Installed-host validation additionally compares the snapshot, plan, and
   manifest bindings with the current host digest; a different host binding is
   stale and requires replanning.
-- **Boundary:** Browser policy reconstruction remains Phase 5. A second reviewed
-  policy remains Phase 6.
+- **Boundary:** At the Phase 4 closeout, browser policy reconstruction remained
+  assigned to Phase 5. DOC-023 records its completion. A second reviewed policy
+  remains pending in Phase 6.
 - **Verification:** Deterministic double generation, host-versus-portable
   decision parity, package-free validation, host-registry currency, exact digest
   binding, scalar plan and manifest rejection, controlled excessive-nesting and
   oversized-integer failures, stale admission and completion-promotion denial,
   and typed snapshot mutation tests protect the contract.
 - **Owner:** Policy, planning, compiler, validation, and documentation maintainers
+
+### DOC-023: Remove browser-side model-policy reconstruction
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** Phase 5 makes the server v2 policy chain authoritative at the
+  maintained client boundary. Exact runtime decoders validate the decision,
+  nested paths, optional inspection receipt, every candidate's complete tuple
+  and explicit nullable binding, and validation-report identity before UI
+  hydration. The response's required model subject, expected policy source, and
+  receipt identity must correlate with the submitted request. Facts and Compare
+  show model-policy match, selected candidate path, and evidence readiness as
+  three separate records. The receipt decision is the one inspection-time
+  browser policy source; the legacy flattened compatibility normalizer has no
+  production consumer and is removed. Provider path-matched receipts require
+  provider-declared provenance, not inferred-only observations. A successful
+  recommendation must structurally equal its complete listed candidate record.
+- **Presentation boundary:** Exact path equality requires a non-null candidate
+  binding. Truly unbound and rejected rows receive no browser-invented policy
+  ladder or impossible validation action. A report applies only when its plan
+  ID, candidate ID, and immutable model revision match the current selection;
+  the same tuple gates stage completion and validation or run actions. Required
+  validation is incomplete or complete independently from the optional typed
+  `authorization_status` values `current`, `deferred`, and `blocked`. Current
+  pairs with true and no error; deferred or blocked pairs with false and a
+  non-empty diagnostic; a tuple with no non-null member means not checked. The
+  browser never infers status from diagnostic prose or mutates a report after a generic
+  training-request failure. A non-current status does not itself mean stale
+  policy or replanning. The separate `replan_required` lifecycle result owns
+  that instruction. `ExpertTopologyRail` owns topology and
+  resident-versus-active memory only.
+- **Failure boundary:** The closed HTTP 422 `no_feasible_plan` response carries
+  rejected candidates plus the same decision, source, and nullable receipt.
+  Provider-backed failures require the matching receipt, user-attested failures
+  forbid one, the required model subject must match the submitted ID and
+  immutable revision, request and receipt identities must correlate, and every
+  candidate must be rejected with its complete method, distribution, status,
+  feasibility, rejection, target, runtime, decision, and binding tuple. Any
+  broken chain is rejected before the non-compilable rows render.
+- **Boundary:** `aptus.api.v1`, `aptus.facts.v3`,
+  `aptus.training-plan.v5`, `aptus.bundle.v3`, and
+  `aptus.runtime-contract.v1` remain unchanged. Phase 6 remains pending and owns
+  a second reviewed policy with its own runtime evidence.
+- **Verification:** Strict ingress and presentation cases live in
+  `web/src/api.test.ts`, `web/src/lib/modelPolicy.test.ts`,
+  `web/src/components/ModelPolicyPanel.test.tsx`,
+  `web/src/components/ExpertTopologyRail.test.tsx`, and `web/src/App.test.tsx`.
+  `test_plan_openapi_declares_typed_no_feasible_policy_chain`,
+  `test_no_fit_response_preserves_provider_inspection_receipt`,
+  `test_no_feasible_provider_plan_preserves_policy_receipt_chain`, and
+  `test_phase5_workbench_policy_authority_is_documented` protect the server,
+  planner, client, presentation, and maintained-guidance boundaries.
+- **Owner:** API, planning, workbench, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

@@ -4,7 +4,18 @@ import { RunStage } from "./RunStage";
 import type { AptusDesktopBridge } from "../desktopBridge";
 import type { CompileResponse, Job, ValidationReport } from "../types";
 
+const reportBinding = {
+  planId: "plan_aaaaaaaaaaaaaaaaaaaa",
+  candidateId: "candidate-bound",
+  modelRevision: "a".repeat(40),
+};
+const reportBindings = {
+  plan_id: reportBinding.planId,
+  candidate_id: reportBinding.candidateId,
+  model_revision: reportBinding.modelRevision,
+};
 const callbacks = {
+  reportBinding,
   onCreateJob: vi.fn(async () => undefined),
   onRefreshJob: vi.fn(async () => undefined),
   onCancelJob: vi.fn(async () => undefined),
@@ -27,6 +38,8 @@ const mlxBundle: CompileResponse = {
 const pilotReport: ValidationReport = {
   state: "pilot-pass",
   findings: [],
+  bindings: reportBindings,
+  authorization_status: "blocked",
   authorization_current: false,
   authorization_error: "Cached authorization is stale.",
 };
@@ -75,7 +88,7 @@ describe("RunStage", () => {
     render(
       <RunStage
         bundle={mlxBundle}
-        report={{ state: "static-pass", findings: [] }}
+        report={{ state: "static-pass", findings: [], bindings: reportBindings }}
         job={null}
         busy={null}
         demoMode={false}
@@ -102,7 +115,7 @@ describe("RunStage", () => {
     render(
       <RunStage
         bundle={mlxBundle}
-        report={{ state: "measured-preflight-pass", findings: [] }}
+        report={{ state: "measured-preflight-pass", findings: [], bindings: reportBindings }}
         job={null}
         busy={null}
         demoMode={false}
@@ -133,7 +146,7 @@ describe("RunStage", () => {
     render(
       <RunStage
         bundle={mlxBundle}
-        report={{ state: "pilot-pass", findings: [] }}
+        report={{ state: "pilot-pass", findings: [], bindings: reportBindings }}
         job={null}
         busy={null}
         demoMode={false}
@@ -252,6 +265,28 @@ describe("RunStage", () => {
     expect(screen.getAllByText("verifying").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Cancel job" })).toBeDisabled();
     await waitFor(() => expect(screen.getByRole("checkbox")).not.toBeChecked());
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["wrong", { ...reportBindings, candidate_id: "candidate-other" }],
+  ])("blocks a pilot-pass report with %s binding identities", (_label, bindings) => {
+    const onCreateJob = vi.fn(async () => undefined);
+    render(
+      <RunStage
+        bundle={bundle}
+        report={{ state: "pilot-pass", findings: [], bindings }}
+        job={null}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onCreateJob={onCreateJob}
+      />,
+    );
+
+    expect(screen.getByText("Run preflight is blocked")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Start training/i })).not.toBeInTheDocument();
+    expect(onCreateJob).not.toHaveBeenCalled();
   });
 
   it("renders the run-bound completion, capacity, and historical integrity record", () => {

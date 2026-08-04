@@ -33,7 +33,7 @@ if (ROOT / "__pycache__").exists():
         "Bundle contains an unmanifested __pycache__; remove it before validation."
     )
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest
+from plan_contract import load_json_object, validate_bundle_manifest, validate_plan_payload
 from runtime_lease import portable_execution_lease, run_with_lease
 
 STATE_BY_LEVEL = {
@@ -489,7 +489,7 @@ def write_attestation(level: str) -> None:
 
 
 def _write_attestation(level: str) -> None:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     manifest_digest = sha256(ROOT / "bundle-manifest.json")
     state = STATE_BY_LEVEL[level]
     existing_path = ROOT / "validation-report.json"
@@ -640,7 +640,7 @@ def prune_attested_pilot_runs() -> None:
     report = json.loads((ROOT / "validation-report.json").read_text(encoding="utf-8"))
     metrics_path = ROOT / "pilot-output" / "metrics.json"
     metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     current = metrics.get("pilot_run_id")
     if (
         report.get("state") != "pilot-pass"
@@ -692,7 +692,10 @@ def main() -> int:
     parser.add_argument("--level", choices=tuple(STATE_BY_LEVEL), default="static")
     parser.add_argument("--local-files-only", action="store_true")
     arguments = parser.parse_args()
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
+    plan_errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
+    if plan_errors:
+        raise RuntimeError("Invalid Aptus plan: " + " | ".join(plan_errors))
     bind_visible_cuda_devices(plan)
     with portable_execution_lease(ROOT, action=f"validate:{arguments.level}"):
         command = [

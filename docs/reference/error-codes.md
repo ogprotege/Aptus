@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | API clients, CLI operators, UI developers, and support engineers |
 | Authority | Normative inventory of host API errors and host validator findings in v0.2 |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-04 |
 | Next review | 2026-11-01, or sooner when API handlers or validation findings change |
 
 API errors, managed-job errors, and validation findings are separate channels.
@@ -125,9 +125,9 @@ Host validation sets report state to `invalid` when any finding has severity
 | Code | Severity | Meaning |
 | --- | --- | --- |
 | `MISSING_FILE` | error | A required compiler file is absent |
-| `PLAN_JSON_ERROR` | error | `plan.json` cannot be read or parsed |
-| `TRAINER_CONFIG_JSON_ERROR` | error | `config/trainer.json` cannot be read or parsed |
-| `MANIFEST_JSON_ERROR` | error | `bundle-manifest.json` cannot be read or parsed |
+| `PLAN_JSON_ERROR` | error | `plan.json` is unreadable, invalid JSON, or not a JSON object |
+| `TRAINER_CONFIG_JSON_ERROR` | error | `config/trainer.json` is unreadable, invalid JSON, or not a JSON object |
+| `MANIFEST_JSON_ERROR` | error | `bundle-manifest.json` is unreadable, invalid JSON, or not a JSON object |
 
 ### Plan and deterministic parity
 

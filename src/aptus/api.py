@@ -392,7 +392,10 @@ class ApiContext:
                 return None
             if path.is_symlink():
                 raise PermissionError(f"Aptus saved plans cannot be symlinks: {path}")
-            value = json.loads(path.read_text(encoding="utf-8"))
+            try:
+                value = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, RecursionError, ValueError):
+                raise ValueError("Saved plan is unreadable or invalid JSON.") from None
         if not isinstance(value, Mapping):
             raise ValueError("Saved plan must be a JSON object.")
         if value.get("schema_version") != SCHEMA_VERSION:
@@ -1044,7 +1047,7 @@ def create_app(
                 continue
             try:
                 plan_payload = json.loads(plan_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+            except (OSError, RecursionError, ValueError):
                 continue
             if (
                 not isinstance(plan_payload, dict)
@@ -1770,7 +1773,7 @@ def create_app(
                     plan_value.get("plan_id"), str
                 ):
                     plan_id = plan_value["plan_id"]
-            except (OSError, json.JSONDecodeError):
+            except (OSError, RecursionError, ValueError):
                 pass
             raise HTTPException(
                 status_code=409,

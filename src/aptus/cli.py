@@ -669,7 +669,10 @@ def _run(arguments: argparse.Namespace) -> int:
             _write_json(_compile(plan, arguments.output), None)
         return 0
     if arguments.command == "compile":
-        value = json.loads(arguments.plan.read_text(encoding="utf-8"))
+        try:
+            value = json.loads(arguments.plan.read_text(encoding="utf-8"))
+        except (OSError, RecursionError, ValueError):
+            raise ValueError("Plan is unreadable or invalid JSON.") from None
         if isinstance(value, Mapping) and value.get("schema_version") == SCHEMA_VERSION:
             require_current_model_policy(value)
             validation_errors = validate_plan_payload(value)

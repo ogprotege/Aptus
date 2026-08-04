@@ -218,3 +218,140 @@ The eight-step plan (final review → reconcile → gate → commit → PR → v
 - Phase 5: `moeCompatibilityFromPlan()` exists, is exported, and its decision predicate is untouched (web/src/lib/modelInspection.ts — version-literal changes only). Not absorbed.
 - Phase 6: exactly one registered policy; the snapshot generator fail-closes on unexpressible policies. Not absorbed.
 - Runtime acceptance: unchanged and correctly worded — the Qwen3 30B MoE admission-failure evidence remains evidence of refusal.
+
+## Final resolution and independent re-review — 2026-08-04
+
+This section supersedes the provisional verdict and open-follow-up language
+above. The original review remains intact as the historical record of what was
+found on 2026-08-02; it is not the current disposition. Phase 4 was repaired in
+small, separately reviewed changes and then re-reviewed as one contract before
+this closeout.
+
+### Original finding dispositions
+
+| Finding | Final disposition | Change and verification |
+| --- | --- | --- |
+| A1 | Resolved | PR #25 (`65200be`) applies non-empty `fact_errors` before policy matching, with host-equivalent precedence. Full-decision parity tests cover claiming, near-match, dense, sparse, unknown, and invalid subjects. |
+| A2 | Resolved | PR #25 normalizes the fixed compatibility-subject fields and sorts `fact_errors` before hashing. Unsorted multi-error parity is pinned. |
+| A3 | Resolved | PR #25 made the intended semantic decision explicit: package-free bundle programs validate their frozen snapshot, while installed-host admission, pilot authorization, worker launch, artifact verification, and completion promotion enforce the current host policy. API submission maps stale policy to HTTP 409 `replan_required`. |
+| B1 | Resolved | PR #26 (`7c2e22a`) validates all four digest bindings as lowercase 64-character hexadecimal strings before comparison and names invalid and differing bindings in a typed `POLICY_SNAPSHOT_DIGEST` finding. |
+| B2 | Resolved | PR #26 validates exact constraint operands, templates, claims, paths, runtime contracts, reasons, evidence, provenance, and exactly one `exact_identity`. JSON `null`, excessive nesting, oversized integers, and hostile primitive shapes produce typed INVALID reports. |
+| C1 | Resolved | PR #28 (`13afb49`) pins a well-formed v5 plan whose stale snapshot digest has a semantically unchanged decision and requires replanning. |
+| C2 | Resolved | PR #28 exercises generated package-free manifest validation against missing, malformed, noncanonical, and digest-tampered snapshot inputs. Direct host and contract tests cover the remaining typed path and contract findings. |
+| C3 | Resolved | PR #25 adds full host/portable decision-dictionary equality for all reviewed subject classes, including unsorted non-empty `fact_errors`. |
+| C4 | Resolved | PR #26 covers `POLICY_SNAPSHOT_CONTRACT`; PR #28 covers `POLICY_SNAPSHOT_PATH`, stale-host `POLICY_SNAPSHOT_DIGEST`, the v4 API legacy case, malformed or missing web digests, and corrected stale test names. |
+| D1 | Resolved | PR #29 (`9e8433f`) documents all six snapshot finding codes and their operator responses. |
+| D2 | Resolved | PR #29 updates current-contract guidance to v5 while preserving genuinely historical Phase 3/v4 references, adds the snapshot digest to every plan-identity enumeration, and distinguishes portable integrity from host-only currency. Focused documentation guards pin those statements. |
+
+The additional scalar-manifest defect identified after the original review was
+resolved in PR #27 (`73f0910`): `validate_bundle_manifest()` now rejects every
+non-object manifest root with a controlled error, including generated
+package-free execution.
+
+The final re-review then found a related malformed-input cluster that the broad
+pre-closeout mutation sweeps had not reached. Host validation could call
+mapping methods on scalar or nested scalar plan fields; semantic traversal and
+current-policy identity checks could leak `RecursionError`; CUDA entrypoints
+could bind devices before rejecting the plan; and raw JSON reads in generated
+programs, saved-plan API/CLI paths, execution admission, and project recovery
+did not uniformly normalize parser resource errors.
+
+The closeout change resolves that cluster at shared boundaries:
+
+- host plans, manifests, and trainer configurations must be JSON objects before
+  semantic consumers run, and only a contract-valid plan supplies bindings or
+  runtime evidence;
+- semantic plan validation and current-policy recomputation normalize malformed
+  shapes and recursive values to controlled contract errors;
+- every direct CUDA and MLX entrypoint plan load uses the portable object
+  parser, while CUDA validation and execution validate the plan before device
+  binding;
+- execution admission, local-state/project recovery, saved-plan loading and
+  restoration, and CLI compilation normalize oversized integers and excessive
+  nesting instead of leaking parser exceptions.
+
+Direct regressions cover all five non-object JSON roots, four nested top-level
+plan fields across five primitive shapes, 500-level semantic nesting,
+10,000-level decision and JSON nesting, 5,000-digit integers, both execution
+object loaders, API and CLI surfaces, package-free CUDA and MLX entrypoints, and
+CUDA validation/run ordering across five malformed recommendation shapes.
+
+### Minor findings and historical staging hazards
+
+- The live `require_current_model_policy` v4 wording was corrected in PR #25.
+  PR #28 removed the retired handwritten evaluator and corrected the CLI wording
+  and stale test names.
+- Digest diagnostics now identify invalid and differing bindings. The original
+  diagnostic-conflation note is resolved.
+- Case-sensitive raw snapshot claims and lowercase collection enforcement remain
+  bounded inputs: the host registry emits normalized values, the plan/domain
+  contract enforces the subject shape, and current-host currency rejects an
+  altered embedded policy. They are not reachable fail-open paths in the
+  admitted contract.
+- The ten snapshot reasons are the evaluator's intentional portable subset; the
+  two omitted host strings belong to inspection/path handling outside that
+  evaluator.
+- CUDA's explicit static parse of `policy_snapshot.py` remains harmless
+  defense-in-depth even though import validation normally fails first.
+- The legacy-project empty-bundle assertion is the deliberate v2-to-v3
+  fail-closed migration behavior. The leftover unused local identified by the
+  review was removed in this closeout.
+- The former new-file staging warning was valid for the original uncommitted
+  packet. The snapshot module, its tests, the hashed web asset, and this review
+  document have all been tracked since PR #25. The closeout packet deliberately
+  comprises 23 tracked files: this review and the error-code reference, 14 host
+  and generated-program source files, and seven regression modules. Protected
+  local files, ignored state, and build artifacts remain excluded.
+
+No Critical or Important finding remains open, and every actionable minor has a
+recorded resolution or bounded disposition above. Independent architecture,
+adversarial, and documentation passes reviewed the merged result and successive
+closeout diffs; final raw-boundary and evidence passes reviewed the frozen
+23-file tree. The earlier 9,420 nested-plan and 636 snapshot mutations applied
+to the pre-closeout tree and did not cover the parser-depth and nested-consumer
+seams found later; the targeted matrices above were added specifically for those
+seams. Focused development runs included 275 affected-module tests and 19
+project/state tests; the authoritative final-tree run below subsumed that
+coverage.
+
+### Final source and packaging gates
+
+| Gate | Final result |
+| --- | --- |
+| Python unit suite | 505/505 passed |
+| Web/Vitest suite | 91/91 passed across 19 files |
+| Native XCTest suite | 81/81 passed; zero failures or skips |
+| Python style and syntax | Ruff format, Ruff lint, and `compileall` passed |
+| Maintained contracts | OpenAPI regeneration check, maintained client-contract check, and version parity (`0.2.0`) passed |
+| Web build | OpenAPI client check, TypeScript, and production build passed; tracked `index-B9Q0Q2zI.js` reproduced without drift |
+| Repository hygiene | `git diff --check` passed; no generated tracked drift |
+| Installed wheel | A fresh wheel built from the final closeout tree; Aptus imported from the isolated wheel target; snapshot validation and digest generation passed; all changed CUDA/MLX program resources were present; packaged CUDA validation/run source placed plan validation before device binding; packaged API health, workbench index, and hashed asset each returned HTTP 200 |
+| macOS package | `desktop/macos/build.sh` passed its integrated 505-Python/91-web/81-native gates, Release build, deep strict ad-hoc signature verification, packaged backend/window/workbench/React launch probe, ZIP creation, DMG creation, mounted-DMG layout verification, and checksums |
+
+The clean web dependency install reported four advisory findings (one moderate
+and three high) in the existing dependency tree. This closeout does not change
+the dependency graph or claim to resolve that separate maintenance work. The
+macOS artifacts are ad-hoc signed development evidence; notarization and
+clean-machine distribution acceptance were not run or claimed.
+
+### Target-runtime evidence and phase boundary
+
+No current-head CUDA or MLX target-runtime pilot was collected. This Apple
+Silicon host cannot supply CUDA evidence, and no external CUDA target host was
+available for the required two-phase checkpoint-continuation pilot. The host can
+support MLX hardware, but no compatible MLX interpreter is currently
+configured, and the active pilot record does not authorize another download or
+training run without explicit selection of the immutable model revision, corpus
+revision, method, interpreter, disk budget, and output directory. The historical
+July 27 MLX acceptance predates Phase 4 and does not bind this source head.
+
+Repository, wheel, and desktop gates therefore close the Phase 4 source and
+contract review only. The absence of current-head target pilots remains a release
+evidence limitation for this Phase 4 result; these gates do not renew target
+acceptance, establish v0.2 release readiness, or substitute for the required
+pilots. Notarization and clean-machine distribution acceptance were also not
+run. Phase 5 and Phase 6 remain absent and out of scope.
+
+**Final verdict: Phase 4's portable policy-snapshot source and contract are
+commit-ready and ready for normal pull-request review, with all Critical and
+Important review findings resolved.**

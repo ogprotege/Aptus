@@ -17,7 +17,7 @@ if (ROOT / "__pycache__").exists():
         "Bundle contains an unmanifested __pycache__; remove it before execution."
     )
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest
+from plan_contract import load_json_object, validate_bundle_manifest, validate_plan_payload
 from runtime_lease import portable_execution_lease, run_with_lease
 
 
@@ -136,7 +136,10 @@ def recover_pending_run() -> int | None:
 
 
 def launch_full_training(arguments: argparse.Namespace) -> int:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
+    plan_errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
+    if plan_errors:
+        raise RuntimeError("Invalid Aptus plan: " + " | ".join(plan_errors))
     bind_visible_cuda_devices(plan)
     recovered = recover_pending_run()
     if recovered is not None:

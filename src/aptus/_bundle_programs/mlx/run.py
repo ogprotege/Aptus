@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 from plan_contract import (
     bundle_fingerprint,
+    load_json_object,
     validate_bundle_manifest,
     validate_plan_payload,
 )
@@ -42,7 +43,7 @@ def write_json(path: Path, value: dict) -> None:
 
 
 def load_plan() -> dict:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     errors += validate_bundle_manifest(ROOT)
     if errors:

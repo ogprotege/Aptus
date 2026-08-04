@@ -19,6 +19,8 @@ from aptus.execution import (
     _json_hash,
     _promote_mlx_train_attestation,
     _promote_train_attestation,
+    _read_json_object,
+    _read_json_object_bytes,
     _require_current_bundle_model_policy,
     _verify_mlx_completed_run,
     _verify_mlx_pilot_attestation,
@@ -509,6 +511,27 @@ def create_mlx_completed_run(
 
 
 class ExecutionJobTests(unittest.TestCase):
+    def test_json_object_loaders_reject_resource_hostile_inputs_cleanly(self) -> None:
+        documents = (
+            ("oversized-integer", '{"value":' + "9" * 5_000 + "}"),
+            (
+                "excessive-nesting",
+                '{"value":' + "[" * 10_000 + "0" + "]" * 10_000 + "}",
+            ),
+        )
+        loaders = (_read_json_object, _read_json_object_bytes)
+        for name, contents in documents:
+            for loader in loaders:
+                with (
+                    self.subTest(name=name, loader=loader.__name__),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    path = Path(temporary) / "document.json"
+                    path.write_text(contents, encoding="utf-8")
+
+                    with self.assertRaisesRegex(ValueError, "is unreadable"):
+                        loader(path, "Test document")
+
     def test_cuda_jobs_use_the_configured_external_interpreter(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

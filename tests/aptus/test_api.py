@@ -870,6 +870,33 @@ class ApiEndpointTests(unittest.TestCase):
                 self.assertEqual(response.json()["found_schema"], found_schema)
                 self.assertEqual(path.read_bytes(), before)
 
+    def test_saved_plan_json_parser_resource_errors_map_to_invalid_request(
+        self,
+    ) -> None:
+        invalid_documents = (
+            ("oversized-integer", '{"value":' + "9" * 5000 + "}\n"),
+            (
+                "excessive-nesting",
+                '{"value":' + "[" * 10000 + "0" + "]" * 10000 + "}\n",
+            ),
+        )
+        context = self.client.app.state.aptus
+        for index, (name, contents) in enumerate(invalid_documents):
+            with self.subTest(name=name):
+                plan_id = "plan_" + format(index + 1, "020x")
+                (context.plans_dir / f"{plan_id}.json").write_text(
+                    contents, encoding="utf-8"
+                )
+
+                response = self.client.get(f"/api/v1/plans/{plan_id}")
+
+                self.assertEqual(response.status_code, 400, response.text)
+                self.assertEqual(response.json()["error"], "invalid_request")
+                self.assertEqual(
+                    response.json()["details"],
+                    "Saved plan is unreadable or invalid JSON.",
+                )
+
     def test_stale_same_schema_policy_maps_to_replan_required(self) -> None:
         plan_id = "plan_" + "e" * 20
         context = self.client.app.state.aptus

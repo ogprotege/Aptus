@@ -24,7 +24,7 @@ if (_BOOTSTRAP_ROOT / "__pycache__").exists():
     )
 
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest, validate_plan_payload
+from plan_contract import load_json_object, validate_bundle_manifest, validate_plan_payload
 from runtime_lease import portable_execution_lease, run_with_lease
 
 
@@ -33,7 +33,7 @@ LEVELS = ("contract", "static", "dependency", "model-data", "measured-preflight"
 
 
 def require_contract() -> dict:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     if errors:
         raise ValueError(" | ".join(errors))

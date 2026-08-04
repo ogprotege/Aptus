@@ -278,16 +278,38 @@ class BundleGenerationTests(unittest.TestCase):
     def _run_package_free_static_validation(
         self, output: Path
     ) -> subprocess.CompletedProcess[str]:
+        return self._run_package_free_entrypoint(
+            output, "validate.py", "--level", "static"
+        )
+
+    def _run_package_free_entrypoint(
+        self, output: Path, relative: str, *arguments: str
+    ) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment.pop("PYTHONPATH", None)
         environment.pop("PYTHONHOME", None)
         return subprocess.run(
-            [sys.executable, "-S", str(output / "validate.py"), "--level", "static"],
+            [sys.executable, "-S", str(output / relative), *arguments],
             cwd=output,
             env=environment,
             text=True,
             capture_output=True,
             check=False,
+        )
+
+    def _refresh_manifested_file(self, output: Path, relative: str) -> None:
+        path = output / relative
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        manifest_path = output / "bundle-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        entry = next(item for item in manifest["files"] if item["path"] == relative)
+        entry["sha256"] = digest
+        entry["size_bytes"] = path.stat().st_size
+        if relative == "plan.json":
+            manifest["plan_sha256"] = digest
+        manifest_path.write_text(
+            json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+            encoding="utf-8",
         )
 
     def _load_generated(self, output: Path, name: str):
@@ -2607,6 +2629,123 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("Bundle manifest must be a JSON object.", completed.stderr)
         self.assertNotIn("AttributeError", completed.stderr)
+
+    def test_package_free_entrypoint_rejects_non_object_plans(self) -> None:
+        invalid_roots = (
+            ("null", "null\n"),
+            ("array", "[]\n"),
+            ("number", "7\n"),
+            ("string", '"plan"\n'),
+            ("boolean", "true\n"),
+        )
+        for name, contents in invalid_roots:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                output = self._bundle(Path(temporary))
+                (output / "plan.json").write_text(contents, encoding="utf-8")
+
+                completed = self._run_package_free_static_validation(output)
+
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIn(
+                    "Bundle plan does not bind the emitted model policy snapshot.",
+                    completed.stderr,
+                )
+                self.assertNotIn("AttributeError", completed.stderr)
+
+    def test_package_free_entrypoint_rejects_resource_hostile_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            plan_path = output / "plan.json"
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            nested: object = "leaf"
+            for _ in range(500):
+                nested = [nested]
+            plan["unexpected_nested_value"] = nested
+            plan_path.write_text(
+                json.dumps(plan, sort_keys=True, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            self._refresh_manifested_file(output, "plan.json")
+
+            completed = self._run_package_free_static_validation(output)
+
+            self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("Plan structure is malformed:", completed.stderr)
+        self.assertNotIn("RecursionError", completed.stderr)
+
+    def test_package_free_entrypoints_normalize_json_parser_resource_errors(
+        self,
+    ) -> None:
+        invalid_documents = (
+            ("oversized-integer", '{"value":' + "9" * 5000 + "}\n"),
+            (
+                "excessive-nesting",
+                '{"value":' + "[" * 10000 + "0" + "]" * 10000 + "}\n",
+            ),
+        )
+        entrypoints = (
+            ("cuda-preflight", self._bundle, "preflight.py", ("--level", "static")),
+            ("mlx-validate", self._mlx_bundle, "validate.py", ("--level", "static")),
+        )
+        for entrypoint, make_bundle, relative, arguments in entrypoints:
+            for document, contents in invalid_documents:
+                with (
+                    self.subTest(entrypoint=entrypoint, document=document),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    output = make_bundle(Path(temporary))
+                    (output / "plan.json").write_text(contents, encoding="utf-8")
+
+                    completed = self._run_package_free_entrypoint(
+                        output, relative, *arguments
+                    )
+
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn(
+                        "Bundle plan is unreadable or invalid JSON.",
+                        completed.stderr,
+                    )
+                    self.assertNotIn("RecursionError", completed.stderr)
+                    self.assertNotIn("integer string conversion", completed.stderr)
+
+    def test_package_free_cuda_entrypoints_validate_plan_before_device_binding(
+        self,
+    ) -> None:
+        entrypoints = (
+            ("validate.py", ("--level", "static")),
+            ("run.py", ("--confirm-full-train",)),
+        )
+        invalid_roots = (
+            ("null", None),
+            ("array", []),
+            ("number", 7),
+            ("string", "invalid"),
+            ("boolean", True),
+        )
+        for relative, arguments in entrypoints:
+            for name, invalid_value in invalid_roots:
+                with (
+                    self.subTest(relative=relative, name=name),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    output = self._bundle(Path(temporary))
+                    plan_path = output / "plan.json"
+                    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                    plan["recommended"] = invalid_value
+                    plan_path.write_text(
+                        json.dumps(plan, sort_keys=True, separators=(",", ":")) + "\n",
+                        encoding="utf-8",
+                    )
+                    self._refresh_manifested_file(output, "plan.json")
+
+                    completed = self._run_package_free_entrypoint(
+                        output, relative, *arguments
+                    )
+
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("Invalid Aptus plan:", completed.stderr)
+                    self.assertNotIn("TypeError", completed.stderr)
+                    self.assertNotIn("AttributeError", completed.stderr)
 
     def test_package_free_entrypoint_rejects_corrupted_policy_snapshot_data(
         self,

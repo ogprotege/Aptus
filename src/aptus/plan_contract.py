@@ -224,6 +224,28 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def parse_json_object(value: str | bytes, label: str) -> dict[str, Any]:
+    """Parse one portable JSON object without leaking parser resource errors."""
+
+    try:
+        parsed = json.loads(value)
+    except (RecursionError, ValueError):
+        raise ValueError(f"{label} is unreadable or invalid JSON.") from None
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{label} must be a JSON object.")
+    return parsed
+
+
+def load_json_object(path: Path, label: str) -> dict[str, Any]:
+    """Load one portable JSON object without leaking parser resource errors."""
+
+    try:
+        value = path.read_bytes()
+    except OSError:
+        raise ValueError(f"{label} is unreadable or invalid JSON.") from None
+    return parse_json_object(value, label)
+
+
 def bundle_fingerprint(root: Path) -> str:
     manifest = root / "bundle-manifest.json"
     if manifest.is_file():
@@ -623,7 +645,13 @@ def require_current_model_policy(
     try:
         snapshot = _policy_snapshot_for_validation(policy_snapshot=policy_snapshot)
         expected = _current_model_policy_decision(model, snapshot)
-    except (OverflowError, TypeError, ValueError) as error:
+    except (
+        AttributeError,
+        OverflowError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
         raise ValueError(
             "Saved model policy could not be recomputed from malformed model facts."
         ) from error
@@ -643,24 +671,46 @@ def require_current_model_policy(
         "evidence_ids",
         "reason",
     }
+    try:
+        recorded_decision_id = (
+            "compat_" + _sha256_json(_policy_decision_identity_payload(decision))[:20]
+        )
+    except (
+        AttributeError,
+        OverflowError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
+        raise ValueError("Saved model policy state is malformed.") from error
     if (
         set(decision) != required_decision_fields
         or decision.get("schema_version") != MODEL_COMPATIBILITY_SCHEMA_VERSION
         or not _valid_content_id(decision.get("decision_id"), prefix="compat_")
-        or decision.get("decision_id")
-        != "compat_" + _sha256_json(_policy_decision_identity_payload(decision))[:20]
+        or decision.get("decision_id") != recorded_decision_id
         or decision.get("subject_facts_sha256") != expected.get("subject_facts_sha256")
     ):
         raise ValueError(
             "Saved model policy state is malformed, tampered, or inconsistent "
             "with the current model facts."
         )
-    snapshot_digest = _policy_snapshot_sha256(snapshot)
-    if plan_value.get(
-        "model_policy_snapshot_sha256"
-    ) == snapshot_digest and _semantic_policy_decision(
-        decision
-    ) == _semantic_policy_decision(expected):
+    try:
+        snapshot_digest = _policy_snapshot_sha256(snapshot)
+        decision_is_current = _semantic_policy_decision(
+            decision
+        ) == _semantic_policy_decision(expected)
+    except (
+        AttributeError,
+        OverflowError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
+        raise ValueError("Saved model policy state is malformed.") from error
+    if (
+        plan_value.get("model_policy_snapshot_sha256") == snapshot_digest
+        and decision_is_current
+    ):
         return
     try:
         historical_errors = _validate_plan_payload_impl(
@@ -669,7 +719,15 @@ def require_current_model_policy(
             expected_policy_decision_override=decision,
             enforce_current_policy=False,
         )
-    except (IndexError, KeyError, OverflowError, TypeError, ValueError) as error:
+    except (
+        AttributeError,
+        IndexError,
+        KeyError,
+        OverflowError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
         raise ValueError(
             "Saved model policy dependencies are malformed or tampered."
         ) from error
@@ -3039,5 +3097,13 @@ def validate_plan_payload(
             verify_dataset=verify_dataset,
             policy_snapshot=policy_snapshot,
         )
-    except (IndexError, KeyError, OverflowError, TypeError, ValueError) as error:
+    except (
+        AttributeError,
+        IndexError,
+        KeyError,
+        OverflowError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
         return (f"Plan structure is malformed: {error}",)

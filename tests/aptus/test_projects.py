@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from aptus.local_store import atomic_write_json, quarantine_file
+from aptus.local_store import atomic_write_json, quarantine_file, read_json_object
 from aptus.model_compatibility import (
     current_model_policy_snapshot_bytes,
     current_model_policy_snapshot_sha256,
@@ -52,6 +52,25 @@ def _revision_worker(
 
 
 class ProjectRepositoryTests(unittest.TestCase):
+    def test_shared_state_loader_rejects_resource_hostile_json_cleanly(self) -> None:
+        documents = (
+            ("oversized-integer", '{"value":' + "9" * 5000 + "}"),
+            (
+                "excessive-nesting",
+                '{"value":' + "[" * 10000 + "0" + "]" * 10000 + "}",
+            ),
+        )
+        for name, contents in documents:
+            with (
+                self.subTest(name=name),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                path = Path(temporary) / "state.json"
+                path.write_text(contents, encoding="utf-8")
+
+                with self.assertRaisesRegex(ValueError, "state is unreadable"):
+                    read_json_object(path, "Aptus state")
+
     def _saved_plan(self, state: Path, plan_id: str) -> dict[str, Any]:
         plan = {
             "schema_version": "aptus.training-plan.v5",
@@ -777,9 +796,7 @@ class ProjectRepositoryTests(unittest.TestCase):
             }
             plan_path = plans / f"{plan_id}.json"
             atomic_write_json(plan_path, plan)
-            bundle, bundle_fingerprint = self._bundle(
-                Path(temporary) / "legacy-bundle", plan
-            )
+            bundle, _ = self._bundle(Path(temporary) / "legacy-bundle", plan)
             current_bundle_path = state / "current-bundle.json"
             atomic_write_json(
                 current_bundle_path,

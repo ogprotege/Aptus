@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
 from plan_contract import (
     expected_model_architecture_contract,
+    load_json_object,
     mlx_quantized_storage_bytes_for_contract,
     validate_bundle_manifest,
     validate_model_config_against_plan,
@@ -27,7 +28,7 @@ from plan_contract import (
 
 
 def load_contract() -> tuple[dict[str, Any], dict[str, Any]]:
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     errors += validate_bundle_manifest(ROOT)
     if errors:

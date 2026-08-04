@@ -42,7 +42,7 @@ if (_BOOTSTRAP_ROOT / "__pycache__").exists():
     )
 
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest, validate_plan_payload
+from plan_contract import parse_json_object, validate_bundle_manifest, validate_plan_payload
 from runtime_lease import require_execution_lease
 
 
@@ -74,8 +74,11 @@ def report_lock():
 
 def load_plan() -> dict[str, Any]:
     plan_path = ROOT / "plan.json"
-    plan_bytes = plan_path.read_bytes()
-    plan = json.loads(plan_bytes)
+    try:
+        plan_bytes = plan_path.read_bytes()
+    except OSError:
+        raise ValueError("Bundle plan is unreadable or invalid JSON.") from None
+    plan = parse_json_object(plan_bytes, "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     if errors:
         raise ValueError("Invalid Aptus plan: " + " | ".join(errors))

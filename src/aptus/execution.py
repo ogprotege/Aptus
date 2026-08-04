@@ -289,7 +289,7 @@ def _atomic_write_json(path: Path, value: Mapping[str, Any] | dict[str, Any]) ->
 def _read_json_object(path: Path, label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, RecursionError, ValueError) as error:
         raise ValueError(f"{label} is unreadable: {error}") from error
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object.")
@@ -300,7 +300,7 @@ def _read_json_object_bytes(path: Path, label: str) -> tuple[dict[str, Any], byt
     try:
         payload = path.read_bytes()
         value = json.loads(payload)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+    except (OSError, RecursionError, ValueError) as error:
         raise ValueError(f"{label} is unreadable: {error}") from error
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object.")

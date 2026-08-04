@@ -63,6 +63,32 @@ class PlanContractTests(unittest.TestCase):
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
         self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v5")
 
+    def test_semantically_resource_hostile_plan_returns_a_controlled_error(
+        self,
+    ) -> None:
+        value = copy.deepcopy(self.payload)
+        nested: object = "leaf"
+        for _ in range(500):
+            nested = [nested]
+        value["unexpected_nested_value"] = nested
+
+        errors = validate_plan_payload(value, verify_dataset=False)
+
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(errors[0].startswith("Plan structure is malformed:"), errors)
+
+    def test_current_policy_check_rejects_resource_hostile_decision_cleanly(
+        self,
+    ) -> None:
+        value = copy.deepcopy(self.payload)
+        nested: object = "path"
+        for _ in range(10_000):
+            nested = [nested]
+        value["model_policy_decision"]["paths"] = nested
+
+        with self.assertRaisesRegex(ValueError, "malformed"):
+            require_current_model_policy(value)
+
     def test_bundle_manifest_must_be_a_json_object(self) -> None:
         (self.root / "bundle-manifest.json").write_text("null\n", encoding="utf-8")
 

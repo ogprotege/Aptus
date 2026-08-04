@@ -38,6 +38,22 @@ def _json_digest(value: object) -> str:
     ).hexdigest()
 
 
+def _refresh_manifested_file(bundle: Path, relative: str) -> None:
+    path = bundle / relative
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest_path = bundle / "bundle-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    entry = next(item for item in manifest["files"] if item["path"] == relative)
+    entry["sha256"] = digest
+    entry["size_bytes"] = path.stat().st_size
+    if relative == "plan.json":
+        manifest["plan_sha256"] = digest
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _mlx_model_load_binding(plan: dict) -> dict:
     model = plan["model"]
     total = model["parameters"]
@@ -611,6 +627,99 @@ class ValidationAttestationTests(unittest.TestCase):
                 report = validate_bundle(bundle, level="contract", run=False)
 
                 self.assertIn(code, {item.code for item in report.findings})
+                self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_non_object_plan_documents_without_escaping(self) -> None:
+        invalid_roots = (
+            ("null", "null\n"),
+            ("array", "[]\n"),
+            ("number", "7\n"),
+            ("string", '"plan"\n'),
+            ("boolean", "true\n"),
+        )
+        for name, contents in invalid_roots:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                (bundle / "plan.json").write_text(contents, encoding="utf-8")
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(
+                    "PLAN_JSON_ERROR",
+                    {item.code for item in report.findings},
+                )
+                self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_non_object_manifest_and_trainer_documents(self) -> None:
+        invalid_roots = (
+            ("null", "null\n"),
+            ("array", "[]\n"),
+            ("number", "7\n"),
+            ("string", '"config"\n'),
+            ("boolean", "true\n"),
+        )
+        documents = (
+            ("bundle-manifest.json", "MANIFEST_JSON_ERROR", False),
+            ("config/trainer.json", "TRAINER_CONFIG_JSON_ERROR", True),
+        )
+        for relative, code, refresh_manifest in documents:
+            for name, contents in invalid_roots:
+                with (
+                    self.subTest(relative=relative, name=name),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    root = Path(temporary)
+                    bundle = root / "bundle"
+                    generate_bundle(make_plan(root), bundle)
+                    path = bundle / relative
+                    path.write_text(contents, encoding="utf-8")
+                    if refresh_manifest:
+                        _refresh_manifested_file(bundle, relative)
+
+                    report = validate_bundle(bundle, level="contract", run=False)
+
+                    self.assertIn(code, {item.code for item in report.findings})
+                    self.assertEqual(report.state, ValidationState.INVALID)
+
+    def test_host_rejects_malformed_nested_plan_values_without_escaping(self) -> None:
+        nested: object = "leaf"
+        for _ in range(500):
+            nested = [nested]
+        invalid_roots = (
+            ("null", None),
+            ("array", []),
+            ("number", 7),
+            ("string", "invalid"),
+            ("boolean", True),
+        )
+        mutations = [
+            (f"{field}-{name}", field, invalid_value)
+            for field in ("recommended", "model", "dataset", "target")
+            for name, invalid_value in invalid_roots
+        ]
+        mutations.append(("resource-hostile", "unexpected_nested_value", nested))
+        for name, field, invalid_value in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                bundle = root / "bundle"
+                generate_bundle(make_plan(root), bundle)
+                plan_path = bundle / "plan.json"
+                plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                plan[field] = invalid_value
+                plan_path.write_text(
+                    json.dumps(plan, sort_keys=True, separators=(",", ":")) + "\n",
+                    encoding="utf-8",
+                )
+                _refresh_manifested_file(bundle, "plan.json")
+
+                report = validate_bundle(bundle, level="contract", run=False)
+
+                self.assertIn(
+                    "PLAN_CONTRACT_ERROR",
+                    {item.code for item in report.findings},
+                )
                 self.assertEqual(report.state, ValidationState.INVALID)
 
     def test_host_rejects_json_null_policy_snapshot_as_contract_error(self) -> None:

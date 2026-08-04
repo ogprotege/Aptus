@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
-from plan_contract import validate_bundle_manifest, validate_plan_payload
+from plan_contract import load_json_object, validate_bundle_manifest, validate_plan_payload
 from train import (
     build_mlx_model_load_binding,
     download_pinned_model,
@@ -41,7 +41,7 @@ def main() -> int:
     arguments = parser.parse_args()
     if arguments.expected_parent_pid <= 0 or os.getppid() != arguments.expected_parent_pid:
         raise RuntimeError("Reload verifier is not the expected fresh child process.")
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     errors += validate_bundle_manifest(ROOT)
     if errors:

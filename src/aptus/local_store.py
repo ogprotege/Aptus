@@ -69,8 +69,8 @@ def read_json_object(path: Path, label: str) -> dict[str, Any]:
         raise ValueError(f"{label} must be a regular file: {path}")
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"{label} is unreadable: {error}") from error
+    except (OSError, RecursionError, ValueError):
+        raise ValueError(f"{label} is unreadable.") from None
     if not isinstance(value, dict):
         raise ValueError(f"{label} must be a JSON object.")
     return value

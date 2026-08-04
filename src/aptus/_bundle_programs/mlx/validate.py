@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
-from plan_contract import bundle_fingerprint, validate_bundle_manifest, validate_plan_payload
+from plan_contract import bundle_fingerprint, load_json_object, validate_bundle_manifest, validate_plan_payload
 from train import (
     build_mlx_model_load_binding,
     require_method_model,
@@ -790,7 +790,7 @@ def run_measured_preflight() -> dict:
         raise RuntimeError("The bounded MLX-LM smoke did not create one owned evidence root.")
     metrics_path = created[0] / "metrics.json"
     metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     require_completed_run(plan, created[0], action="bounded-smoke")
     destination = ROOT / "preflight-metrics.json"
     destination.write_text(json.dumps(metrics, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -828,7 +828,7 @@ def main() -> int:
         default="contract",
     )
     arguments = parser.parse_args()
-    plan = json.loads((ROOT / "plan.json").read_text(encoding="utf-8"))
+    plan = load_json_object(ROOT / "plan.json", "Bundle plan")
     errors = validate_plan_payload(plan, root=ROOT, verify_dataset=True)
     errors += validate_bundle_manifest(ROOT)
     if errors:

@@ -290,6 +290,42 @@ class CliIntegrationTests(unittest.TestCase):
             )
             self.assertTrue((bundle / "bundle-manifest.json").is_file())
 
+    def test_compile_normalizes_json_parser_resource_errors(self) -> None:
+        invalid_documents = (
+            ("oversized-integer", '{"value":' + "9" * 5000 + "}\n"),
+            (
+                "excessive-nesting",
+                '{"value":' + "[" * 10000 + "0" + "]" * 10000 + "}\n",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, contents in invalid_documents:
+                with self.subTest(name=name):
+                    plan_path = root / f"{name}.json"
+                    bundle = root / f"{name}-bundle"
+                    plan_path.write_text(contents, encoding="utf-8")
+                    stderr = io.StringIO()
+
+                    with contextlib.redirect_stderr(stderr):
+                        result = main(
+                            [
+                                "compile",
+                                "--plan",
+                                str(plan_path),
+                                "--output",
+                                str(bundle),
+                            ]
+                        )
+
+                    self.assertEqual(result, 2)
+                    self.assertIn(
+                        "Aptus error: Plan is unreadable or invalid JSON.",
+                        stderr.getvalue(),
+                    )
+                    self.assertNotIn("RecursionError", stderr.getvalue())
+                    self.assertFalse(bundle.exists())
+
     def test_compile_rejects_legacy_plan_without_rewriting_it(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

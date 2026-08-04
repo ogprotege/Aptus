@@ -188,12 +188,28 @@ def _actual_hardware_binding(device_indices: list[int]) -> str:
     return _job_hardware_binding(device_indices)
 
 
-def _load_json(path: Path, findings: list[ValidationFinding], code: str) -> Any:
+def _load_json(
+    path: Path,
+    findings: list[ValidationFinding],
+    code: str,
+    *,
+    require_object: bool = False,
+) -> Any:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, RecursionError) as error:
         findings.append(_finding(code, str(error), path=path.name))
         return None
+    if require_object and not isinstance(value, dict):
+        findings.append(
+            _finding(
+                code,
+                f"{path.name} must contain a JSON object.",
+                path=path.name,
+            )
+        )
+        return None
+    return value
 
 
 def _mlx_finite(value: Any, label: str, *, positive: bool = False) -> float:
@@ -1059,7 +1075,14 @@ def _read_report(path: Path) -> ValidationReport | None:
                 else None
             ),
         )
-    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+    except (
+        KeyError,
+        OSError,
+        RecursionError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+    ):
         return None
 
 
@@ -1096,7 +1119,7 @@ def _preserves_stronger_attestation(
                 loaded_plan = json.loads(
                     (bundle_dir / "plan.json").read_text(encoding="utf-8")
                 )
-            except (OSError, json.JSONDecodeError):
+            except (OSError, RecursionError, ValueError):
                 return False
             if not isinstance(loaded_plan, dict):
                 return False
@@ -1136,7 +1159,7 @@ def _preserves_stronger_attestation(
                 return False
             plan = loaded_plan
             metrics = _read_preflight_metrics(metrics_path, plan)
-        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        except (OSError, RecursionError, TypeError, ValueError):
             return False
         if (
             previous.bindings.get("preflight_metrics") != sha256_file(metrics_path)
@@ -1154,7 +1177,7 @@ def _preserves_stronger_attestation(
                 loaded_plan = json.loads(
                     (bundle_dir / "plan.json").read_text(encoding="utf-8")
                 )
-            except (OSError, json.JSONDecodeError):
+            except (OSError, RecursionError, ValueError):
                 return False
             if not isinstance(loaded_plan, dict):
                 return False
@@ -1178,7 +1201,7 @@ def _preserves_stronger_attestation(
                 loaded_plan = json.loads(
                     (bundle_dir / "plan.json").read_text(encoding="utf-8")
                 )
-            except (OSError, json.JSONDecodeError):
+            except (OSError, RecursionError, ValueError):
                 return False
             if not isinstance(loaded_plan, dict):
                 return False
@@ -1223,12 +1246,22 @@ def validate_bundle(
             )
 
     plan = (
-        _load_json(bundle_dir / "plan.json", findings, "PLAN_JSON_ERROR")
+        _load_json(
+            bundle_dir / "plan.json",
+            findings,
+            "PLAN_JSON_ERROR",
+            require_object=True,
+        )
         if (bundle_dir / "plan.json").is_file()
         else None
     )
     manifest = (
-        _load_json(bundle_dir / "bundle-manifest.json", findings, "MANIFEST_JSON_ERROR")
+        _load_json(
+            bundle_dir / "bundle-manifest.json",
+            findings,
+            "MANIFEST_JSON_ERROR",
+            require_object=True,
+        )
         if (bundle_dir / "bundle-manifest.json").is_file()
         else None
     )
@@ -1264,7 +1297,7 @@ def validate_bundle(
                 validate_model_policy_snapshot(snapshot)
                 canonical_bytes = model_policy_snapshot_bytes(snapshot)
                 snapshot_digest = model_policy_snapshot_sha256(snapshot)
-            except (TypeError, ValueError) as error:
+            except (RecursionError, TypeError, ValueError) as error:
                 findings.append(
                     _finding(
                         "POLICY_SNAPSHOT_CONTRACT",
@@ -1327,30 +1360,29 @@ def validate_bundle(
                         )
                     )
     is_mlx_bundle = False
+    validated_plan: dict[str, Any] | None = None
     if plan is not None:
-        runtime_contract = plan.get("recommended", {}).get("runtime_contract")
-        is_mlx_bundle = bool(
-            isinstance(runtime_contract, dict)
-            and runtime_contract.get("training_runtime") == "mlx-lm"
-        )
-        if is_mlx_bundle:
-            reload_path = bundle_dir / "reload.py"
-            if reload_path.is_file():
-                checked.add("reload.py")
-            else:
-                findings.append(
-                    _finding(
-                        "MISSING_FILE",
-                        "Required MLX bundle file is missing: reload.py",
-                        path="reload.py",
-                    )
-                )
         plan_contract_errors = validate_plan_payload(
             plan, root=bundle_dir, verify_dataset=True
         )
         for error in plan_contract_errors:
             findings.append(_finding("PLAN_CONTRACT_ERROR", error, path="plan.json"))
         if not plan_contract_errors:
+            validated_plan = plan
+            runtime_contract = validated_plan["recommended"]["runtime_contract"]
+            is_mlx_bundle = runtime_contract.get("training_runtime") == "mlx-lm"
+            if is_mlx_bundle:
+                reload_path = bundle_dir / "reload.py"
+                if reload_path.is_file():
+                    checked.add("reload.py")
+                else:
+                    findings.append(
+                        _finding(
+                            "MISSING_FILE",
+                            "Required MLX bundle file is missing: reload.py",
+                            path="reload.py",
+                        )
+                    )
             try:
                 restored = training_plan_from_primitive(plan)
                 replanned = plan_training(
@@ -1360,7 +1392,13 @@ def validate_bundle(
                     target=restored.target,
                     inspection_receipt=restored.inspection_receipt,
                 )
-            except (KeyError, TypeError, ValueError) as error:
+            except (
+                AttributeError,
+                KeyError,
+                RecursionError,
+                TypeError,
+                ValueError,
+            ) as error:
                 findings.append(
                     _finding(
                         "PLANNER_PARITY_ERROR",
@@ -1529,10 +1567,10 @@ def validate_bundle(
                 )
 
     expected_requirements: tuple[str, ...] = ()
-    if isinstance(plan, dict) and isinstance(plan.get("recommended"), dict):
-        method = plan["recommended"].get("method")
+    if validated_plan is not None:
+        method = validated_plan["recommended"].get("method")
         try:
-            runtime_contract = plan["recommended"].get("runtime_contract")
+            runtime_contract = validated_plan["recommended"].get("runtime_contract")
             runtime_id = (
                 runtime_contract.get("training_runtime")
                 if isinstance(runtime_contract, dict)
@@ -1562,8 +1600,8 @@ def validate_bundle(
         if train_path.is_file():
             source = train_path.read_text(encoding="utf-8")
             values = (
-                plan.get("model", {}).get("model_id"),
-                plan.get("dataset", {}).get("source_path"),
+                validated_plan["model"].get("model_id"),
+                validated_plan["dataset"].get("source_path"),
             )
             if any(
                 isinstance(value, str) and value and value in source for value in values
@@ -1577,9 +1615,14 @@ def validate_bundle(
                 )
         trainer_path = bundle_dir / "config" / "trainer.json"
         if trainer_path.is_file():
-            trainer = _load_json(trainer_path, findings, "TRAINER_CONFIG_JSON_ERROR")
-            candidate = plan["recommended"]
-            target = plan.get("target", {})
+            trainer = _load_json(
+                trainer_path,
+                findings,
+                "TRAINER_CONFIG_JSON_ERROR",
+                require_object=True,
+            )
+            candidate = validated_plan["recommended"]
+            target = validated_plan["target"]
             expected = {
                 "task": target.get("task"),
                 "sequence_length": target.get("sequence_length"),
@@ -1618,8 +1661,8 @@ def validate_bundle(
         )
     elif runtime_level and not structural_errors:
         runtime_contract = (
-            plan.get("recommended", {}).get("runtime_contract")
-            if isinstance(plan, dict) and isinstance(plan.get("recommended"), dict)
+            validated_plan["recommended"]["runtime_contract"]
+            if validated_plan is not None
             else None
         )
         runtime_id = (
@@ -1683,11 +1726,13 @@ def validate_bundle(
                     for key, value in portable_report["bindings"].items()
                 }
             if LEVELS.index(level) >= LEVELS.index("measured-preflight") and isinstance(
-                plan, dict
+                validated_plan, dict
             ):
                 metrics_path = bundle_dir / "preflight-metrics.json"
                 try:
-                    measured_metrics = _read_preflight_metrics(metrics_path, plan)
+                    measured_metrics = _read_preflight_metrics(
+                        metrics_path, validated_plan
+                    )
                 except ValueError as error:
                     findings.append(
                         _finding(
@@ -1714,11 +1759,15 @@ def validate_bundle(
                         runtime_attestation_valid = False
                     else:
                         portable_preflight_metrics = measured_metrics
-            if level == "pilot" and runtime_id == "mlx-lm" and isinstance(plan, dict):
+            if (
+                level == "pilot"
+                and runtime_id == "mlx-lm"
+                and validated_plan is not None
+            ):
                 pilot_path = bundle_dir / "pilot-output" / "metrics.json"
                 try:
                     measured_pilot = _read_mlx_runtime_metrics(
-                        pilot_path, plan, action="pilot"
+                        pilot_path, validated_plan, action="pilot"
                     )
                 except ValueError as error:
                     findings.append(
@@ -1757,11 +1806,11 @@ def validate_bundle(
         fingerprint = ""
     validated_at = datetime.now(timezone.utc).isoformat()
     data_digest = (
-        plan.get("dataset", {}).get("source_sha256", "")
-        if isinstance(plan, dict)
+        validated_plan["dataset"].get("source_sha256", "")
+        if validated_plan is not None
         else ""
     )
-    hardware_value = plan.get("hardware", {}) if isinstance(plan, dict) else {}
+    hardware_value = validated_plan["hardware"] if validated_plan is not None else {}
     planned_hardware = _json_hash(hardware_value)
     bindings = {
         "bundle": fingerprint,
@@ -1774,12 +1823,12 @@ def validate_bundle(
         "validator": "aptus-validator-v2",
         "validated_at": validated_at,
     }
-    if isinstance(plan, dict):
-        bindings["plan_id"] = str(plan.get("plan_id", ""))
+    if validated_plan is not None:
+        bindings["plan_id"] = str(validated_plan.get("plan_id", ""))
         bindings["candidate_id"] = str(
-            plan.get("recommended", {}).get("candidate_id", "")
+            validated_plan["recommended"].get("candidate_id", "")
         )
-        bindings["model_revision"] = str(plan.get("model", {}).get("revision", ""))
+        bindings["model_revision"] = str(validated_plan["model"].get("revision", ""))
     preflight_metrics_path = bundle_dir / "preflight-metrics.json"
     if (
         LEVELS.index(achieved_level) >= LEVELS.index("measured-preflight")

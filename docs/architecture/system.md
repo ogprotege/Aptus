@@ -117,9 +117,10 @@ validation uses the frozen snapshot to verify integrity and decision parity and
 to reject missing, malformed, noncanonical, or tampered policy state. It has no
 installed host or current registry, so it cannot determine host policy
 currency. An installed host running Aptus separately compares the snapshot
-digest and decision with the current registry and rejects a non-current v5 plan
-with `replan_required` before host-managed admission, authorization, or
-completion promotion.
+digest and decision with the current registry. A submission-time mismatch
+returns `replan_required`, pilot authorization and worker launch reject
+non-current policy, and pending completion evidence is not promoted across a
+policy change.
 
 Phase 5 remains the browser-reconstruction removal. Phase 6 remains the second
 reviewed policy. Neither is part of the portable policy contract.

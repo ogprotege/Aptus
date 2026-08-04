@@ -1,6 +1,6 @@
 # Getting Started
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when onboarding changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when onboarding changes
 
 Choose the smallest path that proves what you need.
 
@@ -19,12 +19,15 @@ Choose the smallest path that proves what you need.
 | Checkpoint | Safe conclusion |
 | --- | --- |
 | Dataset profile | The local source was parsed and measured as recorded |
-| Plan | Aptus compared its bounded candidate set against entered facts |
-| Static pass | The exact compiled bundle passed structural checks |
+| Plan | Aptus compared its bounded candidate set against entered facts and wrote an `aptus.training-plan.v5` bound to one policy-snapshot digest |
+| Package-free static pass | The exact `aptus.bundle.v3` frozen snapshot, decision parity, identities, and structure passed; current host-policy currency was not established |
+| Installed-host static pass | The same bundle checks passed and the snapshot matched the installed host registry at validation time |
 | Pilot pass | The exact real-model path completed the bounded target-host pilot |
 | Measured run pass | The parent verified the bound full run and export structure |
 
-None of these checkpoints alone proves task quality.
+None of these checkpoints alone proves task quality. A v4-or-earlier plan, or a
+coherent v5 plan whose policy semantics or snapshot digest is no longer current,
+must be replanned from preserved facts rather than edited in place.
 
 ## Related documentation
 

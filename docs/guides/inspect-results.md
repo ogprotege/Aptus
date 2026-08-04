@@ -1,16 +1,17 @@
 # Inspect Results
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners and operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners and operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22
 
 An Aptus result is a chain of bound records, not a single success message.
 Inspect the plan, validation report, managed job, run metrics, and final export
 together before making any claim.
 
-## Four places to inspect
+## Five places to inspect
 
 | Record | Typical location | Question it answers |
 |---|---|---|
 | Decision report | `bundle/decision-report.md` | Why did the planner select this candidate? |
+| Policy snapshot | `bundle/policy/model-policy-snapshot.v1.json` | Which frozen model-policy contract produced the saved compatibility decision? |
 | Validation report | `bundle/validation-report.json` | Which evidence state has this exact bundle reached? |
 | Managed job and log | `.aptus-state/jobs/job_*.json` and `.log` by default | What action ran, where, and how did the process end? |
 | Run output | `bundle/runs/run_*/` | What did this unique full run measure and export? |
@@ -39,6 +40,12 @@ plan ID and candidate ID. Review the selected:
   estimates;
 - assumptions, warnings, evidence IDs, and conditional reasons.
 
+Also inspect the saved `model_policy_decision`, its source and decision ID, any
+exact policy/path binding, and `model_policy_snapshot_sha256`. The canonical
+snapshot bytes, the plan field, the manifest `policy_snapshot_sha256`, and the
+manifest file entry must agree. That proves the bundle's frozen policy integrity;
+only installed-host validation can compare it with the current registry.
+
 The recommendation is highest-ranked only within the enumerated viable catalog.
 Do not reinterpret it as a universal optimum.
 
@@ -58,7 +65,8 @@ The important states are ordered:
 Read every finding even when the state passed. Warnings preserve uncertainty and
 assumptions that a simple state label cannot express. A historical `pilot-pass`
 does not guarantee current capacity. Train admission rechecks runtime-specific
-capacity, bundle, plan, and pilot artifacts under the lease.
+capacity, bundle, plan, pilot artifacts, and current host model policy under the
+lease. A package-free frozen-snapshot pass is not current-host authorization.
 
 ## 3. Inspect the managed job
 
@@ -76,6 +84,7 @@ For a terminal job, inspect:
 - log path;
 - run ID and output path for training;
 - prelaunch capacity evidence;
+- the host-authorized model-policy snapshot digest;
 - completion attestation and artifact-integrity status.
 
 A zero process exit is necessary but not sufficient for a completed training
@@ -158,9 +167,11 @@ Use a separate, predefined evaluation for those claims.
 ## Preserve a failed result
 
 Keep the job JSON, complete log, validation report, run directory, plan,
-manifest, installed-environment record, and relevant hardware evidence. Do not
-reuse or overwrite the failed run directory. Correct the cause, refresh every
-invalidated validation level, and submit a new run with a new ID.
+manifest, embedded policy snapshot, installed-environment record, and relevant
+hardware evidence. Do not reuse or overwrite the failed run directory. Correct
+the cause, refresh every invalidated validation level, and submit a new run with
+a new ID. If installed policy is no longer current for the saved v5 plan, retain
+that chain as historical evidence and create a new plan and bundle.
 
 Full-training resume is unsupported. CUDA pilot checkpoint continuation does not
 authorize resuming an interrupted full run. MLX pilot and full training are

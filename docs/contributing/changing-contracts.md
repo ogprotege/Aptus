@@ -123,9 +123,9 @@ must prove snapshot contract, canonical encoding, digest bindings, and decision
 parity, but it has no installed host or current registry and cannot determine
 host policy currency. Installed Aptus owns that separate currency boundary. It
 must compare the bound snapshot digest and decision with the current registry
-before host-managed submission, pilot authorization, or completion promotion.
-A current-registry mismatch requires replanning; portable integrity success does
-not waive that result.
+during host-managed submission, pilot authorization, worker launch, and the
+completion verification and promotion transaction. A current-registry mismatch
+requires replanning; portable integrity success does not waive that result.
 
 ## Persisted state and compatibility
 

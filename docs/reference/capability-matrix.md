@@ -5,8 +5,8 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-07-28 |
-| Next review | 2026-10-27, or sooner when the method registry, planner, or compiler changes |
+| Last reviewed | 2026-08-04 |
+| Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
 marked supported can become viable when all facts and analytic gates pass. It
@@ -15,8 +15,18 @@ requires static, dependency, model-data, measured-preflight, and pilot evidence.
 MLX-LM uses the same state ladder with a runtime-specific uninterrupted pilot.
 A current `pilot-pass` can authorize explicit full-duration adapter training.
 
+Support also depends on the installed host's current model-policy registry. A
+package-free bundle can prove the integrity and decision parity of its embedded
+frozen snapshot, but that result does not establish policy currency. Installed
+Aptus rejects a coherent v5 plan whose decision or snapshot digest is no longer
+current and requires deterministic replanning. An earlier `pilot-pass` cannot
+authorize training or completion promotion after that policy boundary changes.
+
 Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` in the
 [2026-07-27 acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
+That evidence predates the Phase 4 source head and does not establish a
+current-head MLX-LM pilot pass. No current-head CUDA or MLX target-runtime pilot
+was collected for the Phase 4 closeout.
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the
@@ -322,6 +332,7 @@ adapters are outside the current support contract.
 - [Dataset schemas](dataset-schemas.md)
 - [Configuration defaults](configuration-defaults.md)
 - [Plan schema](plan-schema.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Validation states](validation-states.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Release gates](../operations/release-gates.md)

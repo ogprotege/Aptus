@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Bundle operators, compiler maintainers, and security reviewers |
 | Authority | Normative reference for `aptus.bundle.v3` and its mutable runtime boundary |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-04 |
 | Next review | 2026-11-01, or sooner when generation or manifest validation changes |
 
 `bundle-manifest.json` is the immutable integrity root for a compiled Aptus
@@ -20,6 +20,16 @@ manifest entry. Validation, jobs, bootstrap, and project recovery compare the
 revision's recorded identity with the exact bundle they use.
 
 ## Manifest object
+
+The manifest JSON root must be an object. Package-free validation applies the
+same rule to `plan.json` and the embedded policy snapshot. Installed-host
+validation additionally applies it to `config/trainer.json`. On those covered
+boundaries, JSON null, arrays, scalar roots, and parser resource failures such
+as oversized integers or excessive nesting are reported as controlled
+validation errors. The trainer configuration remains compiler-managed input to
+later generated runtime entrypoints, so operators must recompile rather than
+edit it. These failures do not authorize semantic checks against partially
+parsed state.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -150,7 +160,8 @@ embedded in the bundle. It verifies the plan/manifest/file digest chain and
 reproduces the saved decision from that frozen snapshot. Portable validation
 cannot determine host policy currency or know whether an installed host's
 current registry has advanced. Installed Aptus performs that separate currency
-check against its current registry before host admission and managed execution.
+check during managed admission, pilot authorization, worker launch, and the
+completion verification and promotion transaction.
 
 ### `preflight.py`
 
@@ -369,6 +380,7 @@ encryption, access control, consent review, or retention policy.
 ## Related documentation
 
 - [Plan schema](plan-schema.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Dataset schemas](dataset-schemas.md)
 - [Configuration defaults](configuration-defaults.md)
 - [Validation states](validation-states.md)

@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-07-29 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-04 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -11,8 +11,13 @@ All notable changes are recorded here.
 - Aptus for Mac, a native AppKit and WebKit application with automatic bundled
   backend lifecycle, private session authentication, native path pickers,
   Finder actions, startup recovery, app packaging, and CUDA-host handoff.
-- V3 fact and training-plan contracts, plus the retained versioned candidate,
-  bundle, validation, and job contracts.
+- `aptus.facts.v3`, `aptus.training-plan.v5`, and `aptus.bundle.v3`, plus the
+  retained versioned runtime, validation, and job contracts.
+- Persisted `aptus.model-compatibility.v2` decisions, explicit
+  `provider-inspection` or `user-attested` decision sources,
+  `aptus.model-inspection-receipt.v1` provenance, and exact-path
+  `aptus.model-policy-binding.v1` records. Provider receipts bind compatibility
+  facts separately from the broader observed planning facts.
 - Exact Qwen3 MoE compatibility for inspected four-bit `qwen3_moe` checkpoints
   using `Qwen3MoeForCausalLM`. The implemented conditional planner slice is
   single-device MLX-LM QLoRA with attention-only adapters and mandatory pilot
@@ -35,6 +40,9 @@ All notable changes are recorded here.
 - Atomic no-clobber bundle compilation and deterministic archives.
 - Portable dependency, model-data, measured preflight, pilot, and full-run
   entrypoints.
+- Deterministic canonical `aptus.model-policy-snapshot.v1` artifacts bound into
+  every v5 plan and v3 bundle, plus a generic package-free evaluator that
+  reproduces host compatibility decisions from the frozen snapshot.
 - Local FastAPI service, React workbench, CLI, persisted jobs, cancellation, and
   a per-user host-global Aptus execution lease.
 - Immutable full-run output IDs and parent-owned completion verification.
@@ -92,8 +100,21 @@ All notable changes are recorded here.
 
 - Provider inspection, sparse candidate admission, and API execution-path
   validation now consume one host-side model compatibility registry. Runtime
-  contracts remain derived from the method registry, while the v1 API and v3
-  plan identities remain unchanged.
+  contracts remain derived from the method registry. The API remains
+  `aptus.api.v1`, facts remain `aptus.facts.v3`, and candidate runtime contracts
+  remain `aptus.runtime-contract.v1`; current plans are v5 and bundles are v3.
+- Package-free bundle programs validate frozen-snapshot integrity and decision
+  parity. Installed-host validation, job admission, pilot authorization, worker
+  launch, and the completion verification and promotion transaction separately
+  enforce the current registry. A coherent stale-policy plan is preserved and
+  returns `replan_required`; API load, compile, recovery, and job submission map
+  that condition to HTTP 409.
+- Contract readers now normalize their covered non-object and resource-hostile
+  inputs as controlled invalid input instead of leaking parser or traversal
+  exceptions. Installed-host validation covers plan, manifest, trainer, and
+  policy-snapshot documents; package-free validation covers plan, manifest, and
+  policy-snapshot documents. CUDA entrypoints validate the plan before binding
+  devices.
 - Conditional API claims must match a path registered for their model family,
   and sparse model-type or architecture markers cannot fall through as a dense
   family when provider topology is missing.
@@ -140,6 +161,9 @@ All notable changes are recorded here.
 
 ### Removed
 
+- The retired handwritten bundle-policy decision helper. Generated bundles now
+  use the generic snapshot evaluator, with exact parity tests against the host
+  registry.
 - The 75-file local `EXAMPLE` intake after accepted findings were integrated
   and unsafe, duplicate, stale, or copyrighted source copies were discarded.
 - Pass-through full-training resume. CUDA arbitrary-checkpoint resume remains
@@ -160,10 +184,12 @@ record under `docs/operations/evidence/2026-07-27-desktop-release/` proves 10 of
 10 clean local engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not bind a later source
 head. Pull-request CI rebuilds and packages GitHub's exact tested merge commit,
-then records that identity in `COMMIT`. No
-qualifying CUDA target-host pilot or full run has been recorded. The default Mac
-artifacts are ad-hoc signed, not a Developer ID signed and notarized public
-distribution. Version 0.2.0 remains unreleased.
+then records that identity in `COMMIT`. The July MLX-LM record predates Phase 4
+and does not bind the current source head; no current-head MLX or CUDA
+target-runtime pilot was collected for the Phase 4 closeout. No qualifying CUDA
+target-host pilot or full run has been recorded. The default Mac artifacts are
+ad-hoc signed, not a Developer ID signed and notarized public distribution.
+Version 0.2.0 remains unreleased.
 
 ## Related documentation
 

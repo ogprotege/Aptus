@@ -1,6 +1,6 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
@@ -20,6 +20,9 @@ exact bundle runbook or release gates.
   or remote-user policy.
 - The host-global lease coordinates Aptus processes for one local user. It does
   not reserve accelerator or unified-memory capacity against unrelated programs.
+- Package-free bundle entrypoints validate their embedded frozen model-policy
+  snapshot. That proves integrity and saved-decision parity, not current host
+  policy. Installed Aptus separately enforces current registry currency.
 - Full training requires a current passing pilot and explicit confirmation.
 - Full-training resume is unsupported.
 - Structural export verification does not establish model quality or safety.
@@ -72,6 +75,9 @@ the built-in plain-HTTP server.
       disk, and required reserve.
 - [ ] Confirm the selected method, precision, quantization, placement, world
       size, and effective batch.
+- [ ] Confirm the v5 plan records its compatibility decision and lowercase
+      `model_policy_snapshot_sha256`; do not accept a hand-edited plan or
+      snapshot.
 - [ ] Confirm the output and retention budget for caches, pilot artifacts,
       CUDA checkpoints, MLX weight snapshots, logs, ZIP archives, and final
       exports.
@@ -82,6 +88,12 @@ the built-in plain-HTTP server.
 
 - [ ] Place the bundle and archive in access-controlled storage.
 - [ ] Verify `bundle-manifest.json` with static validation.
+- [ ] Verify `policy/model-policy-snapshot.v1.json` exists, is canonical
+      `aptus.model-policy-snapshot.v1`, and is manifested at that exact path.
+- [ ] Confirm the snapshot bytes, plan `model_policy_snapshot_sha256`, manifest
+      `policy_snapshot_sha256`, and manifest file entry use the same lowercase
+      SHA-256 digest. Installed-host validation separately compares the current
+      registry digest.
 - [ ] Review `decision-report.md`, `requirements.txt`, generated programs, and
       configuration.
 - [ ] Use a new isolated Python environment outside the bundle.
@@ -98,6 +110,13 @@ the built-in plain-HTTP server.
 Generated `requirements.txt` contains exact direct pins. Retain the resolved
 installed-environment binding because transitive distributions are selected by
 the installer.
+
+Treat `POLICY_SNAPSHOT_MISSING`, `POLICY_SNAPSHOT_JSON_ERROR`,
+`POLICY_SNAPSHOT_CONTRACT`, `POLICY_SNAPSHOT_NONCANONICAL`,
+`POLICY_SNAPSHOT_DIGEST`, and `POLICY_SNAPSHOT_PATH` as fail-closed findings.
+Snapshot, plan, or manifest corruption requires a trusted recompile. A valid
+host-only digest difference means the coherent v5 plan is no longer current and
+requires a new plan and bundle; do not edit the old digest chain.
 
 ## Know the state locations
 
@@ -149,6 +168,12 @@ aptus jobs --id JOB_ID
 
 The log path in the job record is authoritative. Preserve the complete log,
 not only the returned tail.
+
+A package-free `validate.py` pass does not waive installed-host policy checks.
+Managed submission, pilot authorization, worker launch, and the completion
+verification and promotion transaction recheck current registry currency. An
+HTTP `409 replan_required` from saved-plan load, compile, project recovery, or
+managed job submission requires replanning and recompilation.
 
 For an MLX-LM bundle, continue only when each earlier action passes. Its pilot
 and full run both start from the pinned base and run without interruption. Do
@@ -242,6 +267,9 @@ Immediately before submission:
 
 - [ ] Confirm the expensive full-run action with the requestor.
 - [ ] Confirm the current bundle manifest and plan identity.
+- [ ] Confirm the embedded snapshot still matches the plan and manifest, and the
+      installed host accepts its decision and digest under the current
+      model-policy registry.
 - [ ] Confirm current CUDA identities and free VRAM.
 - [ ] For MLX, confirm current available unified memory exceeds the measured
       pilot peak plus reserve.
@@ -252,8 +280,10 @@ Immediately before submission:
 - [ ] Confirm the unique run output path does not exist.
 
 The submission transaction performs these checks while holding the job locks
-and host-global lease. Cached UI authorization is informational. MLX admission
-also checks current free disk against the plan and measured pilot artifacts.
+and host-global lease. Cached UI authorization and a historical portable pass
+are informational. MLX admission also checks current free disk against the plan
+and measured pilot artifacts. If policy is non-current, preserve the old
+artifact and create a new plan and bundle.
 
 ## Monitor training and verification
 
@@ -299,8 +329,10 @@ Cancellation is refused while the parent commits verified completion evidence.
 
 ## After failure or interruption
 
-1. Preserve the job JSON, full log, report, plan, manifest, and run directory.
-2. Classify the cause as dependency, model/data, method scope, accelerator or
+1. Preserve the job JSON, full log, report, plan, embedded policy snapshot,
+   manifest, and run directory.
+2. Classify the cause as policy-snapshot integrity, current-policy currency,
+   dependency, model/data, method scope, accelerator or
    unified-memory capacity, distribution, CUDA checkpoint, MLX weight snapshot,
    split, export,
    cancellation, or parent verification.
@@ -318,8 +350,9 @@ resume argument fails closed.
 Aptus 0.2 has no automatic retention or cleanup policy. Establish one before
 large runs. Never remove evidence needed to interpret an active job or an
 artifact still in use. Record any manual deletion by exact path and retention
-rule. Protect all deleted material according to its sensitivity and recovery
-requirements.
+rule. Preserve the plan, embedded policy snapshot, manifest, and their digest
+bindings together when retaining historical evidence. Protect all deleted
+material according to its sensitivity and recovery requirements.
 
 ## Related documentation
 

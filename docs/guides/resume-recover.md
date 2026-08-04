@@ -1,6 +1,6 @@
 # Recovery and the Resume Boundary
 
-> **Status:** Active | **Authority:** Operational recovery guide | **Applies to:** Aptus 0.2 | **Audience:** Operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when recovery changes
+> **Status:** Active | **Authority:** Operational recovery guide | **Applies to:** Aptus 0.2 | **Audience:** Operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when recovery changes
 
 ## Full-training resume is unsupported
 
@@ -43,7 +43,10 @@ Persisted states `queued`, `running`, and `cancelling` are not complete.
 If an owner process dies, the service reconciles the persisted process identity
 and lease before admitting new work. It may complete a crash-interrupted
 promotion only when verified pending evidence was already persisted and still
-passes the completion transaction.
+passes the completion transaction. Pending evidence is not promoted under a
+newer host model policy; the service fails that recovery with
+`replan_required`. Evidence that was already parent-promoted before a later
+policy change remains historical completion evidence.
 
 Never mark a job complete by editing its JSON record.
 
@@ -53,9 +56,15 @@ Project recovery is control-plane history, not training resume. Open project
 history, inspect an immutable revision, and choose **Recover as new revision**.
 Aptus requires the persisted plan to equal the immutable plan snapshot. It also
 verifies the selected candidate, exact bundle path, complete bundle manifest,
-recorded manifest fingerprint, and any recorded ZIP SHA-256 and byte size. Only
-then does it append a new content-hashed head. The original revision remains
-unchanged.
+recorded manifest fingerprint, any recorded ZIP SHA-256 and byte size, and the
+v5 plan's model-policy decision against the installed host's current registry.
+Only then does it append a new content-hashed head. The original revision
+remains unchanged.
+
+A coherent v5 revision whose decision or snapshot digest is no longer current
+returns HTTP `409 replan_required`; recovery appends no replacement revision.
+Preserve the source revision and create a new plan from its facts. Malformed or
+tampered policy state remains invalid input rather than a recovery migration.
 
 Project revision writes are transactionally recoverable after interruption.
 Aptus finishes only a receipt-bound revision or a unique orphan chain that
@@ -75,7 +84,7 @@ import receipt.
 ## Retry after failure
 
 1. Preserve the failed job log and run directory for diagnosis.
-2. Correct the underlying environment, capacity, data, or code issue.
+2. Correct the underlying environment, capacity, data, policy, or code issue.
 3. Re-run the required ordered validation action if its binding changed.
 4. Submit a new train job.
 
@@ -87,6 +96,12 @@ not reused. An interrupted MLX run also starts over from the pinned base.
 Changing compiler-managed bundle files invalidates the manifest and pilot
 binding. Recompile to a new bundle path, then repeat dependency, model-data,
 preflight, and pilot actions.
+
+A host model-policy change can also make an otherwise byte-identical v5 plan and
+bundle non-current. Package-free validation may still pass because it checks the
+embedded frozen snapshot, but installed-host recovery and managed execution
+enforce current registry currency. Replan and recompile; never replace only the
+snapshot or its recorded digests in the old artifact.
 
 Historical completion records retain a completion-time attestation and perform
 only cheap presence checks during polling. V0.2 has no explicit command to

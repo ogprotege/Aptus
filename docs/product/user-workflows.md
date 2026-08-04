@@ -1,6 +1,6 @@
 # User Workflows
 
-> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a workflow changes
+> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when a workflow changes
 
 ## Plan for a known host
 
@@ -13,6 +13,10 @@
    interval.
 7. Compare all candidate statuses, runtime contracts, and assumptions.
 8. Compile the selected plan to a new path.
+
+The current result is an `aptus.training-plan.v5` and an `aptus.bundle.v3`.
+Their identities cross-bind the compatibility decision and canonical
+`aptus.model-policy-snapshot.v1` digest.
 
 ## Prove a bundle before training
 
@@ -27,6 +31,14 @@ For a CUDA bundle, run and review these actions in order:
 Each action can invalidate an earlier analytic expectation. Stop and replan when
 the evidence changes a bound fact. The service rejects a skipped action, and a
 higher validation job cumulatively rechecks the lower validation levels.
+
+Package-free validation checks the bundle's frozen policy snapshot and decision
+parity. It cannot establish current host-policy currency. Installed Aptus checks
+the current registry during host static validation and managed admission, then
+repeats that check at pilot authorization, worker launch, and the completion
+verification and promotion transaction. A coherent non-current snapshot
+requires replanning; API job submission reports that condition as HTTP 409
+`replan_required`.
 
 For an MLX-LM bundle, run the same five managed actions. Its pilot is not the
 CUDA two-process continuation test. It starts from the pinned base, completes at
@@ -90,10 +102,19 @@ with a new run ID.
 
 Project history is different from runtime resume. Aptus records an immutable
 revision after planning, compilation, validation, and job submission. Inspect an
-older revision, then choose **Recover as new revision**. Aptus verifies any
-referenced local plan or bundle and creates a new head revision. It does not
-rewrite history and always records training authorization as false. Revalidate
-current evidence and confirm training again.
+older revision, then choose **Recover as new revision** only when its referenced
+plan is a current, contract-valid v5 plan. Aptus verifies any referenced local
+plan or bundle and creates a new head revision. It does not rewrite history and
+always records training authorization as false. Revalidate current evidence and
+confirm training again.
+
+Every v4, v3, v2, or schema-less plan, and every coherent v5 plan whose policy
+semantics or snapshot digest is stale, remains preserved but cannot be loaded,
+compiled, or recovered as executable state. Those operations return HTTP 409
+`replan_required`, create no new revision, and leave the saved bytes unchanged.
+Create a new deterministic v5 plan from the preserved facts; do not edit the old
+schema, decision, snapshot, or digest. Malformed or tampered state is a separate
+invalid-input condition, not a replanning condition.
 
 ## Interpret completion
 

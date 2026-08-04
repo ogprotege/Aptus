@@ -1,11 +1,18 @@
 # Apple Silicon runtime and pilot matrix
 
-> **Status:** Active | **Authority:** Measured acceptance record and proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or before any additional model download
+> **Status:** Active | **Authority:** Measured acceptance record and proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or before any additional model download
 
 This page records the completed small-model QLoRA acceptance and the proposed
 next experiments for the measured 64 GB M5 Pro host. The accepted result proves
 only its exact model, revision, synthetic dataset, runtime, plan, bundle, and
 actions. The larger-model and LoRA rows remain proposals.
+
+The July 27 acceptance predates the Phase 4 portable-policy snapshot contract
+and does not bind the current source head. No current-head MLX or CUDA target
+runtime pilot was collected during the Phase 4 closeout. The immutable linked
+record remains valid historical evidence for its tested commit, but Gate 0 must
+be repeated with a current v5 plan and v3 bundle before it can renew current-head
+runtime acceptance.
 
 ## Measured host
 
@@ -51,7 +58,7 @@ PyTorch MPS, adapter fusion, and crash resume remain outside the current
 executable path. Aptus does support uninterrupted full-duration LoRA and QLoRA
 adapter runs after `pilot-pass`.
 
-## Completed QLoRA acceptance
+## Historical completed QLoRA acceptance
 
 On 2026-07-27, two clean workflows reached `measured-run-pass` with:
 
@@ -76,8 +83,8 @@ usefulness, safety, or broader Apple Silicon fit.
 
 Evidence should now progress in this order:
 
-1. Completed: QLoRA on a small quantized model proved the complete local
-   workflow.
+1. Renew Gate 0 on the current source head: QLoRA on the same small quantized
+   model through a current v5 plan, v3 bundle, and installed-host policy check.
 2. Unquantized LoRA on a 7B model.
 3. QLoRA on a 14B model after the 7B run establishes memory and throughput.
 4. The exact Qwen3 MoE compatibility row on a reviewed mixed-layout checkpoint.
@@ -89,16 +96,17 @@ behavior.
 
 ## Acceptance and proposed runs
 
-Gate 0 is complete. The remaining rows are staged experiment envelopes. Every
-future row first needs the standard dependency, model-data, measured-preflight,
-and two-update uninterrupted pilot. Only a passing pilot can authorize its
+Gate 0 is complete only for the historical July 27 artifact. Current-head Gate 0
+renewal and the remaining rows are staged experiment envelopes. Every future
+row first needs the standard dependency, model-data, measured-preflight, and
+two-update uninterrupted pilot. Only a current passing pilot can authorize its
 full-duration envelope. Rank and target modules remain compiler-selected plan
 facts. The current product does not expose selected-layer or q/v-only MLX
 controls.
 
 | Gate | Status | Model | Method | Starting full-run envelope or result | Purpose |
 |---|---|---|---|---|---|
-| 0 | Accepted | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
+| 0 | Historical acceptance; current-head renewal open | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean pre-Phase-4 `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
 | 1A | Proposed | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish a larger unquantized runtime baseline on an Apache-2.0 model |
 | 2 | Proposed | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
 | 2M | Admission blocked | Revision-pinned Qwen3 30B-A3B MoE checkpoint with four-bit group-64 defaults and eight-bit group-64 router gates | QLoRA | Dependency passed; model-data refused before model load with an 18.932 GiB live-memory shortfall | Accept the exact `qwen3_moe` compatibility row and measure routed-expert memory and throughput |
@@ -168,8 +176,11 @@ the loss applies to the reviewed assistant target rather than the prompt.
 
 ## Required pass criteria
 
-The completed Gate 0 run satisfied these criteria. Every future exact bundle
-must satisfy them again before the next larger run starts:
+The historical Gate 0 run satisfied these criteria under its tested contract.
+Every current or future exact bundle must satisfy them again before the next
+larger run starts. Its v5 plan, embedded canonical snapshot, v3 manifest, and
+installed host must also agree on current model policy; a package-free
+frozen-snapshot pass alone is not current-head authorization:
 
 1. immutable model repository and revision;
 2. complete environment and package-version record;
@@ -209,7 +220,9 @@ and training creates new artifacts. Start a future run only after the immutable
 model revision, corpus revision, method, disk budget, output directory, and
 compatible external MLX Python are explicitly chosen. LM Studio and oMLX are
 loopback inference integrations only and cannot supply that training
-environment.
+environment. Current installed Aptus must accept the plan and snapshot under its
+host registry before managed admission; `replan_required` means generate a new
+plan and bundle rather than modifying the historical artifact.
 
 ## Related documentation
 

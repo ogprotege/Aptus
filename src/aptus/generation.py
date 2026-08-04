@@ -356,6 +356,25 @@ This ranking does not claim measured throughput or model quality. Those require 
 
 
 def _readme(plan: TrainingPlan) -> str:
+    policy_boundary = f"""
+## Model-policy snapshot
+
+This `aptus.bundle.v3` bundle carries the canonical
+`policy/model-policy-snapshot.v1.json` used by its
+`aptus.training-plan.v5` plan. The canonical snapshot bytes hash to digest
+`{plan.model_policy_snapshot_sha256}`; the plan, manifest, and manifested file
+entry bind that digest. The copied
+`policy_snapshot.py` evaluator and `validate.py` can check canonical bytes,
+digest and path integrity, and saved decision parity without importing Aptus.
+
+That package-free result proves only the integrity of the frozen policy bundled
+with this artifact. It cannot determine whether the policy is current on a
+later host. Installed Aptus checks its current registry during managed
+admission, pilot authorization, worker launch, and the completion verification
+and promotion transaction. If submission reports `replan_required`, or a later
+current-policy check fails, preserve this bundle and create a new plan and
+bundle; do not edit the snapshot, plan, manifest, or digests.
+"""
     if (
         plan.recommended.runtime_contract
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
@@ -369,6 +388,7 @@ def _readme(plan: TrainingPlan) -> str:
 
 This portable bundle contains candidate `{plan.recommended.candidate_id}` from
 plan `{plan.plan_id}`. It is compiled for Apple silicon and MLX-LM.
+{policy_boundary}
 
 The candidate is conditional and pilot-required. The generated wrapper runs a
 bounded compiler smoke, an uninterrupted pilot, or a confirmed uninterrupted
@@ -401,6 +421,7 @@ must run uninterrupted.
 
 This portable bundle contains candidate `{plan.recommended.candidate_id}` from
 plan `{plan.plan_id}`.
+{policy_boundary}
 
 ## Before execution
 

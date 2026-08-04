@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -35,7 +35,10 @@ exposes `replan_required` and the source identity. The workbench shows that
 message, restores no old plan or bundle, and does not offer compile or revision
 recovery for it. The operator creates a new deterministic v5 plan from the
 preserved facts. The UI must never imply that changing the old schema label is
-a migration.
+a migration. Saved-plan load, compile, project recovery, and managed job
+submission expose a coherent stale-policy condition as HTTP 409
+`replan_required`. Malformed or tampered input remains a distinct invalid-input
+error and must not be relabeled as ordinary replanning.
 
 The Models destination includes a read-only MLX environment doctor. Each likely
 interpreter shows path, discovery source, Python version, import-probe status,
@@ -152,6 +155,11 @@ decision parity, but it cannot determine host policy currency because it has no
 installed host or current registry. The workbench must derive any current or
 replan-required label from the installed Aptus host check, not from portable
 integrity alone.
+
+Installed-host non-object or resource-hostile plan, manifest, trainer, and
+snapshot documents must render as controlled invalid findings or request
+errors. The interface must not restore partial state, expose an implementation
+traceback, or suggest editing compiler-managed identity fields to proceed.
 
 The dependency file is labeled as direct exact pins, not a transitive lock.
 

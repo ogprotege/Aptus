@@ -1,6 +1,6 @@
 # CUDA Target-Host Quickstart
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when the runtime sequence changes
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when the runtime sequence changes
 
 This guide is a target-host template. It creates a plan, compiles it, and
 follows the supported CUDA runtime order. Every uppercase model value and every
@@ -100,7 +100,9 @@ aptus spec-plan \
 Read the candidate list, unsupported reasons, assumptions, and evidence records.
 The recommended candidate is only the highest-ranked viable member of the
 enumerated catalog. Viable includes `feasible` and `conditional`, with feasible
-ranked first. A conditional recommendation is not a measured fit.
+ranked first. A conditional recommendation is not a measured fit. The output is
+an `aptus.training-plan.v5` whose content identity includes the lowercase
+SHA-256 of the canonical policy snapshot used for its compatibility decision.
 
 ## 4. Compile
 
@@ -111,7 +113,10 @@ aptus compile \
 ```
 
 Compilation refuses a non-empty output directory. It also creates a deterministic
-ZIP beside the bundle and refuses to overwrite an existing archive.
+ZIP beside the bundle and refuses to overwrite an existing archive. The
+`aptus.bundle.v3` manifest cross-binds the plan and
+`policy/model-policy-snapshot.v1.json`, and the bundle carries a generic
+`policy_snapshot.py` evaluator.
 
 ## 5. Run static validation
 
@@ -120,8 +125,15 @@ aptus validate ./aptus-work/bundle --level static
 ```
 
 Static validation checks contracts, identities, paths, generated source, direct
-pins, hashes, and manifest coverage. It does not import the training stack or
-allocate CUDA memory.
+pins, hashes, manifest coverage, all snapshot digest bindings, and compatibility
+decision parity. Because this command uses installed Aptus, it also compares the
+frozen snapshot with the current host registry. It does not import the training
+stack or allocate CUDA memory.
+
+Running `python validate.py --level static` inside the bundle remains
+package-free and verifies frozen-snapshot integrity and parity, but cannot establish
+current host-policy currency. Never edit a stale plan, snapshot, manifest, or
+digest to make it pass; create a new v5 plan from the source facts.
 
 ## 6. Prepare the target runtime environment
 
@@ -170,8 +182,15 @@ set in two fresh processes, requires the same census in both phases, and
 confirms checkpoint continuation.
 
 Train admission performs a deep, atomic recheck of pilot bindings and current
-VRAM, host RAM, disk, environment, and artifacts. A prior status display is not
-the authority for admission.
+VRAM, host RAM, disk, environment, artifacts, and installed-host policy. A prior
+status display is not the authority for admission. If the current registry no
+longer matches the coherent bundle snapshot, managed submission stops with a
+replanning condition; the managed job-submission API returns HTTP 409
+`replan_required`.
+
+Plan and manifest JSON must be objects. Malformed nested shapes, oversized
+integers, and excessive nesting are rejected as controlled invalid input before
+CUDA device binding or worker launch.
 
 ## 8. Read the result
 

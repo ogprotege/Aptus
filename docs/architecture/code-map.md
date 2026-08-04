@@ -1,6 +1,6 @@
 # Code Map
 
-> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27
 
 Aptus has four execution surfaces: the native macOS host, the Python
 application, the React workbench, and the self-contained Python programs
@@ -35,6 +35,7 @@ that protect it.
 | [`evidence.py`](../../src/aptus/evidence.py) | Versioned evidence records referenced by candidates and methods | Runtime proof from a paper or documentation page |
 | [`catalog.py`](../../src/aptus/catalog.py) | Runtime-specific direct package pins, supported model-family target modules, exact Qwen3 MoE identity, and stack versions | Provider compatibility without inspection |
 | [`model_compatibility.py`](../../src/aptus/model_compatibility.py) | Host-side model policy registry, artifact decisions, path matching, adapter profiles, and method-registry-backed execution-path validation | Hardware feasibility, runtime evidence, plan identity, or portable validation |
+| [`policy_snapshot.py`](../../src/aptus/policy_snapshot.py) | Package-independent snapshot canonicalization, digesting, strict portable rule validation, subject normalization, and generic decision evaluation | Host policy currency, hardware fit, ranking, or runtime proof |
 | [`profiling.py`](../../src/aptus/profiling.py) | Dataset parsing/profiling, canonical rows, pilot pressure rows, model-fact construction, CUDA hardware discovery, and Apple platform probing | Tokenizer measurement when only the character estimate ran |
 | [`runtime_env.py`](../../src/aptus/runtime_env.py) | Exact Python interpreter discovery, runtime capability probes, and runtime resolution | Compiler support from an installed package alone |
 | [`integrations.py`](../../src/aptus/integrations.py) | Bounded loopback LM Studio and oMLX inference clients | Training, remote endpoints, or automatic service discovery beyond declared origins |
@@ -64,6 +65,7 @@ flowchart LR
   D["domain and runtime contracts"] --> MR["method registry"]
   D --> MCP["model compatibility registry"]
   MR --> MCP
+  PS["portable policy snapshot primitives"] --> MCP
   MCP --> AC["API contracts"]
   AC --> A
   D --> P["profiling and inspection"]
@@ -73,9 +75,13 @@ flowchart LR
   MCP --> PL
   P --> PL
   PL --> PC["plan contract"]
+  PS --> PC
   PL --> G["artifact compiler"]
   PC --> G
+  PS --> G
+  MCP --> G
   G --> V["runtime-aware validation"]
+  PS --> V
   RE["runtime environment"] --> V
   RE --> E
   V --> E["job service and completion verifier"]
@@ -108,8 +114,8 @@ generator literal. The `_BUNDLE_PROGRAMS` mapping declares the per-runtime set:
 - CUDA emits four: `train.py`, `run.py`, `preflight.py`, `validate.py`;
 - MLX-LM emits five: the same four plus `reload.py`.
 
-Every compiler copies the current `plan_contract.py` and `runtime_lease.py` into
-the bundle. The MLX-LM compiler emits its own bounded validator, runner,
+Every compiler copies the current `plan_contract.py`, `policy_snapshot.py`, and
+`runtime_lease.py` into the bundle. The MLX-LM compiler emits its own bounded validator, runner,
 preflight, trainer, and fresh-reload sources plus its MLX configuration and
 disjoint data split. Each bundle must work without importing the Aptus
 application package at runtime.
@@ -164,6 +170,8 @@ The Python tests broadly mirror production modules:
   separation, local inference bounds, and candidate decisions;
 - `test_generation.py`, `test_validation.py`, and `test_attestation.py` protect
   generated artifacts and evidence;
+- `test_policy_snapshot.py` protects canonical bytes, strict portable rule
+  shapes, normalized subject identity, and generic decision parity;
 - `test_execution.py` and `test_runtime_lease.py` protect job, lease,
   cancellation, recovery, and completion behavior;
 - `test_api.py` and `test_cli.py` protect public interfaces;
@@ -180,6 +188,7 @@ Vitest and Testing Library.
 | Add or change a fact | `domain.py` | API, CLI, plan identity, web types, compiler profiles, docs |
 | Add a method identity | `methods/registry.py` and `evidence.py` | Method tests and research documentation |
 | Change a host model-compatibility policy | `model_compatibility.py` | Domain types, catalog, method registry, inspection, planning, API, portable contract, browser, and target-host pilots |
+| Change the portable policy schema or evaluator | `policy_snapshot.py` | Host registry serialization, plan contract, compiler resources, host and package-free validation, CUDA and MLX entrypoints, docs, and target-host pilots |
 | Make a method selectable | `domain.py`, registry, planner, catalog | Generator, validation, export, API/UI, negative tests, target-host pilots |
 | Change memory arithmetic | `planning.py` | Formula version, identity, methodology, release gates, calibration tests |
 | Change bundle contents | `generation.py` | Required files, manifest validation, archive determinism, installed-wheel smoke |
@@ -195,4 +204,5 @@ Vitest and Testing Library.
 - [Data and identity flow](data-and-identity-flow.md)
 - [Artifact compiler](artifact-compiler.md)
 - [Execution orchestrator](execution-orchestrator.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Contributor guide](../contributing/index.md)

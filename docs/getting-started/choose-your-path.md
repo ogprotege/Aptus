@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its CUDA compiler covers the complete
@@ -36,6 +36,10 @@ CUDA training host.
 7. Compare the 12 method-placement candidates and their runtime contracts.
 8. Compile the selected plan to a new path.
 9. Run static validation.
+
+Current planning writes `aptus.training-plan.v5`; compilation writes an
+`aptus.bundle.v3` that contains and digest-binds one canonical
+`aptus.model-policy-snapshot.v1`.
 
 Planning against manual hardware facts is a forecast for another host. It is
 not a measurement of the local computer and does not authorize training.
@@ -75,6 +79,10 @@ MLX-LM crash resume is unsupported. Its periodic files are weight snapshots,
 not resumable checkpoints, and every resume argument fails. QLoRA also requires
 a pinned MLX model with explicit four-bit quantization metadata. It never uses
 bitsandbytes.
+
+The July MLX-LM acceptance record predates Phase 4 and does not bind the current
+source head. Run the complete five-action sequence for the exact current bundle
+before making a target-runtime claim.
 
 ## Path C: Validate and train on CUDA
 
@@ -125,9 +133,13 @@ paths, or automation around a single-user host. The CLI does not weaken any
 planner, compiler, validation, lease, or confirmation rule.
 
 The portable bundle is an additional interface. It carries its own validators and
-parent runner. Direct portable full-run execution is supported on POSIX. On
-Windows, use the managed `aptus run` path because direct portable child process
-control is fail-closed in Aptus 0.2.
+parent runner, along with the frozen policy snapshot and its package-independent
+evaluator. Portable validation proves frozen-snapshot integrity and decision
+parity, not currency against an installed host registry it cannot see. Managed
+Aptus performs that currency check before admission and execution. Direct
+portable full-run execution is supported on POSIX. On Windows, use the managed
+`aptus run` path because direct portable child process control is fail-closed in
+Aptus 0.2.
 
 ## Know when to stop
 
@@ -138,12 +150,16 @@ Stop and correct the facts or implementation when any of these occurs:
 - the loaded model does not match the pinned structural facts;
 - target modules or the trainable-parameter census do not match the selected
   method;
+- the installed host registry no longer matches the plan's bound policy
+  snapshot;
 - a measured preflight or runtime-specific pilot fails;
 - current VRAM, host RAM, or disk no longer passes admission;
 - the final metrics or export tree fails parent verification.
 
 Do not edit a compiled bundle or validation report to bypass a finding. Replan
-and compile to a new path when compiler-managed content changes.
+and compile to a new path when compiler-managed content or current policy
+changes. API load, compile, recovery, and job submission report a coherent stale
+plan as HTTP 409 `replan_required`, distinct from malformed or tampered input.
 
 ## Related documentation
 

@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-07-29 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-04 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -69,6 +69,31 @@ the actual resolved-runtime record.
 index mappings, and model or adapter provenance were checked. It does not mean
 the artifact was benchmarked, judged safe, or proven deployable.
 
+## Policy snapshot claims
+
+Use:
+
+- “package-free validation confirmed the frozen policy snapshot's canonical
+  integrity and reproduced its compatibility decision”;
+- “installed Aptus confirmed that the bundle's snapshot matched the current host
+  registry at validation or admission time”; and
+- “the coherent saved plan requires deterministic replanning because its policy
+  semantics or snapshot digest is no longer current.”
+
+Do not:
+
+- claim that package-free validation proved current host-policy currency;
+- describe a coherent stale-policy plan as malformed or tampered;
+- change a historical plan's schema, decision, snapshot, or digest and call that
+  migration; or
+- describe one host's current-policy check as proof that another host still uses
+  the same registry.
+
+Portable integrity and installed-host currency are separate claims. Current
+`aptus.training-plan.v5` plans and `aptus.bundle.v3` bundles bind one canonical
+`aptus.model-policy-snapshot.v1`; the installed registry remains the authority
+for managed admission and execution.
+
 ## Release claims
 
 Use:
@@ -78,8 +103,10 @@ Use:
 - “the local desktop engineering gate passed 10 of 10 clean builds at
   implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`”;
 - “pull-request CI rebuilt and packaged GitHub's exact tested merge commit,” but
-  only after that workflow has completed successfully; and
-- “the default desktop artifact is ad-hoc signed for review and testing.”
+  only after that workflow has completed successfully;
+- “the default desktop artifact is ad-hoc signed for review and testing”;
+- “Phase 4's source, wheel, and desktop package gates passed, but no current-head
+  MLX or CUDA target-runtime pilot was collected.”
 
 Do not:
 
@@ -87,7 +114,8 @@ Do not:
   commit, branch head, or pull-request merge commit;
 - describe ad-hoc signing as Developer ID distribution, notarization, or public
   release approval;
-- treat desktop packaging as CUDA target-host acceptance; or
+- treat desktop packaging as CUDA target-host acceptance;
+- apply the July MLX-LM acceptance result to the later Phase 4 source head;
 - call v0.2 release-ready while claimed CUDA target-host evidence and public
   Developer ID signing and notarization remain open.
 
@@ -98,5 +126,6 @@ are separate claims. State which one the evidence supports.
 ## Related documentation
 
 - [Current capabilities](current-capabilities.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Validation states](../reference/validation-states.md)
 - [Release gates](../operations/release-gates.md)

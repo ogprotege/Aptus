@@ -26,7 +26,7 @@
   <a href="docs/index.md">Documentation</a>
 </p>
 
-> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-03 · **Review by:** 2026-11-01 or when the support contract changes
+> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-04 · **Review by:** 2026-11-01 or when the support contract changes
 
 ---
 
@@ -246,7 +246,7 @@ describe a CUDA host; they do not enable CUDA work on the Mac.
 | **Methods** | Full, LoRA, int8-LoRA, QLoRA | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT and other research identities |
 | **CUDA** | Single-device and DDP; conditional LoRA FSDP | Full-parameter FSDP, quantized FSDP, ROCm, CPU training |
 | **Apple Silicon** | Conditional MLX-LM LoRA and QLoRA, single device only | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS |
-| **MoE** | Exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed four-bit layout, single-device MLX-LM QLoRA with attention-only adapters | All other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, other MoE methods |
+| **MoE** | Conditional, pilot-required exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed four-bit layout, single-device MLX-LM QLoRA with attention-only adapters | All other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, other MoE methods |
 | **Data** | JSON, JSONL, CSV and text with common SFT row shapes | Sequence packing; tasks other than SFT. Whole-text rows do not compile for `mlx-lm` |
 | **Recovery** | Named projects with immutable content-hashed revisions | Crash resume for MLX-LM or CUDA full runs |
 | **Distribution** | Source build and ad-hoc-signed CI artifacts | A notarized public download |
@@ -272,7 +272,9 @@ reinterpretation.
 Package-free portable validation checks the bundle's frozen snapshot for
 integrity and decision parity. It has no installed host or current registry, so
 it cannot determine host policy currency. Installed Aptus performs that
-currency check before host-managed admission and execution.
+currency check during host static validation and again during managed
+admission, pilot authorization, worker launch, and the completion verification
+and promotion transaction.
 
 Read the [complete capability matrix](docs/reference/capability-matrix.md)
 before committing compute time.
@@ -306,7 +308,8 @@ Full records: [MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acc
 
 - Unsupported combinations remain visible with their rejection reasons.
 - Estimates never become measured facts merely because they rank first.
-- Every compiled artifact binds back to its plan, candidate, data, and evidence.
+- Every compiled artifact binds back to its plan, candidate, data, policy
+  snapshot, and evidence.
 - Pilot and train admission repeat their checks against the *current*
   environment and available capacity, not the values seen at plan time.
 - Compilation refuses a non-empty output directory and never overwrites a run.
@@ -326,12 +329,13 @@ Four execution surfaces:
 | Python application | `src/aptus/` | Planner, compiler, validator, job service, FastAPI API, CLI |
 | React workbench | `web/src/` | The Facts → Compare → Compile → Validate → Run workflow |
 | Native macOS host | `desktop/macos/` | AppKit/SwiftUI shell embedding the workbench over a private loopback backend |
-| Generated bundle programs | `src/aptus/_bundle_programs/` | Self-contained `train.py` / `run.py` / `preflight.py` / `validate.py` emitted into every bundle |
+| Generated bundle programs | `src/aptus/_bundle_programs/` plus copied shared contracts | Self-contained plan, policy-snapshot, lease, validation, preflight, training, and parent-runner code emitted into every bundle |
 
 Bundles must run **without importing the Aptus package**. Core dependency
 direction runs `domain.py` → catalog and method registry →
-`model_compatibility.py` → inspection and `planning.py` → `plan_contract.py` →
-`generation.py` → `validation.py` → `execution.py` → API and CLI. The
+`model_compatibility.py` and its package-independent `policy_snapshot.py` →
+inspection and `planning.py` → `plan_contract.py` → `generation.py` →
+`validation.py` → `execution.py` → API and CLI. The
 [code map](docs/architecture/code-map.md) has the full module-responsibility
 table.
 
@@ -373,6 +377,7 @@ governed data.
 | Operate an Apple or CUDA bundle | [Operator checklist](docs/operations/operator-checklist.md) |
 | Understand the memory math | [Memory estimation](docs/methodology/memory-estimation.md) |
 | Understand the system | [Architecture](docs/architecture/system.md) |
+| Understand portable policy identity | [Model-policy snapshot](docs/reference/model-policy-snapshot.md) |
 | Integrate | [CLI](docs/reference/cli.md) and [API](docs/reference/api.md) |
 | Know exactly what is supported | [Capability matrix](docs/reference/capability-matrix.md) |
 
@@ -412,13 +417,24 @@ Documentation must be updated in the same change as behavior. Read
 <summary>Engineering preview — what is and is not proven</summary>
 
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
-**Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 or when the support contract changes
+**Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when the support contract changes
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
 gates. Two clean, independent Apple Silicon workflows reached
 `measured-run-pass` against a revision-pinned public model. Crash resume remains
 unsupported.
+
+Phase 4's source and contract review is complete. Current
+`aptus.training-plan.v5` plans and `aptus.bundle.v3` bundles cross-bind a
+canonical `aptus.model-policy-snapshot.v1`. Package-free programs verify the
+frozen snapshot's integrity and decision parity; installed Aptus separately
+enforces current host-registry currency during host static validation and again
+during managed admission, pilot authorization, worker launch, and the
+completion verification and promotion transaction.
+The July 27 MLX-LM workflows predate Phase 4 and do not bind the current source
+head. No current-head MLX or CUDA target-runtime pilot was collected, so the
+source and packaging gates do not establish v0.2 release readiness.
 
 Ten consecutive clean local desktop engineering builds passed at implementation
 commit `1038ecdd13103418ef1135e1ced634c10370a961`. That record is historical

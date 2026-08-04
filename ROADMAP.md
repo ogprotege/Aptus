@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-29 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-04 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -24,6 +24,10 @@ Completed evidence:
   Its result becomes evidence only after that workflow run passes.
 - Browser accessibility checks cover the packaged React workbench. Native tests
   cover lifecycle, session, shutdown, navigation, and packaging contracts.
+- Phase 4's repository, installed-wheel, and desktop package gates closed the
+  portable policy-snapshot source and contract review. They did not renew
+  target-runtime acceptance: the July MLX-LM record predates Phase 4, and no
+  current-head MLX or CUDA target-runtime pilot was collected.
 
 Remaining release work:
 
@@ -105,9 +109,17 @@ and training permission remain outside that receipt.
 Phase 4 is complete. The host registry now emits deterministic canonical
 `aptus.model-policy-snapshot.v1` bytes. `aptus.training-plan.v5` binds their
 SHA-256, and every `aptus.bundle.v3` contains the snapshot, the same digest,
-and a generic portable evaluator. Saved v4, v3, v2, and schema-less plans return
-`replan_required`; Aptus preserves their bytes and requires deterministic
-replanning under v5.
+and a generic portable evaluator. Package-free programs establish frozen
+snapshot integrity and decision parity but cannot determine current registry
+currency. Installed Aptus enforces current-host currency during static
+validation, managed admission, pilot authorization, worker launch, and the
+completion verification and promotion transaction. Saved v4, v3, v2, and
+schema-less plans, plus coherent stale-policy v5 plans, require replanning;
+saved-plan load, compile, recovery, and managed job submission surface
+`replan_required`, while host static validation records the typed snapshot
+finding. Aptus preserves saved bytes and requires deterministic replanning under
+v5. Contract boundaries also reject non-object or resource-hostile JSON as
+controlled invalid input instead of leaking parser or traversal exceptions.
 
 Phase 5 remains limited to removing browser-side policy reconstruction and
 presenting the server-produced decision and selected candidate binding. Phase 6

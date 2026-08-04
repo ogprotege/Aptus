@@ -1,6 +1,6 @@
 # Adding a Fine-Tuning Method
 
-> **Status:** Active | **Audience:** Planner and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Method registry | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Planner and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Method registry | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22
 
 A method name enters Aptus in stages. Research identity, runtime visibility,
 planner selectability, compiler support, and release evidence are separate
@@ -99,6 +99,14 @@ Update [`domain.py`](../../src/aptus/domain.py) only when the method is ready to
 join the selectable enum. Update API request models, CLI choices, web types, and
 preference controls in the same change.
 
+If the method is admitted through a model-specific compatibility path, update
+the host model-policy registry and the portable snapshot contract together. Use
+stable policy, path, runtime-contract, and evidence identities. Every constraint
+must be representable by the generic snapshot evaluator; snapshot generation
+must fail closed rather than silently omit an inexpressible host rule. Preserve
+exact host/portable decision-dictionary parity for matching, near-matching,
+dense, sparse, unknown, and malformed subjects.
+
 ## 4. Add planner and memory behavior
 
 Implement method-dispatched feasibility and resource accounting in
@@ -128,6 +136,14 @@ quantization, targets, batch, and distribution without hidden defaults.
 Generated code must remain self-contained and portable. It must use the pinned
 model revision and compiler-produced data. It must not download an unbound
 revision, mutate the plan, or treat a library default as Aptus evidence.
+
+A policy-affecting compiler change must still emit the canonical
+`aptus.model-policy-snapshot.v1` at
+`policy/model-policy-snapshot.v1.json`, copy `policy_snapshot.py`, and bind one
+lowercase SHA-256 digest across the snapshot bytes, v5 plan, v3 manifest, and
+manifest file entry. Package-free programs use that frozen snapshot for
+integrity and decision parity; installed Aptus separately enforces current host
+registry currency.
 
 ## 6. Prove the trainable state
 
@@ -177,6 +193,11 @@ At minimum, cover:
 - plan and candidate identity mutation;
 - memory component arithmetic and upper bounds;
 - deterministic bundle output and direct pins;
+- deterministic policy-snapshot bytes and all plan, manifest, file, and
+  current-host digest checks when the method changes policy;
+- host/portable model-policy parity, corrupted-snapshot rejection, standalone
+  frozen-snapshot behavior, and stale-host `replan_required` behavior when
+  applicable;
 - generated source import and method preparation;
 - empty, extra, non-finite, malformed, and mismatched trainable sets;
 - optimizer membership;
@@ -192,7 +213,9 @@ At minimum, cover:
 Run the exact compiled path in a clean environment on every claimed backend,
 placement, precision, and quantization combination. Bind model revision, dataset
 digest, package environment, hardware, plan, candidate, bundle, jobs, metrics,
-runtime state artifacts, and exports.
+runtime state artifacts, and exports. For a model-policy path, also bind the
+snapshot digest and prove that installed-host admission used the current
+registry. A package-free pass alone is not current-policy evidence.
 
 Keep the descriptor nonselectable until code, tests, documentation, and the
 required target-host evidence agree. A passing repository test on the

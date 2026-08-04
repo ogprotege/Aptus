@@ -1,6 +1,6 @@
 # Facts and Provenance
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when fact provenance changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-22 or when fact provenance changes
 
 Fact contract version: `aptus.facts.v3`.
 
@@ -78,6 +78,13 @@ intermediate sizes, layer count, license label, raw model type, MoE topology,
 and quantization precision and layout. It covers only fields present in the
 receipt's sorted provenance summary. Omitted provider fields stay
 user-attested. Parameter count and training permission are always excluded.
+
+The narrower compatibility digest is evaluated from the fixed family, raw model
+type, architecture, layer count, quantization, and MoE fields plus sorted
+`fact_errors`. Caller-only metadata is ignored. Any non-empty compatibility
+error list is processed fail-closed before normal policy matching. The exact
+portable rule and outcome order is defined in the
+[model-policy snapshot reference](../reference/model-policy-snapshot.md).
 
 A receipt can contain only `provider-declared` and `inferred` entries. It must
 cover every non-null compatibility subject field and include at least one
@@ -179,3 +186,4 @@ overwriting evidence.
 - [Data and identity flow](../architecture/data-and-identity-flow.md)
 - [Evidence records](../reference/evidence-records.md)
 - [Plan schema](../reference/plan-schema.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)

@@ -1,6 +1,6 @@
 # State, Storage, and Retention
 
-> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or when a persistent path changes
+> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when a persistent path changes
 
 Aptus writes plans, bundles, data copies, runtime evidence, logs, CUDA
 checkpoints, MLX adapter weight snapshots, and exports. It does not currently
@@ -13,7 +13,7 @@ retention requirements.
 | Location | Contents | Mutability | Sensitivity |
 | --- | --- | --- | --- |
 | Selected state root, default `.aptus-state/` | Named projects and revisions, plans, current pointers, runtime choice, jobs, logs, quarantine, and locks | Mutable control-plane state with immutable revisions | Paths, facts, errors, commands, and runtime evidence |
-| Compiled bundle | Cleartext source copy, canonical data, pilot data, plan, generated code, pins, manifest, and reports | Compiler inputs immutable; named runtime paths mutable | Training data and operational metadata |
+| Compiled bundle | Cleartext source copy, canonical data, pilot data, v5 plan, frozen model-policy snapshot and copied evaluator, generated code, pins, v3 manifest, and reports | Compiler inputs immutable; named runtime paths mutable | Training data, policy metadata, and operational metadata |
 | Bundle ZIP | Second copy of all compiler-managed bundle material | Immutable archive | Same sensitivity as bundle inputs |
 | `pilot-output/` | Pilot metrics, CUDA continuation checkpoints, MLX adapter artifacts and reload evidence, export evidence, and run contracts | Runtime output | Model, data, and hardware evidence |
 | `runs/run_*/` | Unique full-run metrics, CUDA checkpoints or MLX adapter weight snapshots, final export, and manifests | Runtime output; never reused | Model or adapter weights and training evidence |
@@ -80,15 +80,22 @@ The allowed mutable roots are:
 Do not edit compiler-managed data, configuration, generated source, or manifest
 entries in place. Recompile to a new bundle path.
 
+That immutable set includes `policy_snapshot.py` and the canonical
+`policy/model-policy-snapshot.v1.json`. The snapshot bytes, plan digest field,
+manifest digest field, and manifested file entry form one frozen integrity
+chain. An installed host separately checks current registry currency. If that
+check returns `replan_required`, retain the old chain as historical evidence and
+create a new plan and bundle; never replace only the snapshot or its digests.
+
 ## Before removing anything
 
 1. Confirm no job is `queued`, `running`, or `cancelling`.
 2. Record the exact bundle, state root, job ID, run ID, and resolved path.
 3. Decide whether legal, research, incident, reproducibility, or release rules
    require retention.
-4. Preserve the plan, manifest, validation report, job record, log, run metrics,
-   environment binding, and export manifest needed to interpret any retained
-   artifact.
+4. Preserve the plan, embedded policy snapshot, manifest, validation report, job
+   record, log, run metrics, environment binding, and export manifest needed to
+   interpret any retained artifact.
 5. Back up material that must survive and verify the backup.
 6. Remove only the resolved inactive target. Do not use an unresolved variable,
    broad glob, home directory, repository root, or filesystem root.
@@ -108,7 +115,7 @@ sharing.
 
 | Class | Keep at minimum | Suggested policy owner |
 | --- | --- | --- |
-| Failed planning or static bundle | Input facts, plan or finding, and source digest | Project owner |
+| Failed planning or static bundle | Input facts, plan or finding, embedded policy snapshot and digest bindings, and source digest | Project owner |
 | Failed runtime action | Bundle identity, validation report, job record, complete log, and relevant runtime outputs | Operator |
 | Completed experiment | All bindings, metrics, environment, test protocol, export manifest, and approved final artifact | Experiment owner |
 | Release evidence | Immutable evidence packet required by the release gates | Release maintainer |

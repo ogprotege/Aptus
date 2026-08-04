@@ -158,6 +158,18 @@ ephemeral loopback port and writes a mode-0600 readiness file. WebKit receives
 an HttpOnly, SameSite=Strict cookie before its first request. Navigation is
 restricted to the exact loopback origin.
 
+The sidecar is the installed-host policy authority for the contained workbench.
+A bundle's embedded snapshot proves frozen policy integrity and saved-decision
+parity, but it cannot establish current registry currency. The sidecar rechecks
+current model policy for managed admission, pilot authorization, worker launch,
+recovery, and the completion verification and promotion transaction. Saved-plan
+load, compile, project recovery, and managed job submission return structured
+HTTP `409 replan_required` for a coherent stale v5 plan; host static validation
+records a typed invalid finding. The workbench must preserve the old artifact
+and create and compile a new plan. Its v5 response normalizer also rejects a
+missing or malformed `model_policy_snapshot_sha256` rather than accepting a
+partial plan.
+
 Persistent paths are:
 
 ```text

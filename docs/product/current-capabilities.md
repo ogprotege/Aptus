@@ -1,11 +1,13 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
-isolated checkout. A separate local desktop gate completed 10 of 10 clean
-engineering builds at implementation commit
+isolated checkout, but that July evidence predates Phase 4 and does not bind the
+current source head. No current-head CUDA or MLX target-runtime pilot was
+collected for the Phase 4 closeout. A separate local desktop gate completed 10
+of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
 target-host and public Developer ID signed and notarized desktop-distribution
@@ -54,12 +56,21 @@ acceptance remain open.
   them. The HTTP API remains `aptus.api.v1`; facts remain `aptus.facts.v3`;
   candidate runtime contracts remain `aptus.runtime-contract.v1`. Phase 4
   changed bundles to `aptus.bundle.v3`, which carries the deterministic frozen
-  snapshot plus a generic evaluator independent of installed Aptus.
+  snapshot at `policy/model-policy-snapshot.v1.json` plus a generic evaluator
+  independent of installed Aptus.
 - Package-free portable validation checks frozen-snapshot integrity and
   decision parity. Without an installed host and its current registry, it
   cannot determine policy currency. Installed Aptus separately enforces current
-  registry currency for host-managed admission, authorization, and completion
-  promotion.
+  registry currency for validation, host-managed admission, pilot authorization,
+  worker launch, and the completion verification and promotion transaction.
+- Installed-host JSON boundaries require object roots for plans, manifests,
+  trainer configurations, and snapshots. Package-free validation enforces the
+  plan, manifest, and snapshot boundaries. Covered malformed nested fields,
+  JSON `null`, oversized integers, excessive nesting, and malformed snapshot
+  operands become controlled contract errors or INVALID findings rather than
+  escaped parser or traversal exceptions. CUDA validation and execution reject
+  the plan before device binding; the trainer configuration remains
+  compiler-managed runtime input.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory
@@ -228,9 +239,11 @@ reload, confirmed full training, final export, and `measured-run-pass`. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. No real CUDA pilot has run on a CUDA target for this release. The
-default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
-public distribution.
+that identity. The July MLX-LM acceptance also predates Phase 4 and does not bind
+the current source head. No current-head MLX or CUDA target-runtime pilot was
+collected for the Phase 4 closeout, and no real CUDA pilot has run on a CUDA
+target for this release. The default Mac artifact is ad-hoc signed, not a
+Developer ID signed and notarized public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory
 admission behavior. It does not prove 30B model loading or training speed.
@@ -238,6 +251,7 @@ admission behavior. It does not prove 30B model loading or training speed.
 ## Related documentation
 
 - [Capability matrix](../reference/capability-matrix.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Method registry](../reference/method-registry.md)
 - [Release gates](../operations/release-gates.md)
 - [Claim language](claim-language.md)

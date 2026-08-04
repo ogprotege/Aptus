@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-04 |
 | Next review | 2026-11-01, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON
@@ -47,9 +47,10 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `--inspection-receipt PATH` | No | None | Successful `aptus inspect model` JSON or its nested receipt; every covered fact is revalidated |
 | `--family FAMILY` | Yes | None | Dense adapter catalog or exact inspected `qwen3_moe` row |
 | `--parameters-b NUMBER` | Yes | None | Positive total resident parameter count in billions; never substitute active MoE parameters |
-| `--model-type TYPE` | No | `null` | Exact provider model type; required by allowlisted MoE contracts |
-| `--architecture CLASS` | No | `null` | Exact provider architecture class; required by allowlisted MoE contracts |
+| `--model-type TYPE` | No | `null` | Exact provider model type; required by registered policy matches, including dense Qwen2 and Qwen3 MoE |
+| `--architecture CLASS` | No | `null` | Exact provider architecture class; required by registered policy matches, including dense Qwen2 and Qwen3 MoE |
 | `--quantization-bits BITS` | No | `null` | Pinned checkpoint precision from 1 through 16 bits |
+| `--quantization-group-size INTEGER` | No | `null` | Positive default group size for a uniform layout with no module overrides; requires `--quantization-bits` and excludes a named layout profile |
 | `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map; the first MoE row requires `qwen3-moe-4bit-group64-router-gates-8bit` |
 | `--hidden-size INTEGER` | Yes | None | Positive hidden width |
 | `--intermediate-size INTEGER` | No | `null` | Positive MLP width; adapter estimates otherwise use `4 * hidden_size` |
@@ -125,6 +126,12 @@ flag is omitted. `--prefer-method qlora` remains an optional tie-breaker because
 the exact policy makes every other MoE method unsupported. The policy also
 rejects shared experts and all placements except `single`. Every accepted row
 remains conditional and pilot-required.
+
+The reviewed dense Qwen2 footprint uses `--model-type qwen2`,
+`--architecture Qwen2ForCausalLM`, 24 layers, `--quantization-bits 4`, and
+`--quantization-group-size 64`. The generic group-size flag emits an explicit
+uniform layout with an empty override list; it is mutually exclusive with the
+named Qwen3 MoE mixed-layout profile.
 
 The CLI fixes `task` to `sft`. It exposes no maximum wall-time field and no
 full-training resume field.

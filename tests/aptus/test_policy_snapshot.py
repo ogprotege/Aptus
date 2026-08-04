@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
+from aptus.model_compatibility import current_model_policy_snapshot
 from aptus.policy_snapshot import (
     evaluate_model_policy_snapshot,
     model_policy_snapshot_bytes,
@@ -143,6 +144,126 @@ def _subject() -> dict:
     }
 
 
+def _qwen2_policy() -> dict:
+    return {
+        "policy_id": "model.qwen2-24l.mlx-qlora",
+        "policy_version": "1.0.0",
+        "family": "qwen",
+        "claims": {
+            "any_identity": {
+                "model_type": ["qwen2"],
+                "architecture": ["Qwen2ForCausalLM"],
+            }
+        },
+        "constraints": [
+            {
+                "kind": "exact_identity",
+                "values": {
+                    "family": "qwen",
+                    "model_type": "qwen2",
+                    "architecture": "Qwen2ForCausalLM",
+                },
+                "reason": "qwen2_identity",
+                "reason_code": "identity-mismatch",
+            },
+            {
+                "kind": "field_equals",
+                "field": "layers",
+                "value": 24,
+                "reason": "qwen2_layers",
+                "reason_code": "identity-mismatch",
+            },
+            {
+                "kind": "field_equals",
+                "field": "quantization_layout",
+                "value": {
+                    "default_bits": 4,
+                    "default_group_size": 64,
+                    "module_overrides": [],
+                },
+                "reason": "qwen2_layout",
+                "reason_code": "quantization-layout-mismatch",
+            },
+            {
+                "kind": "field_equals",
+                "field": "quantization_bits",
+                "value": 4,
+                "reason": "qwen2_four_bit",
+                "reason_code": "four-bit-required",
+            },
+            {
+                "kind": "field_equals",
+                "field": "moe",
+                "value": None,
+                "reason": "qwen2_dense",
+                "reason_code": "dense-topology-required",
+            },
+        ],
+        "paths": [
+            {
+                "path_id": "mlx-lm.qlora.single.dense-causal-lm.v1",
+                "method": "qlora",
+                "distribution": "single",
+                "adapter_profile_id": "dense-causal-lm.v1",
+                "target_modules": [
+                    "q_proj",
+                    "k_proj",
+                    "v_proj",
+                    "o_proj",
+                    "gate_proj",
+                    "up_proj",
+                    "down_proj",
+                ],
+                "runtime_contract": {
+                    "compute_backend": "mps",
+                    "training_runtime": "mlx-lm",
+                    "compiler_id": "mlx-lm.qlora.v1",
+                    "estimator_id": "aptus-memory-mlx-v2",
+                    "evidence_requirement": "pilot-required",
+                    "export_kind": "mlx-lm-adapter",
+                    "schema_version": "aptus.runtime-contract.v1",
+                },
+                "required_validation_levels": [
+                    "model-data",
+                    "measured-preflight",
+                    "pilot",
+                ],
+                "evidence_ids": ["policy.qwen2-24l.mlx-qlora.v1"],
+            }
+        ],
+        "matched_reason": "qwen2_matched",
+        "matched_reason_codes": [
+            "reviewed-runtime-path",
+            "pilot-not-yet-proven",
+        ],
+        "evidence_ids": ["policy.qwen2-24l.mlx-qlora.v1"],
+        "required_provenance_fields": [
+            "architecture",
+            "layers",
+            "model_type",
+            "quantization_bits",
+            "quantization_layout",
+        ],
+    }
+
+
+def _qwen2_subject() -> dict:
+    return {
+        "family": "qwen",
+        "model_type": "qwen2",
+        "architecture": "Qwen2ForCausalLM",
+        "layers": 24,
+        "quantization_bits": 4,
+        "quantization_layout": {
+            "default_bits": 4,
+            "default_group_size": 64,
+            "module_overrides": [],
+        },
+        "moe": None,
+        "fact_errors": [],
+    }
+
+
 class PolicySnapshotTests(unittest.TestCase):
     def setUp(self) -> None:
         self.snapshot = model_policy_snapshot_payload(_registry())
@@ -167,6 +288,81 @@ class PolicySnapshotTests(unittest.TestCase):
         self.assertFalse(encoded.endswith(b"\n\n"))
         self.assertEqual(encoded, model_policy_snapshot_bytes(other))
         self.assertEqual(len(model_policy_snapshot_sha256(self.snapshot)), 64)
+
+    def test_current_snapshot_contains_both_reviewed_runtime_policies(self) -> None:
+        snapshot = current_model_policy_snapshot()
+        policies = {policy["policy_id"]: policy for policy in snapshot["policies"]}
+
+        self.assertEqual(
+            set(policies),
+            {
+                "model.qwen3-moe.mlx-qlora",
+                "model.qwen2-24l.mlx-qlora",
+            },
+        )
+        qwen2 = policies["model.qwen2-24l.mlx-qlora"]
+        self.assertEqual(
+            qwen2["claims"],
+            {
+                "any_identity": {
+                    "architecture": ["Qwen2ForCausalLM"],
+                    "model_type": ["qwen2"],
+                }
+            },
+        )
+        self.assertEqual(len(qwen2["paths"]), 1)
+        path = qwen2["paths"][0]
+        self.assertEqual(
+            path["path_id"],
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(path["adapter_profile_id"], "dense-causal-lm.v1")
+        self.assertEqual(
+            path["target_modules"], _qwen2_policy()["paths"][0]["target_modules"]
+        )
+        self.assertEqual(
+            path["required_validation_levels"],
+            ["model-data", "measured-preflight", "pilot"],
+        )
+        self.assertEqual(
+            qwen2["required_provenance_fields"],
+            _qwen2_policy()["required_provenance_fields"],
+        )
+
+    def test_claims_may_be_a_subset_of_exact_identity_without_family_capture(
+        self,
+    ) -> None:
+        registry = _registry()
+        registry["reasons"].update(
+            {
+                "qwen2_identity": "Qwen2 identity mismatch",
+                "qwen2_layers": "Qwen2 layer count mismatch",
+                "qwen2_layout": "Qwen2 quantization layout mismatch",
+                "qwen2_four_bit": "Qwen2 requires four-bit weights",
+                "qwen2_dense": "Qwen2 requires dense topology",
+                "qwen2_matched": "Reviewed Qwen2 runtime footprint matched",
+            }
+        )
+        registry["policies"].append(_qwen2_policy())
+
+        snapshot = model_policy_snapshot_payload(registry)
+        exact = evaluate_model_policy_snapshot(snapshot, _qwen2_subject())
+        unrelated_qwen = {
+            **_qwen2_subject(),
+            "model_type": "qwen3",
+            "architecture": "Qwen3ForCausalLM",
+        }
+        family_drift = {**_qwen2_subject(), "family": "llama"}
+
+        self.assertEqual(exact["kind"], "path-matched")
+        self.assertEqual(exact["policy_id"], "model.qwen2-24l.mlx-qlora")
+        self.assertEqual(
+            evaluate_model_policy_snapshot(snapshot, unrelated_qwen)["kind"],
+            "family-recognized",
+        )
+        drift_decision = evaluate_model_policy_snapshot(snapshot, family_drift)
+        self.assertEqual(drift_decision["kind"], "blocked")
+        self.assertEqual(drift_decision["policy_id"], "model.qwen2-24l.mlx-qlora")
 
     def test_validation_rejects_unknown_constraint_and_malformed_snapshot(self) -> None:
         validate_model_policy_snapshot(self.snapshot)
@@ -219,7 +415,7 @@ class PolicySnapshotTests(unittest.TestCase):
                 self._assert_evaluation_rejects(malformed, "module template")
 
     def test_validation_rejects_malformed_field_and_identity_operands(self) -> None:
-        for value in (None, "", " ", " quantization_bits", [], {}):
+        for value in (None, "", " ", " quantization_bits", "model_id", [], {}):
             with self.subTest(kind="field_equals", value=value):
                 malformed = copy.deepcopy(self.snapshot)
                 self._constraint(malformed, "field_equals")["field"] = value
@@ -280,12 +476,12 @@ class PolicySnapshotTests(unittest.TestCase):
             "duplicate claim value": lambda policy: policy["claims"]["any_identity"][
                 "family"
             ].append("qwen3_moe"),
-            "claim identity field missing": lambda policy: policy["claims"][
-                "any_identity"
-            ].pop("architecture"),
             "identity not claimed": lambda policy: policy["claims"]["any_identity"][
                 "family"
             ].remove("qwen3_moe"),
+            "claimed identity differs from exact identity": lambda policy: policy[
+                "claims"
+            ]["any_identity"].update(architecture=["OtherForCausalLM"]),
         }
         for name, mutate in mutations.items():
             with self.subTest(name=name):

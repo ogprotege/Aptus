@@ -1,6 +1,6 @@
 # Memory Estimation
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when the formula version changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when the formula version changes
 
 Methodology versions: `aptus-memory-v2` for the CUDA compiler and
 `aptus-memory-mlx-v2` for the MLX-LM compiler.
@@ -130,9 +130,9 @@ analytical prior: base weights use $0.5P$ bytes and quantization metadata uses
 $0.0625P$ bytes.
 
 When a layout is bound, both are priced from it instead. Let $b_d$ and $g_d$ be
-the default bits and group size, let each router-gate override $o$ carry $b_o$
-and $g_o$, and let each override cover $P_o = h \cdot E$ parameters for hidden
-size $h$ and expert count $E$. With $P_d = P - \sum_o P_o$:
+the default bits and group size, let each module override $o$ carry $b_o$ and
+$g_o$, and let each override cover $P_o = h \cdot E$ parameters for hidden size
+$h$ and expert count $E$. With $P_d = P - \sum_o P_o$:
 
 $$
 W = \frac{P_d\,b_d + \sum_o P_o\,b_o}{8}
@@ -146,6 +146,10 @@ The metadata term stores one half-precision scale and one bias per group. A
 layout with eight-bit router-gate overrides therefore costs strictly more than
 $0.5P$. The reviewed Qwen3 MoE layout is four-bit group-64 by default with one
 eight-bit group-64 override per layer.
+
+For the dense Qwen2 policy, the override list is empty, so four-bit group-64
+yields $W=0.5P$ and $Q=0.0625P$. The explicit layout remains identity-bound
+even though those values equal the unnamed analytical prior.
 
 Adapter weights and gradients each use $4P_t$ bytes. AdamW state uses $8P_t$
 bytes. The dense activation prior is:

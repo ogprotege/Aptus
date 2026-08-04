@@ -80,9 +80,13 @@ not resumable checkpoints, and every resume argument fails. QLoRA also requires
 a pinned MLX model with explicit four-bit quantization metadata. It never uses
 bitsandbytes.
 
-The July MLX-LM acceptance record predates Phase 4 and does not bind the current
-source head. Run the complete five-action sequence for the exact current bundle
-before making a target-runtime claim.
+The July MLX-LM record covers the exact pinned Qwen2.5 artifact under v2 plan
+and bundle contracts. It predates the current v5 plan, v3 bundle, and Phase 6
+registry expansion; no current-head v5/v3 MLX-LM acceptance has been recorded.
+A matching 24-layer dense Qwen2 configuration can enter the reviewed path, but
+that policy match is not artifact-wide runtime acceptance. Run the complete
+five-action sequence for the exact current bundle before making a target-runtime
+claim.
 
 ## Path C: Validate and train on CUDA
 

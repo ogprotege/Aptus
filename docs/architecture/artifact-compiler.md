@@ -89,7 +89,20 @@ The historical Phase 3 `aptus.bundle.v2` contract used handwritten
 self-contained policy checks. Phase 4 changed the bundle contract to
 `aptus.bundle.v3` and added the portable policy snapshot plus generic evaluator;
 Phase 5 subsequently removed browser policy reconstruction without changing
-this compiler contract. Phase 6 remains pending.
+this compiler contract. Phase 6 now adds the second registry-driven
+`model.qwen2-24l.mlx-qlora` configuration-footprint policy without changing the
+bundle schema. Its path is
+`mlx-lm.qlora.single.dense-causal-lm.v1`, and generated bundles carry the same
+two-policy snapshot bytes and digest as their v5 plan and manifest. Because the
+registry addition changes those canonical bytes, pre-expansion v5 plans require
+replanning.
+
+The compiler path is implemented, but Phase 6 remains runtime-evidence-open.
+The retained Qwen2.5-0.5B run is artifact-scoped historical evidence under the
+older v2 plan and bundle. A current `aptus.training-plan.v5` and
+`aptus.bundle.v3` must still pass dependency, model-data, measured preflight,
+pilot and reload, confirmed full training, final reload and export, and
+`measured-run-pass` before the phase can close.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through
@@ -134,7 +147,9 @@ editing generated source or configuration in place.
 The typed registry exposes four selectable `gated-executable` methods. The CUDA
 compiler can emit their guarded single-device and DDP configurations, plus
 conditional LoRA FSDP. The MLX compiler emits supported LoRA and QLoRA adapter
-execution only. MLX full-parameter training and DoRA are unimplemented.
+execution only. Within that generic dense support, the Qwen2 24-layer policy
+binds MLX-LM QLoRA to `dense-causal-lm.v1` and all seven attention and MLP
+projection targets. MLX full-parameter training and DoRA are unimplemented.
 Experimental and research-only descriptors have no compiler or export
 identifiers and cannot enter this boundary. The compiler refuses full-parameter
 FSDP and quantized FSDP. It does not emit cloud infrastructure, provider

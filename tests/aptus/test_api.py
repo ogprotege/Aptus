@@ -47,7 +47,12 @@ from aptus.plan_contract import (
 from aptus.profiling import build_hardware_spec, build_model_spec
 from aptus.runtime_env import RuntimeInterpreter
 
-from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
+from tests.aptus.helpers import (
+    QWEN2_5_ACCEPTANCE_MODEL_ID,
+    QWEN2_5_ACCEPTANCE_REVISION,
+    make_plan,
+    make_qwen3_moe_plan,
+)
 
 try:
     from fastapi.testclient import TestClient
@@ -2576,6 +2581,91 @@ class ApiEndpointTests(unittest.TestCase):
                 == failure["model_policy_decision"]["decision_id"]
                 for candidate in failure["candidates"]
             )
+        )
+
+    def test_qwen2_no_fit_response_preserves_dense_policy_projection(self) -> None:
+        payload = self.plan_payload()
+        payload["model"] = {
+            **payload["model"],
+            "model_id": QWEN2_5_ACCEPTANCE_MODEL_ID,
+            "revision": QWEN2_5_ACCEPTANCE_REVISION,
+            "family": "qwen",
+            "parameters_b": 0.494,
+            "hidden_size": 896,
+            "intermediate_size": 4864,
+            "layers": 24,
+            "context_length": 32768,
+            "model_type": "qwen2",
+            "architecture": "Qwen2ForCausalLM",
+            "quantization_bits": 4,
+            "quantization_layout": {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+        }
+        payload["hardware"] = {
+            **payload["hardware"],
+            "backend": "mps",
+            "gpu_count": 1,
+            "vram_gib": 64,
+            "free_vram_gib": 64,
+            "supports_bf16": False,
+            "supports_8bit": False,
+            "supports_4bit": False,
+            "host_ram_gib": 64,
+            "host_ram_free_gib": 64,
+            "reserve_gib": 8,
+            "disk_free_gib": 0.1,
+        }
+        payload["target"] = {
+            **payload["target"],
+            "method_preference": "qlora",
+            "training_runtime": "mlx-lm",
+            "effective_batch_size": 1,
+        }
+
+        response = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(response.status_code, 422, response.text)
+        failure = response.json()
+        self.assertEqual(failure["error"], "no_feasible_plan")
+        self.assertEqual(failure["model_policy_decision_source"], "user-attested")
+        decision = failure["model_policy_decision"]
+        self.assertEqual(decision["policy_id"], "model.qwen2-24l.mlx-qlora")
+        self.assertEqual(
+            decision["reason_codes"],
+            ["reviewed-runtime-path", "pilot-not-yet-proven"],
+        )
+        self.assertEqual(len(decision["paths"]), 1)
+        self.assertEqual(
+            decision["paths"][0]["adapter_profile_id"],
+            "dense-causal-lm.v1",
+        )
+        bound = [
+            candidate
+            for candidate in failure["candidates"]
+            if candidate["policy_binding"] is not None
+        ]
+        self.assertEqual(len(bound), 1)
+        candidate = bound[0]
+        self.assertFalse(candidate["feasible"])
+        self.assertEqual(candidate["status"], "infeasible")
+        self.assertEqual(
+            candidate["policy_binding"]["path_id"],
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(
+            candidate["target_modules"],
+            [
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
         )
 
     def test_hardware_probe_runtime_failure_returns_manual_fallback(self) -> None:

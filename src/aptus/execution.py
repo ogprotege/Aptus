@@ -407,7 +407,10 @@ def _require_current_bundle_model_policy(
             f"{error}"
         ) from error
     if enforce_current_policy:
-        require_current_model_policy_snapshot(plan)
+        require_current_model_policy_snapshot(
+            plan,
+            historical_policy_snapshot=snapshot,
+        )
     try:
         stable = (
             manifest_path.read_bytes() == manifest_bytes

@@ -14,6 +14,11 @@ record remains valid historical evidence for its tested commit, but Gate 0 must
 be repeated with a current v5 plan and v3 bundle before it can renew current-head
 runtime acceptance.
 
+The current registry now recognizes the reviewed
+`model.qwen2-24l.mlx-qlora` configuration footprint. That source-level policy
+addition does not renew Gate 0, turn the July record into v5/v3 evidence, or
+authorize every artifact with the same structural configuration.
+
 ## Measured host
 
 The intended machine is an Apple M5 Pro with an 18-core CPU, 20-core GPU,
@@ -58,6 +63,30 @@ PyTorch MPS, adapter fusion, and crash resume remain outside the current
 executable path. Aptus does support uninterrupted full-duration LoRA and QLoRA
 adapter runs after `pilot-pass`.
 
+## Reviewed Qwen2 configuration footprint
+
+Policy `model.qwen2-24l.mlx-qlora` version `1.0.0` recognizes one portable
+configuration footprint:
+
+- family `qwen`, provider model type `qwen2`, and architecture
+  `Qwen2ForCausalLM`;
+- exactly 24 transformer layers and no MoE topology;
+- uniform four-bit, group-size-64 quantization with no module overrides; and
+- single-device MLX-LM QLoRA through path
+  `mlx-lm.qlora.single.dense-causal-lm.v1`.
+
+The path uses the seven dense targets `q_proj`, `k_proj`, `v_proj`, `o_proj`,
+`gate_proj`, `up_proj`, and `down_proj`. Its policy and runtime evidence IDs are
+`policy.qwen2-24l.mlx-qlora.v1` and
+`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`.
+
+The first ID records implementation review of the configuration-to-path rule.
+The second records the July measurements only for
+`mlx-community/Qwen2.5-0.5B-Instruct-4bit` at revision
+`53a32aee5e9447773fd2b85988395066aef3700a`. The policy does not make those
+measurements transferable to another matching artifact. No current v5 plan and
+v3 bundle for this path has completed the runtime ladder.
+
 ## Historical completed QLoRA acceptance
 
 On 2026-07-27, two clean workflows reached `measured-run-pass` with:
@@ -66,6 +95,8 @@ On 2026-07-27, two clean workflows reached `measured-run-pass` with:
   `53a32aee5e9447773fd2b85988395066aef3700a`;
 - the four-row synthetic `examples/support-sft.jsonl` dataset;
 - Python 3.12.13, `mlx==0.31.2`, and `mlx-lm==0.31.3`; and
+- `aptus.training-plan.v2` and `aptus.bundle.v2`, without the later portable
+  model-policy snapshot binding; and
 - generated compiler contract `mlx-lm.qlora.v1`.
 
 Each clean workflow completed dependency, model-data, measured-preflight,
@@ -80,6 +111,10 @@ contains the run IDs, timing, hashes, metrics, admission evidence, and retained
 logs. This result proves runtime and artifact correctness for the recorded
 configuration. It does not establish production throughput, model quality,
 usefulness, safety, or broader Apple Silicon fit.
+It also does not establish current `aptus.training-plan.v5` and
+`aptus.bundle.v3` acceptance. The historical
+`runtime.qwen2-0.5b.mlx-qlora.2026-07-27` record remains bound to the exact
+artifact and contracts that produced it.
 
 Evidence should now progress in this order:
 
@@ -102,11 +137,12 @@ row first needs the standard dependency, model-data, measured-preflight, and
 two-update uninterrupted pilot. Only a current passing pilot can authorize its
 full-duration envelope. Rank and target modules remain compiler-selected plan
 facts. The current product does not expose selected-layer or q/v-only MLX
-controls.
+controls. A `model.qwen2-24l.mlx-qlora` match identifies the reviewed path; it
+does not change this evidence ladder or mark any current bundle as passed.
 
 | Gate | Status | Model | Method | Starting full-run envelope or result | Purpose |
 |---|---|---|---|---|---|
-| 0 | Historical acceptance; current-head renewal open | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean pre-Phase-4 `measured-run-pass` results on four synthetic rows | Prove the complete gated workflow, immutable adapter export, and bounded fresh-process generation |
+| 0 | Historical v2/v2 acceptance; current v5/v3 renewal open | [`mlx-community/Qwen2.5-0.5B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/tree/53a32aee5e9447773fd2b85988395066aef3700a) | QLoRA | Two clean pre-Phase-4 `measured-run-pass` results on four synthetic rows | Prove the historical gated workflow, immutable adapter export, and bounded fresh-process generation for the exact artifact |
 | 1A | Proposed | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | LoRA | Batch 1, 1,024 tokens, one epoch | Establish a larger unquantized runtime baseline on an Apache-2.0 model |
 | 2 | Proposed | [`mlx-community/Qwen2.5-14B-Instruct-4bit`](https://huggingface.co/mlx-community/Qwen2.5-14B-Instruct-4bit) | QLoRA | Batch 1, 1,024 tokens, one epoch | Test whether a materially larger model improves the target task within a safe memory reserve |
 | 2M | Admission blocked | Revision-pinned Qwen3 30B-A3B MoE checkpoint with four-bit group-64 defaults and eight-bit group-64 router gates | QLoRA | Dependency passed; model-data refused before model load with an 18.932 GiB live-memory shortfall | Accept the exact `qwen3_moe` compatibility row and measure routed-expert memory and throughput |

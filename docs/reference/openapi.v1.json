@@ -3,7 +3,8 @@
     "schemas": {
       "AdapterProfile": {
         "enum": [
-          "attention-qkvo.v1"
+          "attention-qkvo.v1",
+          "dense-causal-lm.v1"
         ],
         "title": "AdapterProfile",
         "type": "string"
@@ -2063,11 +2064,14 @@
       "ModelPolicyReasonCode": {
         "enum": [
           "exact-reviewed-artifact",
+          "reviewed-runtime-path",
           "pilot-not-yet-proven",
           "invalid-compatibility-facts",
           "identity-mismatch",
+          "layer-count-mismatch",
           "quantization-layout-mismatch",
           "topology-incomplete",
+          "dense-topology-required",
           "shared-expert-unsupported",
           "four-bit-required",
           "family-recognized",

@@ -180,10 +180,13 @@ measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
 full-duration adapter training from the pinned base model. Two clean workflows
 reached `measured-run-pass` in the dated acceptance record. Fresh-process adapter
 reload and bounded generation prove that the emitted adapter can be loaded. They
-do not prove training resume. That July MLX-LM record predates Phase 4 and does
-not bind the current source head; no current-head MLX or CUDA target-runtime
-pilot was collected for the Phase 4 closeout. The exact `qwen3_moe` MLX-LM
-QLoRA row remains conditional and has only safe-refusal evidence: the recorded
-30B attempt stopped before model loading when live unified-memory admission
-failed. CUDA training remains an external-host path on this Mac, with no
-qualifying target-host run recorded.
+do not prove training resume. The July MLX-LM record covers the exact pinned
+Qwen2.5 artifact under v2 plan and bundle contracts. It predates the current v5
+plan, v3 bundle, and Phase 6 registry expansion; no current-head v5/v3 MLX-LM
+acceptance has been recorded. The implemented 24-layer dense Qwen2
+configuration-footprint policy therefore remains conditional and
+runtime-evidence-open. The exact `qwen3_moe` MLX-LM QLoRA row remains
+conditional and has only safe-refusal evidence: the recorded 30B attempt stopped
+before model loading when live unified-memory admission failed. CUDA training
+remains an external-host path on this Mac, with no qualifying target-host run
+recorded.

@@ -24,9 +24,10 @@ authorize training or completion promotion after that policy boundary changes.
 
 Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` in the
 [2026-07-27 acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
-That evidence predates the Phase 4 source head and does not establish a
-current-head MLX-LM pilot pass. No current-head CUDA or MLX target-runtime pilot
-was collected for the Phase 4 closeout.
+That artifact-scoped evidence used a v2 plan and v2 bundle. It predates the
+current v5 plan, v3 bundle, and Phase 6 two-policy registry and does not
+establish a current-head MLX-LM pilot pass. No current-head CUDA or MLX
+target-runtime pilot was collected for the Phase 6 implementation.
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the
@@ -125,7 +126,7 @@ MPS or MLX.
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
 | `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass` is reachable, but no qualifying target-host run is recorded |
-| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the exact conditional Qwen3 MoE row | Two clean dense QLoRA workflows reached `measured-run-pass`; the Qwen3 MoE acceptance gate remains open |
+| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the conditional Qwen3 MoE row and reviewed 24-layer dense Qwen2 footprint | Two historical dense QLoRA workflows reached `measured-run-pass` under v2/v2; the current Qwen2 Phase 6 and Qwen3 MoE acceptance gates remain open |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
 LM Studio and oMLX are not training runtimes. They are loopback inference-only
@@ -177,6 +178,26 @@ only exact alias normalization:
 - `gemma3` only for explicitly accepted text architectures.
 
 Multimodal, prefix-matched, and unknown architectures are not silently mapped.
+The reviewed dense Qwen2 configuration footprint requires all fields below:
+
+| Qwen2 field | Required value |
+| --- | --- |
+| Aptus family | `qwen` |
+| Provider model type | `qwen2` |
+| Architecture | `Qwen2ForCausalLM` |
+| Layer count | 24 |
+| Topology | Dense, with no MoE configuration |
+| Checkpoint layout | Uniform four-bit, group size 64, with no module overrides |
+| Runtime and backend | `mlx-lm` on `mps` |
+| Method and placement | QLoRA, `single` |
+| Adapter scope | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and `down_proj` |
+| Evidence | `pilot-required`; current v5/v3 acceptance open |
+
+This is a reviewed configuration footprint, not an artifact allowlist. An
+inspection receipt binds the exact model ID and immutable revision. Historical
+runtime evidence for one matching artifact does not transfer to another
+artifact or close the current-source ladder.
+
 The only sparse exception is exact and requires all fields below:
 
 | Qwen3 MoE field | Required value |
@@ -206,8 +227,9 @@ remains unsupported.
 CUDA model-data validation checks the loaded parameter count, hidden size,
 optional intermediate size, layers, context length, and adapter targets.
 MLX-LM model-data validation loads the exact revision, validates QLoRA
-quantization metadata and exact MoE topology when applicable, and tokenizes
-every bound row.
+quantization metadata, the uniform Qwen2 or mixed Qwen3 layout bound by the
+selected policy when applicable, and exact MoE topology when applicable. It
+then tokenizes every bound row.
 
 ## Dataset support
 

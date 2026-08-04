@@ -270,7 +270,7 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertEqual(
             allowed_values(conditional["properties"]["adapter_profile_id"]),
-            {"attention-qkvo.v1"},
+            {"attention-qkvo.v1", "dense-causal-lm.v1"},
         )
         self.assertEqual(
             conditional["properties"]["evidence_requirement"]["const"],
@@ -836,7 +836,7 @@ class DocumentationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         normalized_capability_matrix = " ".join(capability_matrix.split())
         for evidence_boundary in (
-            "predates the Phase 4 source head",
+            "predates the current v5 plan, v3 bundle, and Phase 6 two-policy registry",
             "does not establish a current-head MLX-LM pilot pass",
             "No current-head CUDA or MLX target-runtime pilot",
         ):
@@ -845,8 +845,13 @@ class DocumentationTests(unittest.TestCase):
         current_capabilities = (
             REPOSITORY / "docs/product/current-capabilities.md"
         ).read_text(encoding="utf-8")
-        opening_boundary = current_capabilities.split("## Available now", 1)[0]
-        self.assertIn("predates Phases 4 and 5", opening_boundary)
+        opening_boundary = " ".join(
+            current_capabilities.split("## Available now", 1)[0].split()
+        )
+        self.assertIn(
+            "predates the current v5 plan, v3 bundle, and Phase 6 registry expansion",
+            opening_boundary,
+        )
         self.assertIn("No current-head CUDA or MLX", opening_boundary)
 
         install = (REPOSITORY / "docs/getting-started/install.md").read_text(
@@ -873,8 +878,8 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "current-head MLX and CUDA target-host evidence",
-            documentation_health,
+            "No current-head CUDA or MLX target-runtime pilot",
+            " ".join(documentation_health.split()),
         )
 
         inventory = (
@@ -902,8 +907,8 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 113)
-        self.assertEqual(len(excluded_documents), 12)
+        self.assertEqual(len(repository_documents), 114)
+        self.assertEqual(len(excluded_documents), 13)
         self.assertEqual(len(governed_documents), 101)
         self.assertEqual(len(active_documents), 85)
         self.assertEqual(len(deprecated_documents), 2)
@@ -915,7 +920,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(maintained_documentation()), 92)
         self.assertIn("101 governed tracked Markdown documents", inventory)
         self.assertIn("92 Markdown files", inventory)
-        self.assertIn("113 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("114 tracked Markdown files", " ".join(inventory.split()))
         self.assertIn("| Active | 85 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 14 |", inventory)
@@ -934,7 +939,6 @@ class DocumentationTests(unittest.TestCase):
                 "typed `authorization_status` values `current`, `deferred`, and `blocked`",
                 "recommendation must structurally equal the complete listed candidate record",
                 "browser never derives a status from diagnostic prose",
-                "Phase 6 remains pending",
             ),
             "docs/product/current-capabilities.md": (
                 "Phase 5's server-authoritative workbench policy boundary",
@@ -958,7 +962,6 @@ class DocumentationTests(unittest.TestCase):
                 "exact `authorization_status` vocabulary of `current`, `deferred`, and `blocked`",
                 "never infers a status from diagnostic prose",
                 "Phase 5 is complete",
-                "Phase 6 remains pending",
             ),
             "docs/product/user-workflows.md": (
                 "typed HTTP 422 response together with the server decision",
@@ -979,7 +982,6 @@ class DocumentationTests(unittest.TestCase):
                 "optional `authorization_status` vocabulary is exactly `current`, `deferred`, or `blocked`",
                 "recommendation must structurally equal its complete listed candidate record",
                 "MoE topology rail separately explains routing",
-                "Phase 6 remains pending",
             ),
             "docs/architecture/data-and-identity-flow.md": (
                 "HTTP planning boundary preserves this chain on both success and failure",
@@ -1008,7 +1010,6 @@ class DocumentationTests(unittest.TestCase):
                 "Reuse that exact predicate for model-policy evidence, workflow-stage completion, and validation or run action enablement",
                 "optional typed tuple: `authorization_status` is exactly `current`, `deferred`, or `blocked`",
                 "surface the request error while preserving the prior report",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-debt.md": (
                 "### DOC-023: Remove browser-side model-policy reconstruction",
@@ -1018,17 +1019,15 @@ class DocumentationTests(unittest.TestCase):
                 "required model subject must match the submitted ID and immutable revision",
                 "recommendation must structurally equal its complete listed candidate record",
                 "tuple with no non-null member means not checked",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-health.md": (
-                "current Phase 5 maintained-guidance closeout",
+                "Phase 5 maintained-guidance closeout",
                 "strict v2 decision, path, receipt, and candidate/report ingress",
                 "Evidence completeness stays separate from the optional typed `authorization_status` values",
                 "Recommendations structurally equal their complete listed candidate records",
                 "tuple with no non-null member means not checked",
                 "does not infer status from prose or mutate the report",
                 "unused flattened compatibility normalizer was removed",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-inventory.md": (
                 "after the Phase 5 closeout",
@@ -1206,6 +1205,63 @@ class DocumentationTests(unittest.TestCase):
             authorization_status["anyOf"][0]["enum"],
             ["current", "deferred", "blocked"],
         )
+
+    def test_phase6_second_policy_and_evidence_boundary_are_documented(self) -> None:
+        def normalized(relative_path: str) -> str:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        required_claims = {
+            "README.md": (
+                "`model.qwen2-24l.mlx-qlora`",
+                "reviewed dense configuration footprint rather than an artifact allowlist",
+                "Phase 6 is runtime-evidence-open",
+            ),
+            "ROADMAP.md": (
+                "Phase 6 is implemented at the registry, planner, compiler, portable-contract, and test boundaries",
+                "`mlx-lm.qlora.single.dense-causal-lm.v1`",
+                "Phase 6 therefore remains runtime-evidence-open",
+            ),
+            "docs/reference/capability-matrix.md": (
+                "This is a reviewed configuration footprint, not an artifact allowlist",
+                "Uniform four-bit, group size 64, with no module overrides",
+                "current v5/v3 acceptance open",
+            ),
+            "docs/reference/model-policy-snapshot.md": (
+                "`model.qwen2-24l.mlx-qlora`",
+                "targets `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and `down_proj`",
+                "reviewed configuration footprint, not current-head runtime acceptance for every matching artifact",
+            ),
+            "docs/reference/cli.md": (
+                "`--quantization-group-size INTEGER`",
+                "The reviewed dense Qwen2 footprint",
+            ),
+            "docs/product/claim-language.md": (
+                "A configuration-footprint policy is not an artifact allowlist",
+                "current Phase 6 v5/v3 acceptance gate",
+            ),
+            "docs/operations/release-gates.md": (
+                "`policy.qwen2-24l.mlx-qlora.v1`",
+                "`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`",
+                "runtime-evidence-open",
+            ),
+            "docs/maintenance/documentation-debt.md": (
+                "### DOC-024: Close Phase 6 runtime evidence for the second model policy",
+                "**Status:** In progress",
+                "produce an `aptus.training-plan.v5` and `aptus.bundle.v3`",
+            ),
+        }
+        for relative_path, claims in required_claims.items():
+            text = normalized(relative_path)
+            for claim in claims:
+                self.assertIn(claim, text, (relative_path, claim))
+
+        for relative_path in required_claims:
+            self.assertNotIn(
+                "Phase 6 remains pending",
+                normalized(relative_path),
+                relative_path,
+            )
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

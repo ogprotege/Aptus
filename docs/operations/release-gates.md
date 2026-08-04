@@ -122,6 +122,18 @@ do not prove public notarization.
   group-64 defaults, exactly one eight-bit group-64 router-gate override per
   layer, a complete no-shared-expert topology, MLX-LM, QLoRA, `single`, and
   attention-only adapters. Every near match stays unsupported.
+- The second policy, `model.qwen2-24l.mlx-qlora`, is a configuration-footprint
+  rule rather than an artifact allowlist. It requires the `qwen`, `qwen2`, and
+  `Qwen2ForCausalLM` identity, exactly 24 layers, dense topology, and uniform
+  four-bit group-size-64 quantization with no module overrides. Its single-device
+  MLX-LM QLoRA path targets exactly `q_proj`, `k_proj`, `v_proj`, `o_proj`,
+  `gate_proj`, `up_proj`, and `down_proj`.
+- `policy.qwen2-24l.mlx-qlora.v1` records implementation review of that
+  configuration-to-path rule.
+  `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` records only the exact pinned July
+  27 artifact under training-plan v2 and bundle v2. It does not provide current
+  v5/v3 acceptance or runtime evidence for every artifact that matches the
+  configuration footprint.
 - The plan and portable validator recompute sparse-layer count and active
   parameters. Base-weight, metadata, staging, and disk terms use the total
   resident parameter count.
@@ -183,6 +195,11 @@ For each claimed MLX-LM LoRA or QLoRA path:
   architecture, canonical quantization layout and digest, complete expert
   topology, derived sparse facts, and attention-only trainable targets at
   model-data, preflight, pilot, reload, and completion boundaries.
+- A claimed `model.qwen2-24l.mlx-qlora` path additionally proves the reviewed
+  identity, 24-layer dense topology, uniform four-bit group-size-64 layout, and
+  exact seven-target census at model-data, preflight, pilot, reload, and
+  completion boundaries. Historical evidence for one exact artifact cannot
+  satisfy these gates for a current plan or a different artifact.
 
 ## 4. Full-run transaction
 
@@ -304,6 +321,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
 - Current documents name all six model-policy snapshot findings, bind the
   snapshot digest wherever plan identity is enumerated, and distinguish
   package-free frozen-snapshot integrity from installed-host registry currency.
+- Current documents distinguish the reviewed Qwen2 configuration-footprint
+  policy from its exact-artifact historical runtime record and do not present
+  either as current v5/v3 runtime acceptance.
 - No page describes `requirements.txt` as a transitive lock.
 - No page offers full-training resume.
 - No page claims full FSDP support.
@@ -323,7 +343,10 @@ Partially passed. The
 [2026-07-27 Apple Silicon record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 proves two clean, independent MLX-LM workflows through measured preflight,
 pilot, fresh-process adapter reload, confirmed full training, final export, and
-`measured-run-pass`. The
+`measured-run-pass` for the exact pinned Qwen2.5 0.5B artifact under
+`aptus.training-plan.v2` and `aptus.bundle.v2`. It does not provide current
+v5/v3 acceptance and does not transfer to every artifact that matches
+`model.qwen2-24l.mlx-qlora`. The
 [2026-07-27 desktop record](evidence/2026-07-27-desktop-release/README.md) proves
 10 of 10 clean local engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`, including 327 Python, 61 web, and 78
@@ -342,6 +365,13 @@ contract and does not bind the current source head. No current-head CUDA or MLX
 target-runtime pilot was collected for the Phase 4 closeout. Repository, wheel,
 web, native, and macOS package gates closed the source and contract review only;
 they did not renew target-runtime acceptance or establish release readiness.
+
+The Qwen2 policy and its two evidence IDs establish an implementation-reviewed
+configuration-to-path rule plus a separately scoped historical measurement.
+They do not establish Phase 6 runtime completion or a current-head
+`measured-run-pass`. Phase 6 remains runtime-evidence-open. Current acceptance
+still requires a v5 plan, v3 bundle, installed-host policy check, and the
+complete ordered runtime ladder.
 
 No real CUDA pilot or full training evidence has completed on an external CUDA
 host. The local Mac packages are ad-hoc signed, not Developer ID signed and

@@ -319,7 +319,12 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
                     constraint["override_module_template"]
                 )
             elif kind == "field_equals":
-                _require_string(constraint["field"], "field equals field")
+                field = _require_string(constraint["field"], "field equals field")
+                if field not in _COMPATIBILITY_SUBJECT_FIELDS:
+                    raise ValueError(
+                        "Model policy snapshot field equals constraint names an "
+                        "unsupported compatibility fact."
+                    )
 
         if len(exact_identities) != 1:
             raise ValueError(
@@ -328,12 +333,11 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
             )
         exact_values = exact_identities[0]["values"]
         if any(
-            exact_values[field] not in any_identity.get(field, [])
-            for field in _IDENTITY_FIELDS
+            exact_values[field] not in values for field, values in any_identity.items()
         ):
             raise ValueError(
-                "Model policy snapshot exact identity values must be represented "
-                "by the policy claims."
+                "Model policy snapshot claimed exact identity values must be "
+                "represented by the policy claims."
             )
 
         paths = policy.get("paths")
@@ -380,6 +384,49 @@ def _claims(policy: Mapping[str, Any], subject: Mapping[str, Any]) -> bool:
     return any(
         subject.get(field) in values
         for field, values in policy["claims"]["any_identity"].items()
+    )
+
+
+def _has_sparse_identity(
+    snapshot: Mapping[str, Any], subject: Mapping[str, Any]
+) -> bool:
+    return any(
+        marker in value.lower()
+        for value in (
+            subject.get("family"),
+            subject.get("model_type"),
+            subject.get("architecture"),
+        )
+        if isinstance(value, str)
+        for marker in snapshot["sparse_identity_markers"]
+    )
+
+
+def _policy_has_sparse_identity(
+    snapshot: Mapping[str, Any], policy: Mapping[str, Any]
+) -> bool:
+    identity = next(
+        constraint
+        for constraint in policy["constraints"]
+        if constraint["kind"] == "exact_identity"
+    )
+    return any(
+        marker in value.lower()
+        for value in identity["values"].values()
+        for marker in snapshot["sparse_identity_markers"]
+    )
+
+
+def _eligible_claim(
+    snapshot: Mapping[str, Any],
+    policy: Mapping[str, Any],
+    subject: Mapping[str, Any],
+) -> bool:
+    if not _claims(policy, subject):
+        return False
+    return not (
+        _has_sparse_identity(snapshot, subject)
+        and not _policy_has_sparse_identity(snapshot, policy)
     )
 
 
@@ -506,7 +553,7 @@ def evaluate_model_policy_snapshot(
             (
                 candidate
                 for candidate in snapshot["policies"]
-                if _claims(candidate, subject)
+                if _eligible_claim(snapshot, candidate, subject)
             ),
             None,
         )
@@ -543,7 +590,7 @@ def evaluate_model_policy_snapshot(
             reason=reasons[key],
         )
     for policy in snapshot["policies"]:
-        if not _claims(policy, subject):
+        if not _eligible_claim(snapshot, policy, subject):
             continue
         constraints = policy["constraints"]
         for constraint in constraints:
@@ -571,15 +618,9 @@ def evaluate_model_policy_snapshot(
             reason=reasons[policy["matched_reason"]],
         )
 
-    values = [subject.get(field) for field in ("family", "model_type", "architecture")]
     sparse = (
         subject.get("moe") is not None
-        or any(
-            marker in value.lower()
-            for value in values
-            if isinstance(value, str)
-            for marker in snapshot["sparse_identity_markers"]
-        )
+        or _has_sparse_identity(snapshot, subject)
         or any(str(item).startswith("moe:") for item in subject.get("fact_errors", []))
     )
     if sparse:

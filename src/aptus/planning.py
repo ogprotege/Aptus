@@ -321,6 +321,10 @@ def _mlx_memory_breakdown(
                 (
                     "The reviewed Qwen3 MoE layout prices its four-bit group-64 default, eight-bit group-64 router gates, and affine scale and bias metadata separately.",
                 )
+                if model.quantization_layout is not None and model.moe is not None
+                else (
+                    "The bound dense MLX affine layout prices weights and scale and bias metadata from its declared default bit width and group size.",
+                )
                 if model.quantization_layout is not None
                 else (
                     "MLX four-bit storage is modeled as groupwise quantized weights plus explicit metadata, not bitsandbytes NF4.",

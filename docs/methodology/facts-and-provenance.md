@@ -36,12 +36,12 @@ V0.2 requires explicit:
 - affirmative training-permission attestation.
 
 `aptus.training-plan.v5` can also bind exact provider `model_type`,
-architecture, checkpoint precision, and a complete MoE topology. The topology
-contains expert count, experts selected per token, expert width, sparse
-cadence, dense-only layer indices, and optional shared-expert width. Aptus
-derives active parameters and sparse-layer count from the complete model
-contract. The total parameter count remains user-attested and remains the
-resident-weight basis.
+architecture, checkpoint precision, quantization layout, and a complete MoE
+topology. The topology contains expert count, experts selected per token,
+expert width, sparse cadence, dense-only layer indices, and optional
+shared-expert width. Aptus derives active parameters and sparse-layer count
+from the complete model contract. The total parameter count remains
+user-attested and remains the resident-weight basis.
 
 These values are contract-checked but not independently inspected during
 planning. The model-data gate resolves the pinned config and tokenizer, loads
@@ -61,6 +61,11 @@ run, then verifies adapter reload in a fresh process without resuming training.
 The exact Qwen3 MoE row also requires the pinned config to reproduce every
 identity, quantization, and topology fact in the plan. Its compiler scope binds
 attention adapters only.
+
+The dense Qwen2 row additionally requires the pinned config to reproduce the
+exact model type, architecture, 24-layer count, dense topology, and uniform
+four-bit group-size-64 layout. Its compiler scope binds all seven dense adapter
+targets.
 
 ## Inspection receipt and policy source
 

@@ -159,9 +159,12 @@ when its evidence, owner, or resolution changes.
   [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
   adds exact fail-closed evidence for the 30B checkpoint. It stopped before
   model loading and is not passing pilot, training, reload, export,
-  performance, or quality evidence. The July MLX-LM and desktop records predate
-  the current Phase 5 source head; no current-head CUDA or MLX target-runtime
-  pilot was collected for the Phase 5 closeout.
+  performance, or quality evidence. The July MLX-LM record now also supplies
+  artifact-scoped historical evidence for the implemented Qwen2 24-layer
+  configuration-footprint policy, but it predates the current v5 plan, v3
+  bundle, and Phase 6 registry expansion. The July MLX-LM and desktop records do
+  not bind the current source head; no current-head CUDA or MLX target-runtime
+  pilot was collected for the Phase 6 implementation.
 - **Required result:** Renew qualifying current-head MLX-LM target-runtime
   evidence, add equivalent evidence for every claimed CUDA method and placement,
   and add Developer ID signed and notarized desktop evidence for the exact
@@ -344,8 +347,9 @@ when its evidence, owner, or resolution changes.
   manifest bindings with the current host digest; a different host binding is
   stale and requires replanning.
 - **Boundary:** At the Phase 4 closeout, browser policy reconstruction remained
-  assigned to Phase 5. DOC-023 records its completion. A second reviewed policy
-  remains pending in Phase 6.
+  assigned to Phase 5. DOC-023 records its completion. The second reviewed
+  policy was still pending at that historical closeout; DOC-024 records its
+  current implementation and open runtime-evidence gate.
 - **Verification:** Deterministic double generation, host-versus-portable
   decision parity, package-free validation, host-registry currency, exact digest
   binding, scalar plan and manifest rejection, controlled excessive-nesting and
@@ -393,8 +397,9 @@ when its evidence, owner, or resolution changes.
   broken chain is rejected before the non-compilable rows render.
 - **Boundary:** `aptus.api.v1`, `aptus.facts.v3`,
   `aptus.training-plan.v5`, `aptus.bundle.v3`, and
-  `aptus.runtime-contract.v1` remain unchanged. Phase 6 remains pending and owns
-  a second reviewed policy with its own runtime evidence.
+  `aptus.runtime-contract.v1` remain unchanged. Phase 6 has since implemented a
+  second reviewed configuration-footprint policy; DOC-024 records why the phase
+  remains runtime-evidence-open.
 - **Verification:** Strict ingress and presentation cases live in
   `web/src/api.test.ts`, `web/src/lib/modelPolicy.test.ts`,
   `web/src/components/ModelPolicyPanel.test.tsx`,
@@ -405,6 +410,33 @@ when its evidence, owner, or resolution changes.
   `test_phase5_workbench_policy_authority_is_documented` protect the server,
   planner, client, presentation, and maintained-guidance boundaries.
 - **Owner:** API, planning, workbench, and documentation maintainers
+
+### DOC-024: Close Phase 6 runtime evidence for the second model policy
+
+- **Priority:** P1
+- **Status:** In progress
+- **Implemented boundary:** The data-driven host registry and canonical
+  snapshot now contain `model.qwen2-24l.mlx-qlora`. It binds exact `qwen`,
+  `qwen2`, and `Qwen2ForCausalLM` identity, 24 layers, dense topology, a uniform
+  four-bit group-size-64 layout with no overrides, and the single
+  `mlx-lm.qlora.single.dense-causal-lm.v1` path. The
+  `dense-causal-lm.v1` profile covers all seven attention and MLP projection
+  targets. Host and portable evaluation, planner binding, per-policy receipt
+  provenance, canonical evidence, compiler storage, and mutation tests cover
+  the implementation.
+- **Evidence boundary:** The retained July Qwen2.5-0.5B
+  `measured-run-pass` record is historical, artifact-scoped evidence for its
+  exact revision, host, runtime, dataset, v2 plan, and v2 bundle. The policy is a
+  reviewed configuration footprint, not an artifact allowlist, and the record
+  does not establish current acceptance or measured behavior for another
+  matching artifact.
+- **Required result:** From the current implementation source, produce an
+  `aptus.training-plan.v5` and `aptus.bundle.v3`, then pass dependency,
+  model-data, measured preflight, an uninterrupted multi-update pilot,
+  fresh-process reload, confirmed full training, final reload and export, and
+  `measured-run-pass`. Retain the exact policy, snapshot, plan, bundle, model,
+  revision, host, runtime, dataset, metrics, and artifact bindings.
+- **Owner:** Policy, MLX runtime, release-evidence, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

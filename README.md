@@ -247,6 +247,7 @@ describe a CUDA host; they do not enable CUDA work on the Mac.
 | **CUDA** | Single-device and DDP; conditional LoRA FSDP | Full-parameter FSDP, quantized FSDP, ROCm, CPU training |
 | **Apple Silicon** | Conditional MLX-LM LoRA and QLoRA, single device only | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS |
 | **MoE** | Conditional, pilot-required exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed four-bit layout, single-device MLX-LM QLoRA with attention-only adapters | All other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, other MoE methods |
+| **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints; treating one matching configuration as artifact-wide runtime acceptance |
 | **Data** | JSON, JSONL, CSV and text with common SFT row shapes | Sequence packing; tasks other than SFT. Whole-text rows do not compile for `mlx-lm` |
 | **Recovery** | Named projects with immutable content-hashed revisions | Crash resume for MLX-LM or CUDA full runs |
 | **Distribution** | Source build and ad-hoc-signed CI artifacts | A notarized public download |
@@ -268,6 +269,12 @@ explicitly `user-attested`. Parameter count and training permission are never
 promoted to provider facts. Old v4, v3, v2, and schema-less plans, plus
 stale-policy or stale-snapshot v5 plans, require replanning instead of
 reinterpretation.
+
+The registry currently carries two reviewed policy subjects. The Qwen3 MoE row
+binds its exact sparse topology and mixed quantization layout. The second row,
+`model.qwen2-24l.mlx-qlora`, is a reviewed dense configuration footprint rather
+than an artifact allowlist: exact artifact and revision identity remain bound by
+inspection receipts and runtime evidence.
 
 The workbench consumes that server-owned policy as three separate records:
 artifact match, selected candidate path, and evidence readiness. It strictly
@@ -307,7 +314,7 @@ before committing compute time.
 
 | Exact recorded gate | Observed result |
 | --- | ---: |
-| MLX-LM five-action workflow | 18.65 s and 17.47 s, 18.06 s mean |
+| Historical MLX-LM five-action workflow (v2 plan/bundle) | 18.65 s and 17.47 s, 18.06 s mean |
 | Confirmed full train, export, and fresh reload | 4.73 s and 5.06 s |
 | Highest full-run MLX peak | 555.1 MiB |
 | Qwen3 30B MoE live admission | 47.759 GiB required, 28.827 GiB available, **18.932 GiB shortfall** |
@@ -319,6 +326,11 @@ model, and a four-row synthetic dataset. They are **not** production throughput,
 scalability, or model-quality measurements. The synthetic MoE forward is not
 autoregressive generation and does not project 30B speed. The 30B checkpoint
 never loaded, so no 30B throughput claim exists.
+
+The two MLX-LM runs remain scoped to the exact recorded Qwen2.5 artifact,
+revision, runtime, host, dataset, and older v2 plan/bundle contract. They inform
+the second policy's implementation, but they do not close Phase 6 for the
+current v5 plan, v3 bundle, or source head.
 
 Full records: [MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
 [Desktop stability](docs/operations/evidence/2026-07-27-desktop-release/README.md) ·
@@ -454,9 +466,10 @@ frozen snapshot's integrity and decision parity; installed Aptus separately
 enforces current host-registry currency during host static validation and again
 during managed admission, pilot authorization, worker launch, and the
 completion verification and promotion transaction.
-The July 27 MLX-LM workflows predate Phase 4 and do not bind the current source
-head. No current-head MLX or CUDA target-runtime pilot was collected, so the
-source and packaging gates do not establish v0.2 release readiness.
+The July 27 MLX-LM workflows predate the current v5 plan, v3 bundle, and Phase 6
+registry expansion and do not bind the current source head. No current-head MLX
+or CUDA target-runtime pilot was collected, so the source and packaging gates
+do not establish v0.2 release readiness.
 
 Ten consecutive clean local desktop engineering builds passed at implementation
 commit `1038ecdd13103418ef1135e1ced634c10370a961`. That record is historical
@@ -474,6 +487,14 @@ requires full real-model acceptance. Its first exact 30B attempt passed
 dependency validation, then refused model loading with an 18.932 GiB live
 unified-memory shortfall. See the
 [Qwen3 MoE admission record](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md).
+
+Phase 6 has implemented a second registry-driven path for the reviewed
+24-layer dense Qwen2 configuration footprint. It permits only single-device
+MLX-LM QLoRA with the exact uniform four-bit group-64 layout and seven declared
+attention/MLP projection targets. The row remains conditional and
+pilot-required. Phase 6 is runtime-evidence-open until a current-source v5/v3
+dependency-through-`measured-run-pass` ladder succeeds for an exact artifact,
+revision, runtime, host, and dataset.
 
 The [roadmap](ROADMAP.md) tracks remaining release work.
 

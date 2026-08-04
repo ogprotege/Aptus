@@ -191,7 +191,18 @@ The workbench trusts the local authenticated service boundary and still treats
 any server rejection as final. Phase 4 now supplies a portable policy snapshot
 and generic evaluator. Phase 5 is complete: the browser consumes and presents
 the server-owned policy chain without family-specific reconstruction. Phase 6
-remains pending and owns a second reviewed policy with its own runtime evidence.
+has added the second registry-driven `model.qwen2-24l.mlx-qlora` policy and
+`mlx-lm.qlora.single.dense-causal-lm.v1` path. The same generic decoders and
+three-record presentation must render it; the client must not add a Qwen2
+predicate or infer the seven-module binding from family or display text.
+
+The UI describes this row as a reviewed 24-layer dense Qwen2 configuration
+footprint, not as acceptance of every matching artifact. Its historical
+Qwen2.5-0.5B evidence remains visibly scoped to the exact recorded artifact and
+older contract. Evidence readiness stays incomplete until a report bound to the
+current v5 plan, v3 bundle, selected candidate, and immutable revision proves
+the current dependency-through-`measured-run-pass` ladder. Phase 6 remains
+runtime-evidence-open even though the policy and compiler path are implemented.
 
 ## Compile and validate stages
 

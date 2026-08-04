@@ -14,7 +14,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from aptus.domain import Backend, ValidationState
+from aptus.domain import Backend, QuantizationLayout, ValidationState
 from aptus.generation import (
     _BUNDLE_PROGRAMS,
     _accelerate_config,
@@ -37,6 +37,7 @@ from aptus.validation import validate_bundle
 
 from tests.aptus.helpers import (
     make_plan,
+    make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
     qwen3_moe_quantization_config,
 )
@@ -727,6 +728,91 @@ class BundleGenerationTests(unittest.TestCase):
             all(row["messages"][-1]["role"] == "assistant" for row in compiled_rows)
         )
 
+    def test_compiles_dense_mlx_bundle_with_explicit_empty_override_layout(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = make_plan(root)
+            model = replace(
+                base.model,
+                parameters=494_000_000,
+                quantization_bits=4,
+                quantization_layout=QuantizationLayout(
+                    default_bits=4,
+                    default_group_size=64,
+                ),
+            )
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=48,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            plan = plan_training(
+                model=model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+            output = root / "dense-quantized-mlx-bundle"
+            report = generate_bundle(plan, output)
+            payload = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            portable_contract = self._load_generated_path(
+                output,
+                "plan_contract.py",
+                "aptus_generated_dense_quantized_plan_contract",
+            )
+            runtime = self._load_generated(
+                output,
+                "aptus_generated_dense_quantized_runtime",
+            )
+            model_load_binding = _mlx_model_load_binding(payload)
+
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertEqual(payload["recommended"]["method"], "qlora")
+        self.assertEqual(
+            payload["model"]["quantization_layout"],
+            {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+        )
+        self.assertEqual(
+            portable_contract.mlx_quantized_storage_bytes_for_contract(
+                payload["model"]
+            ),
+            (247_000_000, 30_875_000),
+        )
+        self.assertEqual(
+            payload["recommended"]["memory"]["base_weights_bytes"],
+            247_000_000,
+        )
+        self.assertEqual(
+            payload["recommended"]["memory"]["quantization_metadata_bytes"],
+            30_875_000,
+        )
+        self.assertEqual(
+            model_load_binding["packed_checkpoint_binding"]["expected_weight_bytes"],
+            247_000_000,
+        )
+        self.assertEqual(
+            model_load_binding["packed_checkpoint_binding"][
+                "expected_quantization_metadata_bytes"
+            ],
+            30_875_000,
+        )
+        self.assertIs(
+            runtime.require_mlx_model_load_binding(payload, model_load_binding),
+            model_load_binding,
+        )
+
     def test_qwen3_moe_bundle_documents_attention_only_resident_base_policy(
         self,
     ) -> None:
@@ -746,6 +832,115 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("full quantized base still resides", readme)
         self.assertIn("logical active parameters", runbook)
         self.assertIn("MoE adapter policy: attention-only QLoRA", decision)
+
+    def test_qwen2_runtime_footprint_compiles_and_binds_dense_model_data(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "qwen2-runtime-footprint-bundle"
+            report = generate_bundle(
+                make_qwen2_runtime_footprint_plan(root),
+                output,
+            )
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            runtime = self._load_generated(
+                output,
+                "aptus_generated_qwen2_runtime_footprint",
+            )
+            loaded_plan, candidate = runtime.load_contract()
+            model_path = root / "model"
+            model_path.mkdir()
+            config = {
+                "model_type": "qwen2",
+                "architectures": ["Qwen2ForCausalLM"],
+                "hidden_size": 896,
+                "intermediate_size": 4864,
+                "num_hidden_layers": 24,
+                "max_position_embeddings": 32768,
+                "quantization": {"bits": 4, "group_size": 64},
+            }
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+
+            runtime.require_method_model(loaded_plan, candidate, model_path)
+            config["num_hidden_layers"] = 25
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            config["num_hidden_layers"] = 24
+            config["quantization"]["group_size"] = 128
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            config["quantization"]["group_size"] = 64
+            config.update(
+                {
+                    "num_experts": 8,
+                    "num_experts_per_tok": 2,
+                    "moe_intermediate_size": 1024,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                }
+            )
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            dense_layers = [
+                types.SimpleNamespace(mlp=types.SimpleNamespace()) for _ in range(24)
+            ]
+            dense_layers[5] = types.SimpleNamespace(
+                mlp=types.SimpleNamespace(
+                    num_experts=8,
+                    top_k=2,
+                    switch_mlp=object(),
+                )
+            )
+            loaded_model = types.SimpleNamespace(layers=dense_layers)
+            with self.assertRaisesRegex(RuntimeError, "requires dense topology"):
+                runtime.build_mlx_model_load_binding(
+                    loaded_model,
+                    loaded_plan,
+                    observed_safetensors_bytes=0,
+                    parameter_counter=lambda value: loaded_plan["model"]["parameters"],
+                )
+
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertEqual(
+            plan["model_policy_decision"]["policy_id"],
+            "model.qwen2-24l.mlx-qlora",
+        )
+        self.assertEqual(
+            plan["recommended"]["policy_binding"]["path_id"],
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(
+            plan["recommended"]["target_modules"],
+            [
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        )
 
     def test_generated_plan_contract_recomputes_qwen3_moe_memory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

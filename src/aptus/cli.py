@@ -17,6 +17,7 @@ from .domain import (
     Method,
     MoETopology,
     Objective,
+    QuantizationLayout,
     SCHEMA_VERSION,
     TrainingRuntime,
     TrainingTarget,
@@ -89,6 +90,14 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         help=(
             "Exact reviewed provider quantization map. The Qwen3 MoE profile "
             "binds four-bit group-64 defaults and one eight-bit router gate per layer."
+        ),
+    )
+    parser.add_argument(
+        "--quantization-group-size",
+        type=int,
+        help=(
+            "Positive default group size for a uniform quantization layout with "
+            "no module overrides; requires --quantization-bits."
         ),
     )
     parser.add_argument(
@@ -545,6 +554,23 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         model_arguments["architecture"] = arguments.architecture
     if arguments.quantization_bits is not None:
         model_arguments["quantization_bits"] = arguments.quantization_bits
+    if (
+        arguments.quantization_group_size is not None
+        and arguments.quantization_layout_profile is not None
+    ):
+        raise ValueError(
+            "--quantization-group-size and --quantization-layout-profile are "
+            "mutually exclusive."
+        )
+    if arguments.quantization_group_size is not None:
+        if arguments.quantization_group_size <= 0:
+            raise ValueError("--quantization-group-size must be positive.")
+        if arguments.quantization_bits is None:
+            raise ValueError("--quantization-group-size requires --quantization-bits.")
+        model_arguments["quantization_layout"] = QuantizationLayout(
+            default_bits=arguments.quantization_bits,
+            default_group_size=arguments.quantization_group_size,
+        )
     if arguments.quantization_layout_profile is not None:
         layout = reviewed_qwen3_moe_quantization_layout(arguments.layers)
         model_arguments.setdefault("quantization_bits", layout.default_bits)

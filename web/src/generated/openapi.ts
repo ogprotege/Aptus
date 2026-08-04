@@ -405,7 +405,7 @@ export interface components {
          * AdapterProfile
          * @enum {string}
          */
-        AdapterProfile: "attention-qkvo.v1";
+        AdapterProfile: "attention-qkvo.v1" | "dense-causal-lm.v1";
         /**
          * Backend
          * @enum {string}
@@ -1073,7 +1073,7 @@ export interface components {
          * ModelPolicyReasonCode
          * @enum {string}
          */
-        ModelPolicyReasonCode: "exact-reviewed-artifact" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match";
+        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match";
         /** MoETopologyRequest */
         MoETopologyRequest: {
             /** Decoder Sparse Step */

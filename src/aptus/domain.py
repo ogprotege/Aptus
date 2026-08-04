@@ -96,6 +96,7 @@ class Method(StrEnum):
 
 class AdapterProfile(StrEnum):
     ATTENTION_QKVO_V1 = "attention-qkvo.v1"
+    DENSE_CAUSAL_LM_V1 = "dense-causal-lm.v1"
 
 
 class ModelPolicyDecisionKind(StrEnum):
@@ -107,11 +108,14 @@ class ModelPolicyDecisionKind(StrEnum):
 
 class ModelPolicyReasonCode(StrEnum):
     EXACT_REVIEWED_ARTIFACT = "exact-reviewed-artifact"
+    REVIEWED_RUNTIME_PATH = "reviewed-runtime-path"
     PILOT_NOT_YET_PROVEN = "pilot-not-yet-proven"
     INVALID_FACTS = "invalid-compatibility-facts"
     IDENTITY_MISMATCH = "identity-mismatch"
+    LAYER_COUNT_MISMATCH = "layer-count-mismatch"
     QUANTIZATION_LAYOUT_MISMATCH = "quantization-layout-mismatch"
     TOPOLOGY_INCOMPLETE = "topology-incomplete"
+    DENSE_TOPOLOGY_REQUIRED = "dense-topology-required"
     SHARED_EXPERT_UNSUPPORTED = "shared-expert-unsupported"
     FOUR_BIT_REQUIRED = "four-bit-required"
     FAMILY_RECOGNIZED = "family-recognized"
@@ -654,7 +658,7 @@ class ModelPolicyPath:
 
 @dataclass(frozen=True)
 class ModelPolicyDecision:
-    """Artifact-policy result kept separate from candidate and evidence states."""
+    """Compatibility-policy result kept separate from candidates and evidence."""
 
     schema_version: str
     decision_id: str
@@ -1336,6 +1340,16 @@ def _model_policy_decision_from(value: Mapping[str, Any]) -> ModelPolicyDecision
         evidence_ids=tuple(value.get("evidence_ids", ())),
         reason=str(value["reason"]),
     )
+
+
+def model_policy_decision_from_primitive(
+    value: Mapping[str, Any],
+) -> ModelPolicyDecision:
+    """Rehydrate one portable model-policy decision into the domain type."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError("Model policy decision must be an object.")
+    return _model_policy_decision_from(value)
 
 
 def model_inspection_receipt_from_primitive(

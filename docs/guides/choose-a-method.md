@@ -1,6 +1,6 @@
 # Choose a Fine-Tuning Method
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22
 
 Aptus compares a bounded method catalog against explicit model, dataset,
 hardware, and target facts. Method choice is one part of a candidate. Precision,
@@ -69,6 +69,13 @@ device capability bit: the generated model-data gate requires explicit four-bit
 MLX quantization metadata in that revision before work can advance. The reviewed
 Qwen3 MoE slice is executable only as single-device MLX-LM QLoRA with
 attention-only adapters.
+
+The second reviewed policy matches a 24-layer dense `qwen` / `qwen2` /
+`Qwen2ForCausalLM` configuration with no MoE topology and a uniform four-bit
+group-size-64 layout with no overrides. It permits only single-device MLX-LM
+QLoRA with `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and
+`down_proj`. A match remains conditional and does not transfer runtime evidence
+between artifacts.
 
 QLoRA reduces base storage. It does not guarantee faster training, equal final
 quality, or a fit. Quantization metadata, adapters, optimizer state,

@@ -4,9 +4,10 @@
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
-isolated checkout, but that July evidence predates Phases 4 and 5 and does not
-bind the current source head. No current-head CUDA or MLX target-runtime pilot
-was collected for the Phase 5 closeout. A separate local desktop gate completed
+isolated checkout, but that July evidence predates the current v5 plan, v3
+bundle, and Phase 6 registry expansion and does not bind the current source
+head. No current-head CUDA or MLX target-runtime pilot was collected for the
+Phase 6 implementation. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
@@ -24,10 +25,11 @@ acceptance remain open.
   compilation, followed by tokenizer-specific transformation in the selected
   runtime gates.
 - Bounded provider model-metadata inspection at an immutable revision.
-- One host-side model compatibility registry shared by provider inspection,
-  sparse candidate admission, and API execution-path validation. It derives
-  compiler, estimator, export, and evidence-requirement identities from the
-  method registry instead of copying them.
+- One host-side model compatibility registry authority shared by provider
+  inspection, sparse candidate admission, and API execution-path validation.
+  It now contains two reviewed entries and derives compiler, estimator, export,
+  and evidence-requirement identities from the method registry instead of
+  copying them.
 - Exact policy matching for `qwen3_moe` checkpoints with
   `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
   router-gate override per layer, a complete reviewed routed-expert topology,
@@ -38,13 +40,25 @@ acceptance remain open.
   near-matches are blocked before dense-family recognition, including sparse
   model-type or architecture markers whose topology is missing. Conditional API
   claims must match a registered path for the stated model family.
+- A second registry-driven policy for the reviewed dense Qwen2 configuration
+  footprint. It requires exact `qwen`, `qwen2`, and `Qwen2ForCausalLM`
+  identity, 24 layers, no MoE topology, explicit four-bit metadata, and a
+  uniform group-size-64 layout with no module overrides. Its only eligible tuple
+  is single-device MLX-LM QLoRA with adapter profile
+  `dense-causal-lm.v1` and all seven `q_proj`, `k_proj`, `v_proj`, `o_proj`,
+  `gate_proj`, `up_proj`, and `down_proj` targets. This is a reviewed runtime
+  footprint, not acceptance of every artifact with those structural facts;
+  sparse Qwen near-matches remain blocked by the sparse-policy boundary.
 - Persisted `aptus.training-plan.v5` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
-  IDs, policy ID `model.qwen3-moe.mlx-qlora`, policy version `1.0.0`, and path ID
-  `mlx-lm.qlora.single.attention-qkvo.v1` when the exact row matches. Every
-  candidate links to the decision. Only the exact matching candidate receives
-  an `aptus.model-policy-binding.v1` path binding.
+  IDs and the matched entry's policy, version, and path. The two registered
+  identities are `model.qwen3-moe.mlx-qlora` with
+  `mlx-lm.qlora.single.attention-qkvo.v1`, and
+  `model.qwen2-24l.mlx-qlora` with
+  `mlx-lm.qlora.single.dense-causal-lm.v1`, both at policy version `1.0.0`.
+  Every candidate links to the decision. Only the exact matching candidate
+  receives an `aptus.model-policy-binding.v1` path binding.
 - Versioned `aptus.model-inspection-receipt.v1` output from successful provider
   inspection. The receipt separately binds compatibility-subject facts and all
   provider-declared or inferred planning facts carried into the plan. Parameters
@@ -165,6 +179,11 @@ acceptance remain open.
   parameters, backend-derived active parameters, and sparse-layer count.
   Its canonical mixed quantization layout is identity-bound. Adapter targets
   are limited to attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` modules.
+- A narrow dense Qwen2 24-layer MLX-LM QLoRA path. Its uniform four-bit
+  group-size-64 layout with no overrides is identity-bound, and its adapter
+  target census covers all seven attention and MLP projection modules. The
+  planner binds exactly one candidate to this path; every other placement or
+  method remains unbound and unsupported for this policy decision.
 - Atomic no-clobber bundle compilation and deterministic ZIP creation.
 - Portable CUDA direct pins, validation, preflight, pilot, training child, and
   full-run parent programs, plus separate bounded MLX-LM runtime programs.
@@ -217,6 +236,12 @@ acceptance remain open.
   profile all match the exact contract. All checkpoint weights remain resident.
   Active parameters describe per-token computation and never replace total
   parameters in the base-weight memory budget.
+- The Qwen2 24-layer row is conditional only when family, model type,
+  architecture, layer count, dense topology, quantization bits, exact uniform
+  layout, runtime, backend, method, placement, and dense adapter profile all
+  match. Its implementation and portable parity are current, but Phase 6
+  remains runtime-evidence-open until a current v5-plan and v3-bundle ladder
+  reaches `measured-run-pass`.
 - The MLX-LM pilot is one uninterrupted exact-model and exact-data run from the
   pinned base. It requires at least two completed optimizer updates, finite
   train and validation losses, exact target coverage, positive MLX peak and
@@ -285,10 +310,14 @@ reload, confirmed full training, final export, and `measured-run-pass`. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. The July MLX-LM acceptance also predates Phases 4 and 5 and does
-not bind the current source head. No current-head MLX or CUDA target-runtime
-pilot was collected for the Phase 5 closeout, and no real CUDA pilot has run on
-a CUDA target for this release. The default Mac artifact is ad-hoc signed, not a
+that identity. The July MLX-LM acceptance also predates the current v5 plan, v3
+bundle, and Phase 6 registry expansion and does not bind the current source
+head. It is retained as artifact-scoped historical evidence for the exact
+`mlx-community/Qwen2.5-0.5B-Instruct-4bit` revision, host, runtime, and dataset;
+it does not make every matching Qwen2 artifact measured or close the current
+Phase 6 runtime gate. No current-head MLX or CUDA target-runtime pilot was
+collected for the Phase 6 implementation, and no real CUDA pilot has run on a
+CUDA target for this release. The default Mac artifact is ad-hoc signed, not a
 Developer ID signed and notarized public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory

@@ -25,9 +25,13 @@ Do not use:
 - “the runtime supports this method” based only on model inspection;
 - “zero-risk training.”
 
-Inspection eligibility identifies a reviewed artifact and execution tuple. It
-does not establish candidate feasibility, dependency readiness, model-data
-validation, available capacity, or pilot success.
+Inspection eligibility identifies that the inspected artifact matches a
+reviewed compatibility subject and execution tuple. A configuration-footprint
+policy is not an artifact allowlist: runtime evidence for one exact artifact and
+immutable revision does not transfer to another artifact merely because both
+match the policy subject. Eligibility also does not establish candidate
+feasibility, dependency readiness, model-data validation, available capacity,
+or pilot success.
 
 ## Runtime claims
 
@@ -48,7 +52,8 @@ Do not turn a historical pilot pass into a claim of current capacity. Admission
 rechecks current resources. The two clean 2026-07-27 MLX-LM acceptance runs
 prove only their exact model, immutable revision, synthetic dataset, host,
 runtime, plan, bundle, and actions. They do not prove every Apple Silicon
-configuration or model.
+configuration or model, and their v2 plan/bundle evidence does not close the
+current Phase 6 v5/v3 acceptance gate.
 
 ## Quality claims
 
@@ -115,7 +120,8 @@ Do not:
 - describe ad-hoc signing as Developer ID distribution, notarization, or public
   release approval;
 - treat desktop packaging as CUDA target-host acceptance;
-- apply the July MLX-LM acceptance result to the later Phase 4 source head;
+- apply the July v2/v2 MLX-LM result to the Phase 6 source head, another
+  artifact, or current v5/v3 acceptance;
 - call v0.2 release-ready while claimed CUDA target-host evidence and public
   Developer ID signing and notarization remain open.
 

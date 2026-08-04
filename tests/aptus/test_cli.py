@@ -451,6 +451,113 @@ class CliIntegrationTests(unittest.TestCase):
                 "mlx-lm",
             )
 
+    def test_dense_quantization_group_size_plans_reviewed_qwen2_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "qwen2-plan.json"
+            arguments = fact_arguments(dataset)
+            replacements = {
+                "--model-id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+                "--revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+                "--family": "qwen",
+                "--parameters-b": "0.494",
+                "--hidden-size": "896",
+                "--intermediate-size": "4864",
+                "--layers": "24",
+                "--context-length": "32768",
+                "--vram-gib": "64",
+                "--host-ram-gib": "64",
+                "--effective-batch-size": "1",
+            }
+            for flag, value in replacements.items():
+                arguments[arguments.index(flag) + 1] = value
+            arguments.extend(
+                (
+                    "--model-type",
+                    "qwen2",
+                    "--architecture",
+                    "Qwen2ForCausalLM",
+                    "--quantization-bits",
+                    "4",
+                    "--quantization-group-size",
+                    "64",
+                    "--backend",
+                    "mps",
+                    "--training-runtime",
+                    "mlx-lm",
+                )
+            )
+
+            self.assertEqual(
+                main(["spec-plan", *arguments, "--output", str(plan_path)]),
+                0,
+            )
+
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                plan["model"]["quantization_layout"],
+                {
+                    "default_bits": 4,
+                    "default_group_size": 64,
+                    "module_overrides": [],
+                },
+            )
+            self.assertEqual(
+                plan["model_policy_decision"]["policy_id"],
+                "model.qwen2-24l.mlx-qlora",
+            )
+            self.assertEqual(
+                plan["recommended"]["policy_binding"]["path_id"],
+                "mlx-lm.qlora.single.dense-causal-lm.v1",
+            )
+
+    def test_quantization_group_size_requires_bits_and_excludes_profiles(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            dataset = Path(temporary) / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            cases = (
+                ("missing bits", ("--quantization-group-size", "64")),
+                (
+                    "zero group size",
+                    ("--quantization-bits", "4", "--quantization-group-size", "0"),
+                ),
+                (
+                    "negative group size",
+                    ("--quantization-bits", "4", "--quantization-group-size", "-1"),
+                ),
+                (
+                    "profile conflict",
+                    (
+                        "--quantization-bits",
+                        "4",
+                        "--quantization-group-size",
+                        "64",
+                        "--quantization-layout-profile",
+                        "qwen3-moe-4bit-group64-router-gates-8bit",
+                    ),
+                ),
+            )
+            for name, extra in cases:
+                stderr = io.StringIO()
+                output = Path(temporary) / f"{name}.json"
+                with self.subTest(name=name), contextlib.redirect_stderr(stderr):
+                    code = main(
+                        [
+                            "spec-plan",
+                            *fact_arguments(dataset),
+                            *extra,
+                            "--output",
+                            str(output),
+                        ]
+                    )
+                    self.assertEqual(code, 2)
+                    self.assertIn("quantization-group-size", stderr.getvalue())
+                    self.assertFalse(output.exists())
+
     def test_partial_moe_topology_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

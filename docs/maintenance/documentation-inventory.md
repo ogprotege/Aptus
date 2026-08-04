@@ -16,7 +16,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 The repository contains 101 governed tracked Markdown documents. This count
 includes the dedicated model-policy-snapshot reference added by the Phase 4
-documentation synchronization and excludes 12 tracked working or implementation
+documentation synchronization and excludes 13 tracked working or implementation
 documents outside the governed product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
@@ -262,16 +262,16 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Twelve tracked implementation or workflow files sit outside the 101-file
+Thirteen tracked implementation or workflow files sit outside the 101-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
 - `desktop/macos/README.md`; and
-- the ten active review and design notes under `dev/active/`.
+- the eleven active review and design notes under `dev/active/`.
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 113 tracked Markdown
+This distinction explains the repository-wide total of 114 tracked Markdown
 files.
 
 ## Excluded local and generated material

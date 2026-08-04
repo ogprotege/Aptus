@@ -39,13 +39,16 @@ Optional model inspection retrieves bounded provider metadata. Optional hardware
 inspection measures the local server host.
 
 Inspection keeps raw `model_type` and architecture identities. For the exact
-Qwen3 MoE row, it also returns checkpoint precision, routed-expert topology,
-and an `aptus.model-inspection-receipt.v1` containing a structured
-`aptus.model-compatibility.v2` decision. Normalized inspection facts and typed
-planning facts call the same host-side model policy registry. Its internal
-decision distinguishes a matched path, a recognized dense family, a blocked
-sparse near-match, and an unknown family. The unchanged public v1 response maps
-those states to `conditional`, `recognized`, and `unsupported`.
+Qwen3 MoE row, it also returns checkpoint precision and routed-expert topology.
+For the reviewed Qwen2 footprint, it retains the provider layer count and exact
+uniform four-bit group-64 layout. An `aptus.model-inspection-receipt.v1`
+contains the resulting structured `aptus.model-compatibility.v2` decision and
+the matched policy's own required provenance fields. Normalized inspection
+facts and typed planning facts call the same host-side model policy registry,
+whose entries are now data-driven. Its internal decision distinguishes a
+matched path, a recognized dense family, a blocked sparse near-match, and an
+unknown family. The unchanged public v1 response maps those states to
+`conditional`, `recognized`, and `unsupported`.
 Sparse model-type and architecture markers remain blocked when topology is
 missing. They cannot inherit a dense-family recognition through normalization.
 
@@ -98,14 +101,24 @@ permission remain user-attested and outside the receipt. A present receipt must
 revalidate completely. Invalid input never falls back to the user-attested
 path. These content hashes are tamper-evident, not authenticated signatures.
 
-The host policy registry keeps sparse planning narrower than general MLX-LM
-support. It emits one path only for an
-exact `qwen3_moe` and `Qwen3MoeForCausalLM` identity with four-bit group-64
-defaults, one eight-bit group-64 router-gate override per layer, no shared
-expert, QLoRA, `single`, and attention-only adapter targets. The v5 plan carries
-the full topology and canonical quantization layout. Resident weights use total
-parameters. Routed activity can inform compute and activation terms but never
-reduces base-weight residency.
+The host policy registry keeps reviewed planning narrower than general MLX-LM
+support. Its first entry emits one path only for exact `qwen3_moe` and
+`Qwen3MoeForCausalLM` identity with four-bit group-64 defaults, one eight-bit
+group-64 router-gate override per layer, no shared expert, QLoRA, `single`, and
+attention-only adapter targets. The v5 plan carries the full topology and
+canonical quantization layout. Resident weights use total parameters. Routed
+activity can inform compute and activation terms but never reduces base-weight
+residency.
+
+Its second entry, `model.qwen2-24l.mlx-qlora`, emits
+`mlx-lm.qlora.single.dense-causal-lm.v1` only for exact `qwen`, `qwen2`, and
+`Qwen2ForCausalLM` identity with 24 layers, no MoE topology, explicit four-bit
+metadata, and a uniform group-size-64 layout without overrides. The associated
+`dense-causal-lm.v1` profile binds all seven attention and MLP projection
+targets. Claims use the discriminating provider model type and architecture;
+the exact constraint still verifies the family, and sparse identity markers
+remain on the sparse fail-closed path instead of being captured by this dense
+policy.
 
 Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
@@ -157,8 +170,15 @@ lifecycle result. The MoE topology rail separately explains routing and total
 resident weight memory; active-per-token parameters never reduce base-weight
 residency or establish a policy match.
 
-Phase 6 remains pending and owns a second reviewed policy with its own runtime
-evidence. Phase 5 did not change the portable policy contract.
+Phase 6 has implemented that second entry through the registry, snapshot,
+planner, compiler, host and portable evaluators, receipt provenance, and
+mutation tests. The policy describes a reviewed configuration footprint rather
+than an artifact allowlist. Its retained July Qwen2.5-0.5B evidence is scoped to
+the exact revision, host, runtime, and dataset and predates the current v5-plan
+and v3-bundle contracts. Phase 6 remains runtime-evidence-open until a current
+v5/v3 dependency-through-`measured-run-pass` ladder succeeds. Phase 5 did not
+change the portable policy contract, and the Phase 6 addition keeps its schema
+version while changing the canonical snapshot digest.
 
 ## 3. Compilation
 
@@ -175,7 +195,10 @@ MLX-LM QLoRA requires a model revision with explicit four-bit MLX quantization
 metadata. It never imports bitsandbytes.
 The exact Qwen3 MoE compiler profile also binds model identity, topology,
 canonical quantization layout and digest, and attention-only adapter scope for
-model-data and later runtime checks.
+model-data and later runtime checks. The Qwen2 24-layer profile binds its dense
+identity, exact empty-override four-bit layout, and seven-module adapter scope.
+That compiler support does not convert the historical artifact-scoped run into
+current v5/v3 runtime acceptance.
 
 Runtime program source lives as package data under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. The compiler reads those bytes through

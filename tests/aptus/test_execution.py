@@ -1358,7 +1358,7 @@ class ExecutionJobTests(unittest.TestCase):
             generate_bundle(make_plan(root, gpu_count=1), bundle)
             plan_path = bundle / "plan.json"
 
-            def mutate_after_embedded_check(_plan: object) -> None:
+            def mutate_after_embedded_check(_plan: object, **_kwargs: object) -> None:
                 plan_path.write_bytes(plan_path.read_bytes() + b" ")
 
             with (

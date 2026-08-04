@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -112,9 +112,14 @@ allocate accelerator memory.
 
 Phase 4 places canonical `aptus.model-policy-snapshot.v1` bytes and a generic
 evaluator in every generated bundle. `aptus.training-plan.v5` and
-`aptus.bundle.v3` cross-bind the snapshot digest. Portable validation rejects a
-missing, malformed, noncanonical, stale, or tampered snapshot and does not need
-an installed Aptus package.
+`aptus.bundle.v3` cross-bind the snapshot digest. Package-free portable
+validation uses the frozen snapshot to verify integrity and decision parity and
+to reject missing, malformed, noncanonical, or tampered policy state. It has no
+installed host or current registry, so it cannot determine host policy
+currency. An installed host running Aptus separately compares the snapshot
+digest and decision with the current registry and rejects a non-current v5 plan
+with `replan_required` before host-managed admission, authorization, or
+completion promotion.
 
 Phase 5 remains the browser-reconstruction removal. Phase 6 remains the second
 reviewed policy. Neither is part of the portable policy contract.

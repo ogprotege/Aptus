@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Operators, validator maintainers, UI developers, and auditors |
 | Authority | Normative evidence-ladder reference for Aptus v0.2 |
-| Last reviewed | 2026-07-29 |
-| Next review | 2026-10-22, or sooner when validation or generated runtime code changes |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when validation or generated runtime code changes |
 
 A validation level is work requested from a validator. A validation state is
 the strongest evidence recorded in `validation-report.json`. Runtime levels are
@@ -34,7 +34,7 @@ full-run transaction. They are not standalone validation levels.
 | 0 | `invalid` | One or more required checks failed | Any positive gate |
 | 0 | `unsupported` | The requested contract is outside an accepted path | Runtime viability |
 | 1 | `contract-pass` | Plan and bundle integrity passed at the producing validator's contract scope | Generated source execution or dependencies |
-| 2 | `static-pass` | Generated Python parses and static bundle rules pass | Package installation, model load, or accelerator fit |
+| 2 | `static-pass` | Static checks passed at the producing validator's documented scope | Package installation, model load, or accelerator fit |
 | 3 | `dependency-pass` | Exact direct package versions are installed and the environment closure is bound | Model or data compatibility |
 | 4 | `model-data-pass` | Runtime-specific exact model, tokenizer, and compiled-data compatibility pass | An optimizer step or measured memory fit |
 | 5 | `measured-preflight-pass` | Runtime-specific bounded optimizer work and memory evidence pass | Pilot-pass or full-run fit |
@@ -58,8 +58,8 @@ Inspect `validator_version`, `validation_level`, `checked_files`, `findings`, an
 `runtime_evidence`. The host contract pass includes required-file checks,
 content identities, deterministic replanning parity, manifest checks, selected
 dependency-set parity, source-value separation, and trainer-plan parity. The
-portable contract pass uses the self-contained plan and manifest contracts. The
-portable static level then parses every generated Python program.
+portable contract pass uses the self-contained plan and manifest contracts.
+CUDA and MLX portable static scopes differ as described below.
 
 ## Level details
 
@@ -87,26 +87,39 @@ Core contract checks bind:
 Contract validation does not import the training stack or allocate accelerator
 memory.
 
-The host and portable validator evaluate the saved subject with the generic
-snapshot evaluator and require exact parity with the persisted decision. A v4,
-v3, v2, schema-less, or stale-policy v5 plan returns `replan_required` during
-loading, compilation, recovery, or validation. Aptus preserves the old bytes
-and never repairs the failure by changing only `schema_version`.
+The host and portable validators evaluate the saved subject with the generic
+snapshot evaluator and require exact parity with the persisted decision. The
+package-free validator uses the bundle's embedded frozen snapshot; this proves
+snapshot integrity and decision parity, but portable validation cannot
+determine host policy currency or know whether an installed host's current
+registry has advanced. Installed Aptus uses its current registry for host
+currency checks. Every v4, v3, v2, or schema-less plan requires replanning. A
+coherent v5 plan whose decision or snapshot digest differs from the current
+host registry is also a replanning case; malformed or tampered v5 dependencies
+remain invalid input. Aptus preserves old bytes and never repairs either case
+by changing only `schema_version`.
 
 ### Static
 
-Static validation adds AST parsing of:
+Host static validation AST-parses:
 
 - `plan_contract.py`;
+- `policy_snapshot.py`;
 - `preflight.py`;
 - `run.py`;
 - `runtime_lease.py`;
 - `train.py`; and
 - `validate.py`.
 
+For MLX bundles, the host also parses `reload.py`. The generated CUDA validator
+parses the seven-file list above. The generated MLX validator's `static` level
+reruns the self-contained plan and manifest contracts and records
+`static-pass`, but it does not AST-parse generated programs. Interpret the state
+with `validator_version`; it names the producing scope.
+
 The host validator also rejects unresolved `{{`, `}}`, and `TODO` markers in
-generated code and operator documents. Static validation does not prove that
-imports or pinned APIs work.
+generated code and operator documents. No static scope proves that imports or
+pinned APIs work.
 
 ### Dependency
 
@@ -265,7 +278,9 @@ Host-managed admission also binds the exact bundle-manifest fingerprint and the
 current host model-policy snapshot digest into the launched child. Generated
 entrypoints verify both bindings before they use plan state. Manual standalone
 bundle execution omits those host bindings and continues to validate the frozen
-snapshot embedded in the bundle.
+snapshot embedded in the bundle. That standalone result establishes integrity
+and parity at the bundle's frozen contract; it is not evidence that the
+snapshot is current on an installed host.
 
 The state is not durable permission to start any future run. Admission is
 repeated for each submission.

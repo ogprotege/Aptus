@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | API clients, CLI operators, UI developers, and support engineers |
 | Authority | Normative inventory of host API errors and host validator findings in v0.2 |
-| Last reviewed | 2026-07-29 |
-| Next review | 2026-10-27, or sooner when API handlers or validation findings change |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when API handlers or validation findings change |
 
 API errors, managed-job errors, and validation findings are separate channels.
 An API error describes why a request failed. A failed job can carry a runtime
@@ -58,7 +58,7 @@ Lifecycle conflicts use structured fields:
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
-| `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a v5 plan uses an obsolete policy decision or snapshot; recreate it deterministically under the v5 contract |
+| `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a coherent v5 plan's decision or snapshot differs from the current host registry; recreate it deterministically under the `aptus.training-plan.v5` contract |
 | `409` | `project_revision_conflict` | The named project advanced after the caller loaded its expected revision |
 | `409` | `project_plan_mismatch` | The requested plan does not belong to the named project revision |
 | `409` | `project_plan_snapshot_mismatch` | The persisted plan no longer equals the immutable plan snapshot that authorized compilation |
@@ -137,6 +137,24 @@ Host validation sets report state to `invalid` when any finding has severity
 | `PLANNER_PARITY_ERROR` | error | The validator could not reconstruct planning from bound facts |
 | `PLANNER_PARITY_MISMATCH` | error | Replanning produced different candidates, recommendation, or plan ID |
 
+### Model-policy snapshot
+
+| Code | Severity | Finding path | Meaning |
+| --- | --- | --- | --- |
+| `POLICY_SNAPSHOT_MISSING` | error | `policy/model-policy-snapshot.v1.json` | The required snapshot file is absent |
+| `POLICY_SNAPSHOT_JSON_ERROR` | error | `policy/model-policy-snapshot.v1.json` | Snapshot bytes cannot be read or decoded and parsed as valid UTF-8 JSON |
+| `POLICY_SNAPSHOT_CONTRACT` | error | `policy/model-policy-snapshot.v1.json` | The parsed value is not an exact valid `aptus.model-policy-snapshot.v1`, including JSON `null` or malformed constraint operands |
+| `POLICY_SNAPSHOT_NONCANONICAL` | error | `policy/model-policy-snapshot.v1.json` | Snapshot bytes differ from the deterministic canonical JSON encoding |
+| `POLICY_SNAPSHOT_DIGEST` | error | `policy/model-policy-snapshot.v1.json` | One or more `snapshot`, `plan`, `manifest`, or `host` bindings is not lowercase 64-character hexadecimal text, or a valid `plan`, `manifest`, or `host` binding differs from the snapshot; the finding message names each invalid and differing binding |
+| `POLICY_SNAPSHOT_PATH` | error | `bundle-manifest.json` | `policy_snapshot_path` is not exactly `policy/model-policy-snapshot.v1.json` |
+
+The first five findings concern the snapshot file or its digest bindings; the
+path finding concerns the manifest declaration. Plan/manifest/file agreement
+establishes bundle integrity. The `host` comparison is the separate currency
+check performed by installed Aptus against the current registry. A package-free
+generated validator has only its embedded snapshot, so it can verify
+frozen-snapshot integrity and decision parity but cannot decide host currency.
+
 ### Manifest integrity
 
 | Code | Severity | Meaning |
@@ -186,7 +204,7 @@ error, and full log together.
 | No feasible plan | Inspect every candidate reason and correct facts or requirements |
 | Active-job conflict | Wait, poll the owning job, or cancel it through its owner |
 | Prerequisite conflict | Complete or recheck the named prior action |
-| Replan required | Preserve the old plan and create a new v4 plan from its source facts; do not relabel or edit the old artifact |
+| Replan required | Preserve the old plan and create a new v5 plan from its source facts; do not relabel or edit the old artifact |
 | Manifest or plan finding | Recompile from the trusted plan and source |
 | Runtime dependency or model-data failure | Correct the environment, facts, or source and rerun the ordered gate |
 | Capacity failure | Re-probe on the target host or select a different viable plan |

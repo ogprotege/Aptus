@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Bundle operators, compiler maintainers, and security reviewers |
 | Authority | Normative reference for `aptus.bundle.v3` and its mutable runtime boundary |
-| Last reviewed | 2026-07-30 |
-| Next review | 2026-10-22, or sooner when generation or manifest validation changes |
+| Last reviewed | 2026-08-03 |
+| Next review | 2026-11-01, or sooner when generation or manifest validation changes |
 
 `bundle-manifest.json` is the immutable integrity root for a compiled Aptus
 bundle. It covers compiler-created inputs, code, configuration, and evidence.
@@ -144,6 +144,13 @@ gate. It performs model-data validation directly and invokes
 processes acquire the portable execution lease before launching `train.py`.
 The MLX validator verifies the resulting evidence and writes the bound
 `validation-report.json`.
+
+In either runtime, package-free validation uses the canonical policy snapshot
+embedded in the bundle. It verifies the plan/manifest/file digest chain and
+reproduces the saved decision from that frozen snapshot. Portable validation
+cannot determine host policy currency or know whether an installed host's
+current registry has advanced. Installed Aptus performs that separate currency
+check against its current registry before host admission and managed execution.
 
 ### `preflight.py`
 
@@ -323,6 +330,9 @@ Manifest validation rejects:
 - any symlink anywhere in the bundle tree;
 - an absent or malformed manifest;
 - a plan digest mismatch;
+- an absent, malformed, or noncanonical policy snapshot;
+- an incorrect snapshot path or disagreement among the plan, manifest, and
+  embedded snapshot digests;
 - an empty, duplicate, absolute, or parent-traversing file entry;
 - a missing, changed, or size-mismatched manifested file; and
 - any unmanifested file outside the allowed mutable paths.

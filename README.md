@@ -26,7 +26,7 @@
   <a href="docs/index.md">Documentation</a>
 </p>
 
-> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-07-29 · **Review by:** 2026-10-27 or when the support contract changes
+> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-03 · **Review by:** 2026-11-01 or when the support contract changes
 
 ---
 
@@ -204,7 +204,7 @@ old revision creates a *new* revision and never restores training authorization.
 | Command | Purpose |
 | --- | --- |
 | `aptus profile` | Profile a local training dataset. |
-| `aptus spec-plan` | Write a persisted v4 plan JSON without compiling. |
+| `aptus spec-plan` | Write a persisted v5 plan JSON without compiling. |
 | `aptus plan` | Compatibility flow: plan, compile, validate, and archive. |
 | `aptus build` | Plan, compile, validate, and archive. |
 | `aptus compile` | Compile a persisted plan JSON into a portable bundle. |
@@ -258,14 +258,21 @@ guidance; local LM Studio and oMLX adapters for inference and evaluation
 (neither is a training engine); typed API responses under `aptus.api.v1` with a
 checked OpenAPI artifact; and read-only diagnosis via `aptus doctor`.
 
-Every v4 plan persists one `aptus.model-compatibility.v2` decision. Every
-candidate links to that decision, while only an exact registered path receives
-an `aptus.model-policy-binding.v1` binding. Provider inspection can add an
-`aptus.model-inspection-receipt.v1` with separate compatibility-subject and
-observed-planning-facts digests. Direct facts remain explicitly
-`user-attested`. Parameter count and training permission are never promoted to
-provider facts. Old v3, v2, schema-less, or stale-policy plans require
-replanning instead of reinterpretation.
+Every v5 plan persists one `aptus.model-compatibility.v2` decision and binds its
+canonical policy snapshot through `model_policy_snapshot_sha256` in the plan
+identity. Every candidate links to that decision, while only an exact
+registered path receives an `aptus.model-policy-binding.v1` binding. Provider
+inspection can add an `aptus.model-inspection-receipt.v1` with separate
+compatibility-subject and observed-planning-facts digests. Direct facts remain
+explicitly `user-attested`. Parameter count and training permission are never
+promoted to provider facts. Old v4, v3, v2, and schema-less plans, plus
+stale-policy or stale-snapshot v5 plans, require replanning instead of
+reinterpretation.
+
+Package-free portable validation checks the bundle's frozen snapshot for
+integrity and decision parity. It has no installed host or current registry, so
+it cannot determine host policy currency. Installed Aptus performs that
+currency check before host-managed admission and execution.
 
 Read the [complete capability matrix](docs/reference/capability-matrix.md)
 before committing compute time.

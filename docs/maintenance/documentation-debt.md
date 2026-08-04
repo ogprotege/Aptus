@@ -4,9 +4,9 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-07-29
+> **Last reviewed:** 2026-08-03
 >
-> **Next scheduled review:** At every documentation pull request and before 2026-10-27
+> **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
 This log records documentation work that cannot be trusted to memory or scattered
 TODO comments. Status reflects the repository at the review date. Update an item
@@ -323,14 +323,21 @@ when its evidence, owner, or resolution changes.
 - **Resolution:** `aptus.training-plan.v5` binds the SHA-256 of deterministic
   canonical `aptus.model-policy-snapshot.v1` bytes. `aptus.bundle.v3` contains
   those bytes, repeats the digest, manifests the snapshot file, and includes a
-  generic evaluator that runs without an installed Aptus package.
-- **Failure boundary:** V4 and older plans return `replan_required`. Missing,
-  malformed, noncanonical, stale, or tampered snapshots fail closed. The plan,
-  manifest, and snapshot-file digests must agree exactly.
+  generic evaluator that runs without an installed Aptus package. A package-free
+  bundle evaluates its frozen snapshot for integrity and decision parity. An
+  installed Aptus host uses the current host registry for policy currency.
+- **Failure boundary:** V4 and older plans return `replan_required`. Portable
+  validation rejects a missing, malformed, noncanonical, path-invalid, or
+  digest-inconsistent snapshot, but it cannot determine host policy currency.
+  Installed-host validation additionally compares the snapshot, plan, and
+  manifest bindings with the current host digest; a different host binding is
+  stale and requires replanning.
 - **Boundary:** Browser policy reconstruction remains Phase 5. A second reviewed
   policy remains Phase 6.
-- **Verification:** Deterministic double generation, host-versus-portable parity,
-  digest disagreement, and snapshot mutation tests protect the contract.
+- **Verification:** Deterministic double generation, host-versus-portable
+  decision parity, package-free validation, host-registry currency, exact digest
+  binding, scalar-manifest rejection, and typed snapshot mutation tests protect
+  the contract.
 - **Owner:** Policy, planning, compiler, validation, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch

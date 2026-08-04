@@ -1,6 +1,6 @@
 # Data and Identity Flow
 
-> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-27
+> **Status:** Active | **Audience:** Contributors, operators, and security reviewers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-27
 
 Aptus binds decisions and runtime evidence to exact content. It uses separate
 identities for projects, revisions, source data, candidates, plans, bundles,
@@ -52,10 +52,11 @@ Provider-declared model fields do not become permission facts. Manual hardware
 values do not become target-host measurements. An inferred model family does
 not replace the raw provider model type or architecture evidence.
 
-For a sparse model, the v4 model payload binds exact provider type,
-architecture, checkpoint precision, expert count, experts per token, expert
-width, sparse cadence, dense-only layer indices, and optional shared-expert
-width. It also binds backend-derived active parameters and sparse-layer count.
+For a sparse model, the `aptus.training-plan.v5` model payload binds exact
+provider type, architecture, checkpoint precision, expert count, experts per
+token, expert width, sparse cadence, dense-only layer indices, and optional
+shared-expert width. It also binds backend-derived active parameters and
+sparse-layer count.
 The user-attested total parameter count remains a separate resident-weight fact.
 Changing any of these values changes candidate and plan identity.
 
@@ -106,21 +107,25 @@ payload includes:
   export, and reserve terms.
 
 A plan ID begins with `plan_`. It binds the plan and formula schema versions,
-normalized facts, the complete policy decision and source, the optional
-inspection receipt, the sorted canonical evidence records, the ordered
-candidate IDs, and the recommended candidate ID. IDs are content identities,
-not editable labels. Changing a bound semantic fact without recomputing
-identity makes validation fail. Known evidence records must also match their
-code-owned canonical contents.
+normalized facts, the semantic policy decision and source,
+`model_policy_snapshot_sha256`, the optional inspection receipt with its nested
+explanatory decision reason excluded, the sorted canonical evidence records,
+the ordered candidate IDs, and the recommended candidate ID. IDs are content
+identities, not editable labels. Changing a bound semantic fact without
+recomputing identity makes validation fail. Known evidence records must also
+match their code-owned canonical contents.
 
 All candidates link to the same decision, including candidates with no
 registered execution path. Only the candidate whose method, placement, target
 modules, and runtime contract match the emitted path has a non-null policy
-binding. Loading, compilation, recovery, and validation also compare a v4
-decision with the current registry. An obsolete policy version returns
-`replan_required` only after the complete saved identity chain validates. V3,
-v2, and schema-less plans receive the same fail-closed
-result and remain unchanged on disk.
+binding. Installed-host loading, compilation, recovery, admission, pilot
+authorization, and pending completion promotion compare a v5 decision and
+snapshot digest with the current registry. Load, compile, recovery, and
+submission workflows surface a coherent mismatch as `replan_required`; pilot
+authorization reports non-current, and pending completion evidence is not
+promoted. Host static validation records the same currency mismatch as an
+invalid `POLICY_SNAPSHOT_DIGEST` finding. V4, v3, v2, and schema-less plans
+receive the corresponding fail-closed result and remain unchanged on disk.
 
 The historical coherence pass uses the persisted decision and one internally
 consistent adapter-target set, not the current mutable family catalog. The
@@ -172,9 +177,15 @@ equal `model_policy_snapshot_sha256` in the v5 plan and the snapshot file's
 manifested SHA-256.
 
 The host registry serializes `aptus.model-policy-snapshot.v1` canonically and
-deterministically. The bundle carries those exact bytes plus a generic evaluator
-that has no installed-Aptus dependency. Host and portable evaluation must
-produce the same decision for the same compatibility subject.
+deterministically. The bundle carries those exact bytes plus a generic
+evaluator that has no installed-Aptus dependency. In a package-free context,
+portable validation uses that frozen snapshot to establish canonical-byte,
+plan, manifest, file-digest, and decision-parity integrity. It has no installed
+host or current registry and therefore cannot determine host policy currency.
+Installed Aptus separately compares the bound digest and decision with the
+current registry before host-managed submission, pilot authorization, and
+completion promotion. Host and portable evaluation must produce the same
+decision for the same compatibility subject.
 
 The bundle fingerprint is the SHA-256 of that manifest when it exists. Bundle
 validation rejects symlink roots, symlink entries, unsafe paths, missing files,

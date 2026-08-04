@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
 Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
@@ -50,11 +50,16 @@ acceptance remain open.
   without a receipt use the explicit `user-attested` decision source. A supplied
   invalid receipt fails instead of silently degrading to that source.
 - Strict replanning for v4, v3, v2, schema-less, and stale-policy or
-  stale-snapshot v5 plans. Aptus
-  preserves old saved bytes and does not relabel them. The HTTP API remains
-  `aptus.api.v1`; facts remain `aptus.facts.v3`; candidate runtime contracts
-  remain `aptus.runtime-contract.v1`; bundles use `aptus.bundle.v3` and carry
-  the deterministic snapshot plus a generic evaluator independent of Aptus.
+  stale-snapshot v5 plans. Aptus preserves old saved bytes and does not relabel
+  them. The HTTP API remains `aptus.api.v1`; facts remain `aptus.facts.v3`;
+  candidate runtime contracts remain `aptus.runtime-contract.v1`. Phase 4
+  changed bundles to `aptus.bundle.v3`, which carries the deterministic frozen
+  snapshot plus a generic evaluator independent of installed Aptus.
+- Package-free portable validation checks frozen-snapshot integrity and
+  decision parity. Without an installed host and its current registry, it
+  cannot determine policy currency. Installed Aptus separately enforces current
+  registry currency for host-managed admission, authorization, and completion
+  promotion.
 - Local CUDA hardware inspection and explicit manual hardware facts.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory

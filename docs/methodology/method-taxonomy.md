@@ -1,6 +1,6 @@
 # Fine-tuning method taxonomy
 
-> **Status:** Active | **Authority:** Normative taxonomy | **Applies to:** Aptus 0.2 and the research backlog | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-07-22 | **Review by:** 2027-01-22 or when a method lifecycle changes
+> **Status:** Active | **Authority:** Normative taxonomy | **Applies to:** Aptus 0.2 and the research backlog | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when a method lifecycle changes
 
 Aptus models a training plan as a composition of independent choices. It does
 not treat every named paper, optimizer, precision, and distributed system as a
@@ -23,11 +23,15 @@ facts
 ```
 
 Changing any term can change feasibility, behavior, dependencies, checkpoints,
-or artifacts. Candidate and plan identity therefore bind the normalized model,
-dataset, hardware, target, strategy, resource, and memory-policy facts used to
-compile the artifact. Runtime reports separately bind the installed dependency
-environment, measured hardware, and validation evidence to that plan and
-candidate identity.
+or artifacts. Candidate identity therefore binds the normalized model, dataset,
+hardware, target, strategy, resource, and memory-policy facts used to compile
+the artifact. Plan identity binds its schema and formula versions, normalized
+facts, the semantic policy decision and source,
+`model_policy_snapshot_sha256`, the optional inspection receipt with its nested
+explanatory decision reason excluded, canonical evidence records, ordered
+candidate IDs, and recommendation. Runtime reports separately bind the
+installed dependency environment, measured hardware, and validation evidence
+to that plan and candidate identity.
 
 This taxonomy incorporates the useful distinctions in
 [`Reference/top-50-llm-training-methods.pplx.md`](../../Reference/top-50-llm-training-methods.pplx.md).

@@ -1,6 +1,6 @@
 # Facts and Provenance
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-07-29 | **Review by:** 2027-01-22 or when fact provenance changes
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when fact provenance changes
 
 Fact contract version: `aptus.facts.v3`.
 
@@ -35,12 +35,13 @@ V0.2 requires explicit:
 - license identifier;
 - affirmative training-permission attestation.
 
-V4 can also bind exact provider `model_type`, architecture, checkpoint
-precision, and a complete MoE topology. The topology contains expert count,
-experts selected per token, expert width, sparse cadence, dense-only layer
-indices, and optional shared-expert width. Aptus derives active parameters and
-sparse-layer count from the complete model contract. The total parameter count
-remains user-attested and remains the resident-weight basis.
+`aptus.training-plan.v5` can also bind exact provider `model_type`,
+architecture, checkpoint precision, and a complete MoE topology. The topology
+contains expert count, experts selected per token, expert width, sparse
+cadence, dense-only layer indices, and optional shared-expert width. Aptus
+derives active parameters and sparse-layer count from the complete model
+contract. The total parameter count remains user-attested and remains the
+resident-weight basis.
 
 These values are contract-checked but not independently inspected during
 planning. The model-data gate resolves the pinned config and tokenizer, loads
@@ -167,9 +168,10 @@ packing.
 
 ## Changes and conflicts
 
-Changing an input requires a new v4 plan. V0.2 does not serialize a field-level
-override actor, reason, or conflict-resolution history. A future fact ledger
-must retain original and replacement values instead of overwriting evidence.
+Changing an input requires a new `aptus.training-plan.v5` plan. V0.2 does not
+serialize a field-level override actor, reason, or conflict-resolution history.
+A future fact ledger must retain original and replacement values instead of
+overwriting evidence.
 
 ## Related documentation
 

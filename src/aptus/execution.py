@@ -48,10 +48,40 @@ from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 
 
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
+ValidationAuthorizationStatus = Literal["current", "deferred", "blocked"]
 JOB_ACTIONS = {"dependency", "model-data", "preflight", "pilot", "train"}
 JOB_RECORD_SCHEMA_VERSION = "aptus.job-record.v1"
 PARENT_PROMOTION_SCHEMA_VERSION = "aptus.parent-promotion.v1"
 _GLOBAL_LEASE_THREAD_LOCK = threading.RLock()
+
+
+def decorate_validation_authorization(
+    report: Mapping[str, Any],
+    *,
+    status: ValidationAuthorizationStatus,
+    error: str | None,
+    capacity: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if status not in {"current", "deferred", "blocked"}:
+        raise ValueError("Validation authorization status is invalid.")
+    current = status == "current"
+    if current and error is not None:
+        raise ValueError("Current validation authorization cannot carry an error.")
+    if not current and (
+        not isinstance(error, str) or not error.strip() or error != error.strip()
+    ):
+        raise ValueError(
+            "Deferred or blocked validation authorization requires a diagnostic."
+        )
+    return {
+        **report,
+        "authorization_status": status,
+        "authorization_current": current,
+        "authorization_error": error,
+        "prelaunch_capacity_check": (
+            dict(capacity) if isinstance(capacity, Mapping) else None
+        ),
+    }
 
 
 class ActiveJobError(ValueError):
@@ -2407,6 +2437,7 @@ class JobService:
             migrated["schema_version"] = JOB_RECORD_SCHEMA_VERSION
             migrated["persistence_migrated_from"] = "aptus.job-record.legacy"
             # Authorization is always established by a new atomic train submission.
+            migrated.pop("authorization_status", None)
             migrated.pop("authorization_current", None)
             migrated.setdefault("created_at", _now())
             migrated.setdefault("action", "unknown")
@@ -3614,37 +3645,33 @@ class JobService:
                     }:
                         if active:
                             cached_capacity = record.get("prelaunch_capacity_check")
-                            authorization = {
-                                "current": bool(
-                                    record.get("action") == "train"
-                                    and isinstance(cached_capacity, dict)
-                                ),
-                                "error": (
-                                    None
-                                    if record.get("action") == "train"
-                                    and isinstance(cached_capacity, dict)
-                                    else "Pilot authorization is not re-probed while any Aptus GPU job is active."
-                                ),
-                                "capacity": (
-                                    cached_capacity
-                                    if isinstance(cached_capacity, dict)
-                                    else None
-                                ),
-                            }
+                            authorization_is_current = bool(
+                                record.get("action") == "train"
+                                and isinstance(cached_capacity, dict)
+                            )
+                            authorization_status: ValidationAuthorizationStatus = (
+                                "current" if authorization_is_current else "blocked"
+                            )
+                            authorization_error = (
+                                None
+                                if authorization_is_current
+                                else "Pilot authorization is not re-probed while any Aptus GPU job is active."
+                            )
+                            authorization_capacity = (
+                                cached_capacity
+                                if isinstance(cached_capacity, dict)
+                                else None
+                            )
                         else:
-                            authorization = {
-                                "current": False,
-                                "error": (
-                                    "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Polling does not rehash large pilot artifacts."
-                                ),
-                                "capacity": None,
-                            }
-                        report = {
-                            **report,
-                            "authorization_current": authorization["current"],
-                            "authorization_error": authorization["error"],
-                            "prelaunch_capacity_check": authorization["capacity"],
-                        }
+                            authorization_status = "deferred"
+                            authorization_error = "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Polling does not rehash large pilot artifacts."
+                            authorization_capacity = None
+                        report = decorate_validation_authorization(
+                            report,
+                            status=authorization_status,
+                            error=authorization_error,
+                            capacity=authorization_capacity,
+                        )
                     record["validation_report"] = report
                 else:
                     record["validation_report_error"] = (

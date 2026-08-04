@@ -269,6 +269,28 @@ promoted to provider facts. Old v4, v3, v2, and schema-less plans, plus
 stale-policy or stale-snapshot v5 plans, require replanning instead of
 reinterpretation.
 
+The workbench consumes that server-owned policy as three separate records:
+artifact match, selected candidate path, and evidence readiness. It strictly
+correlates each response's required model subject with the submitted model ID and
+immutable revision, then verifies source, receipt, complete candidate tuple, and
+exact path binding. A provider path-matched receipt must carry provider-declared
+provenance rather than inferred-only observations, and a successful
+recommendation must structurally equal its listed candidate. The typed 422
+no-feasible result preserves rejected candidates for comparison but is not
+compilable.
+
+Evidence readiness does not imply launch permission. A validation report applies
+only when it binds the current plan ID, candidate ID, and model revision, and the
+same exact tuple gates stage completion and runtime actions. The UI keeps
+incomplete or complete evidence separate from the optional typed
+`authorization_status`: `current` requires `authorization_current: true` and no
+error, while `deferred` or `blocked` requires false plus a non-empty diagnostic.
+An authorization tuple with no non-null member means not checked. The browser never
+infers a status from diagnostic prose or changes the last report after a generic
+training request fails. Non-current authorization is not itself a replan
+instruction; Aptus uses the distinct `replan_required` lifecycle result for that
+boundary.
+
 Package-free portable validation checks the bundle's frozen snapshot for
 integrity and decision parity. It has no installed host or current registry, so
 it cannot determine host policy currency. Installed Aptus performs that

@@ -11,12 +11,25 @@
 5. Select MLX-LM for Apple Silicon or Transformers and PEFT for CUDA.
 6. State sequence length, effective batch, epochs, objective, and checkpoint
    interval.
-7. Compare all candidate statuses, runtime contracts, and assumptions.
+7. Compare all candidate statuses, runtime contracts, assumptions, and the
+   three separate model-policy records for artifact match, selected candidate
+   path, and evidence readiness.
 8. Compile the selected plan to a new path.
 
 The current result is an `aptus.training-plan.v5` and an `aptus.bundle.v3`.
 Their identities cross-bind the compatibility decision and canonical
 `aptus.model-policy-snapshot.v1` digest.
+
+If no candidate passes every hard gate, the workbench still shows the rejected
+rows from the typed HTTP 422 response together with the server decision, source,
+and nullable inspection receipt. Its required model subject must match the
+submitted model ID and immutable revision, followed by the expected source and
+receipt, and every row must be rejected with a complete execution and policy
+tuple. This is a comparison-only partial view; it cannot be compiled. A null
+binding means no emitted path matches the tuple; an exact path match without its
+binding is invalid. Provider path-matched receipts require provider-declared
+provenance rather than inferred-only observations. A successful recommendation
+must structurally equal its complete listed candidate record.
 
 ## Prove a bundle before training
 
@@ -78,6 +91,20 @@ Use the pinned ID and revision with model inspection. Copy only reviewed
 provider-declared architecture fields. Supply license and permission separately.
 Model-data validation remains mandatory because metadata inspection is not a
 runtime load test.
+
+Review the model-policy match separately from the MoE topology. After planning,
+select a candidate to inspect only that candidate's explicit path binding. The
+evidence-readiness record advances only from a validation report bound to the
+same plan ID, candidate ID, and model revision. It distinguishes incomplete or
+complete validation evidence from launch admission, and that same exact tuple
+gates stage completion and validation or run actions. The optional
+`authorization_status` is exactly `current`, `deferred`, or `blocked`: current
+requires `authorization_current: true` with no error; deferred or blocked
+requires false with a non-empty diagnostic. If the tuple has no non-null member,
+admission is not checked. The browser does not infer status from that prose diagnostic or
+change the report after a generic training-request failure. A non-current status
+is not by itself a stale-policy or replan result. Replan only when Aptus returns
+the separate `replan_required` lifecycle error.
 
 ## Respond to a failed CUDA pilot
 

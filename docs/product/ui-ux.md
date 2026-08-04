@@ -95,14 +95,18 @@ When inspection returns MoE topology, the Facts stage shows a static expert
 routing rail from token to router to the selected expert bank. It displays
 experts selected per token, total experts, optional shared-expert presence,
 sparse-layer count, expert width, checkpoint precision, total resident
-parameters, and backend-derived active parameters. It also displays the exact
-runtime, compute backend, method, placement, adapter profile, and pilot boundary
-from the compatibility result. When the selected runtime and backend match, the
-rail says that the artifact is eligible for the reviewed pilot path. It does not
-claim that the runtime supports the artifact or that any validation gate passed.
-A runtime or backend mismatch names the complete required tuple and blocks the
-current target. Malformed, contradictory, or unknown evidence renders a
-fail-closed unsupported state.
+parameters, and backend-derived active parameters. The rail is a topology and
+resident-memory record only. It does not decide compatibility, name a selected
+policy path, or reduce resident-weight memory by substituting active-per-token
+parameters.
+
+The separate Model policy panel presents the v2 decision carried by the
+inspection receipt. That receipt decision is the browser's one inspection-time
+policy source; it does not normalize the legacy flattened compatibility
+projection into a second UI authority. Before planning, the selected-path record
+says that no candidate is selected. Malformed, contradictory, unknown-version,
+or misbound decision, path, receipt, or binding data fails at client ingress and
+never becomes an unsupported-looking UI state.
 Changing any inspection-derived model identity or shape fact clears the topology
 and receipt until the operator inspects again. Changing total parameters or
 training permission does not erase inspection because those facts remain
@@ -132,6 +136,51 @@ show a non-null
 `aptus.model-policy-binding.v1`. The UI must not infer a binding for another
 candidate from family, prefix, method, or presentation text.
 
+Facts and Compare render three independent records under Model policy:
+
+1. **Model-policy match** shows the server decision, subject identity, reason,
+   and evidence.
+2. **Selected candidate path** shows the currently inspected candidate's
+   execution tuple and its own explicit nullable binding. A tuple that exactly
+   matches an emitted policy path must have the binding; client ingress rejects
+   null in that case. A genuinely unbound row stays visibly unbound. Rejected or
+   unbound rows receive no browser-invented model-data, measured-preflight, or
+   pilot ladder and no impossible validation action.
+3. **Evidence readiness** separates required validation evidence from launch
+   admission. It uses a report only when `bindings.plan_id`,
+   `bindings.candidate_id`, and `bindings.model_revision` match the current plan,
+   selected candidate, and immutable model revision. It never reuses another
+   candidate's or revision's report. The same exact tuple gates stage completion
+   and validation or run actions. Evidence is incomplete or complete separately
+   from admission.
+
+The optional admission tuple uses an exact `authorization_status` vocabulary of
+`current`, `deferred`, and `blocked`. Current pairs with
+`authorization_current: true` and no error. Deferred or blocked pairs with false
+and a non-empty diagnostic. When the tuple has no non-null member, admission is
+not checked; partial or incoherent claims are rejected. The browser never infers a
+status from diagnostic prose and never changes the last report after a generic
+training-request failure. A non-current status alone does not mean stale policy
+or direct replanning. Only an explicit lifecycle `replan_required` result
+carries that meaning.
+
+The client strictly decodes the exact v2 decision, nested paths, optional
+inspection receipt, and per-candidate binding at model-inspection, bootstrap,
+plan-success, and no-feasible-plan ingress. Schema versions, exact keys, closed
+execution vocabulary, identity formats, receipt/decision links, and
+binding/path/candidate execution equality must all agree before presentation.
+Planning responses must carry a model subject that correlates to the submitted
+model ID and revision, then match the expected source and receipt identity.
+Every candidate must include method, distribution, status, feasibility,
+rejection reasons, target modules, runtime contract, decision link, and binding.
+An exact emitted-path tuple cannot omit its binding. A provider path-matched
+receipt must contain provider-declared provenance rather than inferred-only
+observations. On success, the recommendation must structurally equal its
+complete listed candidate record.
+A typed HTTP 422 `no_feasible_plan` response carries the same policy chain with
+rejected-only candidates; it is not reconstructed from those candidates and is
+never compilable.
+
 The recommendation label means highest-ranked within the enumerated viable
 catalog. Viable includes `feasible` and `conditional`, with feasible ranked
 first. A conditional label keeps its unresolved warning. Recommendation does
@@ -140,9 +189,9 @@ not mean “best model” or “guaranteed fit.”
 Receipt and identity hashes are tamper-evident, not authenticated signatures.
 The workbench trusts the local authenticated service boundary and still treats
 any server rejection as final. Phase 4 now supplies a portable policy snapshot
-and generic evaluator. Phase 5 owns removal of browser-side policy
-reconstruction. The UI must not claim the separate Phase 5 boundary is
-complete.
+and generic evaluator. Phase 5 is complete: the browser consumes and presents
+the server-owned policy chain without family-specific reconstruction. Phase 6
+remains pending and owns a second reviewed policy with its own runtime evidence.
 
 ## Compile and validate stages
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AptusDesktopBridge } from "./desktopBridge";
 
@@ -57,7 +57,13 @@ vi.mock("./api", async () => {
 
 import App from "./App";
 import { EXAMPLE_DRAFT, EXAMPLE_PLAN } from "./demo";
-import type { FactDraft, ModelInspectionReceipt, TrainingPlan } from "./types";
+import type {
+  CandidatePlan,
+  FactDraft,
+  ModelInspectionReceipt,
+  ModelPolicyPath,
+  TrainingPlan,
+} from "./types";
 
 const QWEN3_REVISION = "d".repeat(40);
 const REVIEWED_QWEN3_LAYOUT = {
@@ -95,8 +101,8 @@ function inspectionReceipt(
     },
     provenance_summary: [{
       field: "family",
-      kind: "inferred",
-      source: "Aptus exact model-type compatibility mapping",
+      kind: "provider-declared",
+      source: "Provider config",
       observed_at: "2026-07-29T12:00:00+00:00",
       resolved_revision: revision,
     }],
@@ -149,7 +155,7 @@ function exactQwen3MoEDraft(): FactDraft {
 function exactQwen3MoEPlan(): TrainingPlan {
   const decisionId = `compat_${"a".repeat(20)}`;
   const subjectDigest = "b".repeat(64);
-  const runtimeContract = {
+  const runtimeContract: ModelPolicyPath["runtime_contract"] = {
     schema_version: "aptus.runtime-contract.v1",
     compute_backend: "mps",
     training_runtime: "mlx-lm",
@@ -158,8 +164,8 @@ function exactQwen3MoEPlan(): TrainingPlan {
     evidence_requirement: "pilot-required",
     export_kind: "mlx-lm-adapter",
   };
-  const recommended = {
-    candidate_id: "qlora-single",
+  const recommended: CandidatePlan = {
+    candidate_id: `cand_${"e".repeat(20)}`,
     model_policy_decision_id: decisionId,
     policy_binding: {
       schema_version: "aptus.model-policy-binding.v1" as const,
@@ -176,12 +182,14 @@ function exactQwen3MoEPlan(): TrainingPlan {
     method: "qlora",
     distribution: "single",
     status: "conditional",
+    feasible: true,
+    rejection_reasons: [],
     target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
     runtime_contract: runtimeContract,
   };
   return {
     schema_version: "aptus.training-plan.v5",
-    plan_id: "plan_qwen3_moe",
+    plan_id: `plan_${"d".repeat(20)}`,
     model_policy_snapshot_sha256: "a".repeat(64),
     model: {
       model_id: "Qwen/Qwen3-30B-A3B",
@@ -305,6 +313,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete window.aptusDesktop;
+  vi.unstubAllGlobals();
 });
 
 describe("desktop workbench readiness", () => {
@@ -536,7 +545,7 @@ describe("desktop workbench readiness", () => {
     ));
   });
 
-  it("keeps plan-derived MoE facts and compatibility across planning and restore", async () => {
+  it("keeps plan-derived MoE facts and the server policy presentation across planning and restore", async () => {
     const plan = exactQwen3MoEPlan();
     bootstrapMock.mockResolvedValue({
       api_contract_version: "aptus.api.v1",
@@ -558,16 +567,13 @@ describe("desktop workbench readiness", () => {
     await waitFor(() => expect(planMock).toHaveBeenCalledOnce());
     fireEvent.click(await screen.findByRole("button", { name: "Edit facts" }));
 
-    expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
+    expect(await screen.findByRole("heading", { name: "Pinned MoE topology" }))
       .toBeInTheDocument();
-    expect(screen.getByText(
-      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
-      + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v5 plan preserves the reviewed "
-      + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
-      + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
-      + "mandatory.",
-    )).toBeInTheDocument();
+    const plannedMatch = screen.getByRole("article", { name: "Model-policy match" });
+    const plannedPath = screen.getByRole("article", { name: "Selected candidate path" });
+    expect(within(plannedMatch).getByText("Exact reviewed test fixture.")).toBeInTheDocument();
+    expect(within(plannedPath).getByText("mlx-lm.qlora.single.attention-qkvo.v1"))
+      .toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();
 
@@ -590,18 +596,290 @@ describe("desktop workbench readiness", () => {
     });
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Exact MoE path recognized" }))
+    expect(await screen.findByRole("heading", { name: "Pinned MoE topology" }))
       .toBeInTheDocument();
-    expect(screen.getByText(
-      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, backend mps, "
-      + "method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. The current v5 plan preserves the reviewed "
-      + "model identity, quantization layout, topology, MLX-LM runtime contract, and "
-      + "attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain "
-      + "mandatory.",
-    )).toBeInTheDocument();
+    const restoredMatch = screen.getByRole("article", { name: "Model-policy match" });
+    const restoredPath = screen.getByRole("article", { name: "Selected candidate path" });
+    expect(within(restoredMatch).getByText("Exact reviewed test fixture.")).toBeInTheDocument();
+    expect(within(restoredPath).getByText("mlx-lm.qlora.single.attention-qkvo.v1"))
+      .toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("48")).toBeInTheDocument();
+  });
+
+  it("projects only the candidate currently inspected in Compare", async () => {
+    const plan = exactQwen3MoEPlan();
+    const alternative: CandidatePlan = {
+      ...plan.recommended,
+      candidate_id: `cand_${"f".repeat(20)}`,
+      policy_binding: null,
+      method: "lora",
+      status: "feasible",
+      target_modules: ["q_proj", "v_proj"],
+      runtime_contract: {
+        schema_version: "aptus.runtime-contract.v1",
+        compute_backend: "cuda",
+        training_runtime: "transformers-peft-cuda",
+        compiler_id: "transformers.peft-lora.v1",
+        estimator_id: "aptus-memory-v2",
+        evidence_requirement: "pilot-required",
+        export_kind: "peft-adapter-safetensors",
+      },
+    };
+    plan.candidates = [plan.recommended, alternative];
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan,
+    });
+
+    render(<App />);
+
+    const compareButtons = await screen.findAllByRole("button", { name: /Compare.*Resolve feasibility/i });
+    fireEvent.click(compareButtons[0]);
+    const initialPath = screen.getByRole("article", { name: "Selected candidate path" });
+    expect(within(initialPath).getByText("Bound")).toBeInTheDocument();
+    expect(within(initialPath).getByText("mlx-lm.qlora.single.attention-qkvo.v1"))
+      .toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", {
+      name: /Inspect LoRA candidate evidence/i,
+    })[0]);
+
+    const alternativePath = screen.getByRole("article", { name: "Selected candidate path" });
+    expect(within(alternativePath).getByText("Unbound")).toBeInTheDocument();
+    expect(within(alternativePath).getByText("transformers-peft-cuda"))
+      .toBeInTheDocument();
+    expect(within(alternativePath).queryByText("mlx-lm.qlora.single.attention-qkvo.v1"))
+      .not.toBeInTheDocument();
+  });
+
+  it("does not consume or unlock stages from missing or wrong validation bindings", async () => {
+    for (const bindings of [
+      undefined,
+      {
+        plan_id: `plan_${"f".repeat(20)}`,
+        candidate_id: `cand_${"e".repeat(20)}`,
+        model_revision: QWEN3_REVISION,
+      },
+      {
+        plan_id: `plan_${"d".repeat(20)}`,
+        candidate_id: `cand_${"e".repeat(20)}`,
+        model_revision: "f".repeat(40),
+      },
+    ]) {
+      const plan = exactQwen3MoEPlan();
+      bootstrapMock.mockResolvedValueOnce({
+        api_contract_version: "aptus.api.v1",
+        service: { version: "0.2.0" },
+        projects: [],
+        project: null,
+        project_history: [],
+        plan,
+        bundle: {
+          bundle_dir: "/tmp/wrong-binding",
+          files: [],
+          report: {
+            state: "pilot-pass",
+            authorization_status: "current",
+            authorization_current: true,
+            bindings,
+          },
+        },
+      });
+      const rendered = render(<App />);
+      const evidence = await screen.findByRole("article", { name: "Evidence readiness" });
+      expect(within(evidence).getByText("Evidence required")).toBeInTheDocument();
+      expect(within(evidence).getByText("Not bound")).toBeInTheDocument();
+      expect(within(evidence).queryByText("Admission active")).not.toBeInTheDocument();
+      const validateStage = (await screen.findAllByRole("button", {
+        name: /Validate.*Pass the gates/i,
+      }))[0];
+      expect(within(validateStage).queryByText("Complete.")).not.toBeInTheDocument();
+      fireEvent.click(validateStage);
+      expect(await screen.findByText(/does not belong to the compiled recommendation/i))
+        .toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Open run actions" })).toBeDisabled();
+      rendered.unmount();
+    }
+  });
+
+  it("does not suggest impossible validation actions for a no-feasible row", async () => {
+    const success = exactQwen3MoEPlan();
+    const rejected: CandidatePlan = {
+      ...success.recommended,
+      status: "infeasible",
+      feasible: false,
+      rejection_reasons: ["The point estimate exceeds available memory."],
+    };
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan: {
+        no_feasible_plan: true,
+        recommended: null,
+        candidates: [rejected],
+        model: {
+          model_id: "Qwen/Qwen3-30B-A3B",
+          revision: QWEN3_REVISION,
+        },
+        model_policy_decision: success.model_policy_decision,
+        model_policy_decision_source: success.model_policy_decision_source,
+        inspection_receipt: null,
+        warnings: ["No candidate passed every hard gate."],
+        rationale: ["No candidate passed every hard gate."],
+        recommendation_rationale: ["No candidate passed every hard gate."],
+      },
+    });
+
+    render(<App />);
+    fireEvent.click((await screen.findAllByRole("button", {
+      name: /Compare.*Resolve feasibility/i,
+    }))[0]);
+
+    const evidence = screen.getByRole("article", { name: "Evidence readiness" });
+    expect(within(evidence).getByText("Not applicable")).toBeInTheDocument();
+    expect(within(evidence).getByText(/rejected candidate cannot advance/i)).toBeInTheDocument();
+    expect(within(evidence).queryByText(/validate this candidate|run the .*gate/i))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compile recommended bundle" })).toBeDisabled();
+  });
+
+  it("surfaces bootstrap policy-version skew without hydrating a policy panel", async () => {
+    bootstrapMock.mockRejectedValue(new Error(
+      "Unsupported model policy decision contract \"aptus.model-compatibility.v3\". Update Aptus so the workbench and local service use the same contract.",
+    ));
+
+    render(<App />);
+
+    expect(await screen.findByText(/unsupported model policy decision contract.*update Aptus/i))
+      .toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Model policy" })).not.toBeInTheDocument();
+  });
+
+  it("surfaces plan, receipt, and binding schema skew from the real bootstrap decoder", async () => {
+    const actualApi = await vi.importActual<typeof import("./api")>("./api");
+    bootstrapMock.mockImplementation((signal) => actualApi.api.bootstrap(signal));
+    const cases: Array<[RegExp, () => Record<string, unknown>]> = [
+      [
+        /requires aptus\.training-plan\.v5/i,
+        () => ({ ...structuredClone(exactQwen3MoEPlan()), schema_version: "aptus.training-plan.v6" }),
+      ],
+      [
+        /invalid model policy binding.*unsupported schema version/i,
+        () => {
+          const plan = structuredClone(exactQwen3MoEPlan());
+          plan.recommended.policy_binding!.schema_version = "aptus.model-policy-binding.v2" as never;
+          return plan;
+        },
+      ],
+      [
+        /invalid model inspection receipt.*unsupported schema version/i,
+        () => {
+          const plan = structuredClone(exactQwen3MoEPlan());
+          const receiptId = `receipt_${"a".repeat(20)}`;
+          plan.model_policy_decision_source = "provider-inspection";
+          plan.recommended.policy_binding = {
+            ...plan.recommended.policy_binding!,
+            source: "provider-inspection",
+            inspection_receipt_id: receiptId,
+          };
+          plan.inspection_receipt = {
+            schema_version: "aptus.model-inspection-receipt.v2" as never,
+            receipt_id: receiptId,
+            model_id: plan.model.model_id,
+            resolved_revision: plan.model.revision,
+            observed_facts_sha256: "f".repeat(64),
+            decision: plan.model_policy_decision,
+            provenance_summary: [{
+              field: "family",
+              kind: "provider-declared",
+              source: "Provider config",
+              observed_at: "2026-08-04T12:00:00+00:00",
+              resolved_revision: plan.model.revision,
+            }],
+            provenance_requirement: "provider-declared",
+            provenance_requirement_met: true,
+            evaluated_at: "2026-08-04T12:00:00+00:00",
+          };
+          return plan;
+        },
+      ],
+    ];
+
+    for (const [message, makePlan] of cases) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+        api_contract_version: "aptus.api.v1",
+        service: { version: "0.2.0" },
+        projects: [],
+        project: null,
+        project_history: [],
+        plan: makePlan(),
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })));
+      const rendered = render(<App />);
+      expect(await screen.findByRole("alert")).toHaveTextContent(message);
+      rendered.unmount();
+    }
+  });
+
+  it("keeps admission evidence unchanged when train submission fails", async () => {
+    const plan = exactQwen3MoEPlan();
+    const projectId = `project_${"a".repeat(32)}`;
+    const revisionId = `revision_${"b".repeat(32)}`;
+    const bindings = {
+      plan_id: plan.plan_id,
+      candidate_id: plan.recommended.candidate_id,
+      model_revision: plan.model.revision,
+    };
+    bootstrapMock.mockResolvedValue({
+      api_contract_version: "aptus.api.v1",
+      service: { version: "0.2.0" },
+      projects: [],
+      project: null,
+      project_history: [],
+      plan,
+      bundle: {
+        bundle_dir: "/tmp/failed-admission",
+        files: [],
+        runtime_contract: plan.recommended.runtime_contract,
+        project_id: projectId,
+        project_revision_id: revisionId,
+        report: {
+          state: "pilot-pass",
+          bindings,
+          authorization_status: "blocked",
+          authorization_current: false,
+          authorization_error: "Original bound admission reason.",
+        },
+      },
+    });
+    createJobMock.mockRejectedValue(new Error("Host lease is already held."));
+
+    render(<App />);
+    const runStage = (await screen.findAllByRole("button", {
+      name: /Run.*Execute with evidence/i,
+    }))[0];
+    fireEvent.click(runStage);
+    await waitFor(() => expect(screen.getByLabelText(/Training job/i)).toBeChecked());
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Start full MLX training" }));
+    expect(await screen.findByText("Host lease is already held.")).toBeInTheDocument();
+
+    const compareStage = screen.getAllByRole("button", {
+      name: /Compare.*Resolve feasibility/i,
+    })[0];
+    fireEvent.click(compareStage);
+    expect(await screen.findByText("Original bound admission reason.")).toBeInTheDocument();
+    expect(screen.queryByText(/latest training launch was rejected/i)).not.toBeInTheDocument();
   });
 
   it("preserves a legacy project but requires replan before restore", async () => {
@@ -662,6 +940,7 @@ describe("desktop workbench readiness", () => {
     render(<App />);
 
     await screen.findByText("The local planner API is unavailable.");
+    expect(screen.getByText("session rejected")).toBeInTheDocument();
     expect(bridge.reportWorkbenchReady).not.toHaveBeenCalled();
     expect(document.querySelector("[data-aptus-workbench-ready]")).toBeNull();
   });
@@ -825,6 +1104,11 @@ describe("desktop workbench readiness", () => {
       project_id: projectId,
       project_revision_id: planRevisionId,
     };
+    const reportBindings = {
+      plan_id: plan.plan_id,
+      candidate_id: plan.recommended.candidate_id,
+      model_revision: plan.model.revision,
+    };
     bootstrapMock.mockResolvedValue({
       api_contract_version: "aptus.api.v1",
       service: { version: "0.2.0" },
@@ -837,13 +1121,14 @@ describe("desktop workbench readiness", () => {
       bundle_dir: "/tmp/sequential-bundle",
       archive_path: "/tmp/sequential-bundle.zip",
       files: [],
-      report: { state: "static-pass", findings: [] },
+      report: { state: "static-pass", findings: [], bindings: reportBindings },
       project_id: projectId,
       project_revision_id: bundleRevisionId,
     });
     validateMock.mockResolvedValue({
       state: "static-pass",
       findings: [],
+      bindings: reportBindings,
       project_id: projectId,
       project_revision_id: validationRevisionId,
     });
@@ -856,7 +1141,11 @@ describe("desktop workbench readiness", () => {
         bundle_dir: "/tmp/sequential-bundle",
         log: "",
         return_code: 0,
-        validation_report: { state: "dependency-pass", findings: [] },
+        validation_report: {
+          state: "dependency-pass",
+          findings: [],
+          bindings: reportBindings,
+        },
         project_id: projectId,
         project_revision_id: dependencyRevisionId,
       })
@@ -868,7 +1157,11 @@ describe("desktop workbench readiness", () => {
         bundle_dir: "/tmp/sequential-bundle",
         log: "",
         return_code: 0,
-        validation_report: { state: "model-data-pass", findings: [] },
+        validation_report: {
+          state: "model-data-pass",
+          findings: [],
+          bindings: reportBindings,
+        },
         project_id: projectId,
         project_revision_id: modelDataRevisionId,
       });

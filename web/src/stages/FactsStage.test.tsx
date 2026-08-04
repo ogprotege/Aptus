@@ -67,13 +67,14 @@ function FactsHarness() {
       onHardwareScan={vi.fn(async () => undefined)}
       hardwareScanned={false}
       modelInspection={null}
+      modelPolicyPresentation={null}
       methodCatalog={methods}
     />
   );
 }
 
 describe("FactsStage", () => {
-  it("shows exact MoE topology, runtime scope, and resident-memory truth", () => {
+  it("shows exact MoE topology and resident-memory truth", () => {
     const draft = structuredClone(EXAMPLE_DRAFT);
     draft.model = {
       ...draft.model,
@@ -142,23 +143,18 @@ describe("FactsStage", () => {
             reason: "Exact model-data and pilot evidence are required.",
           },
         }}
+        modelPolicyPresentation={null}
         methodCatalog={methods}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Exact MoE path recognized" })).toBeInTheDocument();
-    expect(screen.getByText("Pilot required")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pinned MoE topology" })).toBeInTheDocument();
     expect(screen.getByText("Any 8 of 128 routed experts")).toBeInTheDocument();
     expect(screen.getByText(/router selects any 8 of 128 routed experts for each token/i)).toBeInTheDocument();
     expect(screen.getByText("30.5B")).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
     expect(screen.getByText("4-bit group 64; 1 override")).toBeInTheDocument();
     expect(screen.getByText(/all checkpoint weights must remain resident/i)).toBeInTheDocument();
-    expect(screen.getByText(
-      "This artifact is eligible for the reviewed pilot path: runtime mlx-lm, "
-      + "backend mps, method qlora, placement single, adapter profile attention-qkvo.v1. "
-      + "Evidence requirement: pilot-required. Exact model-data and pilot evidence are required.",
-    )).toBeInTheDocument();
   });
 
   it("clears stale provider topology when an inspected model fact changes", async () => {
@@ -207,6 +203,7 @@ describe("FactsStage", () => {
             onHardwareScan={vi.fn(async () => undefined)}
             hardwareScanned={false}
             modelInspection={null}
+            modelPolicyPresentation={null}
             methodCatalog={methods}
           />
           <output data-testid="quantization-layout-state">
@@ -272,6 +269,7 @@ describe("FactsStage", () => {
         onHardwareScan={vi.fn(async () => undefined)}
         hardwareScanned
         modelInspection={null}
+        modelPolicyPresentation={null}
         methodCatalog={methods}
       />,
     );

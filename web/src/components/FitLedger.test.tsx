@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_PLAN } from "../demo";
+import type { CandidatePlan } from "../types";
 import { FitLedger } from "./FitLedger";
 
 describe("FitLedger", () => {
@@ -19,14 +20,14 @@ describe("FitLedger", () => {
       ...EXAMPLE_PLAN.recommended!,
       runtime_contract: {
         schema_version: "aptus.runtime-contract.v1",
-        compute_backend: "mlx",
+        compute_backend: "mps",
         training_runtime: "mlx-lm",
         compiler_id: "aptus-mlx-lm-v1",
         estimator_id: "aptus-memory-mlx-v2",
-        evidence_requirement: "measured-pilot",
+        evidence_requirement: "pilot-required",
         export_kind: "mlx-adapter",
       },
-    };
+    } satisfies CandidatePlan;
 
     render(<FitLedger candidate={mlxCandidate} />);
 

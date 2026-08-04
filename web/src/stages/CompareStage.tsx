@@ -1,6 +1,7 @@
 import type { CandidatePlan, EvidenceRecord, PlanView } from "../types";
 import { CandidateComparison } from "../components/CandidateComparison";
 import { EmptyStage } from "../components/EmptyStage";
+import { ModelPolicyPanel } from "../components/ModelPolicyPanel";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { StageHeader } from "../components/StageHeader";
 import { StatusBadge } from "../components/StatusBadge";
@@ -13,12 +14,14 @@ import {
   planRationale,
   upperMemory,
 } from "../lib/plan";
+import type { ModelPolicyPresentation } from "../lib/modelPolicy";
 
 interface CompareStageProps {
   plan: PlanView | null;
   selected: CandidatePlan | null;
   busy: string | null;
   demoMode: boolean;
+  modelPolicyPresentation: ModelPolicyPresentation | null;
   onInspectCandidate: (candidate: CandidatePlan) => void;
   onCompile: () => Promise<void>;
   onReturnToFacts: () => void;
@@ -29,6 +32,7 @@ export function CompareStage({
   selected,
   busy,
   demoMode,
+  modelPolicyPresentation,
   onInspectCandidate,
   onCompile,
   onReturnToFacts,
@@ -70,6 +74,10 @@ export function CompareStage({
         lede="Hard constraints decide what can run. Your objective ranks only the strategies that survive."
         meta={demoMode ? <ProvenanceBadge kind="example" label="Example comparison" /> : <StatusBadge state={recommended ? candidateStatus(recommended) : "infeasible"} />}
       />
+
+      {modelPolicyPresentation ? (
+        <ModelPolicyPanel presentation={modelPolicyPresentation} />
+      ) : null}
 
       {recommended ? (
         <section className="recommendation-panel" aria-labelledby="recommendation-title">

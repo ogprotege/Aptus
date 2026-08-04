@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { EXAMPLE_DRAFT } from "../demo";
+import { EXAMPLE_DRAFT, EXAMPLE_PLAN } from "../demo";
 import type { TrainingPlan } from "../types";
 import {
   applyPlanDerivedModelFacts,
   applyProviderModelInspection,
-  moeCompatibilityFromPlan,
 } from "./modelInspection";
 
 const QWEN3_REVISION = "d".repeat(40);
@@ -19,43 +18,8 @@ const REVIEWED_QWEN3_LAYOUT = {
 };
 
 function exactQwen3MoEPlan(): TrainingPlan {
-  const decisionId = `compat_${"a".repeat(20)}`;
-  const subjectDigest = "b".repeat(64);
-  const runtimeContract = {
-    schema_version: "aptus.runtime-contract.v1",
-    compute_backend: "mps",
-    training_runtime: "mlx-lm",
-    compiler_id: "mlx-lm.qlora.v1",
-    estimator_id: "aptus-memory-mlx-v2",
-    evidence_requirement: "pilot-required",
-    export_kind: "mlx-lm-adapter",
-  };
-  const recommended = {
-    candidate_id: "qlora-single",
-    model_policy_decision_id: decisionId,
-    policy_binding: {
-      schema_version: "aptus.model-policy-binding.v1" as const,
-      decision_id: decisionId,
-      subject_facts_sha256: subjectDigest,
-      policy_id: "model.qwen3-moe.mlx-qlora",
-      policy_version: "1.0.0",
-      path_id: "mlx-lm.qlora.single.attention-qkvo.v1",
-      source: "user-attested" as const,
-      inspection_receipt_id: null,
-      reason_codes: ["exact-reviewed-artifact", "pilot-not-yet-proven"],
-      evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
-    },
-    method: "qlora",
-    distribution: "single",
-    status: "conditional",
-    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
-    runtime_contract: runtimeContract,
-  };
-  return {
-    schema_version: "aptus.training-plan.v5",
-    plan_id: "plan_qwen3_moe",
-    model_policy_snapshot_sha256: "a".repeat(64),
-    model: {
+  const plan = structuredClone(EXAMPLE_PLAN);
+  plan.model = {
       model_id: "Qwen/Qwen3-30B-A3B",
       revision: QWEN3_REVISION,
       family: "qwen3_moe",
@@ -75,37 +39,8 @@ function exactQwen3MoEPlan(): TrainingPlan {
         mlp_only_layers: [],
         shared_expert_intermediate_size: null,
       },
-    },
-    recommended,
-    candidates: [recommended],
-    warnings: [],
-    rationale: [],
-    recommendation_rationale: [],
-    model_policy_decision: {
-      schema_version: "aptus.model-compatibility.v2",
-      decision_id: decisionId,
-      subject_facts_sha256: subjectDigest,
-      kind: "path-matched",
-      family: "qwen3_moe",
-      policy_id: "model.qwen3-moe.mlx-qlora",
-      policy_version: "1.0.0",
-      paths: [{
-        path_id: "mlx-lm.qlora.single.attention-qkvo.v1",
-        method: "qlora",
-        distribution: "single",
-        adapter_profile_id: "attention-qkvo.v1",
-        target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"],
-        runtime_contract: runtimeContract,
-        required_validation_levels: ["model-data", "measured-preflight", "pilot"],
-        evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
-      }],
-      reason_codes: ["exact-reviewed-artifact", "pilot-not-yet-proven"],
-      evidence_ids: ["policy.qwen3-moe.mlx-qlora.v1"],
-      reason: "Exact reviewed test fixture.",
-    },
-    model_policy_decision_source: "user-attested",
-    inspection_receipt: null,
   };
+  return plan;
 }
 
 describe("provider model inspection", () => {
@@ -220,7 +155,7 @@ describe("provider model inspection", () => {
     expect(merged.quantization_layout).not.toBe(REVIEWED_QWEN3_LAYOUT);
   });
 
-  it("applies derived MoE facts and compatibility only from the matching v5 plan", () => {
+  it("applies derived MoE facts only from the matching v5 plan", () => {
     const current = structuredClone(EXAMPLE_DRAFT.model);
     current.model_id = "Qwen/Qwen3-30B-A3B";
     current.revision = QWEN3_REVISION;
@@ -243,34 +178,6 @@ describe("provider model inspection", () => {
 
     expect(merged.active_parameters_b).toBe(3.3);
     expect(merged.sparse_layer_count).toBe(48);
-    expect(moeCompatibilityFromPlan(plan, merged)).toEqual({
-      status: "conditional",
-      family: "qwen3_moe",
-      supported_runtime: "mlx-lm",
-      compute_backend: "mps",
-      supported_methods: ["qlora"],
-      distribution: "single",
-      evidence_requirement: "pilot-required",
-      adapter_profile_id: "attention-qkvo.v1",
-      reason: "The current v5 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
-    });
-
-    const unreviewedLayoutPlan = structuredClone(plan);
-    const unreviewedLayout = unreviewedLayoutPlan.model?.quantization_layout as {
-      default_group_size: number;
-    };
-    unreviewedLayout.default_group_size = 32;
-    expect(moeCompatibilityFromPlan(unreviewedLayoutPlan, merged)).toEqual({
-      status: "unsupported",
-      family: "qwen3_moe",
-      supported_runtime: null,
-      compute_backend: null,
-      supported_methods: [],
-      distribution: null,
-      evidence_requirement: "implementation-required",
-      adapter_profile_id: null,
-      reason: "The current plan does not bind this topology to the exact conditional Qwen3 MoE path.",
-    });
   });
 
   it("does not apply plan-derived MoE facts across a model revision boundary", () => {
@@ -288,7 +195,6 @@ describe("provider model inspection", () => {
     };
 
     expect(applyPlanDerivedModelFacts(current, exactQwen3MoEPlan())).toBe(current);
-    expect(moeCompatibilityFromPlan(exactQwen3MoEPlan(), current)).toBeNull();
   });
 
   it("does not apply an incomplete provider topology", () => {

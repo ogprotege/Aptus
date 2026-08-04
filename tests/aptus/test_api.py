@@ -19,7 +19,16 @@ from aptus.api import (
     _resolve_static_dir,
     create_app,
 )
-from aptus.api_contracts import ModelCompatibilityResponse, ModelInspectionResponse
+from aptus.api_contracts import (
+    ErrorResponse,
+    ModelCompatibilityResponse,
+    ModelInspectionReceiptResponse,
+    ModelInspectionResponse,
+    NoFeasiblePlanResponse,
+    PlanCandidateResponse,
+    TrainingPlanResponse,
+    ValidationResponse,
+)
 from aptus.catalog import reviewed_qwen3_moe_quantization_layout
 from aptus.domain import Backend, ValidationReport, ValidationState, to_primitive
 from aptus.execution import ActiveJobError, JobPrerequisiteError
@@ -72,8 +81,8 @@ def inspection_receipt_shape(
         "provenance_summary": [
             {
                 "field": "family",
-                "kind": "inferred",
-                "source": "Aptus exact compatibility mapping",
+                "kind": "provider-declared",
+                "source": "Provider model configuration",
                 "observed_at": observed_at,
                 "resolved_revision": resolved_revision,
             }
@@ -85,6 +94,410 @@ def inspection_receipt_shape(
 
 
 class ApiContractTests(unittest.TestCase):
+    def test_validation_authorization_contract_is_typed_and_coherent(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            schema = create_app(state_dir=Path(temporary) / "state").openapi()
+        validation_schema = schema["components"]["schemas"]["ValidationResponse"]
+        status_schema = validation_schema["properties"]["authorization_status"]
+        status_variant = next(item for item in status_schema["anyOf"] if "enum" in item)
+        self.assertEqual(
+            set(status_variant["enum"]), {"current", "deferred", "blocked"}
+        )
+        self.assertNotIn("authorization_status", validation_schema["required"])
+
+        base = {
+            "state": "pilot-pass",
+            "project_id": "project_" + "a" * 32,
+            "project_revision_id": "revision_" + "b" * 32,
+        }
+        for status, current, error in (
+            ("current", True, None),
+            ("deferred", False, "Admission runs at training submission."),
+            ("blocked", False, "Another GPU job owns admission."),
+        ):
+            with self.subTest(status=status):
+                validated = ValidationResponse.model_validate(
+                    {
+                        **base,
+                        "authorization_status": status,
+                        "authorization_current": current,
+                        "authorization_error": error,
+                    }
+                )
+                self.assertEqual(validated.authorization_status, status)
+
+        for state in ("pilot-pass", "execution-approved", "measured-run-pass"):
+            with self.subTest(current_state=state):
+                ValidationResponse.model_validate(
+                    {
+                        **base,
+                        "state": state,
+                        "authorization_status": "current",
+                        "authorization_current": True,
+                        "authorization_error": None,
+                    }
+                )
+
+        invalid = (
+            {"authorization_current": False},
+            {"authorization_status": "deferred"},
+            {
+                "authorization_status": "current",
+                "authorization_current": False,
+                "authorization_error": "Not current.",
+            },
+            {
+                "authorization_status": "current",
+                "authorization_current": True,
+                "authorization_error": "Contradictory error.",
+            },
+            {
+                "state": "static-pass",
+                "authorization_status": "current",
+                "authorization_current": True,
+                "authorization_error": None,
+            },
+            {
+                "authorization_status": "blocked",
+                "authorization_current": False,
+                "authorization_error": " ",
+            },
+        )
+        for mutation in invalid:
+            with self.subTest(mutation=mutation), self.assertRaises(ValidationError):
+                ValidationResponse.model_validate({**base, **mutation})
+
+    def test_plan_openapi_declares_typed_no_feasible_policy_chain(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            schema = create_app(state_dir=Path(temporary) / "state").openapi()
+
+        response_schema = schema["paths"]["/api/v1/plan"]["post"]["responses"]["422"][
+            "content"
+        ]["application/json"]["schema"]
+        self.assertEqual(
+            {item["$ref"] for item in response_schema["anyOf"]},
+            {
+                "#/components/schemas/ErrorResponse",
+                "#/components/schemas/NoFeasiblePlanResponse",
+            },
+        )
+        failure_schema = schema["components"]["schemas"]["NoFeasiblePlanResponse"]
+        self.assertFalse(failure_schema["additionalProperties"])
+        self.assertTrue(
+            {
+                "error",
+                "message",
+                "model",
+                "candidates",
+                "model_policy_decision",
+                "model_policy_decision_source",
+                "inspection_receipt",
+            }.issubset(failure_schema["required"])
+        )
+        self.assertEqual(
+            failure_schema["properties"]["model"]["$ref"],
+            "#/components/schemas/PlanModelSubjectResponse",
+        )
+        candidate_schema = schema["components"]["schemas"]["PlanCandidateResponse"]
+        self.assertTrue(
+            {
+                "candidate_id",
+                "model_policy_decision_id",
+                "policy_binding",
+                "method",
+                "distribution",
+                "status",
+                "feasible",
+                "rejection_reasons",
+                "target_modules",
+                "runtime_contract",
+            }.issubset(candidate_schema["required"])
+        )
+        self.assertEqual(
+            candidate_schema["properties"]["status"]["$ref"],
+            "#/components/schemas/CandidateStatus",
+        )
+        self.assertEqual(
+            candidate_schema["properties"]["runtime_contract"]["$ref"],
+            "#/components/schemas/InspectedRuntimeContractResponse",
+        )
+        plan_schema = schema["components"]["schemas"]["TrainingPlanResponse"]
+        self.assertIn("model", plan_schema["required"])
+        self.assertEqual(
+            plan_schema["properties"]["model"]["$ref"],
+            "#/components/schemas/PlanModelSubjectResponse",
+        )
+        model_subject_schema = schema["components"]["schemas"][
+            "PlanModelSubjectResponse"
+        ]
+        self.assertTrue(model_subject_schema["additionalProperties"])
+        self.assertEqual(
+            set(model_subject_schema["required"]), {"model_id", "revision"}
+        )
+
+    def test_candidate_contract_requires_a_coherent_execution_tuple(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = to_primitive(make_plan(Path(temporary)))
+        candidate = payload["candidates"][0]
+
+        validated = PlanCandidateResponse.model_validate(candidate)
+
+        self.assertEqual(validated.candidate_id, candidate["candidate_id"])
+        required_execution_fields = (
+            "method",
+            "distribution",
+            "status",
+            "feasible",
+            "rejection_reasons",
+            "target_modules",
+            "runtime_contract",
+        )
+        for field in required_execution_fields:
+            with self.subTest(field=field), self.assertRaises(ValidationError):
+                missing = copy.deepcopy(candidate)
+                del missing[field]
+                PlanCandidateResponse.model_validate(missing)
+
+        incoherent = copy.deepcopy(candidate)
+        incoherent["feasible"] = not incoherent["feasible"]
+        with self.assertRaisesRegex(ValidationError, "status and feasibility"):
+            PlanCandidateResponse.model_validate(incoherent)
+
+    def test_plan_response_requires_an_exact_structural_policy_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = to_primitive(make_qwen3_moe_plan(Path(temporary)))
+        TrainingPlanResponse.model_validate(payload)
+        missing_model = copy.deepcopy(payload)
+        del missing_model["model"]
+        with self.assertRaises(ValidationError):
+            TrainingPlanResponse.model_validate(missing_model)
+        for field, value in (("model_id", " "), ("revision", "mutable-main")):
+            with self.subTest(field=field), self.assertRaises(ValidationError):
+                invalid_model_subject = copy.deepcopy(payload)
+                invalid_model_subject["model"][field] = value
+                TrainingPlanResponse.model_validate(invalid_model_subject)
+
+        duplicate_candidates = copy.deepcopy(payload)
+        duplicate_candidates["candidates"].append(
+            copy.deepcopy(duplicate_candidates["candidates"][0])
+        )
+        with self.assertRaisesRegex(ValidationError, "candidate IDs must be unique"):
+            TrainingPlanResponse.model_validate(duplicate_candidates)
+
+        nonviable_recommendation = copy.deepcopy(payload)
+        recommended_id = nonviable_recommendation["recommended"]["candidate_id"]
+        nonviable_recommendation["recommended"]["status"] = "infeasible"
+        nonviable_recommendation["recommended"]["feasible"] = False
+        listed_recommendation = next(
+            candidate
+            for candidate in nonviable_recommendation["candidates"]
+            if candidate["candidate_id"] == recommended_id
+        )
+        listed_recommendation["status"] = "infeasible"
+        listed_recommendation["feasible"] = False
+        with self.assertRaisesRegex(ValidationError, "must be viable"):
+            TrainingPlanResponse.model_validate(nonviable_recommendation)
+
+        bound_index = next(
+            index
+            for index, candidate in enumerate(payload["candidates"])
+            if candidate["policy_binding"] is not None
+        )
+
+        missing_binding = copy.deepcopy(payload)
+        bound_id = missing_binding["candidates"][bound_index]["candidate_id"]
+        missing_binding["candidates"][bound_index]["policy_binding"] = None
+        if missing_binding["recommended"]["candidate_id"] == bound_id:
+            missing_binding["recommended"]["policy_binding"] = None
+        with self.assertRaisesRegex(ValidationError, "require a binding"):
+            TrainingPlanResponse.model_validate(missing_binding)
+
+        mismatched_tuple = copy.deepcopy(payload)
+        mismatched_tuple["candidates"][bound_index]["target_modules"] = ["q_proj"]
+        if mismatched_tuple["recommended"]["candidate_id"] == bound_id:
+            mismatched_tuple["recommended"]["target_modules"] = ["q_proj"]
+        with self.assertRaisesRegex(ValidationError, "must be null"):
+            TrainingPlanResponse.model_validate(mismatched_tuple)
+
+        divergent_recommendation = copy.deepcopy(payload)
+        divergent_recommendation["recommended"]["target_modules"] = ["q_proj"]
+        with self.assertRaisesRegex(ValidationError, "equal its listed"):
+            TrainingPlanResponse.model_validate(divergent_recommendation)
+
+    def test_path_matched_receipts_require_provider_declared_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = to_primitive(make_qwen3_moe_plan(Path(temporary)))
+        receipt = inspection_receipt_shape(
+            plan["model"]["model_id"], plan["model"]["revision"]
+        )
+        receipt["decision"] = plan["model_policy_decision"]
+        receipt["provenance_requirement"] = "provider-declared"
+        receipt["provenance_requirement_met"] = True
+        ModelInspectionReceiptResponse.model_validate(receipt)
+
+        provenance_mutations = {
+            "empty": [],
+            "duplicate": [
+                copy.deepcopy(receipt["provenance_summary"][0]),
+                copy.deepcopy(receipt["provenance_summary"][0]),
+            ],
+            "unsorted": [
+                copy.deepcopy(receipt["provenance_summary"][0]),
+                {
+                    **copy.deepcopy(receipt["provenance_summary"][0]),
+                    "field": "architecture",
+                },
+            ],
+            "revision-mismatch": [
+                {
+                    **copy.deepcopy(receipt["provenance_summary"][0]),
+                    "resolved_revision": "0" * 40,
+                }
+            ],
+            "inferred-only": [
+                {
+                    **copy.deepcopy(receipt["provenance_summary"][0]),
+                    "kind": "inferred",
+                }
+            ],
+        }
+        for name, provenance in provenance_mutations.items():
+            with self.subTest(provenance=name), self.assertRaises(ValidationError):
+                incoherent = copy.deepcopy(receipt)
+                incoherent["provenance_summary"] = provenance
+                ModelInspectionReceiptResponse.model_validate(incoherent)
+
+        for requirement, met in ((None, True), ("provider-declared", False)):
+            with (
+                self.subTest(requirement=requirement, met=met),
+                self.assertRaisesRegex(ValidationError, "provider-declared"),
+            ):
+                incoherent = copy.deepcopy(receipt)
+                incoherent["provenance_requirement"] = requirement
+                incoherent["provenance_requirement_met"] = met
+                ModelInspectionReceiptResponse.model_validate(incoherent)
+
+    def test_success_and_failure_contracts_reject_incoherent_policy_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            success = to_primitive(make_qwen3_moe_plan(Path(temporary)))
+        receipt_id = "receipt_" + "f" * 20
+        receipt = inspection_receipt_shape(
+            success["model"]["model_id"], success["model"]["revision"]
+        )
+        receipt["decision"] = copy.deepcopy(success["model_policy_decision"])
+        receipt["provenance_requirement"] = "provider-declared"
+        receipt["provenance_requirement_met"] = True
+        success["model_policy_decision_source"] = "provider-inspection"
+        success["inspection_receipt"] = receipt
+        for candidate in [success["recommended"], *success["candidates"]]:
+            binding = candidate["policy_binding"]
+            if binding is not None:
+                binding["source"] = "provider-inspection"
+                binding["inspection_receipt_id"] = receipt_id
+        receipt["receipt_id"] = receipt_id
+        TrainingPlanResponse.model_validate(success)
+
+        explanatory_difference = copy.deepcopy(success)
+        explanatory_difference["inspection_receipt"]["decision"]["reason"] = (
+            "Equivalent policy decision with different explanatory text."
+        )
+        TrainingPlanResponse.model_validate(explanatory_difference)
+        semantic_decision_drift = copy.deepcopy(success)
+        semantic_decision_drift["inspection_receipt"]["decision"]["family"] = (
+            "tampered-family"
+        )
+        with self.assertRaisesRegex(ValidationError, "semantically match the plan"):
+            TrainingPlanResponse.model_validate(semantic_decision_drift)
+        for field, value in (
+            ("model_id", "different/model"),
+            ("resolved_revision", "0" * 40),
+        ):
+            with (
+                self.subTest(receipt_field=field),
+                self.assertRaisesRegex(ValidationError, "must match the model subject"),
+            ):
+                mismatched_receipt_subject = copy.deepcopy(success)
+                mismatched_receipt_subject["inspection_receipt"][field] = value
+                if field == "resolved_revision":
+                    for provenance in mismatched_receipt_subject["inspection_receipt"][
+                        "provenance_summary"
+                    ]:
+                        provenance["resolved_revision"] = value
+                TrainingPlanResponse.model_validate(mismatched_receipt_subject)
+
+        receipt_drift = copy.deepcopy(success)
+        bound_candidate = next(
+            candidate
+            for candidate in receipt_drift["candidates"]
+            if candidate["policy_binding"] is not None
+        )
+        drifted_receipt_id = "receipt_" + "e" * 20
+        bound_candidate["policy_binding"]["inspection_receipt_id"] = drifted_receipt_id
+        if (
+            receipt_drift["recommended"]["candidate_id"]
+            == bound_candidate["candidate_id"]
+        ):
+            receipt_drift["recommended"]["policy_binding"]["inspection_receipt_id"] = (
+                drifted_receipt_id
+            )
+        with self.assertRaisesRegex(ValidationError, "exactly match"):
+            TrainingPlanResponse.model_validate(receipt_drift)
+
+        rejected = next(
+            copy.deepcopy(candidate)
+            for candidate in success["candidates"]
+            if not candidate["feasible"] and candidate["policy_binding"] is None
+        )
+        failure = {
+            "error": "no_feasible_plan",
+            "message": "No candidate passed every hard gate.",
+            "model": success["model"],
+            "candidates": [rejected],
+            "model_policy_decision": success["model_policy_decision"],
+            "model_policy_decision_source": "user-attested",
+            "inspection_receipt": None,
+        }
+        NoFeasiblePlanResponse.model_validate(failure)
+        missing_failure_subject = copy.deepcopy(failure)
+        del missing_failure_subject["model"]
+        with self.assertRaises(ValidationError):
+            NoFeasiblePlanResponse.model_validate(missing_failure_subject)
+        malformed_failure_subject = copy.deepcopy(failure)
+        malformed_failure_subject["model"]["revision"] = "main"
+        with self.assertRaises(ValidationError):
+            NoFeasiblePlanResponse.model_validate(malformed_failure_subject)
+
+        provider_failure = copy.deepcopy(failure)
+        provider_failure["model_policy_decision_source"] = "provider-inspection"
+        provider_failure["inspection_receipt"] = copy.deepcopy(
+            success["inspection_receipt"]
+        )
+        NoFeasiblePlanResponse.model_validate(provider_failure)
+        provider_failure["inspection_receipt"]["model_id"] = "different/model"
+        with self.assertRaisesRegex(ValidationError, "must match the model subject"):
+            NoFeasiblePlanResponse.model_validate(provider_failure)
+        duplicate_failure = copy.deepcopy(failure)
+        duplicate_failure["candidates"].append(
+            copy.deepcopy(duplicate_failure["candidates"][0])
+        )
+        with self.assertRaisesRegex(ValidationError, "candidate IDs must be unique"):
+            NoFeasiblePlanResponse.model_validate(duplicate_failure)
+        for status in ("feasible", "conditional"):
+            with (
+                self.subTest(status=status),
+                self.assertRaisesRegex(
+                    ValidationError, "must be infeasible or unsupported"
+                ),
+            ):
+                viable_failure = copy.deepcopy(failure)
+                viable_failure["candidates"][0]["status"] = status
+                viable_failure["candidates"][0]["feasible"] = True
+                NoFeasiblePlanResponse.model_validate(viable_failure)
+        missing_reasons = copy.deepcopy(failure)
+        missing_reasons["candidates"][0]["rejection_reasons"] = []
+        with self.assertRaisesRegex(ValidationError, "with rejection reasons"):
+            NoFeasiblePlanResponse.model_validate(missing_reasons)
+
     def test_request_models_reject_unknown_fields(self) -> None:
         with self.assertRaises(ValidationError):
             ProfileRequest(dataset_path="data.jsonl", unknown=True)
@@ -839,6 +1252,21 @@ class ApiEndpointTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400, response.text)
                 self.assertEqual(response.json()["error"], "invalid_request")
 
+    def test_plan_request_validation_serializes_model_validator_errors(self) -> None:
+        payload = self.plan_payload()
+        receipt = inspection_receipt_shape("example/model-1b", "a" * 40)
+        receipt["provenance_summary"][0]["kind"] = "inferred"
+        payload["inspection_receipt"] = receipt
+
+        response = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(response.status_code, 422, response.text)
+        failure = ErrorResponse.model_validate(response.json())
+        self.assertEqual(failure.error, "request_validation")
+        self.assertTrue(
+            any("provider-declared" in item.get("msg", "") for item in failure.details)
+        )
+
     def test_every_pre_v5_saved_plan_schema_requires_replanning_without_rewrite(
         self,
     ) -> None:
@@ -1005,6 +1433,8 @@ class ApiEndpointTests(unittest.TestCase):
         )
         self.assertEqual(validated.status_code, 200, validated.text)
         self.assertEqual(validated.json()["state"], "static-pass")
+        self.assertNotIn("authorization_status", validated.json())
+        self.assertNotIn("authorization_current", validated.json())
         validated_revision_id = validated.json()["project_revision_id"]
 
         restored = self.client.get("/api/v1/bootstrap")
@@ -1037,6 +1467,22 @@ class ApiEndpointTests(unittest.TestCase):
         )
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(conflict.json()["error"], "path_conflict")
+
+    def test_bootstrap_marks_unchecked_pilot_authorization_deferred(self) -> None:
+        bundle = self.root / "bootstrap-authorization"
+        self.owned_bundle_request(bundle)
+        (bundle / "validation-report.json").write_text(
+            json.dumps({"state": "pilot-pass", "bindings": {}}),
+            encoding="utf-8",
+        )
+
+        response = self.client.get("/api/v1/bootstrap")
+
+        self.assertEqual(response.status_code, 200, response.text)
+        report = response.json()["bundle"]["report"]
+        self.assertEqual(report["authorization_status"], "deferred")
+        self.assertFalse(report["authorization_current"])
+        self.assertIn("full training is submitted", report["authorization_error"])
 
     def test_exact_qwen3_moe_plan_preserves_topology_and_derived_facts(self) -> None:
         payload = self.plan_payload()
@@ -1248,6 +1694,50 @@ class ApiEndpointTests(unittest.TestCase):
             response = client.post(
                 "/api/v1/models/inspect",
                 json={"model_id": "provider/malformed", "revision": "main"},
+            )
+        finally:
+            client.close()
+
+        self.assertEqual(response.status_code, 500, response.text)
+
+    def test_model_inspection_response_rejects_inferred_only_receipt(self) -> None:
+        receipt = inspection_receipt_shape("provider/inferred-only", "a" * 40)
+        receipt["provenance_summary"][0]["kind"] = "inferred"
+        inspection = {
+            "status": "ok",
+            "model_id": "provider/inferred-only",
+            "requested_revision": "main",
+            "resolved_revision": "a" * 40,
+            "facts": {},
+            "compatibility": {
+                "status": "unsupported",
+                "family": None,
+                "supported_runtime": None,
+                "supported_methods": [],
+                "compute_backend": None,
+                "distribution": None,
+                "evidence_requirement": "implementation-required",
+                "adapter_profile_id": None,
+                "reason": "No reviewed policy matches this model.",
+            },
+            "provenance": {},
+            "inspection_receipt": receipt,
+        }
+        with patch(
+            "aptus.inspection.inspect_huggingface_model",
+            return_value=inspection,
+        ):
+            client = TestClient(
+                create_app(
+                    state_dir=self.root / "inferred-receipt-state",
+                    static_dir=self.root / "web",
+                ),
+                raise_server_exceptions=False,
+            )
+        try:
+            response = client.post(
+                "/api/v1/models/inspect",
+                json={"model_id": "provider/inferred-only", "revision": "main"},
             )
         finally:
             client.close()
@@ -2019,8 +2509,74 @@ class ApiEndpointTests(unittest.TestCase):
         }
         no_fit = self.client.post("/api/v1/plan", json=payload)
         self.assertEqual(no_fit.status_code, 422, no_fit.text)
-        self.assertEqual(no_fit.json()["error"], "no_feasible_plan")
-        self.assertEqual(len(no_fit.json()["candidates"]), 12)
+        failure = no_fit.json()
+        self.assertEqual(failure["error"], "no_feasible_plan")
+        self.assertEqual(len(failure["candidates"]), 12)
+        self.assertEqual(failure["model_policy_decision_source"], "user-attested")
+        self.assertIsNone(failure["inspection_receipt"])
+        self.assertEqual(failure["model"]["model_id"], payload["model"]["model_id"])
+        self.assertEqual(failure["model"]["revision"], payload["model"]["revision"])
+        self.assertTrue(
+            all(
+                candidate["model_policy_decision_id"]
+                == failure["model_policy_decision"]["decision_id"]
+                for candidate in failure["candidates"]
+            )
+        )
+        required_execution_fields = {
+            "method",
+            "distribution",
+            "status",
+            "feasible",
+            "rejection_reasons",
+            "target_modules",
+            "runtime_contract",
+        }
+        self.assertTrue(
+            all(
+                required_execution_fields.issubset(candidate)
+                and candidate["feasible"] is False
+                and candidate["status"] in {"infeasible", "unsupported"}
+                and candidate["rejection_reasons"]
+                and candidate["runtime_contract"]["schema_version"]
+                == "aptus.runtime-contract.v1"
+                for candidate in failure["candidates"]
+            )
+        )
+
+    def test_no_fit_response_preserves_provider_inspection_receipt(self) -> None:
+        payload = self.plan_payload()
+        receipt = self.inspection_receipt(payload)
+        payload["inspection_receipt"] = receipt
+        payload["hardware"] = {
+            **payload["hardware"],
+            "host_ram_gib": 1,
+            "host_ram_free_gib": 1,
+            "disk_free_gib": 0.1,
+        }
+
+        response = self.client.post("/api/v1/plan", json=payload)
+
+        self.assertEqual(response.status_code, 422, response.text)
+        failure = response.json()
+        self.assertEqual(failure["error"], "no_feasible_plan")
+        self.assertEqual(failure["model_policy_decision_source"], "provider-inspection")
+        self.assertEqual(
+            failure["inspection_receipt"]["receipt_id"], receipt["receipt_id"]
+        )
+        self.assertEqual(
+            failure["inspection_receipt"]["decision"]["decision_id"],
+            failure["model_policy_decision"]["decision_id"],
+        )
+        self.assertEqual(failure["model"]["model_id"], payload["model"]["model_id"])
+        self.assertEqual(failure["model"]["revision"], payload["model"]["revision"])
+        self.assertTrue(
+            all(
+                candidate["model_policy_decision_id"]
+                == failure["model_policy_decision"]["decision_id"]
+                for candidate in failure["candidates"]
+            )
+        )
 
     def test_hardware_probe_runtime_failure_returns_manual_fallback(self) -> None:
         with patch(
@@ -2209,6 +2765,7 @@ class ApiEndpointTests(unittest.TestCase):
                         },
                     )
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["authorization_status"], "deferred")
         self.assertFalse(response.json()["authorization_current"])
         self.assertIsNone(response.json()["prelaunch_capacity_check"])
         self.assertIn(

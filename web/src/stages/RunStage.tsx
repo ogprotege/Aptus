@@ -6,11 +6,14 @@ import { RunConsole } from "../components/RunConsole";
 import { StageHeader } from "../components/StageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { getDesktopBridge } from "../desktopBridge";
+import { validationReportMatchesBinding } from "../lib/modelPolicy";
+import type { ValidationReportBindingIdentity } from "../lib/modelPolicy";
 import { canStartAction, nextForwardAction } from "../lib/plan";
 
 interface RunStageProps {
   bundle: CompileResponse | null;
   report: ValidationReport | null;
+  reportBinding: ValidationReportBindingIdentity | null;
   job: Job | null;
   busy: string | null;
   demoMode: boolean;
@@ -27,6 +30,7 @@ function quotePosixShellArgument(value: string): string {
 export function RunStage({
   bundle,
   report,
+  reportBinding,
   job,
   busy,
   demoMode,
@@ -39,7 +43,10 @@ export function RunStage({
   const [mode, setMode] = useState<"dependency" | "model-data" | "preflight" | "pilot" | "train">("dependency");
   const [confirmed, setConfirmed] = useState(false);
   const activeReport = report ?? bundle?.report ?? null;
-  const passing = canStartAction(activeReport?.state, "dependency");
+  const boundReport = validationReportMatchesBinding(activeReport, reportBinding)
+    ? activeReport
+    : null;
+  const passing = canStartAction(boundReport?.state, "dependency");
   const activeJob = Boolean(job && ["queued", "running", "cancelling"].includes(job.state));
   const displayJobState = job ? job.phase ?? job.state : null;
   const jobMatchesBundle = Boolean(
@@ -58,10 +65,10 @@ export function RunStage({
 
   useEffect(() => {
     if (!activeJob) {
-      setMode(nextForwardAction(activeReport?.state));
+      setMode(nextForwardAction(boundReport?.state));
       setConfirmed(false);
     }
-  }, [activeJob, activeReport?.state, job?.id]);
+  }, [activeJob, boundReport?.state, job?.id]);
 
   const chooseMode = (nextMode: "dependency" | "model-data" | "preflight" | "pilot" | "train") => {
     setMode(nextMode);
@@ -230,12 +237,12 @@ export function RunStage({
             <div className="preflight-action">
               <div>
                 <span>Validation state</span>
-                <StatusBadge state={activeReport?.state ?? "unknown"} />
+                <StatusBadge state={boundReport?.state ?? "unknown"} />
               </div>
               <button
                 type="button"
                 className="button button-primary"
-                disabled={busy !== null || demoMode || Boolean(activeJob) || !canStartAction(activeReport?.state, mode) || (trainNeedsConfirmation && !confirmed)}
+                disabled={busy !== null || demoMode || Boolean(activeJob) || !canStartAction(boundReport?.state, mode) || (trainNeedsConfirmation && !confirmed)}
                 onClick={startJob}
               >
                 {busy === "job" ? "Starting…" : mode === "train" ? (mlxRuntime ? "Start full MLX training" : "Start training") : mode === "pilot" ? (mlxRuntime ? "Run uninterrupted pilot" : "Run measured pilot") : mode === "preflight" ? "Run measured preflight" : mode === "model-data" ? "Inspect model and data" : "Check dependencies"}
@@ -243,7 +250,7 @@ export function RunStage({
             </div>
             {demoMode ? <p className="example-inline">Execution is disabled for example data. Clear the example and profile real inputs to create a job.</p> : null}
             {activeJob && job ? <p className="example-inline">Job {job.id} is active for this local user and host. V0.2 permits one Aptus execution job at a time across state roots.</p> : null}
-            {!demoMode && !canStartAction(activeReport?.state, mode) ? (
+            {!demoMode && !canStartAction(boundReport?.state, mode) ? (
               <p className="example-inline">
                 {mode === "dependency"
                   ? "Pass static validation before checking the runtime dependencies."
@@ -258,7 +265,7 @@ export function RunStage({
                           : "Select Measured pilot and observe both checkpoint-continuation phases before starting training."}
               </p>
             ) : null}
-            {mlxRuntime && mode === "pilot" && canStartAction(activeReport?.state, mode) ? (
+            {mlxRuntime && mode === "pilot" && canStartAction(boundReport?.state, mode) ? (
               <p className="example-inline">
                 The pilot starts from the pinned base model and does not create a resume point. A pass authorizes an explicitly confirmed full-duration run from scratch.
               </p>

@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-03 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -188,10 +188,19 @@ decision parity is a required contract test. Also test package-free frozen
 snapshot integrity independently from installed-host current-registry currency;
 the former cannot establish the latter.
 
-Phase 5 owns removal of browser-side policy reconstruction. Phase 6 owns the
-second reviewed policy. Do not fold either change into a Phase 4-compatible
-patch. `aptus.api.v1`, `aptus.facts.v3`, and `aptus.runtime-contract.v1`
-remain unchanged.
+Phase 5 completed removal of browser-side policy reconstruction. The maintained
+client now strictly decodes the server v2 decision, nested paths, optional
+receipt, and each candidate's nullable binding, then presents artifact match,
+selected candidate path, and evidence readiness separately. Report-backed
+presentation requires exact plan, candidate, and model-revision bindings and
+separates validation completeness from launch admission. Exact path equality
+requires a non-null binding; unbound or rejected candidates receive no
+synthesized policy ladder or action. The typed HTTP 422 `no_feasible_plan`
+response preserves the same policy chain as successful planning, correlates it
+with the request and receipt, requires complete rejected candidate tuples, and
+remains non-compilable. Phase 6 remains pending and owns the second reviewed
+policy with its own runtime evidence. `aptus.api.v1`, `aptus.facts.v3`, and
+`aptus.runtime-contract.v1` remain unchanged.
 
 ## API and workbench changes
 
@@ -220,6 +229,42 @@ replace React's maintained request construction, runtime normalization, domain
 types, or presentation logic. Swift decoders are maintained and contract
 checked. Describe each boundary precisely instead of calling either client
 wholly generated or wholly hand-maintained.
+
+For server-owned model policy, runtime normalization must reject extra or
+missing keys, unsupported versions or closed vocabulary, malformed identities,
+and any disagreement across decision, path, receipt, candidate, and binding.
+Success and typed `no_feasible_plan` responses use the same cross-record rules.
+Require both responses to carry a model subject matching the submitted model ID
+and immutable revision, then correlate the expected source and receipt identity.
+Require each candidate's method, distribution, status, feasibility, rejection
+reasons, targets, runtime contract, decision link, and binding. No-feasible rows
+must all be rejected. In a successful plan, decode the recommendation and its
+listed row independently, then require full structural equality across the
+complete candidate records, not equality of only a selected execution tuple.
+Object key order is irrelevant; array order remains part of the contract.
+
+A provider path-matched receipt must name a satisfied `provider-declared`
+provenance requirement and contain provider-declared evidence. Inferred-only
+provenance cannot satisfy the flag even when every other receipt identity agrees.
+
+Keep a candidate's nullable binding distinct from its runtime contract, but
+reject null when that complete tuple equals an emitted policy path. Do not infer
+policy validation levels from a runtime contract for unbound or rejected rows.
+Use a validation report only when its `bindings.plan_id`,
+`bindings.candidate_id`, and `bindings.model_revision` match the current
+selection. Reuse that exact predicate for model-policy evidence, workflow-stage
+completion, and validation or run action enablement.
+
+Model validation evidence as incomplete or complete. Treat launch admission as
+an optional typed tuple: `authorization_status` is exactly `current`,
+`deferred`, or `blocked`; current requires `authorization_current: true` and no
+`authorization_error`; deferred or blocked requires false and a non-empty
+diagnostic. If the tuple has no non-null member, admission is not checked.
+Reject partial or contradictory claims. Never branch on diagnostic prose, and do not fabricate a
+new report or authorization state after a generic training-request failure;
+surface the request error while preserving the prior report. A non-current
+status is not by itself stale policy or a replan instruction; only the separate
+`replan_required` lifecycle result carries that meaning.
 
 If a field can be unavailable, preserve `null` or an explicit unknown state.
 Do not substitute total memory for free memory or provider declarations for user

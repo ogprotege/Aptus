@@ -1,14 +1,11 @@
 import type {
   InspectedMoETopology,
-  ModelCompatibility,
   ModelFacts,
   ModelInspectionResponse,
   MoETopology,
   PlanView,
   QuantizationLayout,
 } from "../types";
-
-const QWEN3_MOE_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -92,36 +89,6 @@ function completeQuantizationLayout(
   };
 }
 
-function isReviewedQwen3MoELayout(value: unknown, layerCount: unknown): boolean {
-  if (
-    !isRecord(value)
-    || typeof layerCount !== "number"
-    || !Number.isInteger(layerCount)
-    || layerCount <= 0
-  ) {
-    return false;
-  }
-  const overrides = value.module_overrides;
-  if (
-    value.default_bits !== 4
-    || value.default_group_size !== 64
-    || !Array.isArray(overrides)
-    || overrides.length !== layerCount
-  ) {
-    return false;
-  }
-  const expectedPaths = Array.from(
-    { length: layerCount },
-    (_, index) => `model.layers.${index}.mlp.gate`,
-  ).sort();
-  return overrides.every((override, index) =>
-    isRecord(override)
-    && override.module_path === expectedPaths[index]
-    && override.bits === 8
-    && override.group_size === 64,
-  );
-}
-
 export function applyProviderModelInspection(
   current: ModelFacts,
   inspection: ModelInspectionResponse,
@@ -190,67 +157,4 @@ export function applyPlanDerivedModelFacts(
         ? sparseLayerCount
         : null,
   };
-}
-
-export function moeCompatibilityFromPlan(
-  plan: PlanView | null,
-  current: ModelFacts,
-): ModelCompatibility | null {
-  if (!plan || !("schema_version" in plan) || !current.moe) return null;
-  const model = plan.model;
-  if (
-    !isRecord(model)
-    || !matchesCurrentModel(model, current)
-    || model.family !== "qwen3_moe"
-    || model.model_type !== "qwen3_moe"
-    || model.architecture !== "Qwen3MoeForCausalLM"
-    || model.quantization_bits !== 4
-    || !isRecord(model.moe)
-  ) {
-    return null;
-  }
-
-  const candidate = plan.recommended;
-  const runtime = candidate?.runtime_contract;
-  const exactTargets = Array.isArray(candidate?.target_modules)
-    && candidate.target_modules.length === QWEN3_MOE_TARGETS.length
-    && candidate.target_modules.every((target, index) => target === QWEN3_MOE_TARGETS[index]);
-  const exactConditionalPath = Boolean(
-    candidate
-    && candidate.status === "conditional"
-    && candidate.method === "qlora"
-    && candidate.distribution === "single"
-    && isReviewedQwen3MoELayout(model.quantization_layout, model.layers)
-    && runtime?.compute_backend === "mps"
-    && runtime.training_runtime === "mlx-lm"
-    && runtime.compiler_id === "mlx-lm.qlora.v1"
-    && runtime.estimator_id === "aptus-memory-mlx-v2"
-    && runtime.evidence_requirement === "pilot-required"
-    && runtime.export_kind === "mlx-lm-adapter"
-    && exactTargets,
-  );
-
-  return exactConditionalPath
-    ? {
-        status: "conditional",
-        family: "qwen3_moe",
-        supported_runtime: "mlx-lm",
-        compute_backend: "mps",
-        supported_methods: ["qlora"],
-        distribution: "single",
-        evidence_requirement: "pilot-required",
-        adapter_profile_id: "attention-qkvo.v1",
-        reason: "The current v5 plan preserves the reviewed model identity, quantization layout, topology, MLX-LM runtime contract, and attention-only q/k/v/o target set. Measured preflight and a real-model pilot remain mandatory.",
-      }
-    : {
-        status: "unsupported",
-        family: "qwen3_moe",
-        supported_runtime: null,
-        compute_backend: null,
-        supported_methods: [],
-        distribution: null,
-        evidence_requirement: "implementation-required",
-        adapter_profile_id: null,
-        reason: "The current plan does not bind this topology to the exact conditional Qwen3 MoE path.",
-      };
 }

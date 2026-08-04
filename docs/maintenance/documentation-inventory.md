@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after the Phase 4 closeout
+> **Applies to:** Current Aptus 0.2 documentation after the Phase 5 closeout
 >
 > **Last reviewed:** 2026-08-04
 >
@@ -16,7 +16,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 The repository contains 101 governed tracked Markdown documents. This count
 includes the dedicated model-policy-snapshot reference added by the Phase 4
-documentation synchronization and excludes 11 tracked working or implementation
+documentation synchronization and excludes 12 tracked working or implementation
 documents outside the governed product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
@@ -249,7 +249,7 @@ It also generates command help in `train.py`, `run.py`, `preflight.py`, and
 | HTTP request and response contracts | `src/aptus/api_contracts.py`, `src/aptus/api.py` |
 | Generated OpenAPI contract | `tools/generate_openapi.py`, `docs/reference/openapi.v1.json` |
 | Generated TypeScript contract | `web/scripts/generate-openapi-client.mjs`, `web/src/generated/openapi.ts` |
-| Maintained client boundary | `web/src/api.ts`, `web/src/types.ts`, `desktop/macos/Sources/`, `tools/check_client_contracts.py` |
+| Maintained client boundary | `web/src/api.ts`, `web/src/types.ts`, `web/src/lib/modelPolicy.ts`, `desktop/macos/Sources/`, `tools/check_client_contracts.py` |
 | Web metadata | `web/package.json`, `web/index.html` |
 | Workbench copy | `web/src/App.tsx`, `web/src/components/`, `web/src/stages/`, `web/src/demo.ts`, and user-facing errors under `web/src/lib/` and `web/src/api.ts` |
 | Packaged web build | `src/aptus/_web/index.html` and `src/aptus/_web/assets/` |
@@ -262,16 +262,16 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Eleven tracked implementation or workflow files sit outside the 101-file
+Twelve tracked implementation or workflow files sit outside the 101-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
 - `desktop/macos/README.md`; and
-- the nine active review and design notes under `dev/active/`.
+- the ten active review and design notes under `dev/active/`.
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 112 tracked Markdown
+This distinction explains the repository-wide total of 113 tracked Markdown
 files.
 
 ## Excluded local and generated material

@@ -3,11 +3,16 @@ import { EmptyStage } from "../components/EmptyStage";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { StageHeader } from "../components/StageHeader";
 import { ValidationGates } from "../components/ValidationGates";
+import {
+  validationReportMatchesBinding,
+} from "../lib/modelPolicy";
+import type { ValidationReportBindingIdentity } from "../lib/modelPolicy";
 import { canStartAction, formatBytes } from "../lib/plan";
 
 interface ValidateStageProps {
   bundle: CompileResponse | null;
   report: ValidationReport | null;
+  reportBinding: ValidationReportBindingIdentity | null;
   busy: string | null;
   demoMode: boolean;
   onValidate: () => Promise<void>;
@@ -20,6 +25,7 @@ interface ValidateStageProps {
 export function ValidateStage({
   bundle,
   report,
+  reportBinding,
   busy,
   demoMode,
   onValidate,
@@ -40,7 +46,9 @@ export function ValidateStage({
   }
 
   const activeReport = report ?? bundle.report ?? null;
-  const runActionsReady = canStartAction(activeReport?.state, "dependency");
+  const reportBound = validationReportMatchesBinding(activeReport, reportBinding);
+  const runActionsReady = reportBound
+    && canStartAction(activeReport?.state, "dependency");
   const bindings = Object.entries(activeReport?.bindings ?? {});
   const preflightMetrics = activeReport?.preflight_metrics;
   const pilotMetrics = activeReport?.pilot_metrics;
@@ -70,6 +78,12 @@ export function ValidateStage({
 
       {activeReport ? (
         <>
+          {!reportBound ? (
+            <section className="blocked-panel" role="status">
+              <h2>This report does not belong to the compiled recommendation.</h2>
+              <p>Revalidate the current bundle before opening Run. Plan, candidate, and model revision identities must all match.</p>
+            </section>
+          ) : null}
           <ValidationGates report={activeReport} />
           {activeReport.runtime_evidence?.length ? (
             <section className="runtime-evidence" aria-labelledby="runtime-evidence-title">
@@ -88,8 +102,10 @@ export function ValidateStage({
           ) : null}
           {activeReport.validation_level || activeReport.validator_version || bindings.length ? (
             <section className="attestation-panel" aria-labelledby="attestation-title">
-              <p className="eyebrow">Bound validation evidence</p>
-              <h2 id="attestation-title">Attestation bound to this artifact</h2>
+              <p className="eyebrow">{reportBound ? "Bound validation evidence" : "Unbound validation evidence"}</p>
+              <h2 id="attestation-title">{reportBound
+                ? "Attestation bound to this artifact"
+                : "Attestation from another artifact"}</h2>
               <dl className="attestation-summary">
                 <div><dt>Level</dt><dd>{activeReport.validation_level ?? "Not recorded"}</dd></div>
                 <div><dt>Validator</dt><dd>{activeReport.validator_version ?? "Not recorded"}</dd></div>
@@ -218,7 +234,11 @@ export function ValidateStage({
       <div className="sticky-actions">
         <div>
           <strong>{runActionsReady ? "Static gate passed" : "Run actions remain gated"}</strong>
-          <span>{runActionsReady ? "Open Run to start with the dependency gate." : "Pass static validation before creating a runtime job."}</span>
+          <span>{runActionsReady
+            ? "Open Run to start with the dependency gate."
+            : activeReport && !reportBound
+              ? "Revalidate this exact plan, candidate, and model revision before creating a runtime job."
+              : "Pass static validation before creating a runtime job."}</span>
         </div>
         <div className="action-buttons">
           <button type="button" className="button button-secondary" disabled={busy !== null || demoMode} onClick={() => void onValidate()}>

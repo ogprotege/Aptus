@@ -3,13 +3,14 @@ import type {
   FactDraft,
   InputProfile,
   MethodDescriptor,
-  ModelCompatibility,
   ModelInspectionResponse,
 } from "../types";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { ExpertTopologyRail } from "../components/ExpertTopologyRail";
+import { ModelPolicyPanel } from "../components/ModelPolicyPanel";
 import { StageHeader } from "../components/StageHeader";
 import { getDesktopBridge } from "../desktopBridge";
+import type { ModelPolicyPresentation } from "../lib/modelPolicy";
 
 interface FactsStageProps {
   draft: FactDraft;
@@ -26,7 +27,7 @@ interface FactsStageProps {
   onHardwareScan: () => Promise<void>;
   hardwareScanned: boolean;
   modelInspection: ModelInspectionResponse | null;
-  moeCompatibility?: ModelCompatibility | null;
+  modelPolicyPresentation: ModelPolicyPresentation | null;
   methodCatalog: MethodDescriptor[];
 }
 
@@ -49,7 +50,7 @@ export function FactsStage({
   onHardwareScan,
   hardwareScanned,
   modelInspection,
-  moeCompatibility,
+  modelPolicyPresentation,
   methodCatalog,
 }: FactsStageProps) {
   const desktopBridge = getDesktopBridge();
@@ -300,6 +301,9 @@ export function FactsStage({
                 <p className="inspection-boundary">Total parameter count and training permission never come from this inspection. Enter and confirm both yourself.</p>
               </section>
             ) : null}
+            {modelPolicyPresentation ? (
+              <ModelPolicyPanel presentation={modelPolicyPresentation} />
+            ) : null}
             {draft.model.moe ? (
               <ExpertTopologyRail
                 topology={draft.model.moe}
@@ -307,11 +311,6 @@ export function FactsStage({
                 activeParametersB={draft.model.active_parameters_b}
                 sparseLayerCount={draft.model.sparse_layer_count}
                 quantizationBits={draft.model.quantization_bits}
-                compatibility={moeCompatibility === undefined
-                  ? modelInspection?.compatibility
-                  : moeCompatibility}
-                selectedRuntime={draft.target.runtime}
-                selectedBackend={selectedBackend}
               />
             ) : null}
             <div className="field-row">

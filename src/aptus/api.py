@@ -27,6 +27,7 @@ from .api_contracts import (
     JobResponse,
     ModelInspectionReceiptResponse,
     ModelInspectionResponse,
+    NoFeasiblePlanResponse,
     PlatformResponse,
     ProfileResponse,
     ProjectRecoveryResponse,
@@ -499,6 +500,7 @@ def create_app(
 ) -> Any:
     try:
         from fastapi import FastAPI, HTTPException
+        from fastapi.encoders import jsonable_encoder
         from fastapi.exceptions import HTTPException as FastApiHTTPException
         from fastapi.exceptions import RequestValidationError
         from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
@@ -510,7 +512,11 @@ def create_app(
 
     from .generation import bundle_files, create_bundle_archive, generate_bundle
     from .inspection import inspect_huggingface_model
-    from .execution import ActiveJobError, JobPrerequisiteError
+    from .execution import (
+        ActiveJobError,
+        JobPrerequisiteError,
+        decorate_validation_authorization,
+    )
     from .validation import validate_bundle
 
     desktop_security_headers = {
@@ -616,7 +622,9 @@ def create_app(
     ) -> JSONResponse:
         return JSONResponse(
             status_code=422,
-            content={"error": "request_validation", "details": error.errors()},
+            content=jsonable_encoder(
+                {"error": "request_validation", "details": error.errors()}
+            ),
         )
 
     @app.exception_handler(FileNotFoundError)
@@ -654,13 +662,22 @@ def create_app(
     async def no_feasible_plan(
         _request: Any, error: NoFeasiblePlanError
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=422,
-            content={
+        payload = NoFeasiblePlanResponse.model_validate(
+            {
                 "error": "no_feasible_plan",
                 "message": str(error),
+                "model": to_primitive(error.model),
                 "candidates": [to_primitive(item) for item in error.candidates],
-            },
+                "model_policy_decision": to_primitive(error.model_policy_decision),
+                "model_policy_decision_source": (
+                    error.model_policy_decision_source.value
+                ),
+                "inspection_receipt": to_primitive(error.inspection_receipt),
+            }
+        )
+        return JSONResponse(
+            status_code=422,
+            content=payload.model_dump(mode="json"),
         )
 
     @app.exception_handler(LocalInferenceError)
@@ -1181,40 +1198,35 @@ def create_app(
             }:
                 if active_job is not None:
                     cached_capacity = active_job.get("prelaunch_capacity_check")
-                    authorization = {
-                        "current": bool(
-                            active_job.get("action") == "train"
-                            and isinstance(cached_capacity, dict)
-                            and active_job.get("bundle_dir") == str(bundle_dir)
-                        ),
-                        "error": (
-                            None
-                            if active_job.get("action") == "train"
-                            and isinstance(cached_capacity, dict)
-                            and active_job.get("bundle_dir") == str(bundle_dir)
-                            else "Pilot authorization is not re-probed while any Aptus GPU job is active."
-                        ),
-                        "capacity": (
-                            cached_capacity
-                            if isinstance(cached_capacity, dict)
-                            and active_job.get("bundle_dir") == str(bundle_dir)
-                            else None
-                        ),
-                    }
+                    authorization_is_current = bool(
+                        active_job.get("action") == "train"
+                        and isinstance(cached_capacity, dict)
+                        and active_job.get("bundle_dir") == str(bundle_dir)
+                    )
+                    authorization_status = (
+                        "current" if authorization_is_current else "blocked"
+                    )
+                    authorization_error = (
+                        None
+                        if authorization_is_current
+                        else "Pilot authorization is not re-probed while any Aptus GPU job is active."
+                    )
+                    authorization_capacity = (
+                        cached_capacity
+                        if isinstance(cached_capacity, dict)
+                        and active_job.get("bundle_dir") == str(bundle_dir)
+                        else None
+                    )
                 else:
-                    authorization = {
-                        "current": False,
-                        "error": (
-                            "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Bootstrap does not rehash large pilot artifacts."
-                        ),
-                        "capacity": None,
-                    }
-                report_payload = {
-                    **report_payload,
-                    "authorization_current": authorization["current"],
-                    "authorization_error": authorization["error"],
-                    "prelaunch_capacity_check": authorization["capacity"],
-                }
+                    authorization_status = "deferred"
+                    authorization_error = "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Bootstrap does not rehash large pilot artifacts."
+                    authorization_capacity = None
+                report_payload = decorate_validation_authorization(
+                    report_payload,
+                    status=authorization_status,
+                    error=authorization_error,
+                    capacity=authorization_capacity,
+                )
             archive_path = Path(reference["archive_path"])
             archive_matches = bool(
                 reference["archive_path"]
@@ -1422,7 +1434,13 @@ def create_app(
             )
         )
 
-    @app.post("/api/v1/plan", response_model=TrainingPlanResponse)
+    @app.post(
+        "/api/v1/plan",
+        response_model=TrainingPlanResponse,
+        responses={
+            422: {"model": NoFeasiblePlanResponse | ErrorResponse},
+        },
+    )
     def plan(request: PlanRequest) -> dict[str, Any]:
         try:
             if request.hardware.discovery == "local-scan":
@@ -1614,7 +1632,11 @@ def create_app(
         context.save_bundle(bundle_dir, archive, plan_id=request.plan_id)
         return response
 
-    @app.post("/api/v1/validate", response_model=ValidationResponse)
+    @app.post(
+        "/api/v1/validate",
+        response_model=ValidationResponse,
+        response_model_exclude_unset=True,
+    )
     def validate(request: ValidateRequest) -> dict[str, Any]:
         if request.run and request.level in {
             "dependency",
@@ -1674,12 +1696,13 @@ def create_app(
                     "execution-approved",
                     "measured-run-pass",
                 }:
-                    report.update(
-                        authorization_current=False,
-                        authorization_error=(
+                    report = decorate_validation_authorization(
+                        report,
+                        status="deferred",
+                        error=(
                             "Deep pilot binding, checkpoint, environment, and current capacity authorization is performed atomically when full training is submitted. Synchronous validation does not rehash large pilot artifacts."
                         ),
-                        prelaunch_capacity_check=None,
+                        capacity=None,
                     )
         except ActiveJobError as error:
             raise HTTPException(

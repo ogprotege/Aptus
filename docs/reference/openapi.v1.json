@@ -142,6 +142,16 @@
         "title": "BootstrapResponse",
         "type": "object"
       },
+      "CandidateStatus": {
+        "enum": [
+          "feasible",
+          "conditional",
+          "infeasible",
+          "unsupported"
+        ],
+        "title": "CandidateStatus",
+        "type": "string"
+      },
       "CapabilitiesResponse": {
         "additionalProperties": true,
         "properties": {
@@ -1870,6 +1880,7 @@
             "items": {
               "$ref": "#/components/schemas/InspectedModelProvenanceResponse"
             },
+            "minItems": 1,
             "title": "Provenance Summary",
             "type": "array"
           },
@@ -2066,6 +2077,64 @@
         "title": "ModelPolicyReasonCode",
         "type": "string"
       },
+      "NoFeasiblePlanResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PlanCandidateResponse"
+            },
+            "minItems": 1,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "error": {
+            "const": "no_feasible_plan",
+            "title": "Error",
+            "type": "string"
+          },
+          "inspection_receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelInspectionReceiptResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/components/schemas/PlanModelSubjectResponse"
+          },
+          "model_policy_decision": {
+            "$ref": "#/components/schemas/InspectedModelPolicyDecisionResponse"
+          },
+          "model_policy_decision_source": {
+            "enum": [
+              "provider-inspection",
+              "user-attested"
+            ],
+            "title": "Model Policy Decision Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "model",
+          "candidates",
+          "model_policy_decision",
+          "model_policy_decision_source",
+          "inspection_receipt"
+        ],
+        "title": "NoFeasiblePlanResponse",
+        "type": "object"
+      },
       "Objective": {
         "enum": [
           "quality",
@@ -2083,6 +2152,16 @@
             "title": "Candidate Id",
             "type": "string"
           },
+          "distribution": {
+            "$ref": "#/components/schemas/Distribution"
+          },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "method": {
+            "$ref": "#/components/schemas/Method"
+          },
           "model_policy_decision_id": {
             "pattern": "^compat_[0-9a-f]{20}$",
             "title": "Model Policy Decision Id",
@@ -2097,12 +2176,39 @@
                 "type": "null"
               }
             ]
+          },
+          "rejection_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rejection Reasons",
+            "type": "array"
+          },
+          "runtime_contract": {
+            "$ref": "#/components/schemas/InspectedRuntimeContractResponse"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CandidateStatus"
+          },
+          "target_modules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target Modules",
+            "type": "array"
           }
         },
         "required": [
           "candidate_id",
           "model_policy_decision_id",
-          "policy_binding"
+          "policy_binding",
+          "method",
+          "distribution",
+          "status",
+          "feasible",
+          "rejection_reasons",
+          "target_modules",
+          "runtime_contract"
         ],
         "title": "PlanCandidateResponse",
         "type": "object"
@@ -2186,6 +2292,28 @@
           "evidence_ids"
         ],
         "title": "PlanModelPolicyBindingResponse",
+        "type": "object"
+      },
+      "PlanModelSubjectResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "model_id": {
+            "minLength": 1,
+            "pattern": "^\\S(?:[\\s\\S]*\\S)?$",
+            "title": "Model Id",
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^[0-9A-Fa-f]{40,64}$",
+            "title": "Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_id",
+          "revision"
+        ],
+        "title": "PlanModelSubjectResponse",
         "type": "object"
       },
       "PlanRequest": {
@@ -3416,6 +3544,9 @@
               }
             ]
           },
+          "model": {
+            "$ref": "#/components/schemas/PlanModelSubjectResponse"
+          },
           "model_policy_decision": {
             "$ref": "#/components/schemas/InspectedModelPolicyDecisionResponse"
           },
@@ -3486,6 +3617,7 @@
           "schema_version",
           "plan_id",
           "model_policy_snapshot_sha256",
+          "model",
           "recommended",
           "candidates",
           "warnings",
@@ -3624,6 +3756,56 @@
       "ValidationResponse": {
         "additionalProperties": true,
         "properties": {
+          "authorization_current": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Current"
+          },
+          "authorization_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Error"
+          },
+          "authorization_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current",
+                  "deferred",
+                  "blocked"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Status"
+          },
+          "prelaunch_capacity_check": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prelaunch Capacity Check"
+          },
           "project_id": {
             "title": "Project Id",
             "type": "string"
@@ -4852,7 +5034,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/NoFeasiblePlanResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  ],
+                  "title": "Response 422 Plan Api V1 Plan Post"
                 }
               }
             },

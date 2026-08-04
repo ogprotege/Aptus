@@ -133,12 +133,14 @@ review the output diff.
 | Path | Responsibility |
 |---|---|
 | [`App.tsx`](../../web/src/App.tsx) | Workflow state, restoration, active-job guards, polling, and stage transitions |
-| [`api.ts`](../../web/src/api.ts) | Request construction, response normalization, and API errors |
-| [`types.ts`](../../web/src/types.ts) | Browser-side API and view models |
+| [`api.ts`](../../web/src/api.ts) | Request construction, request/receipt-correlated plan and typed no-feasible ingress, and API errors |
+| [`types.ts`](../../web/src/types.ts) | Generated model-policy aliases plus maintained browser facts, plans, candidates, and view models |
 | [`stages/`](../../web/src/stages) | Facts, Compare, Compile, Validate, and Run screens |
 | [`components/`](../../web/src/components) | Shared candidate, evidence, artifact, job, and navigation components |
-| [`components/ExpertTopologyRail.tsx`](../../web/src/components/ExpertTopologyRail.tsx) | Static accessible MoE routing, residency, and fail-closed compatibility presentation |
-| [`lib/`](../../web/src/lib) | Hardware, model-inspection, compatibility normalization, and plan view helpers |
+| [`components/ExpertTopologyRail.tsx`](../../web/src/components/ExpertTopologyRail.tsx) | Static accessible MoE routing and resident-versus-active parameter presentation, with no policy decision logic |
+| [`components/ModelPolicyPanel.tsx`](../../web/src/components/ModelPolicyPanel.tsx) | Three records for artifact match, selected path, and separate validation-evidence and launch-admission states |
+| [`lib/modelPolicy.ts`](../../web/src/lib/modelPolicy.ts) | Exact v2 decision, path, receipt, candidate, binding, and validation-report decoders plus presentation derived without family predicates |
+| [`lib/`](../../web/src/lib) | Hardware, model-inspection fact application, model-policy ingress and presentation, and plan view helpers |
 | [`demo.ts`](../../web/src/demo.ts) | Clearly labeled non-executed example state |
 | [`styles.css`](../../web/src/styles.css) | Visual tokens, layout, responsive behavior, focus, and motion policy |
 | [`desktopBridge.ts`](../../web/src/desktopBridge.ts) | Complete feature detection for native pickers and Finder actions |

@@ -1,12 +1,15 @@
 # Security Policy
 
-> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Supported status
 
-Aptus v0.2 is an engineering preview. Apple Silicon MLX-LM acceptance reached
-`measured-run-pass` twice in a clean isolated checkout. Ten of 10 clean local
-desktop engineering builds passed at implementation commit
+Aptus v0.2 is an engineering preview. The July 27 Apple Silicon MLX-LM record
+reached `measured-run-pass` twice in a clean isolated checkout, but it predates
+the Phase 4 portable-policy snapshot contract and does not bind the current
+source head. No current-head CUDA or MLX target-runtime pilot was collected for
+the Phase 4 closeout. Ten of 10 clean local desktop engineering builds passed at
+implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
 exact workflow commit. Pull requests use GitHub's synthetic merge commit. CUDA
@@ -55,6 +58,16 @@ same-origin content security policy and deny framing. The sidecar can run an
 eligible MLX-LM bundle through the configured external interpreter. CUDA
 remains an external target-host path.
 
+Every current bundle embeds a canonical frozen model-policy snapshot and a
+self-contained evaluator. Their hashes are tamper-evident content bindings, not
+authenticated signatures and not authority to redefine installed-host policy.
+Package-free entrypoints can prove only frozen-snapshot integrity and saved
+decision parity. Installed Aptus separately evaluates current registry currency
+during host static validation and again during managed admission, pilot
+authorization, worker launch, and the completion verification and promotion
+transaction. A coherent stale v5 plan requires replanning; malformed or
+modified policy state remains invalid input.
+
 ## Data copies
 
 Compilation intentionally creates cleartext copies of the source data:
@@ -88,6 +101,10 @@ Review `diagnostics.json` before sharing the archive.
 - Compilation refuses a non-empty output directory and refuses an existing
   archive target.
 - Bundle integrity binds compiler-created files and source data by hash.
+- Model-policy integrity binds the canonical snapshot bytes, v5 plan, v3
+  manifest, and manifested file entry. Host validation adds the current-registry
+  digest comparison. An untrusted embedded snapshot cannot override that host
+  policy.
 - Model IDs use repository syntax and revisions must be immutable identifiers.
 - Local model paths are outside the current model contract.
 - Provider metadata is untrusted input. Inspection is bounded and does not
@@ -102,14 +119,23 @@ contract. This coordinates Aptus instances only. It does not reserve the GPU
 against unrelated processes.
 
 Full training requires explicit confirmation and a current pilot attestation.
-At train admission, Aptus deeply verifies the bundle, plan, environment, pilot
-metrics, runtime-specific pilot artifacts, current hardware identity, memory
-headroom, and free disk. CUDA admission verifies checkpoint continuation,
-export evidence, CUDA identity, free VRAM, and free host RAM. MLX admission
+At train admission, Aptus deeply verifies the bundle, plan, current host model
+policy, environment, pilot metrics, runtime-specific pilot artifacts, current
+hardware identity, memory headroom, and free disk. CUDA admission verifies
+checkpoint continuation, export evidence, CUDA identity, free VRAM, and free
+host RAM. MLX admission
 verifies the exact target census, changed adapter weights, positive measured
 peak and delta, immutable artifacts, live unified-memory headroom, and a fresh
 adapter reload that generates one to four tokens. A status page may show cached
 evidence. The admission transaction is authoritative.
+
+Current-policy checks also run during pilot authorization, worker launch, and
+the completion verification and promotion transaction, including crash
+recovery. Pending evidence is not newly promoted after the host registry
+changes. API saved-plan load, compile, project recovery, and managed job
+submission report coherent stale policy as HTTP `409 replan_required`; host
+static validation instead records a typed invalid finding. Editing the old
+plan, snapshot, or digest bindings is not a safe repair.
 
 Cancellation targets the recorded process group on POSIX systems. The service
 records `cancelling` while termination is in progress. A result is not promoted

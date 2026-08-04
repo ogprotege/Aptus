@@ -1,6 +1,6 @@
 # Compile, Validate, and Run
 
-> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA and Apple Silicon operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when runtime actions change
+> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA and Apple Silicon operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when runtime actions change
 
 ## Compile once
 
@@ -49,6 +49,11 @@ operator's working directory stable:
 )
 ```
 
+These package-free commands validate the canonical policy snapshot frozen into
+the bundle. They prove the snapshot's schema, path, canonical bytes, digest
+bindings, and decision parity with the saved plan. They cannot determine whether
+an installed host's model-policy registry has advanced since compilation.
+
 The repository CLI exposes the same runtime work as cancellable jobs:
 
 ```bash
@@ -63,6 +68,15 @@ time across state roots for the same user. It rejects skipped actions. A higher
 validation action also reruns the lower validation levels inside its own job,
 so an earlier pass is both an admission prerequisite and a recorded state in the
 operator workflow.
+
+Managed execution adds the installed-host currency boundary. Aptus checks the
+current registry at submission, pilot authorization, worker launch, and the
+completion verification and promotion transaction. A standalone validation
+pass does not waive those checks. When a coherent v5 plan's saved decision or
+snapshot digest is no longer current, saved-plan load, compile, project
+recovery, and managed job submission APIs return HTTP `409 replan_required`;
+CLI and job surfaces include `replan_required`. Preserve the old artifact,
+create a new plan from its source facts, and compile to a new bundle path.
 
 CUDA model-data validation prepares the selected method before any optimizer
 exists. It rejects zero or non-finite trainable parameters. The `full` path
@@ -84,6 +98,10 @@ A pilot pass is necessary but not sufficient. For CUDA, train submission deeply
 rechecks:
 
 - compiler manifest and plan identity;
+- canonical policy-snapshot bytes and the snapshot, plan, manifest, and
+  current-host digest bindings;
+- the saved compatibility decision against the installed host's current
+  model-policy registry;
 - source dataset and pinned model revision;
 - installed environment binding;
 - preflight and pilot metrics, including the selected method's trainable census;
@@ -116,6 +134,10 @@ Portable execution with the same external environment:
   python run.py --confirm-full-train
 )
 ```
+
+Direct portable execution remains bound to the bundle's frozen snapshot. Use
+installed Aptus when current host policy must be established; do not interpret a
+direct portable pass as current-registry authorization.
 
 Direct portable child execution is supported on POSIX. On Windows, use the
 managed `aptus run` command because the portable process-group contract is
@@ -173,7 +195,9 @@ run.
 
 Only a successful parent verification promotes the report to
 `measured-run-pass`. This proves the stated run and file-tree contract. It does
-not prove task quality.
+not prove task quality. Managed promotion also rechecks current host model
+policy, so evidence completed under a stale coherent v5 policy is not newly
+promoted.
 
 ## Related documentation
 

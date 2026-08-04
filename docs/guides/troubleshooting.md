@@ -1,6 +1,6 @@
 # Troubleshooting
 
-> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27 or after a new failure class
+> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or after a new failure class
 
 Begin with the read-only report:
 
@@ -41,6 +41,49 @@ service as a training interpreter.
 
 Do not patch a compiled bundle in place. The manifest binds compiler-managed
 files. Correct source facts or generator code, then compile to a new empty path.
+
+For model-policy snapshots, use the exact finding to classify the failure:
+
+- `POLICY_SNAPSHOT_MISSING` and `POLICY_SNAPSHOT_JSON_ERROR` mean the snapshot
+  file is absent or unreadable JSON;
+- `POLICY_SNAPSHOT_CONTRACT` and `POLICY_SNAPSHOT_NONCANONICAL` mean the parsed
+  snapshot violates its exact schema or canonical byte encoding; and
+- `POLICY_SNAPSHOT_DIGEST` and `POLICY_SNAPSHOT_PATH` mean one of the snapshot,
+  plan, manifest, or current-host digest bindings differs or the manifest names
+  the wrong path.
+
+The digest finding names invalid and differing bindings. A snapshot, plan, or
+manifest disagreement is bundle-integrity failure: restore from a trusted source
+or recompile. A valid `host` binding difference is policy currency and requires
+replanning, as described below. Never make the digests agree by editing the
+bundle.
+
+Installed-host validation requires plan, trainer, manifest, and snapshot JSON
+roots to be objects. Package-free validation enforces that boundary for the
+plan, manifest, and snapshot. On covered readers, JSON `null`, arrays, scalars,
+excessive nesting, and oversized integers are controlled invalid-input results,
+not repairable bundle state. The trainer configuration is compiler-managed
+runtime input; recompile from trusted inputs rather than editing it. If a
+covered input escapes as an unhandled `TypeError`, `AttributeError`, `KeyError`,
+`StopIteration`, or `RecursionError`, retain the smallest redacted reproduction
+and report it as a validator defect.
+
+## `replan_required` or host rejection after a portable pass
+
+Package-free `validate.py` checks the frozen snapshot embedded in its bundle. It
+cannot know whether an installed host's current model-policy registry has
+advanced. Installed Aptus performs that separate currency check before managed
+admission, at pilot authorization and worker launch, and during the completion
+verification and promotion transaction.
+
+For a coherent v5 plan whose saved decision or snapshot digest is no longer
+current, preserve the old plan and bundle, recreate the plan from its source
+facts, and compile to a new empty path. Saved-plan load, compile, project
+recovery, and managed job submission APIs report HTTP `409 replan_required`;
+host static validation instead records `POLICY_SNAPSHOT_DIGEST` in its invalid
+report. Do not relabel the old schema, copy a new digest into the old plan, or
+replace only the embedded snapshot. A malformed or tampered v5 decision remains
+invalid input rather than a replanning case.
 
 ## Dependency validation fails
 
@@ -127,8 +170,10 @@ conditional. Quantized FSDP is unsupported.
 ## Train submission is rejected after pilot
 
 Admission deeply rechecks current environment, hardware, host RAM, disk, bundle,
-and pilot artifacts. Review the returned reason. A displayed pilot pass can be
-historical while current authorization fails.
+pilot artifacts, and installed-host model-policy currency. Review the returned
+reason. A displayed pilot pass can be historical while current authorization
+fails. For `replan_required`, create and compile a new current plan rather than
+rerunning the old pilot unchanged.
 
 ## Active job conflict
 

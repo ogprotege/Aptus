@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-03
+> **Last reviewed:** 2026-08-04
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -159,12 +159,15 @@ when its evidence, owner, or resolution changes.
   [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
   adds exact fail-closed evidence for the 30B checkpoint. It stopped before
   model loading and is not passing pilot, training, reload, export,
-  performance, or quality evidence.
-- **Required result:** Add equivalent qualifying evidence for every claimed CUDA
-  method and placement, plus Developer ID signed and notarized desktop evidence
-  for the exact public release commit.
-- **Blocker:** Access to approved CUDA target hosts and public notarization
-  credentials for a public Mac artifact
+  performance, or quality evidence. The July MLX-LM and desktop records predate
+  the current Phase 4 source head; no current-head CUDA or MLX target-runtime
+  pilot was collected for the Phase 4 closeout.
+- **Required result:** Renew qualifying current-head MLX-LM target-runtime
+  evidence, add equivalent evidence for every claimed CUDA method and placement,
+  and add Developer ID signed and notarized desktop evidence for the exact
+  public release commit.
+- **Blocker:** Access to approved CUDA and MLX target hosts and public
+  notarization credentials for a public Mac artifact
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
@@ -174,8 +177,10 @@ when its evidence, owner, or resolution changes.
 - **Evidence:** Portable CUDA and MLX program sources now live as packaged
   resources with emitted-byte and manifest parity tests across source, wheel,
   and frozen layouts. Bundle `README.md`, `decision-report.md`, and `runbook.md`
-  guidance still comes from compiler templates. Assertions cover critical
-  instructions, but not every executable method and placement.
+  guidance still comes from compiler templates. Representative CUDA and MLX
+  README assertions cover the v5 plan, v3 bundle, frozen-snapshot integrity,
+  and installed-host currency boundary, but not every executable method and
+  placement.
 - **Required result:** Generate representative bundles for all executable
   methods and placements, then test command order, evidence boundaries,
   platform notes, file names, and successor links.
@@ -336,8 +341,9 @@ when its evidence, owner, or resolution changes.
   policy remains Phase 6.
 - **Verification:** Deterministic double generation, host-versus-portable
   decision parity, package-free validation, host-registry currency, exact digest
-  binding, scalar-manifest rejection, and typed snapshot mutation tests protect
-  the contract.
+  binding, scalar plan and manifest rejection, controlled excessive-nesting and
+  oversized-integer failures, stale admission and completion-promotion denial,
+  and typed snapshot mutation tests protect the contract.
 - **Owner:** Policy, planning, compiler, validation, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch

@@ -1,6 +1,6 @@
 # Release Evidence Template
 
-> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27
+> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 Copy this template into a new, dated evidence record for each release candidate.
 Do not edit the template into a claim that work passed. Fill every applicable
@@ -55,6 +55,7 @@ State what it does not support:
 | Full development dependency audit | `npm audit` | `[fill]` | `[fill advisories and disposition]` |
 | Wheel build | `[fill]` | `[fill]` | `[fill]` |
 | Installed-wheel CLI/API/asset smoke | `[fill]` | `[fill]` | `[fill]` |
+| Package-free snapshot/evaluator smoke | `[fill: copied plan_contract.py and policy_snapshot.py with no installed Aptus import]` | `[fill]` | `[fill]` |
 | Documentation checks | `[fill]` | `[fill]` | `[fill]` |
 | Patch whitespace | `[fill]` | `[fill]` | `[fill]` |
 
@@ -129,6 +130,18 @@ Attach evidence for:
       the receipt;
 - [ ] malformed, stale, mismatched, and modified receipts fail without
       downgrading to user-attested;
+- [ ] the canonical snapshot file, plan `model_policy_snapshot_sha256`, manifest
+      `policy_snapshot_sha256`, manifested file digest, and observed current-host
+      digest are recorded; every digest has exact lowercase SHA-256 shape;
+- [ ] host and portable evaluators return identical complete decisions for the
+      exact, near-match, dense, sparse, unknown, and unsorted multi-error subject
+      cases;
+- [ ] all six `POLICY_SNAPSHOT_*` findings are exercised, including null,
+      malformed, noncanonical, wrong-path, invalid-binding, and stale-host cases;
+- [ ] package-free validation succeeds against its intact frozen snapshot after
+      a simulated host-policy change, while installed-host submission, pilot
+      authorization, worker launch, recovery, and the completion verification
+      and promotion transaction reject non-current policy;
 - [ ] v4, v3, v2, schema-less, and stale-policy or stale-snapshot v5 plans return
       `replan_required` without changing saved bytes;
 - [ ] identity mutation tests pass;
@@ -188,6 +201,7 @@ For every provider-inspected fixture, record:
 | Resolved immutable revision | `[fill]` |
 | Decision ID and `subject_facts_sha256` | `[fill]` |
 | `observed_facts_sha256` and covered field list | `[fill]` |
+| `model_policy_snapshot_sha256` | `[fill]` |
 | Decision source | `[fill: provider-inspection or user-attested]` |
 | Policy ID and version | `[fill or N/A]` |
 | Matched path ID | `[fill or N/A]` |
@@ -251,6 +265,7 @@ Repeat this section for each runtime row marked passed.
 | Field | Value |
 |---|---|
 | Plan ID | `[fill]` |
+| Model-policy snapshot SHA-256 | `[fill]` |
 | Candidate ID | `[fill]` |
 | Bundle fingerprint | `[fill]` |
 | Dataset SHA-256 | `[fill]` |
@@ -363,6 +378,13 @@ Record test names and immutable results for:
 - [ ] mutable or unpinned model revision rejection;
 - [ ] missing training permission rejection;
 - [ ] source and canonical-data mutation rejection;
+- [ ] missing, invalid-JSON, null, malformed-contract, noncanonical, wrong-path,
+      invalid-digest-binding, and differing-digest policy-snapshot rejection;
+- [ ] package-free frozen-snapshot integrity versus installed-host currency
+      behavior, including coherent stale-v5 `replan_required`;
+- [ ] installed-host non-object plan, manifest, trainer, and snapshot rejection,
+      plus package-free non-object plan, manifest, and snapshot rejection,
+      without escaped parser or primitive-shape exceptions on covered readers;
 - [ ] empty, extra, non-finite, boolean-typed, malformed, and mismatched census
       rejection;
 - [ ] missing LoRA pair and optimizer-set mismatch rejection;
@@ -387,11 +409,19 @@ Record test names and immutable results for:
 | Cancelling reconciliation | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | Parent crash before promotion | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | Verified pending promotion recovery | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Host policy changes before worker launch | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Host policy changes before pending promotion | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | Windows managed-path behavior, if claimed | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 
 ## API and workbench
 
 - [ ] Strict schemas reject unknown and resume fields.
+- [ ] V5 response normalization rejects a missing, non-string, uppercase, short,
+      or non-hexadecimal `model_policy_snapshot_sha256`.
+- [ ] Saved-plan load, compile, project recovery, and managed job submission map
+      legacy and coherent stale-policy v5 state to structured HTTP
+      `409 replan_required`, not generic `400 invalid_request`; host static
+      validation records the typed digest finding instead.
 - [ ] Bootstrap exposes all 11 descriptors and only four selectable IDs.
 - [ ] Runtime validation routes through cancellable jobs.
 - [ ] Active jobs guard hardware scan and conflicting actions.
@@ -428,6 +458,8 @@ Attach browser, automated, and installed-wheel evidence:
 - [ ] CLI and API references match help and request models.
 - [ ] Plan, bundle, validation, run-state, security, and recovery references are
       current.
+- [ ] Current pages document all six snapshot findings, every plan-identity
+      snapshot binding, and the frozen-integrity versus host-currency boundary.
 - [ ] No current page calls direct pins a transitive lock.
 - [ ] No current page offers full-training resume or full FSDP.
 - [ ] No current page claims guaranteed fit, quality, or universal optimality.

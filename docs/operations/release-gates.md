@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-07-27 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-04 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -10,10 +10,14 @@ applicable gate. Passing repository tests is not target-runtime evidence.
 - Clean checkout installs on every supported Python version.
 - Wheel and source distribution contain the packaged workbench and required
   runtime modules, including the typed method registry and CUDA and MLX program
-  resources. Source, wheel, and frozen-sidecar compilation emit identical
-  program bytes and manifest hashes.
+  resources, `policy_snapshot.py`, and the model-policy snapshot generator.
+  Source, wheel, and frozen-sidecar compilation emit identical program bytes,
+  canonical snapshot bytes, and manifest hashes.
 - Installed-wheel CLI, API, static assets, plan, compile, and static validation
   smoke tests pass outside the source tree.
+- A generated bundle runs package-free with copied `plan_contract.py` and
+  `policy_snapshot.py`; it validates its embedded frozen snapshot without
+  importing installed Aptus.
 - The arm64 macOS build embeds the current tested workbench and Python runtime,
   starts outside the repository without Homebrew or `.venv`, enforces its
   per-launch cookie, passes native bridge tests, and verifies every nested and
@@ -74,6 +78,29 @@ do not prove public notarization.
   every rejected row. Documentation-only research entries never become
   candidates.
 - Plan and candidate identity mutation tests pass.
+- Plans use `aptus.training-plan.v5`, bundles use `aptus.bundle.v3`, and every
+  bundle carries canonical `aptus.model-policy-snapshot.v1` bytes at
+  `policy/model-policy-snapshot.v1.json`.
+- Snapshot, plan, manifest, and current-host digest bindings must be lowercase
+  64-character hexadecimal text. The snapshot, plan, manifest, and manifested
+  file entry agree; installed-host validation separately compares the current
+  registry digest.
+- Host and portable snapshot evaluators return identical complete decisions for
+  exact, near-match, dense, sparse, unknown, and unsorted multi-error subjects.
+  Snapshot generation fails closed on a host rule the generic evaluator cannot
+  express.
+- Host validation covers all six typed snapshot findings:
+  `POLICY_SNAPSHOT_MISSING`, `POLICY_SNAPSHOT_JSON_ERROR`,
+  `POLICY_SNAPSHOT_CONTRACT`, `POLICY_SNAPSHOT_NONCANONICAL`,
+  `POLICY_SNAPSHOT_DIGEST`, and `POLICY_SNAPSHOT_PATH`. Missing, malformed,
+  noncanonical, path-tampered, digest-tampered, JSON-null, deeply nested, and
+  oversized-integer inputs return controlled invalid results rather than parser
+  or primitive-shape exceptions.
+- Package-free validation proves frozen-snapshot integrity and saved-decision
+  parity but cannot claim host policy currency. Installed-host submission, pilot
+  authorization, worker launch, recovery, and the completion verification and
+  promotion transaction enforce the current registry. Coherent stale v5 state
+  requires replanning; malformed or tampered v5 state remains invalid.
 - Memory component arithmetic and point versus upper separation pass.
 - Full FP16, full FSDP, quantized FSDP, packing, non-SFT, and wall-time targets
   fail closed as documented.
@@ -160,7 +187,7 @@ For each claimed MLX-LM LoRA or QLoRA path:
 ## 4. Full-run transaction
 
 - Train submission rejects stale bundle, model, data, environment, hardware,
-  pilot, checkpoint, and export bindings.
+  pilot, checkpoint, export, and current model-policy bindings.
 - Each train job receives a unique run ID and refuses an existing output.
 - An ungrouped dataset uses `deterministic-exact-row-count-sha256`. A dataset
   with declared groups uses `deterministic-size-aware-group-sha256`; no declared
@@ -182,6 +209,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
   digest, target size, realized fraction, and row error.
 - Parent promotion is idempotent.
 - A crash after verified pending evidence can reconcile safely.
+- Pending completion evidence is not promoted after host policy changes. A job
+  record binds the host-authorized snapshot digest, and worker launch rechecks
+  both that binding and current registry currency.
 - Historical reads clearly distinguish completion-time verification from current
   cheap presence status.
 - An MLX full run starts from the pinned base, derives its duration from the
@@ -213,6 +243,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
 ## 6. API and workbench
 
 - Strict request schemas reject unknown and resume fields.
+- The maintained browser normalizer rejects v5 plan responses with a missing,
+  non-string, uppercase, short, or non-hexadecimal
+  `model_policy_snapshot_sha256`.
 - Every success route has an explicit response model. Generated
   `docs/reference/openapi.v1.json` matches the application and reports
   `aptus.api.v1`.
@@ -224,6 +257,11 @@ For each claimed MLX-LM LoRA or QLoRA path:
   labels Apple memory as shared, shows live headroom separately, and does not
   present a conditional MLX plan as already proven.
 - Train admission, not cached UI state, performs deep authorization.
+- Saved-plan load, compile, project recovery, and managed job submission map v4,
+  v3, v2, schema-less, and coherent stale-policy or stale-snapshot v5 state to
+  structured HTTP `409 replan_required`, not generic `400 invalid_request`;
+  source bytes are preserved. Host static validation records a typed invalid
+  finding instead.
 - The UI exposes five ordered runtime actions, current phase, run output,
   completion attestation, and artifact integrity.
 - The method preference control cannot select experimental or research-only
@@ -263,6 +301,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
 
 - README, API, CLI, bundle, capability, validation, run-state, security, and
   recovery documents match executable behavior.
+- Current documents name all six model-policy snapshot findings, bind the
+  snapshot digest wherever plan identity is enumerated, and distinguish
+  package-free frozen-snapshot integrity from installed-host registry currency.
 - No page describes `requirements.txt` as a transitive lock.
 - No page offers full-training resume.
 - No page claims full FSDP support.
@@ -295,6 +336,12 @@ The [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admiss
 passed static and dependency gates, then blocked before model loading because
 live unified memory was 18.932 GiB below the exact packed-checkpoint-adjusted
 requirement. It is safe refusal evidence, not MoE acceptance.
+
+The July 27 MLX-LM acceptance predates the Phase 4 portable-policy snapshot
+contract and does not bind the current source head. No current-head CUDA or MLX
+target-runtime pilot was collected for the Phase 4 closeout. Repository, wheel,
+web, native, and macOS package gates closed the source and contract review only;
+they did not renew target-runtime acceptance or establish release readiness.
 
 No real CUDA pilot or full training evidence has completed on an external CUDA
 host. The local Mac packages are ad-hoc signed, not Developer ID signed and

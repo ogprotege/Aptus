@@ -1,6 +1,6 @@
 # First Planning-Only Run
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-22 or when CLI defaults change
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when CLI defaults change
 
 This tutorial proves the local planning, compilation, and static-validation
 path. It works without CUDA. It uses bundled synthetic data and synthetic model
@@ -17,6 +17,9 @@ aptus-work/
   bundle/
     bundle-manifest.json
     plan.json
+    policy_snapshot.py
+    policy/
+      model-policy-snapshot.v1.json
     requirements.txt
     runbook.md
     validate.py
@@ -24,9 +27,11 @@ aptus-work/
 ```
 
 The final command should return a report with `"state": "static-pass"`.
-That result proves the bundle contract and generated source passed local static
-checks. It does not prove dependency installation, model compatibility, CUDA
-fit, training completion, or model quality.
+Because this tutorial uses installed Aptus, that result proves the bundle
+contract, generated source, frozen-snapshot integrity, decision parity, and
+current host-registry binding passed the local static check. It does not prove
+dependency installation, target-runtime compatibility, CUDA fit, training
+completion, or model quality.
 
 ## 1. Install the development package
 
@@ -97,6 +102,7 @@ Open `aptus-work/plan.json` and confirm:
 - `schema_version` is `aptus.training-plan.v5`;
 - `model_policy_snapshot_sha256` binds the canonical policy snapshot used to
   produce the compatibility decision;
+- `plan_id` includes that snapshot digest in its content identity;
 - `formula_version` is `aptus-memory-v2`;
 - `model_policy_decision.schema_version` is
   `aptus.model-compatibility.v2`;
@@ -122,7 +128,10 @@ aptus compile \
 ```
 
 Compilation creates `aptus-work/bundle` and `aptus-work/bundle.zip`. It refuses
-to overwrite either. Use a new path when repeating the tutorial.
+to overwrite either. The `aptus.bundle.v3` manifest and v5 plan cross-bind
+`policy/model-policy-snapshot.v1.json` by its lowercase SHA-256 digest, and
+`policy_snapshot.py` evaluates that frozen contract without importing Aptus.
+Use a new path when repeating the tutorial.
 
 ## 5. Validate the bundle statically
 
@@ -131,7 +140,10 @@ aptus validate ./aptus-work/bundle --level static
 ```
 
 Review the returned `checked_files`, `bindings`, and `findings`. A valid result
-has no findings and reports `static-pass`.
+has no findings and reports `static-pass`. A package-free
+`python validate.py --level static` run can repeat the frozen-snapshot integrity
+and decision-parity checks, but only installed Aptus can compare the digest with
+the current host registry.
 
 ## 6. Stop at the evidence boundary
 

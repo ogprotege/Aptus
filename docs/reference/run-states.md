@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | Operators, UI developers, and job-service integrators |
 | Authority | Normative lifecycle reference for persisted Aptus jobs |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when `src/aptus/execution.py` changes |
+| Last reviewed | 2026-08-04 |
+| Next review | 2026-11-01, or sooner when `src/aptus/execution.py` changes |
 
 Aptus runtime validation and training use persisted local jobs. A job state
 describes process lifecycle. It is not the same as validation evidence state.
@@ -52,6 +52,12 @@ The prerequisite check accepts a later valid state, so operators can explicitly
 recheck an earlier action. It rejects forward skips. Full training also requires
 `confirm_full_train=true` and a current deep pilot authorization.
 
+Every managed submission first requires the bundle's coherent v5 decision and
+snapshot digest to match the installed host registry. A stale same-schema plan
+requires replanning before Aptus creates a job record or lease. Pilot
+authorization returns non-current after a policy change even when its historical
+report still says `pilot-pass`.
+
 ## Job record fields
 
 ### Persisted submission fields
@@ -74,6 +80,7 @@ recheck an earlier action. It rejects forward skips. Full training also requires
 | `process_pid`, `process_identity` | Managed launcher identity |
 | `process_group_id` | POSIX group identity when available |
 | `prelaunch_capacity_check` | Deep current train-admission evidence |
+| `authorized_model_policy_snapshot_sha256` | Snapshot digest approved from the current host registry at submission |
 
 Launch can add `launch_protocol`, `cancel_requested_at`, and completion
 transaction fields. Train verification can add `verified_pending_evidence`,
@@ -113,6 +120,14 @@ artifact fingerprint, rejects escapes and symlinks, and rehashes each manifested
 file before replacing itself with the job command. The parent also rechecks the
 same binding immediately before it writes the permit.
 
+The managed launch specification and child environment also carry the
+submission-approved snapshot digest as
+`APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256`. The parent rechecks current
+host currency before releasing the permit, and generated entrypoints compare
+the environment binding with the plan and manifest before using plan state.
+Direct package-free execution has no host-authorized binding and continues to
+verify only its embedded frozen snapshot.
+
 This sequence narrows the interval in which a child could start without a
 durable identity. Worker-start or lease-persistence failure records `failed` and
 releases the lease where possible.
@@ -128,11 +143,15 @@ For train, the parent then:
 1. verifies the runtime-specific run marker, metrics, finite guards, trainable
    scope, data evidence, and export;
 2. persists verified pending evidence in the job record;
-3. promotes the bundle report to `measured-run-pass`; and
-4. writes a completion attestation.
+3. rechecks the bundle fingerprint and current host policy before and
+   immediately after computing a new promotion;
+4. promotes the bundle report to `measured-run-pass`; and
+5. writes a completion attestation.
 
 A zero child exit with failed parent verification becomes `failed`, not
-`completed`.
+`completed`. A policy change while evidence is pending leaves the report
+unpromoted and fails the job rather than accepting evidence under a registry
+that did not authorize it.
 
 ## Cancellation
 
@@ -172,7 +191,7 @@ processes. Outcomes include:
 - mark an unattached active record failed;
 - preserve `cancelling` while a recorded child group remains live; or
 - complete a pending train promotion when verified evidence was already
-  persisted and still passes.
+  persisted and still passes, including current host policy.
 
 Reconciliation is intentionally fail-closed. It does not relabel uncertain work
 as successful.
@@ -201,5 +220,6 @@ weight snapshots rather than checkpoints.
 - [API reference](api.md)
 - [CLI reference](cli.md)
 - [Bundle manifest](bundle-manifest.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Error and finding codes](error-codes.md)
 - [Execution orchestrator](../architecture/execution-orchestrator.md)

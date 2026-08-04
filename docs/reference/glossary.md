@@ -5,8 +5,8 @@
 | Status | Active |
 | Audience | All Aptus users and contributors |
 | Authority | Canonical terminology for current v0.2 documentation |
-| Last reviewed | 2026-07-22 |
-| Next review | 2026-10-22, or sooner when public vocabulary changes |
+| Last reviewed | 2026-08-04 |
+| Next review | 2026-11-01, or sooner when public vocabulary changes |
 
 ## Active parameters
 
@@ -111,6 +111,13 @@ A per-user local coordination record that permits one Aptus accelerator action a
 managed state roots and POSIX portable bundle launches. It does not coordinate
 unrelated programs.
 
+## Host policy currency
+
+Agreement between a coherent v5 plan's model-policy decision and snapshot
+digest and the registry currently installed on the Aptus host. Only installed
+Aptus can establish currency. A package-free bundle can establish frozen
+snapshot integrity but cannot know whether the host registry has advanced.
+
 ## Immutable revision
 
 A 40 to 64 character hexadecimal provider commit identifier. Mutable branches
@@ -154,6 +161,13 @@ method, and enforces trainable scope. MLX-LM validates the QLoRA metadata when
 applicable and tokenizes the bound train and validation rows. It performs no
 optimizer step.
 
+## Model-policy snapshot
+
+The canonical `aptus.model-policy-snapshot.v1` data file and generic evaluator
+input carried by every `aptus.bundle.v3` bundle. It freezes the registry rules
+used to produce the plan's compatibility decision and is cross-bound by the
+plan, manifest, and manifested file digest.
+
 ## MoE topology
 
 The exact Mixture-of-Experts structure bound into an `aptus.facts.v3`
@@ -194,6 +208,12 @@ the resulting candidates, recommendation, and plan ID to match the bundle.
 A compiler-produced directory with relative data paths, direct pins,
 configuration, self-contained validators, training code, and an immutable
 manifest. It can move to its runtime-compatible target host as a reviewed unit.
+
+## Portable policy integrity
+
+Proof that a bundle's embedded model-policy snapshot is canonical, matches its
+plan and manifest digests, and reproduces the saved decision. It is deliberately
+narrower than host policy currency.
 
 ## Provenance
 
@@ -315,6 +335,7 @@ rejects every MLX resume argument and never calls these files checkpoints.
 ## Related documentation
 
 - [Plan schema](plan-schema.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Method registry](method-registry.md)
 - [Evidence records](evidence-records.md)
 - [Validation states](validation-states.md)

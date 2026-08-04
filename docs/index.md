@@ -1,10 +1,12 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-07-29 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
 operational evidence, future work, research inputs, and historical records.
+The current portable contract uses `aptus.training-plan.v5`,
+`aptus.bundle.v3`, and a canonical `aptus.model-policy-snapshot.v1`.
 
 ## Choose by goal
 
@@ -19,6 +21,7 @@ operational evidence, future work, research inputs, and historical records.
 | Understand a failure | [Troubleshooting](guides/troubleshooting.md) | [Error and finding codes](reference/error-codes.md) |
 | Interpret a completed run | [Inspect results](guides/inspect-results.md) | [Design an evaluation](guides/design-an-evaluation.md) |
 | Integrate Aptus | [API reference](reference/api.md) | [Plan schema](reference/plan-schema.md) |
+| Understand portable policy identity and replanning | [Model-policy snapshot](reference/model-policy-snapshot.md) | [Plan schema](reference/plan-schema.md) |
 | Change the code | [Contributor index](contributing/index.md) | [Code map](architecture/code-map.md) |
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
@@ -99,6 +102,7 @@ Authority labels have a separate meaning:
 - [Dataset schemas](reference/dataset-schemas.md)
 - [Method registry](reference/method-registry.md)
 - [Plan schema](reference/plan-schema.md)
+- [Model-policy snapshot](reference/model-policy-snapshot.md)
 - [Bundle manifest](reference/bundle-manifest.md)
 - [Evidence records](reference/evidence-records.md)
 - [Capability matrix](reference/capability-matrix.md)
@@ -160,6 +164,7 @@ Authority labels have a separate meaning:
 | What is supported now? | [Capability matrix](reference/capability-matrix.md) and `src/aptus/methods/registry.py` |
 | What does a validation state prove? | [Validation states](reference/validation-states.md) |
 | What files belong to a bundle? | [Bundle manifest](reference/bundle-manifest.md) |
+| How are policy decisions carried, checked, and kept current? | [Model-policy snapshot](reference/model-policy-snapshot.md), [plan schema](reference/plan-schema.md), [bundle manifest](reference/bundle-manifest.md), and [validation states](reference/validation-states.md) |
 | What does the API accept? | [API reference](reference/api.md), `src/aptus/api_contracts.py`, and the [generated OpenAPI contract](reference/openapi.v1.json) |
 | What does the CLI accept? | [CLI reference](reference/cli.md) and parser in `src/aptus/cli.py` |
 | How are candidates ranked? | [Ranking and uncertainty](methodology/ranking-uncertainty.md) |
@@ -175,8 +180,10 @@ measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
 full-duration adapter training from the pinned base model. Two clean workflows
 reached `measured-run-pass` in the dated acceptance record. Fresh-process adapter
 reload and bounded generation prove that the emitted adapter can be loaded. They
-do not prove training resume. The exact `qwen3_moe` MLX-LM QLoRA row remains
-conditional and has only safe-refusal evidence: the recorded 30B attempt stopped
-before model loading when live unified-memory admission failed. CUDA training
-remains an external-host path on this Mac, with no qualifying target-host run
-recorded.
+do not prove training resume. That July MLX-LM record predates Phase 4 and does
+not bind the current source head; no current-head MLX or CUDA target-runtime
+pilot was collected for the Phase 4 closeout. The exact `qwen3_moe` MLX-LM
+QLoRA row remains conditional and has only safe-refusal evidence: the recorded
+30B attempt stopped before model loading when live unified-memory admission
+failed. CUDA training remains an external-host path on this Mac, with no
+qualifying target-host run recorded.

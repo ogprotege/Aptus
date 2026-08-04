@@ -1,6 +1,6 @@
 # Workbench Development
 
-> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 The React workbench is the complete transitional workflow inside the native Mac
 product and a local browser interface over the same strict FastAPI contracts
@@ -85,6 +85,13 @@ Generated TypeScript types provide compile-time alignment. They do not validate
 untrusted responses at runtime. Keep the maintained normalizers fail closed on
 missing, malformed, unknown-version, or misbound data.
 
+In particular, every purported v5 plan response must carry
+`model_policy_snapshot_sha256` as lowercase 64-character hexadecimal text. The
+normalizer rejects a missing, non-string, uppercase, short, or non-hexadecimal
+value. Keep HTTP `409 replan_required` as a distinct structured lifecycle result
+for a coherent saved plan that is no longer current; do not collapse it into a
+generic `invalid_request` message or repair the saved plan in the browser.
+
 Preserve `null` for unknown resource values. Do not turn a missing free-memory
 measurement into total memory.
 
@@ -105,8 +112,13 @@ Keep these behaviors visible and tested:
 - experimental and research-only methods remain nonselectable;
 - conditional candidates retain their unresolved reasons;
 - compile requires a new path and explains no-clobber behavior;
+- v5 plan responses require an exact model-policy snapshot digest;
+- `replan_required` preserves the old plan and directs the user to create and
+  compile a new current plan;
 - runtime actions cannot skip forward;
 - current train admission is authoritative, not cached bootstrap text;
+- a portable frozen-snapshot pass is not presented as current-host policy
+  authorization;
 - training requires explicit high-cost confirmation;
 - `verifying` is shown before completion;
 - full-run resume is not offered;

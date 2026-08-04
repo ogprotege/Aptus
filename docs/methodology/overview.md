@@ -1,6 +1,6 @@
 # Methodology Overview
 
-> **Status:** Active | **Authority:** Normative methodology index | **Applies to:** Aptus 0.2 | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when a methodology version changes
+> **Status:** Active | **Authority:** Normative methodology index | **Applies to:** Aptus 0.2 | **Audience:** Practitioners, researchers, and contributors | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-22 or when a methodology version changes
 
 Methodology version: `aptus-methodology-v2`.
 
@@ -43,6 +43,7 @@ boundaries.
 | --- | --- | --- |
 | Facts | `aptus.facts.v3` | Explicit values and available provenance |
 | Model compatibility | `aptus.model-compatibility.v2` | Stable decision identity, reason codes, evidence IDs, policy version, and paths |
+| Model-policy snapshot | `aptus.model-policy-snapshot.v1` | Canonical portable registry rules and generic evaluator input |
 | Model inspection receipt | `aptus.model-inspection-receipt.v1` | Revision-bound provider and inferred planning facts with a separate observed-facts digest |
 | Model policy binding | `aptus.model-policy-binding.v1` | Exact registered path attached only to a matching candidate |
 | Method descriptor | `aptus.method-descriptor.v1` | Runtime lifecycle, selectability, compiler, export, evidence, and blocker metadata |
@@ -103,5 +104,6 @@ recommendation.
 
 - [Method selection guide](../guides/choose-a-method.md)
 - [Method registry](../reference/method-registry.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [System architecture](../architecture/system.md)
 - [Validation states](../reference/validation-states.md)

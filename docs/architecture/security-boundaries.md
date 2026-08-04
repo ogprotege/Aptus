@@ -1,6 +1,6 @@
 # Security Boundaries
 
-> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-11-01 or after a trust-boundary change
 
 ## Authenticated local service boundary
 
@@ -67,6 +67,11 @@ Bundle integrity covers compiler-created files. Runtime output has separate
 attestations because checkpoints and exports are intentionally mutable while a
 job runs.
 
+The embedded model-policy snapshot is one of those compiler-created files. Its
+canonical bytes, plan binding, manifest binding, and manifested digest establish
+portable integrity. They do not establish that the frozen policy remains
+current on an installed host.
+
 The compiler makes cleartext dataset copies and a ZIP. Runtime adds logs,
 metrics, checkpoints, model or adapter files, tokenizer data, and caches. OS
 backup and sync software can duplicate all of them.
@@ -97,6 +102,22 @@ Runtime model loading is bound to the pinned revision. Operators must handle
 credentials through the training stack's normal secure mechanisms. Do not place
 tokens in plan JSON, source data, generated code, or job requests.
 
+## Model-policy boundary
+
+The installed model-compatibility registry is the authority for host policy
+currency. Package-free validation has only the bundle's embedded frozen
+snapshot and can establish integrity and decision parity, not currentness. An
+internally coherent v5 plan whose decision or digest differs from the installed
+registry requires replanning before host-managed admission.
+
+Managed submission records the current approved snapshot digest. The parent
+rechecks it before releasing the launch permit and passes it to generated
+entrypoints as `APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256`. Direct portable
+execution has no such host authorization and must not be represented as current
+host approval. Pilot authorization, worker launch, and the completion
+verification and promotion transaction repeat the installed-registry check, so
+historical evidence cannot cross a policy change silently.
+
 ## Local inference boundary
 
 LM Studio and oMLX integrations accept one explicit HTTP loopback origin with
@@ -106,10 +127,12 @@ hosts, or become training runtimes. Responses are untrusted inference output.
 
 ## Code-execution boundary
 
-Generated `train.py`, `preflight.py`, `validate.py`, and `run.py` execute Python
-in the bundle environment. Package installation and model loading can execute
-third-party code. Review direct pins, resolved dependencies, model settings, and
-the bundle before execution.
+Generated `train.py`, `preflight.py`, `validate.py`, `run.py`, and MLX
+`reload.py` execute Python in the bundle environment. They also import the
+manifested `plan_contract.py`, `policy_snapshot.py`, and `runtime_lease.py`
+helpers. Package installation and model loading can execute third-party code.
+Review direct pins, resolved dependencies, model settings, and the bundle before
+execution.
 
 `requirements.txt` is an exact direct constraint set, not a transitive lock.
 MLX-LM and PyTorch MPS runtime selection can launch an external Python
@@ -128,7 +151,8 @@ child execution is fail-closed on Windows in v0.2.
 A pilot report is historical evidence. Train admission deeply verifies current
 runtime-specific bindings and capacity under the execution lease. Current free
 resources can invalidate an earlier pass. Authorization is not delegated to UI
-state.
+state. A changed current model-policy snapshot also invalidates authorization
+and requires replanning even when the old pilot remains internally coherent.
 
 CUDA admission verifies environment, hardware, checkpoint, export, VRAM, host
 RAM, and disk evidence. MLX admission verifies its immutable uninterrupted
@@ -139,7 +163,9 @@ training-resume capability.
 ## Completion boundary
 
 A child process cannot declare the job successful. The parent verifies pending
-metrics and the final structural safetensors file tree, then promotes the report.
+metrics and the final structural safetensors file tree, rechecks current host
+policy, then promotes the report. A policy change leaves pending evidence
+unpromoted.
 Historical polling retains that completion-time attestation but does not rehash
 all large files continuously.
 
@@ -158,5 +184,6 @@ as a fresh, lease-held admission transaction. It is never durable project state.
 - [Security policy](../../SECURITY.md)
 - [Data and identity flow](data-and-identity-flow.md)
 - [Bundle manifest](../reference/bundle-manifest.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [macOS desktop host](macos-desktop.md)

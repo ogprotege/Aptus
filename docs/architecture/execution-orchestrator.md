@@ -1,6 +1,6 @@
 # Execution Orchestrator
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2027-01-27 or when job semantics change
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when job semantics change
 
 The orchestrator turns runtime validation and training into persisted,
 cancellable local jobs. It is a single-user local process manager, not a remote
@@ -37,7 +37,8 @@ Full training requires `confirm_full_train=true`. `resume_from` is rejected.
 Each `aptus.job-record.v1` record contains identity, action, bundle path, command, log path,
 timestamps, process identity, process-group identity, return code, current
 phase, run ID and output path when applicable, capacity evidence, error text,
-and completion attestation when available.
+the submission-bound artifact fingerprint and authorized model-policy snapshot
+digest, and completion attestation when available.
 
 Atomic mode-0600 JSON replacement prevents partially written records. The job
 root is user-private. Startup and reads reconcile stale owners and processes
@@ -61,6 +62,11 @@ or Metal programs do not participate.
 ## Admission
 
 Job submission first validates the bundle and required preceding report state.
+Installed Aptus separately requires the coherent v5 decision and embedded
+snapshot digest to match the current host registry. It records the approved
+digest as `authorized_model_policy_snapshot_sha256`; a stale plan requires
+replanning before a job or lease is created. Package-free validation of the
+bundle's frozen snapshot cannot establish this currency.
 API submission also requires the exact current project revision. It compares
 the resolved bundle path, saved plan snapshot, plan ID, selected candidate, and
 recorded bundle-manifest fingerprint. A same-content plan in another project
@@ -72,6 +78,10 @@ environment, bundle, plan, pilot metrics, checkpoint contracts, and pilot export
 contracts. MLX verifies the owned uninterrupted pilot, then checks current
 unified-memory headroom against measured peak plus reserve and current disk
 against plan and measured adapter artifacts.
+
+The public pilot-authorization query performs the same current-policy check. A
+previously passing pilot reports non-current after the installed registry
+changes and cannot authorize a full run.
 
 Public polling can use cached completion evidence and cheap presence checks.
 The deep admission transaction decides whether a train job may start.
@@ -86,7 +96,10 @@ not accepted while parent-owned completion verification is committing.
 The worker starts a permit launcher with the verified bundle as its working
 directory. Manifest entries remain relative to that directory. After the parent
 records process identity and binds the global lease, it rechecks the project
-artifact binding and releases the permit. The launcher then rereads the manifest,
+artifact binding and current host policy, then releases the permit. The launch
+specification and child environment carry the approved digest as
+`APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256`. Generated entrypoints compare
+it with the plan and manifest before using plan state. The launcher then rereads the manifest,
 verifies its recorded fingerprint, rejects relative-path escapes and symlinks,
 and rehashes every manifested file immediately before `exec`. This closes the
 submission-to-launch mutation interval without trusting an absolute path from
@@ -110,8 +123,12 @@ artifacts, and fresh-process one-to-four-token adapter generation. MLX weight
 snapshots are not resumable checkpoints.
 
 Verified pending evidence is stored in the job record before report promotion.
-Promotion to `measured-run-pass` is idempotent. Startup reconciliation can finish
-that transaction after a parent crash when the persisted evidence still passes.
+Before a new promotion, the parent requires the submission-bound artifact and
+current host policy, computes the runtime-specific promotion, and repeats that
+check immediately before writing the report. Promotion to `measured-run-pass`
+is idempotent. Startup reconciliation can finish that transaction after a
+parent crash only when the persisted evidence and current policy still pass. A
+policy change leaves pending evidence unpromoted and fails reconciliation.
 
 Terminal job state does not imply model quality. It means the execution and
 artifact contracts passed or failed as recorded.
@@ -120,5 +137,6 @@ artifact contracts passed or failed as recorded.
 
 - [Run states](../reference/run-states.md)
 - [Validation states](../reference/validation-states.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [Recovery and resume boundary](../guides/resume-recover.md)

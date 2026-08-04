@@ -2,10 +2,10 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #28, merge `e842963`, plus
-> the current Phase 4 documentation closeout
+> **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
+> the current Phase 4 documentation synchronization
 >
-> **Last reviewed:** 2026-08-03
+> **Last reviewed:** 2026-08-04
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -40,22 +40,27 @@ decisions, inspection receipts, and exact-path bindings. PR #25 advanced the
 current Phase 4 contract to `aptus.training-plan.v5` and `aptus.bundle.v3` with
 a deterministic portable policy snapshot. PRs #26 through #28 hardened
 malformed-input handling, rejected non-object manifests, and completed the
-remaining contract and package-free regression coverage. PR #15 preserved and
-indexed the historical audit without making it current authority.
+remaining contract and package-free regression coverage. PR #29 synchronized
+the central contract guidance. PR #30 completed the independent re-review,
+closed remaining plan and manifest parser boundaries, and recorded the final
+source/contract verdict. PR #15 preserved and indexed the historical audit
+without making it current authority.
 
 The current Phase 4 contract uses a frozen snapshot for package-free portable
 integrity and policy-decision parity. Portable validation cannot determine host
 policy currency. Validation under an installed Aptus host additionally compares
 the bundle bindings with the current host registry and requires replanning when
 that registry has changed.
-The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it
-stopped before model loading. It is not a passing pilot or training result. The
-release itself remains blocked until qualifying CUDA target-host evidence and a
+The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
+before model loading. It is not a passing pilot or training result. The release
+itself remains blocked until qualifying CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
-capabilities being claimed. Real MLX-LM acceptance and a local 10-build desktop
-engineering gate have passed. The repository checks its principal navigation
-and executable-reference surfaces, but it does not yet derive every default,
-status, and response field from one source.
+capabilities being claimed. Historical real MLX-LM acceptance and a local
+10-build desktop engineering gate passed at their recorded commits, but both
+predate the current Phase 4 source head. No current-head CUDA or MLX
+target-runtime pilot was collected for the Phase 4 closeout. The repository
+checks its principal navigation and executable-reference surfaces, but it does
+not yet derive every default, status, and response field from one source.
 
 ## Scorecard
 
@@ -69,19 +74,19 @@ status, and response field from one source.
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
-| Release evidence | Partial | Two clean MLX-LM workflows reached `measured-run-pass`, and 10 of 10 local desktop engineering builds passed at their tested commit; CUDA target-host and public notarized distribution evidence remain open |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 changelog/onboarding/recovery/inventory surfaces, compatibility-schema semantics, fail-closed browser normalization, bundle-environment safety, and the 2026-07-28 audit-closeout semantics; generated-doc and structured default parity remain partial |
+| Release evidence | Partial | Historical evidence records two clean MLX-LM `measured-run-pass` workflows and 10 of 10 local desktop engineering builds at their tested commits; neither binds the current Phase 4 head, and CUDA target-host and public notarized distribution evidence remain open |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 100
+The [documentation inventory](documentation-inventory.md) classifies 101
 governed tracked Markdown documents:
 
-- 84 active;
+- 85 active;
 - 2 deprecated;
 - 14 archived.
 
-The automated `maintained_documentation()` set contains 91 files because it
+The automated `maintained_documentation()` set contains 92 files because it
 retains the legacy-audit README but excludes nine subordinate historical audit
 pages. That automation scope is intentionally narrower than the governed
 inventory.
@@ -107,7 +112,9 @@ not become a one-time cleanup.
    runtime normalization. Other React normalization code and Swift response
    decoders remain maintained client boundaries that require contract tests.
 3. Generated bundle guidance is operationally important but embedded in large
-   source templates. Representative output needs stronger contract testing.
+   source templates. Representative CUDA and MLX README tests now pin the
+   policy-snapshot boundary, but complete method-and-placement coverage remains
+   open.
 
 ### Medium impact
 
@@ -231,8 +238,30 @@ an installed Aptus host additionally compares the bindings with the current
 host registry and requires replanning when the host digest has changed. PRs #26
 through #28 add typed malformed-snapshot findings, controlled scalar-manifest
 rejection, package-free negative coverage, the complete legacy/API matrices,
-and removal of the retired handwritten policy branch. Phase 5 browser cleanup
-and Phase 6 policy expansion remain separate.
+and removal of the retired handwritten policy branch. PR #29 completed the
+semantic reference set, and PR #30 made non-object roots, excessive nesting,
+oversized integers, and nested malformed plan values controlled invalid-input
+results across their covered boundaries. Installed-host validation covers plan,
+manifest, trainer, and snapshot documents; package-free validation covers plan,
+manifest, and snapshot documents. Phase 5 browser cleanup and Phase 6 policy
+expansion remain separate.
+
+The Phase 4 closeout source tree passed 505 Python tests, 91 web tests, and 81
+native tests, plus Ruff, bytecode compilation, generated-contract parity, a
+fresh installed-wheel smoke, and the complete signed-app/ZIP/DMG engineering
+gate. All five GitHub checks passed for PR #30. These results establish the
+source, contract, packaging, and documentation baseline only. Neither the July
+MLX-LM evidence nor this closeout supplies a current-head MLX or CUDA target
+pilot, and neither establishes public notarized release readiness.
+
+The current documentation synchronization passed 506 Python tests, including
+23 documentation and 61 bundle-generation tests, plus 91 web tests and 81
+native tests. Ruff, bytecode compilation, OpenAPI/client/version parity, the
+production web build, a clean installed-wheel smoke, and the complete
+ad-hoc-signed app/ZIP/DMG engineering gate also passed. No target-runtime pilot
+was run: the generated-bundle change is operator README prose and does not alter
+runtime programs, dependencies, planning, estimation, validation, or execution
+semantics.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature
@@ -246,7 +275,8 @@ checks do not replace CUDA target-host acceptance or public notarization.
    parity gaps.
 2. Publish a concrete private security-reporting route.
 3. Resolve the OpenAPI generator development advisories.
-4. Complete qualifying CUDA target-host and public desktop distribution evidence.
+4. Complete qualifying current-head MLX and CUDA target-host evidence and public
+   desktop distribution evidence.
 5. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

@@ -49,6 +49,19 @@ def maintained_documentation() -> list[Path]:
     return documents
 
 
+def repository_markdown_documents() -> list[Path]:
+    documents = {REPOSITORY / name for name in ROOT_DOCUMENTS}
+    for directory in ("docs", "Reference", "examples", "dev"):
+        documents.update((REPOSITORY / directory).rglob("*.md"))
+    documents.update(
+        {
+            REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md",
+            REPOSITORY / "desktop/macos/README.md",
+        }
+    )
+    return sorted(documents)
+
+
 def link_parts(raw: str) -> tuple[str, str]:
     value = raw.strip()
     if value.startswith("<") and ">" in value:
@@ -723,6 +736,176 @@ class DocumentationTests(unittest.TestCase):
             normalized_overview,
             r"`aptus\.bundle\.v3`.{0,100}\b(?:remain|unchanged|preserv)",
         )
+
+    def test_phase4_public_documentation_is_synchronized(self) -> None:
+        changelog = (REPOSITORY / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertNotIn("V3 fact and training-plan contracts", changelog)
+        for contract in (
+            "aptus.facts.v3",
+            "aptus.training-plan.v5",
+            "aptus.bundle.v3",
+            "aptus.model-policy-snapshot.v1",
+        ):
+            self.assertIn(contract, changelog)
+        for behavior in (
+            "Package-free bundle programs validate frozen-snapshot integrity",
+            "HTTP 409",
+            "`replan_required`",
+            "controlled invalid input",
+        ):
+            self.assertIn(behavior, changelog)
+
+        first_plan = (REPOSITORY / "docs/getting-started/first-plan.md").read_text(
+            encoding="utf-8"
+        )
+        for artifact in (
+            "policy_snapshot.py",
+            "policy/model-policy-snapshot.v1.json",
+            "aptus.bundle.v3",
+        ):
+            self.assertIn(artifact, first_plan)
+
+        workflows = (REPOSITORY / "docs/product/user-workflows.md").read_text(
+            encoding="utf-8"
+        )
+        normalized_workflows = " ".join(workflows.split())
+        self.assertIn("HTTP 409 `replan_required`", normalized_workflows)
+        self.assertIn("create no new revision", normalized_workflows)
+        self.assertIn("leave the saved bytes unchanged", normalized_workflows)
+
+        snapshot = (REPOSITORY / "docs/reference/model-policy-snapshot.md").read_text(
+            encoding="utf-8"
+        )
+        normalized_snapshot = " ".join(snapshot.split())
+        for kind in (
+            "exact_identity",
+            "quantization_layout",
+            "sparse_topology",
+            "no_shared_expert",
+            "field_equals",
+        ):
+            self.assertIn(f"`{kind}`", normalized_snapshot)
+        for invariant in (
+            "exactly one trailing line feed",
+            "fact_errors`, sorted before hashing",
+            "An omitted `fact_errors` field becomes an empty list",
+            "Any non-empty `fact_errors` list is handled before ordinary policy matching",
+            "compatibility decision `schema_version`",
+            "`compat_` plus the first 20 lowercase hex characters",
+            "The four named bindings are `snapshot`, `plan`, `manifest`, and `host`",
+            "must not claim host currency from frozen-snapshot integrity",
+        ):
+            self.assertIn(invariant, normalized_snapshot)
+
+        generated_code = (REPOSITORY / "docs/contributing/generated-code.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("`policy_snapshot.py`", generated_code)
+        self.assertIn("`policy/model-policy-snapshot.v1.json`", generated_code)
+
+        release_gates = (REPOSITORY / "docs/operations/release-gates.md").read_text(
+            encoding="utf-8"
+        )
+        for code in (
+            "POLICY_SNAPSHOT_MISSING",
+            "POLICY_SNAPSHOT_JSON_ERROR",
+            "POLICY_SNAPSHOT_CONTRACT",
+            "POLICY_SNAPSHOT_NONCANONICAL",
+            "POLICY_SNAPSHOT_DIGEST",
+            "POLICY_SNAPSHOT_PATH",
+        ):
+            self.assertIn(code, release_gates)
+        self.assertIn("predates the Phase 4", release_gates)
+        self.assertIn("No current-head CUDA or MLX", release_gates)
+
+        capability_matrix = (
+            REPOSITORY / "docs/reference/capability-matrix.md"
+        ).read_text(encoding="utf-8")
+        normalized_capability_matrix = " ".join(capability_matrix.split())
+        for evidence_boundary in (
+            "predates the Phase 4 source head",
+            "does not establish a current-head MLX-LM pilot pass",
+            "No current-head CUDA or MLX target-runtime pilot",
+        ):
+            self.assertIn(evidence_boundary, normalized_capability_matrix)
+
+        current_capabilities = (
+            REPOSITORY / "docs/product/current-capabilities.md"
+        ).read_text(encoding="utf-8")
+        opening_boundary = current_capabilities.split("## Available now", 1)[0]
+        self.assertIn("predates Phase 4", opening_boundary)
+        self.assertIn("No current-head CUDA or MLX", opening_boundary)
+
+        install = (REPOSITORY / "docs/getting-started/install.md").read_text(
+            encoding="utf-8"
+        )
+        normalized_install = " ".join(install.split())
+        self.assertIn(
+            "Package-free validation covers the plan, manifest, and snapshot boundaries",
+            normalized_install,
+        )
+        self.assertIn(
+            "trainer configuration remains compiler-managed input",
+            normalized_install,
+        )
+
+        documentation_debt = (
+            REPOSITORY / "docs/maintenance/documentation-debt.md"
+        ).read_text(encoding="utf-8")
+        documentation_health = (
+            REPOSITORY / "docs/maintenance/documentation-health.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "Renew qualifying current-head MLX-LM target-runtime",
+            documentation_debt,
+        )
+        self.assertIn(
+            "current-head MLX and CUDA target-host evidence",
+            documentation_health,
+        )
+
+        inventory = (
+            REPOSITORY / "docs/maintenance/documentation-inventory.md"
+        ).read_text(encoding="utf-8")
+        repository_documents = set(repository_markdown_documents())
+        excluded_documents = {
+            REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md",
+            REPOSITORY / "desktop/macos/README.md",
+            *(REPOSITORY / "dev/active").rglob("*.md"),
+        }
+        deprecated_documents = {
+            REPOSITORY / "docs/design/aptus-core-vertical-slice.md",
+            REPOSITORY / "docs/validation/aptus-core-smoke.md",
+        }
+        archived_documents = {
+            REPOSITORY / "Reference/FineTuneX.README.md",
+            REPOSITORY / "Reference/Fine-Tuning_Methods.md",
+            REPOSITORY / "Reference/hparam_methods_reference.md",
+            REPOSITORY
+            / "docs/operations/evidence/2026-07-29-documentation-drift-audit/README.md",
+            *(REPOSITORY / "docs/audits/aptus-legacy").glob("*.md"),
+        }
+        governed_documents = repository_documents - excluded_documents
+        active_documents = (
+            governed_documents - deprecated_documents - archived_documents
+        )
+        self.assertEqual(len(repository_documents), 112)
+        self.assertEqual(len(excluded_documents), 11)
+        self.assertEqual(len(governed_documents), 101)
+        self.assertEqual(len(active_documents), 85)
+        self.assertEqual(len(deprecated_documents), 2)
+        self.assertEqual(len(archived_documents), 14)
+        self.assertEqual(
+            governed_documents,
+            active_documents | deprecated_documents | archived_documents,
+        )
+        self.assertEqual(len(maintained_documentation()), 92)
+        self.assertIn("101 governed tracked Markdown documents", inventory)
+        self.assertIn("92 Markdown files", inventory)
+        self.assertIn("112 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("| Active | 85 |", inventory)
+        self.assertIn("| Deprecated | 2 |", inventory)
+        self.assertIn("| Archived | 14 |", inventory)
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

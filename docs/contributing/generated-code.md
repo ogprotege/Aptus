@@ -1,6 +1,6 @@
 # Generated Code and Bundle Changes
 
-> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
 
 A compiled bundle is a portable product artifact. Its Python programs,
 configuration, data copies, reports, and manifest must agree with the selected
@@ -28,6 +28,8 @@ those exact bytes:
 The compiler also copies current package sources into:
 
 - `plan_contract.py` for identity and manifest checks;
+- `policy_snapshot.py` for exact snapshot validation and generic policy
+  evaluation; and
 - `runtime_lease.py` for portable host-global coordination.
 
 These programs must run from the bundle environment without importing the Aptus
@@ -38,6 +40,8 @@ application package.
 The same module emits:
 
 - portable `plan.json` and fact profiles;
+- canonical `policy/model-policy-snapshot.v1.json` generated from the current
+  host model-policy registry;
 - `candidates.json`, `decision-report.md`, and `evidence.jsonl`;
 - exact direct pins in `requirements.txt`;
 - `config/trainer.json` and Accelerate configuration;
@@ -62,9 +66,12 @@ and output directories are mutable exclusions with separate evidence contracts.
 6. Run contract and static validation.
 7. Diff the complete generated tree, not only the edited script.
 8. Import or execute generated modules through isolated test fixtures.
-9. Run the affected target-runtime gate. Use the CUDA pilot for CUDA resources
+9. For policy-affecting changes, prove exact host/portable decision parity,
+   malformed-snapshot rejection, frozen-snapshot standalone behavior, and
+   installed-host currency rejection.
+10. Run the affected target-runtime gate. Use the CUDA pilot for CUDA resources
    and the MLX-LM evidence ladder for MLX resources.
-10. Update bundle, validation, capability, and operations documentation.
+11. Update bundle, validation, capability, and operations documentation.
 
 Do not reuse an old output directory. No-clobber behavior is part of the
 compiler contract and its safety tests.
@@ -81,11 +88,28 @@ relative paths where the contract requires it. Use the active Python
 interpreter's module invocation for Accelerate rather than a shell-resolved
 executable.
 
+Package-free entrypoints must evaluate the canonical snapshot embedded in the
+bundle. They must not import the installed Aptus policy registry or claim that
+the frozen snapshot is still current. Installed Aptus owns the separate current
+registry check used by host admission and managed execution.
+
 ## Preserve identity and mutation rules
 
 Every semantic value comes from `plan.json` or a versioned generated
 configuration bound to it. Generated programs revalidate plan and candidate
 identity before use.
+
+The policy snapshot has one exact path and one canonical digest chain:
+
+- `policy/model-policy-snapshot.v1.json` contains the canonical snapshot bytes;
+- `plan.json` binds them as `model_policy_snapshot_sha256`;
+- `bundle-manifest.json` repeats the digest as `policy_snapshot_sha256`; and
+- the manifest file entry binds the same path, size, and digest.
+
+Package-free validation proves this frozen-snapshot integrity and reproduces the
+saved decision. It cannot prove current host policy. Installed-host validation
+adds the fourth, current-registry digest comparison; a coherent v5 plan that is
+no longer current requires replanning and a newly compiled bundle.
 
 When adding a compiler-managed file:
 
@@ -114,6 +138,9 @@ promote its own job to success. The managed or portable parent must verify:
 
 A generated-code change that adds child evidence must add independent
 parent-side rejection tests for missing, stale, malformed, and misbound values.
+Managed admission, worker launch, and the completion verification and promotion
+transaction must also retain their current-host model-policy checks. A portable
+parent cannot substitute its embedded snapshot for that host authority.
 
 ## Dependency changes
 
@@ -141,6 +168,8 @@ PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
   .venv/bin/python -m unittest tests.aptus.test_validation -v
 PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
   .venv/bin/python -m unittest tests.aptus.test_execution -v
+PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
+  .venv/bin/python -m unittest tests.aptus.test_policy_snapshot -v
 ```
 
 Then run the complete repository gate. Compiler changes also require a clean
@@ -163,6 +192,8 @@ Check for:
 - shell interpolation or unsafe path handling;
 - missing cancellation and lease participation;
 - weakened finite-value, census, identity, or parent-verification checks;
+- changed policy semantics without host/portable parity, canonical snapshot,
+  digest-binding, stale-host, and package-free regression coverage;
 - changed bundle files without manifest or reference updates.
 
 Include the generated-tree diff or a concise manifest diff in the pull request.

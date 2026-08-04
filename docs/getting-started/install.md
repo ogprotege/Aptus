@@ -1,6 +1,6 @@
 # Install Aptus
 
-> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when packaging changes
+> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when packaging changes
 
 ## Requirements
 
@@ -167,9 +167,22 @@ python validate.py --level dependency
 
 The file is not a complete transitive lock. Dependency validation records the
 installed environment for later binding checks. Portable `python validate.py`
-does not require the Aptus package in that environment. Managed `aptus run`
-does: install Aptus and the bundle requirements into the same external
-environment because jobs inherit the interpreter that launched the CLI.
+does not require the Aptus package in that environment. It validates the
+bundle's canonical frozen policy snapshot and reproduces its compatibility
+decision, but it cannot determine whether that snapshot is current on an Aptus
+host whose registry is absent. Installed `aptus validate` and managed
+`aptus run` use the host registry and require replanning when the bundle's
+coherent frozen policy is no longer current. Install Aptus and the bundle
+requirements into the same external environment because jobs inherit the
+interpreter that launched the CLI.
+
+Do not repair a stale bundle by changing its schema, snapshot, or digest.
+Installed-host validation reports malformed, non-object, or resource-hostile
+plan, manifest, trainer, and snapshot documents as controlled invalid input.
+Package-free validation covers the plan, manifest, and snapshot boundaries; the
+trainer configuration remains compiler-managed input to later generated
+runtime entrypoints. Do not edit it. Recompile the bundle from trusted source
+facts instead.
 
 ## Evidence status
 

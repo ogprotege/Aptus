@@ -119,13 +119,14 @@ All candidates link to the same decision, including candidates with no
 registered execution path. Only the candidate whose method, placement, target
 modules, and runtime contract match the emitted path has a non-null policy
 binding. Installed-host loading, compilation, recovery, admission, pilot
-authorization, and pending completion promotion compare a v5 decision and
-snapshot digest with the current registry. Load, compile, recovery, and
-submission workflows surface a coherent mismatch as `replan_required`; pilot
-authorization reports non-current, and pending completion evidence is not
-promoted. Host static validation records the same currency mismatch as an
-invalid `POLICY_SNAPSHOT_DIGEST` finding. V4, v3, v2, and schema-less plans
-receive the corresponding fail-closed result and remain unchanged on disk.
+authorization, worker launch, and the completion verification and promotion
+transaction compare a v5 decision and snapshot digest with the current
+registry. Load, compile, recovery, and submission workflows surface a coherent
+mismatch as `replan_required`; pilot authorization reports non-current, and
+pending completion evidence is not promoted. Host static validation records the
+same currency mismatch as an invalid `POLICY_SNAPSHOT_DIGEST` finding. V4, v3,
+v2, and schema-less plans receive the corresponding fail-closed result and
+remain unchanged on disk.
 
 The historical coherence pass uses the persisted decision and one internally
 consistent adapter-target set, not the current mutable family catalog. The
@@ -183,9 +184,10 @@ portable validation uses that frozen snapshot to establish canonical-byte,
 plan, manifest, file-digest, and decision-parity integrity. It has no installed
 host or current registry and therefore cannot determine host policy currency.
 Installed Aptus separately compares the bound digest and decision with the
-current registry before host-managed submission, pilot authorization, and
-completion promotion. Host and portable evaluation must produce the same
-decision for the same compatibility subject.
+current registry during host-managed submission, pilot authorization, worker
+launch, and the completion verification and promotion transaction. Host and
+portable evaluation must produce the same decision for the same compatibility
+subject.
 
 The bundle fingerprint is the SHA-256 of that manifest when it exists. Bundle
 validation rejects symlink roots, symlink entries, unsafe paths, missing files,

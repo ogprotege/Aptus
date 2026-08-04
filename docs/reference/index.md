@@ -1,6 +1,6 @@
 # Reference
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when a public contract changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-11-01 or when a public contract changes
 
 Use this section to look up exact interfaces and product contracts.
 
@@ -16,6 +16,7 @@ Use this section to look up exact interfaces and product contracts.
 - [Dataset schemas](dataset-schemas.md)
 - [Method registry](method-registry.md)
 - [Plan schema](plan-schema.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Capability matrix](capability-matrix.md)
 
 ## Artifact and evidence contracts

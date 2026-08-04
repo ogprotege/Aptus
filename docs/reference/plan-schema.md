@@ -5,13 +5,17 @@
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
 | Authority | Normative field reference for `aptus.training-plan.v5` |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-04 |
 | Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
-The current schema identifier is `aptus.training-plan.v5`. Numbers must be
-finite JSON values. The self-contained bundle validator recomputes candidate and
-plan identities and rejects semantic mutation. The plan binds the exact
+Its JSON root must be an object; JSON null, arrays, and scalar roots are invalid.
+Parser resource failures such as oversized integers or excessive nesting are
+reported as controlled invalid input rather than escaping from host or
+generated entrypoints. The current schema identifier is
+`aptus.training-plan.v5`. Numbers must be finite JSON values. The self-contained
+bundle validator recomputes candidate and plan identities and rejects semantic
+mutation. The plan binds the exact
 canonical model-policy snapshot through `model_policy_snapshot_sha256`. Plans
 with `aptus.training-plan.v4`, v3, v2, or no schema identifier lack this v5
 binding. Aptus preserves those saved bytes, but it does not reinterpret,
@@ -112,9 +116,13 @@ evaluates it once and links every candidate to its `decision_id`.
 
 `subject_facts_sha256` binds family, raw model type, architecture, layer count,
 quantization precision and layout, MoE topology, and compatibility fact errors.
-It does not stand in for all planning facts. The decision ID also binds the
-decision kind, policy identity and version, complete path objects, reason codes,
-and evidence IDs.
+The generic evaluator uses only those fixed compatibility fields, ignores
+caller-only metadata, and sorts `fact_errors` before hashing. Any non-empty
+error list is handled fail-closed before ordinary policy matching. It does not
+stand in for all planning facts. The decision ID also binds the decision kind,
+policy identity and version, complete path objects, reason codes, and evidence
+IDs. See the [model-policy snapshot reference](model-policy-snapshot.md) for the
+portable evaluation order and rule shapes.
 
 The current exact sparse row uses:
 
@@ -442,9 +450,11 @@ decision excluding its explanatory `reason`, its provider-inspection or
 user-attested source, the optional inspection receipt with that same nested-decision
 exclusion, `model_policy_snapshot_sha256`, the complete sorted canonical
 evidence records, all candidate IDs in order, and the recommended candidate ID.
-Changing an evidence claim, source, source kind, scope, confidence, revision,
-or snapshot digest changes plan identity and also fails canonical registry
-validation unless the evidence ID changes with the code-owned record.
+Changing an evidence claim, source, source kind, scope, confidence, or revision
+changes plan identity and fails canonical evidence-registry validation unless
+the evidence ID changes with the code-owned record. Changing the snapshot digest
+independently changes plan identity and must match the current host registry for
+host-managed use.
 
 Narrative warnings and rationale do not replace content identity. A payload must
 also pass deterministic replanning parity and current-policy validation during
@@ -469,9 +479,10 @@ The package-free generated validator evaluates the plan against the canonical
 snapshot embedded in its bundle. That proves frozen snapshot integrity and
 decision parity, but portable validation cannot determine host policy currency
 or know whether an installed host's current registry has advanced. Installed
-Aptus supplies the current host snapshot for admission and compares its digest
-with the plan, manifest, and embedded file; only that host context establishes
-policy currency.
+Aptus supplies the current host snapshot during managed admission, pilot
+authorization, worker launch, and the completion verification and promotion
+transaction. It compares the current digest with the plan, manifest, and
+embedded file; only that host context establishes policy currency.
 
 Compilation rewrites the dataset path and provenance source to bundle-relative
 values while retaining the same semantic dataset digest and plan identity.
@@ -480,6 +491,7 @@ values while retaining the same semantic dataset digest and plan identity.
 
 - [Dataset schemas](dataset-schemas.md)
 - [Evidence records](evidence-records.md)
+- [Model-policy snapshot](model-policy-snapshot.md)
 - [Method registry](method-registry.md)
 - [Capability matrix](capability-matrix.md)
 - [Bundle manifest](bundle-manifest.md)

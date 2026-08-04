@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #18, merge `eec90f8`
+> **Applies to:** Current Aptus 0.2 documentation after the Phase 4 closeout
 >
-> **Last reviewed:** 2026-07-29
+> **Last reviewed:** 2026-08-04
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,23 +14,24 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-At PR #18 merge `eec90f8`, the repository contains 100 governed tracked
-Markdown documents. This count excludes seven tracked working or implementation
+The repository contains 101 governed tracked Markdown documents. This count
+includes the dedicated model-policy-snapshot reference added by the Phase 4
+documentation synchronization and excludes 11 tracked working or implementation
 documents outside the governed product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 84 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 85 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 14 | Historical research intake, legacy-audit evidence, and the dated documentation-drift audit |
-| Total | 100 | Excludes ignored local, generated, and tracked implementation-working artifacts |
+| Total | 101 | Excludes ignored local, generated, and tracked implementation-working artifacts |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains 91 Markdown files. It
+The automated `maintained_documentation()` set contains 92 Markdown files. It
 deliberately retains the legacy-audit README while excluding its nine
-subordinate historical pages. The 100-file governed inventory includes all ten
+subordinate historical pages. The 101-file governed inventory includes all ten
 legacy-audit Markdown records, so these two counts measure different scopes.
 
 ## Active root documents
@@ -135,6 +136,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Error and finding codes](../reference/error-codes.md)
 - [Glossary](../reference/glossary.md)
 - [Method registry](../reference/method-registry.md)
+- [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Plan schema](../reference/plan-schema.md)
 - [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)
 - [Run states](../reference/run-states.md)
@@ -260,16 +262,16 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Seven tracked implementation or workflow files sit outside the 100-file
+Eleven tracked implementation or workflow files sit outside the 101-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
 - `desktop/macos/README.md`; and
-- the five active review and design notes under `dev/active/`.
+- the nine active review and design notes under `dev/active/`.
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 107 tracked Markdown
+This distinction explains the repository-wide total of 112 tracked Markdown
 files.
 
 ## Excluded local and generated material

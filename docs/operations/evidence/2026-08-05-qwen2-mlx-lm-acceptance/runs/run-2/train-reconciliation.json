@@ -1,0 +1,184 @@
+{
+  "schema_version": "aptus.phase6-train-reconciliation.v1",
+  "job": {
+    "id": "job_cd5512825a844a89839c9312adab7f94",
+    "action": "train",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "run_id": "run_cd5512825a844a89839c9312adab7f94",
+    "artifact_fingerprint": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+    "artifact_integrity_status": "verified-at-completion",
+    "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "command": [
+      "<RUNTIME_PYTHON>",
+      "run.py",
+      "--confirm-full-train",
+      "--defer-parent-promotion",
+      "--output-dir",
+      "runs/run_cd5512825a844a89839c9312adab7f94"
+    ],
+    "launch_protocol": "permit-file-v1"
+  },
+  "source_verification": {
+    "pending_evidence_verified_at": "2026-08-05T12:40:17.324442+00:00",
+    "source_report_state": "execution-approved",
+    "source_report_sha256": "24c697ee5db90a58df40d5e80871e841459e69a41353f59b04bad0ba480d95c6",
+    "source_active_run": {
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "run_id": "run_cd5512825a844a89839c9312adab7f94"
+    },
+    "source_bindings": {
+      "bundle": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "model_data_evidence": "3398526ae7f8f37b271277550d33ad25242d859f70326e92d986ebcda77fefce",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "pilot_metrics": "0bca074a5b70eae02beeef2e8110fd74e59a94d20b379edf43f140e4a21b2ba5",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "preflight_metrics": "69c49c1694f023835c5a4b1e13bbbc69f96cd3bb35296a1f874c7c82a9a56952"
+    }
+  },
+  "completion_attestation": {
+    "final_export": {
+      "artifact_manifest_sha256": "cd2357dc47278a9e5644d0434fead5fbe586faa01fce6d6a6ed4828de9cf243f",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "distribution": "single",
+      "export_contract": {
+        "artifact_manifest_sha256": "cd2357dc47278a9e5644d0434fead5fbe586faa01fce6d6a6ed4828de9cf243f",
+        "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+        "compute_backend": "mps",
+        "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+        "distribution": "single",
+        "execution_semantics": "uninterrupted",
+        "files": [
+          {
+            "path": "adapter_config.json",
+            "sha256": "b2557795f54788c925e6ab4d8da20eac1c4281c144c9b98dec6986d99443133b",
+            "size_bytes": 1571
+          },
+          {
+            "path": "adapters.safetensors",
+            "sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+            "size_bytes": 17632042
+          }
+        ],
+        "method": "qlora",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "plan_id": "plan_bd33e8ab37765b7efa93",
+        "reload_evidence_sha256": "53d5f3dbff9982e4e035d48c91b15716fc3e0a528d63ceda1bd0128989840c10",
+        "resume_supported": false,
+        "schema_version": "aptus.mlx-final-export.v1",
+        "total_bytes": 17633613,
+        "training_runtime": "mlx-lm",
+        "verification_level": "immutable-adapter-file-tree",
+        "world_size": 1
+      },
+      "manifest_sha256": "ce332acf15f72c1216a7da683ae18092cc86f920a89e427c65626ae809a5f905",
+      "path": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94/final",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "reload_evidence_sha256": "53d5f3dbff9982e4e035d48c91b15716fc3e0a528d63ceda1bd0128989840c10",
+      "total_bytes": 17633613,
+      "training_runtime": "mlx-lm",
+      "world_size": 1
+    },
+    "measured_run": {
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "completed_optimizer_updates": 3,
+      "distribution": "single",
+      "execution_semantics": "uninterrupted",
+      "global_step": 3,
+      "measured_peak_bytes": 582001282,
+      "metrics_sha256": "1e46e7b93b3b344965ea4d587f923d091bc6c6b81434962400634d9e2f5bf9ae",
+      "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "resume_supported": false,
+      "training_runtime": "mlx-lm",
+      "world_size": 1
+    },
+    "measured_run_completed_at": "2026-08-05T12:40:17.332997+00:00",
+    "state": "measured-run-pass"
+  },
+  "validation": {
+    "state": "measured-run-pass",
+    "validation_level": "measured-run",
+    "measured_run_completed_at": "2026-08-05T12:40:17.332997+00:00",
+    "measured_run": {
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "completed_optimizer_updates": 3,
+      "distribution": "single",
+      "execution_semantics": "uninterrupted",
+      "global_step": 3,
+      "measured_peak_bytes": 582001282,
+      "metrics_sha256": "1e46e7b93b3b344965ea4d587f923d091bc6c6b81434962400634d9e2f5bf9ae",
+      "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "resume_supported": false,
+      "training_runtime": "mlx-lm",
+      "world_size": 1
+    },
+    "final_export": {
+      "artifact_manifest_sha256": "cd2357dc47278a9e5644d0434fead5fbe586faa01fce6d6a6ed4828de9cf243f",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "distribution": "single",
+      "export_contract": {
+        "artifact_manifest_sha256": "cd2357dc47278a9e5644d0434fead5fbe586faa01fce6d6a6ed4828de9cf243f",
+        "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+        "compute_backend": "mps",
+        "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+        "distribution": "single",
+        "execution_semantics": "uninterrupted",
+        "files": [
+          {
+            "path": "adapter_config.json",
+            "sha256": "b2557795f54788c925e6ab4d8da20eac1c4281c144c9b98dec6986d99443133b",
+            "size_bytes": 1571
+          },
+          {
+            "path": "adapters.safetensors",
+            "sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+            "size_bytes": 17632042
+          }
+        ],
+        "method": "qlora",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "plan_id": "plan_bd33e8ab37765b7efa93",
+        "reload_evidence_sha256": "53d5f3dbff9982e4e035d48c91b15716fc3e0a528d63ceda1bd0128989840c10",
+        "resume_supported": false,
+        "schema_version": "aptus.mlx-final-export.v1",
+        "total_bytes": 17633613,
+        "training_runtime": "mlx-lm",
+        "verification_level": "immutable-adapter-file-tree",
+        "world_size": 1
+      },
+      "manifest_sha256": "ce332acf15f72c1216a7da683ae18092cc86f920a89e427c65626ae809a5f905",
+      "path": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94/final",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "reload_evidence_sha256": "53d5f3dbff9982e4e035d48c91b15716fc3e0a528d63ceda1bd0128989840c10",
+      "total_bytes": 17633613,
+      "training_runtime": "mlx-lm",
+      "world_size": 1
+    },
+    "parent_promotion": {
+      "artifact_fingerprint": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+      "evidence_sha256": "a3603a2e30bf3981c0f2971ccebe15d72cff548013c75fd6303460dc0ff8d42b",
+      "job_id": "job_cd5512825a844a89839c9312adab7f94",
+      "promoted_at": "2026-08-05T12:40:17.332997+00:00",
+      "run_id": "run_cd5512825a844a89839c9312adab7f94",
+      "schema_version": "aptus.parent-promotion.v1"
+    },
+    "authorization_current": false,
+    "authorization_status": "deferred",
+    "pending_fields_absent": true
+  },
+  "evidence_hash_verification": {
+    "algorithm": "sha256(canonical-json-sort-keys-compact)",
+    "receipt_sha256": "a3603a2e30bf3981c0f2971ccebe15d72cff548013c75fd6303460dc0ff8d42b",
+    "recomputed_sha256": "a3603a2e30bf3981c0f2971ccebe15d72cff548013c75fd6303460dc0ff8d42b",
+    "matches": true
+  },
+  "raw_job_record_sha256": "2b97680fd723fff7ebf04787cd437940a4cc669436a422f16067185bc5239c7b"
+}

@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-04 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-05 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -131,9 +131,11 @@ do not prove public notarization.
 - `policy.qwen2-24l.mlx-qlora.v1` records implementation review of that
   configuration-to-path rule.
   `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` records only the exact pinned July
-  27 artifact under training-plan v2 and bundle v2. It does not provide current
-  v5/v3 acceptance or runtime evidence for every artifact that matches the
-  configuration footprint.
+  27 artifact under training-plan v2 and bundle v2. The separate August 5
+  acceptance records two current v5/v3 `measured-run-pass` repetitions for the
+  same exact pinned artifact at
+  `14ed44b52a76bb84d8d9db4f2303951aa641339b`; neither record supplies runtime
+  evidence for every artifact that matches the configuration footprint.
 - The plan and portable validator recompute sparse-layer count and active
   parameters. Base-weight, metadata, staging, and disk terms use the total
   resident parameter count.
@@ -198,8 +200,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
 - A claimed `model.qwen2-24l.mlx-qlora` path additionally proves the reviewed
   identity, 24-layer dense topology, uniform four-bit group-size-64 layout, and
   exact seven-target census at model-data, preflight, pilot, reload, and
-  completion boundaries. Historical evidence for one exact artifact cannot
-  satisfy these gates for a current plan or a different artifact.
+  completion boundaries. The August 5 acceptance satisfies these gates for its
+  exact artifact, source, host, runtime, dataset, plan, and bundle. It cannot
+  satisfy them for a different artifact or later source state.
 
 ## 4. Full-run transaction
 
@@ -322,8 +325,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
   snapshot digest wherever plan identity is enumerated, and distinguish
   package-free frozen-snapshot integrity from installed-host registry currency.
 - Current documents distinguish the reviewed Qwen2 configuration-footprint
-  policy from its exact-artifact historical runtime record and do not present
-  either as current v5/v3 runtime acceptance.
+  policy, the July historical runtime record, and the August current-source
+  exact-artifact acceptance. They do not transfer the August v5/v3 result to a
+  different matching artifact.
 - No page describes `requirements.txt` as a transitive lock.
 - No page offers full-training resume.
 - No page claims full FSDP support.
@@ -340,38 +344,32 @@ For each claimed MLX-LM LoRA or QLoRA path:
 ## Current result
 
 Partially passed. The
-[2026-07-27 Apple Silicon record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
-proves two clean, independent MLX-LM workflows through measured preflight,
-pilot, fresh-process adapter reload, confirmed full training, final export, and
-`measured-run-pass` for the exact pinned Qwen2.5 0.5B artifact under
-`aptus.training-plan.v2` and `aptus.bundle.v2`. It does not provide current
-v5/v3 acceptance and does not transfer to every artifact that matches
-`model.qwen2-24l.mlx-qlora`. The
-[2026-07-27 desktop record](evidence/2026-07-27-desktop-release/README.md) proves
-10 of 10 clean local engineering builds at implementation commit
+[2026-08-05 Apple Silicon record](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+closes the current-source Phase 6 MLX-LM runtime gate for the exact pinned
+Qwen2.5 0.5B artifact at acceptance source
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. Two clean, independent workflows
+used `aptus.training-plan.v5` and `aptus.bundle.v3` and completed dependency,
+model-data, measured preflight, uninterrupted pilot, confirmed full training,
+fresh-process reload, final export, parent-owned promotion, and
+`measured-run-pass`. The record is bound to its exact source, artifact, host,
+runtime, dataset, policy snapshot, plan, and bundle. It does not transfer to
+another artifact matching `model.qwen2-24l.mlx-qlora`, qualify CUDA, establish
+model quality, or promise production throughput.
+
+The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
+remains historical v2/v2 evidence for the same pinned artifact. The
+[2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
+passed static and dependency gates, then blocked before model loading because
+live unified memory was 18.932 GiB below the exact packed-checkpoint-adjusted
+requirement. It is safe refusal evidence, not MoE acceptance.
+
+The [2026-07-27 desktop record](evidence/2026-07-27-desktop-release/README.md)
+proves 10 of 10 clean local engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`, including 327 Python, 61 web, and 78
 native tests per iteration, packaged launch, signature checks, and DMG
 verification. That historical record does not bind a later source head. The
 submitted pull request must pass the repeated local gate after its documentation
 commit and the GitHub packaging workflow for the exact synthetic merge commit.
-
-The [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
-passed static and dependency gates, then blocked before model loading because
-live unified memory was 18.932 GiB below the exact packed-checkpoint-adjusted
-requirement. It is safe refusal evidence, not MoE acceptance.
-
-The July 27 MLX-LM acceptance predates the Phase 4 portable-policy snapshot
-contract and does not bind the current source head. No current-head CUDA or MLX
-target-runtime pilot was collected for the Phase 4 closeout. Repository, wheel,
-web, native, and macOS package gates closed the source and contract review only;
-they did not renew target-runtime acceptance or establish release readiness.
-
-The Qwen2 policy and its two evidence IDs establish an implementation-reviewed
-configuration-to-path rule plus a separately scoped historical measurement.
-They do not establish Phase 6 runtime completion or a current-head
-`measured-run-pass`. Phase 6 remains runtime-evidence-open. Current acceptance
-still requires a v5 plan, v3 bundle, installed-host policy check, and the
-complete ordered runtime ladder.
 
 No real CUDA pilot or full training evidence has completed on an external CUDA
 host. The local Mac packages are ad-hoc signed, not Developer ID signed and
@@ -381,6 +379,7 @@ release gate passes.
 ## Related documentation
 
 - [Release evidence template](release-evidence-template.md)
+- [Phase 6 Qwen2 MLX-LM acceptance](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Current capabilities](../product/current-capabilities.md)

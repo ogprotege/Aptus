@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after the Phase 5 closeout
+> **Applies to:** Current Aptus 0.2 documentation after the Phase 6 runtime-evidence closeout
 >
-> **Last reviewed:** 2026-08-04
+> **Last reviewed:** 2026-08-05
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,24 +14,26 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository contains 101 governed tracked Markdown documents. This count
+The repository contains 103 governed tracked Markdown documents. This count
 includes the dedicated model-policy-snapshot reference added by the Phase 4
-documentation synchronization and excludes 13 tracked working or implementation
+documentation synchronization and the two Markdown records in the Phase 6
+runtime-acceptance packet: one active acceptance record and one archived
+nonqualifying diagnostic. It excludes 13 tracked working or implementation
 documents outside the governed product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 85 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 86 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
-| Archived | 14 | Historical research intake, legacy-audit evidence, and the dated documentation-drift audit |
-| Total | 101 | Excludes ignored local, generated, and tracked implementation-working artifacts |
+| Archived | 15 | Historical research intake, legacy-audit evidence, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
+| Total | 103 | Excludes ignored local, generated, and tracked implementation-working artifacts |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains 92 Markdown files. It
+The automated `maintained_documentation()` set contains 94 Markdown files. It
 deliberately retains the legacy-audit README while excluding its nine
-subordinate historical pages. The 101-file governed inventory includes all ten
+subordinate historical pages. The 103-file governed inventory includes all ten
 legacy-audit Markdown records, so these two counts measure different scopes.
 
 ## Active root documents
@@ -120,6 +122,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-05 Phase 6 Qwen2 MLX-LM target-host acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), two current v5/v3 repetitions at `14ed44b52a76bb84d8d9db4f2303951aa641339b` for the exact recorded artifact and environment
 - [2026-07-27 MLX-LM target-host acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
 - [2026-07-28 Qwen3 MoE admission and performance evidence](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -217,7 +220,7 @@ Machine-readable records:
 These records must stay together. Their generator and reproduction commands use
 the current `docs/audits/aptus-legacy/` path.
 
-## Archived documentation audits
+## Archived documentation audits and diagnostics
 
 The
 [2026-07-28 documentation drift audit](../operations/evidence/2026-07-29-documentation-drift-audit/README.md)
@@ -225,6 +228,12 @@ is an immutable point-in-time record of the tree at `e98ff55`. PR #14 applied
 its corrective work, and this follow-up closes six partially applied prose
 locations without altering the historical record. The audit cannot authorize
 current behavior.
+
+The Phase 6 acceptance packet retains an
+[archived pre-fix diagnostic](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/diagnostics/attempt-01-unreceipted-parent-promotion/README.md)
+that reproduced a managed parent-promotion defect at the static policy commit.
+It is excluded from the two qualifying repetitions and remains only as negative
+evidence and defect provenance.
 
 ## Generated bundle documentation
 
@@ -262,7 +271,7 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Thirteen tracked implementation or workflow files sit outside the 101-file
+Thirteen tracked implementation or workflow files sit outside the 103-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
@@ -271,7 +280,7 @@ product-documentation lifecycle count:
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 114 tracked Markdown
+This distinction explains the repository-wide total of 116 tracked Markdown
 files.
 
 ## Excluded local and generated material

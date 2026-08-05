@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-05 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -97,12 +97,18 @@ two-policy snapshot bytes and digest as their v5 plan and manifest. Because the
 registry addition changes those canonical bytes, pre-expansion v5 plans require
 replanning.
 
-The compiler path is implemented, but Phase 6 remains runtime-evidence-open.
-The retained Qwen2.5-0.5B run is artifact-scoped historical evidence under the
-older v2 plan and bundle. A current `aptus.training-plan.v5` and
-`aptus.bundle.v3` must still pass dependency, model-data, measured preflight,
-pilot and reload, confirmed full training, final reload and export, and
-`measured-run-pass` before the phase can close.
+The compiler path and its exact current-contract runtime evidence are complete.
+The [2026-08-05 Qwen2 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean `aptus.training-plan.v5` and `aptus.bundle.v3` repetitions at
+commit `14ed44b52a76bb84d8d9db4f2303951aa641339b` through dependency, model-data,
+measured preflight, pilot and reload, confirmed full training, final reload and
+export, parent-owned promotion, and `measured-run-pass`. This closes the Phase 6
+runtime gate only for the exact recorded artifact, revision, host, runtime,
+dataset, snapshot, plan, and bundle. Compiler eligibility remains a
+configuration-footprint decision, so another matching artifact must establish
+its own runtime evidence. CUDA target-runtime acceptance remains open, and the
+record establishes neither model quality nor production throughput.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through

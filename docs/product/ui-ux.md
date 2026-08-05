@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -197,12 +197,18 @@ three-record presentation must render it; the client must not add a Qwen2
 predicate or infer the seven-module binding from family or display text.
 
 The UI describes this row as a reviewed 24-layer dense Qwen2 configuration
-footprint, not as acceptance of every matching artifact. Its historical
-Qwen2.5-0.5B evidence remains visibly scoped to the exact recorded artifact and
-older contract. Evidence readiness stays incomplete until a report bound to the
-current v5 plan, v3 bundle, selected candidate, and immutable revision proves
-the current dependency-through-`measured-run-pass` ladder. Phase 6 remains
-runtime-evidence-open even though the policy and compiler path are implemented.
+footprint, not as acceptance of every matching artifact. The
+[2026-08-05 acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean current-source v5-plan and v3-bundle repetitions through
+`measured-run-pass` at commit
+`14ed44b52a76bb84d8d9db4f2303951aa641339b` for one exact Qwen2.5 artifact,
+immutable revision, host, runtime, dataset, and selected candidate. The UI may
+present complete evidence only when the active report binds that same
+artifact-specific tuple. A different artifact that merely matches the
+configuration footprint remains incomplete until its own required runtime
+gates pass. This state is not a model-quality or production-throughput claim;
+CUDA target-runtime acceptance remains open.
 
 ## Compile and validate stages
 

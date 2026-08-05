@@ -1,0 +1,78 @@
+{
+  "schema_version": "aptus.phase6-acceptance-procedure.v1",
+  "source_commit": "14ed44b52a76bb84d8d9db4f2303951aa641339b",
+  "path_placeholders": {
+    "<ACCEPTANCE_ROOT>": "fresh temporary root containing the detached source checkout and two run roots",
+    "<HOST_PYTHON>": "Python executable used to invoke Aptus from the detached checkout",
+    "<RUNTIME_PYTHON>": "external pinned Python 3.12 MLX-LM interpreter",
+    "<MODEL_CACHE>": "isolated cache containing only the exact model revision"
+  },
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "<ACCEPTANCE_ROOT>/repo/src:<ACCEPTANCE_ROOT>/repo",
+    "APTUS_MLX_PYTHON": "<RUNTIME_PYTHON>",
+    "HF_HOME": "<MODEL_CACHE>",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "compile": {
+    "repetitions": 2,
+    "command": [
+      "<HOST_PYTHON>",
+      "-m",
+      "aptus",
+      "compile",
+      "--plan",
+      "<ACCEPTANCE_ROOT>/plan.json",
+      "--output",
+      "<ACCEPTANCE_ROOT>/run-N/bundle",
+      "--archive",
+      "<ACCEPTANCE_ROOT>/run-N/bundle.zip"
+    ],
+    "byte_identical_manifests_required": true,
+    "byte_identical_archives_required": true
+  },
+  "runtime": {
+    "serialized": true,
+    "bundle": "<ACCEPTANCE_ROOT>/run-N/bundle",
+    "state_dir": "<ACCEPTANCE_ROOT>/run-N/state",
+    "actions": [
+      {
+        "action": "dependency",
+        "required_terminal_report_state": "dependency-pass"
+      },
+      {
+        "action": "model-data",
+        "required_terminal_report_state": "model-data-pass"
+      },
+      {
+        "action": "preflight",
+        "required_terminal_report_state": "measured-preflight-pass"
+      },
+      {
+        "action": "pilot",
+        "required_terminal_report_state": "pilot-pass"
+      },
+      {
+        "action": "train",
+        "flags": [
+          "--confirm-full-train"
+        ],
+        "required_managed_child_flag": "--defer-parent-promotion",
+        "required_terminal_report_state": "measured-run-pass"
+      }
+    ],
+    "fresh_process_reconciliation_after_train": true,
+    "second_repetition_started_only_after_first_repetition_passed": true
+  },
+  "retention": {
+    "absolute_paths_normalized": true,
+    "process_identifiers_removed": true,
+    "raw_job_state_committed": false,
+    "logs_committed": false,
+    "model_or_adapter_binaries_committed": false,
+    "generated_text_committed": false,
+    "raw_temporary_artifact_digests_retained": true
+  }
+}

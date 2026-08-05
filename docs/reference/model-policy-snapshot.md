@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler and validator authors, operators, and security reviewers |
 | Authority | Normative reference for `aptus.model-policy-snapshot.v1` |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when model-policy registry, snapshot, or validation code changes |
 
 An Aptus model-policy snapshot is the portable, data-only form of the host
@@ -167,11 +167,16 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
   at the resolved revision. Dense topology is enforced by the `moe: null`
   constraint rather than by requiring a provider-declared `moe` field.
 
-The Qwen2 row describes a reviewed configuration footprint, not current-head
-runtime acceptance for every matching artifact. Its cited measured runtime
-record is historical and scoped to one pinned Qwen2.5 0.5B artifact under older
-plan and bundle contracts. Current execution still has to pass the complete
-validation ladder.
+The Qwen2 row describes a reviewed configuration footprint, not an artifact
+allowlist. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under the current
+`aptus.training-plan.v5` and `aptus.bundle.v3` contracts for the exact pinned
+artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and
+policy snapshot. It closes Phase 6's current-source runtime gate only for that
+scope. Another matching artifact still has to pass its own model-data,
+measured-preflight, and pilot gates. The result does not qualify CUDA or
+establish model quality or production throughput.
 
 ## Portable path objects
 

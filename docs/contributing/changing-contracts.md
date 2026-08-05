@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -219,12 +219,17 @@ response preserves the same policy chain as successful planning, correlates it
 with the request and receipt, requires complete rejected candidate tuples, and
 remains non-compilable. Phase 6 has since implemented the second registry-driven
 `model.qwen2-24l.mlx-qlora` configuration-footprint policy and
-`mlx-lm.qlora.single.dense-causal-lm.v1` path. Its historical Qwen2.5-0.5B
-evidence remains artifact-scoped and predates v5/v3, so Phase 6 remains
-runtime-evidence-open until a current dependency-through-`measured-run-pass`
-ladder succeeds. `aptus.api.v1`, `aptus.facts.v3`,
+`mlx-lm.qlora.single.dense-causal-lm.v1` path. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+closes its current-source v5/v3 runtime gate with two clean
+`measured-run-pass` repetitions for the exact pinned artifact, source commit,
+Apple M5 Pro host, Python/MLX runtime, dataset, and policy snapshot. The policy
+remains a configuration footprint, not an artifact allowlist; other matching
+artifacts still require their own gates, and the result does not qualify CUDA
+or establish model quality or production throughput. `aptus.api.v1`,
+`aptus.facts.v3`,
 `aptus.model-policy-snapshot.v1`, and `aptus.runtime-contract.v1` remain
-unchanged; the snapshot digest does not.
+unchanged; the acceptance closeout does not change the already-bound snapshot.
 
 ## API and workbench changes
 

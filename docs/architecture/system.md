@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-05 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -173,12 +173,18 @@ residency or establish a policy match.
 Phase 6 has implemented that second entry through the registry, snapshot,
 planner, compiler, host and portable evaluators, receipt provenance, and
 mutation tests. The policy describes a reviewed configuration footprint rather
-than an artifact allowlist. Its retained July Qwen2.5-0.5B evidence is scoped to
-the exact revision, host, runtime, and dataset and predates the current v5-plan
-and v3-bundle contracts. Phase 6 remains runtime-evidence-open until a current
-v5/v3 dependency-through-`measured-run-pass` ladder succeeds. Phase 5 did not
-change the portable policy contract, and the Phase 6 addition keeps its schema
-version while changing the canonical snapshot digest.
+than an artifact allowlist. The [2026-08-05 Qwen2 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean current-source v5-plan and v3-bundle ladders through
+`measured-run-pass` at commit
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. This closes the Phase 6 runtime
+gate for the exact recorded Qwen2.5 artifact, revision, host, runtime, dataset,
+policy snapshot, plan, and bundle only; another matching artifact remains
+conditional on its own runtime evidence. Phase 5 did not change the portable
+policy contract, and the Phase 6 addition keeps its schema version while
+changing the canonical snapshot digest. The record establishes neither model
+quality nor production throughput, and CUDA target-runtime acceptance remains
+open.
 
 ## 3. Compilation
 
@@ -197,8 +203,8 @@ The exact Qwen3 MoE compiler profile also binds model identity, topology,
 canonical quantization layout and digest, and attention-only adapter scope for
 model-data and later runtime checks. The Qwen2 24-layer profile binds its dense
 identity, exact empty-override four-bit layout, and seven-module adapter scope.
-That compiler support does not convert the historical artifact-scoped run into
-current v5/v3 runtime acceptance.
+The current v5/v3 acceptance applies to the exact recorded Qwen2.5 fixture;
+compiler support alone does not transfer that evidence to another artifact.
 
 Runtime program source lives as package data under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. The compiler reads those bytes through

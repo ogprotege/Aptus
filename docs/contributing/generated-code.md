@@ -1,6 +1,6 @@
 # Generated Code and Bundle Changes
 
-> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
 
 A compiled bundle is a portable product artifact. Its Python programs,
 configuration, data copies, reports, and manifest must agree with the selected
@@ -127,8 +127,15 @@ The current path identities are
 Qwen3 MoE, and `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
 `dense-causal-lm.v1` for dense Qwen2. The dense row binds a uniform four-bit,
 group-size-64 layout with no module overrides and targets q/k/v/o plus
-gate/up/down projections. Its historical pinned-artifact evidence predates the
-current contracts and must not be presented as current-head runtime acceptance.
+gate/up/down projections. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean current v5/v3 `measured-run-pass` repetitions for the exact
+pinned artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset,
+and policy snapshot. Generated-code changes that affect any of those bindings
+require renewed evidence. The policy is still a configuration footprint rather
+than an artifact allowlist; another matching artifact remains gated, and the
+record does not qualify CUDA or establish model quality or production
+throughput.
 
 This additive registry change does not rename the surrounding contracts. Keep
 `aptus.model-policy-snapshot.v1`, `aptus.training-plan.v5`, and

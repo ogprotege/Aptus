@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
 | Authority | Normative field reference for `aptus.training-plan.v5` |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
@@ -143,9 +143,15 @@ The current registry contains two exact configuration rows:
 The Qwen2 row requires family `qwen`, model type `qwen2`, architecture
 `Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit metadata, a uniform
 group-size-64 layout with no module overrides, and `moe: null`. It is a reviewed
-runtime configuration footprint. Its historical measured record is scoped to
-one pinned Qwen2.5 0.5B artifact under older plan and bundle contracts and does
-not establish current-head runtime acceptance.
+runtime configuration footprint, not an artifact allowlist. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. That result closes the current-source Phase 6 runtime gate only for
+that scope. A different matching artifact still requires its own model-data,
+measured-preflight, and pilot gates; the result does not qualify CUDA or
+establish model quality or production throughput.
 
 Each policy path binds method, distribution, adapter profile, target modules,
 `aptus.runtime-contract.v1`, required `model-data`, `measured-preflight`, and

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -381,12 +381,18 @@ currently has two conditional MLX-LM QLoRA policies:
   `attention-qkvo.v1`.
 
 Both rows report only gated conditional eligibility and require model-data,
-measured-preflight, and pilot validation. The Qwen2 historical measured record
-is scoped to one pinned Qwen2.5 0.5B artifact under older v2 plan and bundle
-contracts; it is not current-head runtime acceptance. Prefix matching never
-admits MoE or multimodal variants. Sparse model-type and architecture markers
-remain unsupported when provider topology is absent, even if their normalized
-family has a dense policy.
+measured-preflight, and pilot validation. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. It closes Phase 6's current-source runtime gate only for that scope;
+the Qwen2 policy remains a configuration footprint rather than an artifact
+allowlist, and another matching artifact must pass its own gates. The result
+does not qualify CUDA or establish model quality or production throughput.
+Prefix matching never admits MoE or multimodal variants. Sparse model-type and
+architecture markers remain unsupported when provider topology is absent, even
+if their normalized family has a dense policy.
 
 ### `POST /api/v1/profile`
 

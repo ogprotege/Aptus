@@ -1,13 +1,18 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 and every release
 
-This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased.
-Apple Silicon MLX-LM acceptance reached `measured-run-pass` twice in a clean
-isolated checkout, but that July evidence predates the current v5 plan, v3
-bundle, and Phase 6 registry expansion and does not bind the current source
-head. No current-head CUDA or MLX target-runtime pilot was collected for the
-Phase 6 implementation. A separate local desktop gate completed
+This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
+[2026-08-05 Qwen2 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean v5-plan and v3-bundle repetitions through `measured-run-pass` to
+implementation commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the
+current-source Phase 6 runtime gate only for the exact recorded Qwen2.5
+artifact, immutable revision, Apple M5 Pro host, Python and MLX-LM runtime,
+four-row synthetic dataset, and policy snapshot. The Qwen2 policy remains a
+configuration footprint rather than an artifact allowlist, so every other
+artifact remains conditional on its own runtime gates. No CUDA target-runtime
+pilot has completed. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
@@ -239,9 +244,10 @@ acceptance remain open.
 - The Qwen2 24-layer row is conditional only when family, model type,
   architecture, layer count, dense topology, quantization bits, exact uniform
   layout, runtime, backend, method, placement, and dense adapter profile all
-  match. Its implementation and portable parity are current, but Phase 6
-  remains runtime-evidence-open until a current v5-plan and v3-bundle ladder
-  reaches `measured-run-pass`.
+  match. Its implementation and portable parity are current. The exact recorded
+  Qwen2.5 artifact completed two current-contract ladders through
+  `measured-run-pass`; that result does not transfer to another artifact that
+  merely matches the same configuration footprint.
 - The MLX-LM pilot is one uninterrupted exact-model and exact-data run from the
   pinned base. It requires at least two completed optimizer updates, finite
   train and validation losses, exact target coverage, positive MLX peak and
@@ -303,22 +309,27 @@ acceptance remain open.
 ## Evidence status
 
 Static and local tests confirm contracts and platform-independent behavior. The
-[2026-07-27 MLX-LM acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
-binds two clean runs through measured preflight, pilot, fresh-process adapter
-reload, confirmed full training, final export, and `measured-run-pass`. The
+[2026-08-05 Qwen2 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean current-contract runs through dependency, model-data, measured
+preflight, uninterrupted pilot, fresh-process adapter reload, confirmed full
+training, final export, parent-owned promotion, and `measured-run-pass` to
+commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the Phase 6
+target-runtime gate for that exact artifact, revision, host, runtime, dataset,
+policy snapshot, plan, and bundle only. It does not make every matching Qwen2
+artifact measured and does not establish model quality or production
+throughput.
+
+The [2026-07-27 historical MLX-LM acceptance
+record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) remains
+scoped to its older plan and bundle contract. The
 [desktop engineering record](../operations/evidence/2026-07-27-desktop-release/README.md)
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. The July MLX-LM acceptance also predates the current v5 plan, v3
-bundle, and Phase 6 registry expansion and does not bind the current source
-head. It is retained as artifact-scoped historical evidence for the exact
-`mlx-community/Qwen2.5-0.5B-Instruct-4bit` revision, host, runtime, and dataset;
-it does not make every matching Qwen2 artifact measured or close the current
-Phase 6 runtime gate. No current-head MLX or CUDA target-runtime pilot was
-collected for the Phase 6 implementation, and no real CUDA pilot has run on a
-CUDA target for this release. The default Mac artifact is ad-hoc signed, not a
-Developer ID signed and notarized public distribution.
+that identity. No real CUDA pilot has run on a CUDA target for this release.
+The default Mac artifact is ad-hoc signed, not a Developer ID signed and
+notarized public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory
 admission behavior. It does not prove 30B model loading or training speed.

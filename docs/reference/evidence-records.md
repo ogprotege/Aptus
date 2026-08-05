@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when domain, evidence, validation, or execution contracts change |
 
 Aptus separates seven concepts that answer different questions:
@@ -180,8 +180,13 @@ Consumers should read the record rather than reconstructing a URL from its ID.
 The two Qwen2 records intentionally answer different questions: the policy
 record supports the reviewed configuration-to-path mapping, while the runtime
 record supports only the exact July 27 artifact, host, dataset, runtime, v2
-plan, and v2 bundle named by its scope. Neither record claims that Phase 6 has
-produced a current-head `measured-run-pass`.
+plan, and v2 bundle named by its scope. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+is a separate operational packet recording two clean current-source
+`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions.
+It closes the Phase 6 MLX-LM runtime gate only for its exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. It does not broaden or relabel either canonical evidence record.
 
 ## Candidate evidence mapping
 
@@ -199,7 +204,12 @@ policy-specific evidence. The Qwen2 path therefore adds
 `policy.qwen2-24l.mlx-qlora.v1` and
 `runtime.qwen2-0.5b.mlx-qlora.2026-07-27`. Carrying the historical runtime ID in
 a current plan preserves its scope; it does not relabel the current plan or
-bundle as runtime-tested.
+bundle as runtime-tested. The separate August 5 acceptance packet applies only
+when its exact plan, bundle, artifact, source, host, runtime, dataset, and policy
+snapshot bindings match. The policy remains a configuration footprint rather
+than an artifact allowlist; other matching artifacts still require their own
+model-data, measured-preflight, and pilot gates. The packet does not qualify
+CUDA or establish model quality or production throughput.
 
 Research-only and experimental method descriptors reference their own papers,
 but they do not enter the v0.2 candidate matrix. Their citations make their

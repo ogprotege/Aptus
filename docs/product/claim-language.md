@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-04 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-05 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -49,11 +49,18 @@ Use:
 - “the parent verified the structural export file tree.”
 
 Do not turn a historical pilot pass into a claim of current capacity. Admission
-rechecks current resources. The two clean 2026-07-27 MLX-LM acceptance runs
-prove only their exact model, immutable revision, synthetic dataset, host,
-runtime, plan, bundle, and actions. They do not prove every Apple Silicon
-configuration or model, and their v2 plan/bundle evidence does not close the
-current Phase 6 v5/v3 acceptance gate.
+rechecks current resources. The two clean
+[2026-08-05 MLX-LM acceptance
+runs](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+prove only their exact Qwen2.5 artifact, immutable revision, synthetic dataset,
+Apple M5 Pro host, Python and MLX-LM runtime, policy snapshot, v5 plan, v3
+bundle, implementation commit
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`, and actions. They close the Phase 6
+runtime gate for that exact fixture; they do not prove every Apple Silicon
+configuration or every artifact that matches the Qwen2 configuration
+footprint. They establish neither model quality nor production throughput, and
+CUDA target-runtime acceptance remains open. The 2026-07-27 v2-plan and
+v2-bundle runs remain historical evidence for their older exact scope.
 
 ## Quality claims
 
@@ -103,15 +110,16 @@ for managed admission and execution.
 
 Use:
 
-- “two clean MLX-LM workflows reached `measured-run-pass` for the recorded
-  acceptance configuration”;
+- “two clean current-contract MLX-LM workflows reached `measured-run-pass` for
+  the exact recorded acceptance configuration at implementation commit
+  `14ed44b52a76bb84d8d9db4f2303951aa641339b`”;
 - “the local desktop engineering gate passed 10 of 10 clean builds at
   implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`”;
 - “pull-request CI rebuilt and packaged GitHub's exact tested merge commit,” but
   only after that workflow has completed successfully;
 - “the default desktop artifact is ad-hoc signed for review and testing”;
-- “Phase 4's source, wheel, and desktop package gates passed, but no current-head
-  MLX or CUDA target-runtime pilot was collected.”
+- “the exact Phase 6 Qwen2 fixture passed two current-source v5/v3 MLX-LM
+  ladders, while CUDA target-runtime acceptance remains open.”
 
 Do not:
 
@@ -120,8 +128,9 @@ Do not:
 - describe ad-hoc signing as Developer ID distribution, notarization, or public
   release approval;
 - treat desktop packaging as CUDA target-host acceptance;
-- apply the July v2/v2 MLX-LM result to the Phase 6 source head, another
-  artifact, or current v5/v3 acceptance;
+- apply either the historical July MLX-LM result or the exact 2026-08-05
+  acceptance to another artifact, revision, host, runtime, dataset, source
+  commit, or CUDA path;
 - call v0.2 release-ready while claimed CUDA target-host evidence and public
   Developer ID signing and notarization remain open.
 
@@ -135,3 +144,4 @@ are separate claims. State which one the evidence supports.
 - [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Validation states](../reference/validation-states.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

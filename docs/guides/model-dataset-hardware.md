@@ -1,6 +1,6 @@
 # Model, Dataset, and Hardware Facts
 
-> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22 or when fact contracts change
+> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when fact contracts change
 
 A plan is only as credible as its facts. Aptus records provenance and refuses to
 infer permission or unsupported hardware capability.
@@ -35,6 +35,13 @@ The first sparse compatibility row is exact: `qwen3_moe`,
 `model.layers.N.mlp.gate` override for every layer, no shared expert,
 single-device MLX-LM QLoRA, and attention-only adapters. Other MoE identities,
 quantization layouts, runtimes, methods, and placements remain unsupported.
+
+The second reviewed policy matches a 24-layer dense `qwen` / `qwen2` /
+`Qwen2ForCausalLM` configuration with no MoE topology and a uniform four-bit
+group-size-64 layout with no overrides. It permits only single-device MLX-LM
+QLoRA with `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and
+`down_proj`. A match remains conditional and does not transfer runtime evidence
+between artifacts.
 
 Model-data validation later resolves the pinned revision with the installed
 Transformers and PEFT stack. It requires the loaded hidden size, layer count,

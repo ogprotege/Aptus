@@ -1,0 +1,18 @@
+{
+  "schema_version": "aptus.phase6-diagnostic-digests.v1",
+  "qualifying_repetition": false,
+  "source_commit": "81bb1a286a45a5d5b424288699f8acdd8c051ecf",
+  "job_id": "job_46825c084c134c54b072d6a9512a9702",
+  "run_id": "run_46825c084c134c54b072d6a9512a9702",
+  "managed_state": "failed",
+  "child_return_code": 0,
+  "completion_attestation": null,
+  "raw_artifact_sha256": {
+    "job_record_json": "9db44354207c98c1ce25bc371b577cde9f5e7b53a0036d9526ef8cdc6c328836",
+    "validation_report_json": "53facb15ac903660e41c3b0ad33904916604eaf581feef79d9762ce800827877",
+    "full_metrics_json": "4dae78645523938944d5efce48f5ad99919acb0c57a94a0a26ae10778a67e3c3",
+    "final_export_json": "d609e62960795598a51b0618bf59e8cb91c301853922b9218d42b20e26ed27ad",
+    "artifact_manifest_json": "6c2305fbdb5b33dc36cc8478e5ca3d8f49193932cf6c19dd1f81bb27949ecd8b",
+    "reload_evidence_json": "cca1bf2138f68c6495b135184b3455c16f57301150ad4a79bfabf066ddd77a08"
+  }
+}

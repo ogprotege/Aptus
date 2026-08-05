@@ -14,7 +14,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from aptus.domain import Backend, ValidationState
+from aptus.domain import Backend, QuantizationLayout, ValidationState
 from aptus.generation import (
     _BUNDLE_PROGRAMS,
     _accelerate_config,
@@ -37,6 +37,7 @@ from aptus.validation import validate_bundle
 
 from tests.aptus.helpers import (
     make_plan,
+    make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
     qwen3_moe_quantization_config,
 )
@@ -727,6 +728,91 @@ class BundleGenerationTests(unittest.TestCase):
             all(row["messages"][-1]["role"] == "assistant" for row in compiled_rows)
         )
 
+    def test_compiles_dense_mlx_bundle_with_explicit_empty_override_layout(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            base = make_plan(root)
+            model = replace(
+                base.model,
+                parameters=494_000_000,
+                quantization_bits=4,
+                quantization_layout=QuantizationLayout(
+                    default_bits=4,
+                    default_group_size=64,
+                ),
+            )
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=48,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            plan = plan_training(
+                model=model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+            output = root / "dense-quantized-mlx-bundle"
+            report = generate_bundle(plan, output)
+            payload = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            portable_contract = self._load_generated_path(
+                output,
+                "plan_contract.py",
+                "aptus_generated_dense_quantized_plan_contract",
+            )
+            runtime = self._load_generated(
+                output,
+                "aptus_generated_dense_quantized_runtime",
+            )
+            model_load_binding = _mlx_model_load_binding(payload)
+
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertEqual(payload["recommended"]["method"], "qlora")
+        self.assertEqual(
+            payload["model"]["quantization_layout"],
+            {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+        )
+        self.assertEqual(
+            portable_contract.mlx_quantized_storage_bytes_for_contract(
+                payload["model"]
+            ),
+            (247_000_000, 30_875_000),
+        )
+        self.assertEqual(
+            payload["recommended"]["memory"]["base_weights_bytes"],
+            247_000_000,
+        )
+        self.assertEqual(
+            payload["recommended"]["memory"]["quantization_metadata_bytes"],
+            30_875_000,
+        )
+        self.assertEqual(
+            model_load_binding["packed_checkpoint_binding"]["expected_weight_bytes"],
+            247_000_000,
+        )
+        self.assertEqual(
+            model_load_binding["packed_checkpoint_binding"][
+                "expected_quantization_metadata_bytes"
+            ],
+            30_875_000,
+        )
+        self.assertIs(
+            runtime.require_mlx_model_load_binding(payload, model_load_binding),
+            model_load_binding,
+        )
+
     def test_qwen3_moe_bundle_documents_attention_only_resident_base_policy(
         self,
     ) -> None:
@@ -746,6 +832,115 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("full quantized base still resides", readme)
         self.assertIn("logical active parameters", runbook)
         self.assertIn("MoE adapter policy: attention-only QLoRA", decision)
+
+    def test_qwen2_runtime_footprint_compiles_and_binds_dense_model_data(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "qwen2-runtime-footprint-bundle"
+            report = generate_bundle(
+                make_qwen2_runtime_footprint_plan(root),
+                output,
+            )
+            plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
+            runtime = self._load_generated(
+                output,
+                "aptus_generated_qwen2_runtime_footprint",
+            )
+            loaded_plan, candidate = runtime.load_contract()
+            model_path = root / "model"
+            model_path.mkdir()
+            config = {
+                "model_type": "qwen2",
+                "architectures": ["Qwen2ForCausalLM"],
+                "hidden_size": 896,
+                "intermediate_size": 4864,
+                "num_hidden_layers": 24,
+                "max_position_embeddings": 32768,
+                "quantization": {"bits": 4, "group_size": 64},
+            }
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+
+            runtime.require_method_model(loaded_plan, candidate, model_path)
+            config["num_hidden_layers"] = 25
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            config["num_hidden_layers"] = 24
+            config["quantization"]["group_size"] = 128
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            config["quantization"]["group_size"] = 64
+            config.update(
+                {
+                    "num_experts": 8,
+                    "num_experts_per_tok": 2,
+                    "moe_intermediate_size": 1024,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                }
+            )
+            (model_path / "config.json").write_text(
+                json.dumps(config),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                runtime.require_method_model(loaded_plan, candidate, model_path)
+
+            dense_layers = [
+                types.SimpleNamespace(mlp=types.SimpleNamespace()) for _ in range(24)
+            ]
+            dense_layers[5] = types.SimpleNamespace(
+                mlp=types.SimpleNamespace(
+                    num_experts=8,
+                    top_k=2,
+                    switch_mlp=object(),
+                )
+            )
+            loaded_model = types.SimpleNamespace(layers=dense_layers)
+            with self.assertRaisesRegex(RuntimeError, "requires dense topology"):
+                runtime.build_mlx_model_load_binding(
+                    loaded_model,
+                    loaded_plan,
+                    observed_safetensors_bytes=0,
+                    parameter_counter=lambda value: loaded_plan["model"]["parameters"],
+                )
+
+        self.assertEqual(report.state, ValidationState.STATIC_PASS)
+        self.assertEqual(
+            plan["model_policy_decision"]["policy_id"],
+            "model.qwen2-24l.mlx-qlora",
+        )
+        self.assertEqual(
+            plan["recommended"]["policy_binding"]["path_id"],
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(
+            plan["recommended"]["target_modules"],
+            [
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        )
 
     def test_generated_plan_contract_recomputes_qwen3_moe_memory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1243,6 +1438,162 @@ class BundleGenerationTests(unittest.TestCase):
                     self.assertRaises(SystemExit),
                 ):
                     module.main()
+
+    def test_generated_mlx_managed_full_defers_only_parent_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            help_result = self._run_package_free_entrypoint(output, "run.py", "--help")
+            module = self._load_generated_path(
+                output, "run.py", "aptus_generated_mlx_managed_parent"
+            )
+            plan = module.load_plan()
+            run_output = output / "runs" / "run_managed"
+            metrics = {"run_completed": True}
+            completed = subprocess.CompletedProcess([], 0)
+            verified_calls: list[tuple[dict, Path, str]] = []
+            fake_validate = types.ModuleType("validate")
+
+            def require_completed_run(
+                observed_plan: dict, observed_output: Path, *, action: str
+            ) -> dict:
+                verified_calls.append((observed_plan, observed_output, action))
+                return metrics
+
+            fake_validate.require_completed_run = require_completed_run
+            pilot_path = output / "pilot-output" / "metrics.json"
+            pilot_path.parent.mkdir(exist_ok=True)
+            pilot_path.write_text("{}\n", encoding="utf-8")
+            admission = {"pilot_metrics_sha256": module.sha256(pilot_path)}
+            report_path = output / "validation-report.json"
+            source_report = json.loads(report_path.read_text(encoding="utf-8"))
+            source_report.update(
+                state="measured-run-pass",
+                validation_level="measured-run",
+                artifact_fingerprint=module.bundle_fingerprint(output),
+                bindings={
+                    "bundle": module.bundle_fingerprint(output),
+                    "dataset": plan["dataset"]["source_sha256"],
+                    "plan_id": plan["plan_id"],
+                    "candidate_id": plan["recommended"]["candidate_id"],
+                    "model_revision": plan["model"]["revision"],
+                    "pilot_metrics": admission["pilot_metrics_sha256"],
+                },
+                measured_run_completed_at="2026-08-05T12:10:57+00:00",
+                final_export={"stale": True},
+                measured_run={"stale": True},
+                parent_promotion={"schema_version": "aptus.parent-promotion.v1"},
+            )
+            report_path.write_text(
+                json.dumps(source_report, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            argument_values = {
+                "bounded_smoke": False,
+                "pilot": False,
+                "confirm_full_train": True,
+                "resume_from": None,
+                "output_dir": run_output,
+                "model": None,
+                "data": None,
+                "iters": 2,
+            }
+
+            with (
+                patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "run.py",
+                        "--confirm-full-train",
+                        "--defer-parent-promotion",
+                        "--output-dir",
+                        str(run_output),
+                    ],
+                ),
+                patch.object(module, "portable_execution_lease"),
+                patch.object(module, "launch", return_value=0) as parsed_launch,
+            ):
+                self.assertEqual(module.main(), 0)
+            self.assertTrue(parsed_launch.call_args.args[0].defer_parent_promotion)
+
+            with (
+                patch.dict(sys.modules, {"validate": fake_validate}),
+                patch.object(module, "load_plan", return_value=plan),
+                patch.object(module, "require_full_admission", return_value=admission),
+                patch.object(module, "claim_output", return_value=run_output),
+                patch.object(module, "run_with_lease", return_value=completed),
+                patch.object(module, "finalize", return_value=metrics),
+            ):
+                with patch.object(module, "promote_full_completion") as promote:
+                    result = module.launch(
+                        types.SimpleNamespace(
+                            **argument_values, defer_parent_promotion=True
+                        )
+                    )
+                    promote.assert_not_called()
+                self.assertEqual(result, 0)
+                managed_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(managed_report["state"], "execution-approved")
+                self.assertEqual(managed_report["validation_level"], "pilot")
+                self.assertEqual(
+                    managed_report["active_run"],
+                    {
+                        "output_dir": str(run_output.resolve()),
+                        "run_id": run_output.name,
+                        "plan_id": plan["plan_id"],
+                        "candidate_id": plan["recommended"]["candidate_id"],
+                    },
+                )
+                self.assertEqual(managed_report["prelaunch_capacity_check"], admission)
+                for stale_name in (
+                    "measured_run_completed_at",
+                    "final_export",
+                    "measured_run",
+                    "parent_promotion",
+                ):
+                    self.assertNotIn(stale_name, managed_report)
+
+                with patch.object(module, "promote_full_completion") as promote:
+                    result = module.launch(
+                        types.SimpleNamespace(
+                            **argument_values, defer_parent_promotion=False
+                        )
+                    )
+                    promote.assert_called_once_with(
+                        plan, run_output, metrics, admission
+                    )
+
+                run_output.mkdir(parents=True)
+                (run_output / "final-export.json").write_text("{}\n", encoding="utf-8")
+                (run_output / "metrics.json").write_text("{}\n", encoding="utf-8")
+                managed_report["parent_promotion"] = {"stale": True}
+                report_path.write_text(
+                    json.dumps(managed_report, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                module.promote_full_completion(
+                    plan,
+                    run_output,
+                    {
+                        "final_export": {"total_bytes": 0},
+                        "artifact_manifest_sha256": "a" * 64,
+                        "reload_evidence_sha256": "b" * 64,
+                        "global_step": 1,
+                        "completed_optimizer_updates": 1,
+                        "measured_peak_bytes": 1,
+                    },
+                    admission,
+                )
+                standalone_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(standalone_report["state"], "measured-run-pass")
+                self.assertNotIn("parent_promotion", standalone_report)
+
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+        self.assertNotIn("--defer-parent-promotion", help_result.stdout)
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            verified_calls,
+            [(plan, run_output, "full"), (plan, run_output, "full")],
+        )
 
     def test_generated_mlx_full_refuses_missing_or_stale_pilot_before_output(
         self,

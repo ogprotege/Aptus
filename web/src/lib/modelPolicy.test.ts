@@ -119,6 +119,52 @@ describe("model policy decision boundary", () => {
     })).toEqual(BINDING);
   });
 
+  it("decodes the reviewed dense runtime profile and its reason vocabulary", () => {
+    const denseDecision: ModelPolicyDecision = {
+      ...DECISION,
+      family: "qwen",
+      policy_id: "model.qwen2-24l.mlx-qlora",
+      policy_version: "1.0.0",
+      paths: [{
+        ...DECISION.paths[0],
+        path_id: "mlx-lm.qlora.single.dense-causal-lm.v1",
+        method: "qlora",
+        adapter_profile_id: "dense-causal-lm.v1",
+        target_modules: [
+          "q_proj",
+          "k_proj",
+          "v_proj",
+          "o_proj",
+          "gate_proj",
+          "up_proj",
+          "down_proj",
+        ],
+      }],
+      reason_codes: ["reviewed-runtime-path", "pilot-not-yet-proven"],
+      reason: "The reviewed dense Qwen2 runtime footprint matched.",
+    };
+
+    expect(decodeModelPolicyDecision(structuredClone(denseDecision))).toEqual(
+      denseDecision,
+    );
+
+    for (const reasonCode of [
+      "layer-count-mismatch",
+      "dense-topology-required",
+    ] as const) {
+      const blockedDecision: ModelPolicyDecision = {
+        ...denseDecision,
+        kind: "blocked",
+        paths: [],
+        reason_codes: [reasonCode],
+        reason: `The reviewed dense Qwen2 policy rejected ${reasonCode}.`,
+      };
+      expect(decodeModelPolicyDecision(structuredClone(blockedDecision))).toEqual(
+        blockedDecision,
+      );
+    }
+  });
+
   it("accepts every current decision kind without hard-coding a policy family", () => {
     const variants = [
       DECISION,

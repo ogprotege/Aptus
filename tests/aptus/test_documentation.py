@@ -270,7 +270,7 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertEqual(
             allowed_values(conditional["properties"]["adapter_profile_id"]),
-            {"attention-qkvo.v1"},
+            {"attention-qkvo.v1", "dense-causal-lm.v1"},
         )
         self.assertEqual(
             conditional["properties"]["evidence_requirement"]["const"],
@@ -828,26 +828,38 @@ class DocumentationTests(unittest.TestCase):
             "POLICY_SNAPSHOT_PATH",
         ):
             self.assertIn(code, release_gates)
-        self.assertIn("predates the Phase 4", release_gates)
-        self.assertIn("No current-head CUDA or MLX", release_gates)
+        self.assertIn("2026-08-05-qwen2-mlx-lm-acceptance/README.md", release_gates)
+        self.assertIn(
+            "No real CUDA pilot or full training evidence has completed",
+            release_gates,
+        )
 
         capability_matrix = (
             REPOSITORY / "docs/reference/capability-matrix.md"
         ).read_text(encoding="utf-8")
         normalized_capability_matrix = " ".join(capability_matrix.split())
         for evidence_boundary in (
-            "predates the Phase 4 source head",
-            "does not establish a current-head MLX-LM pilot pass",
-            "No current-head CUDA or MLX target-runtime pilot",
+            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
+            "Two current v5/v3 dense QLoRA workflows reached `measured-run-pass`",
+            "No real CUDA target-host pilot has been recorded",
         ):
             self.assertIn(evidence_boundary, normalized_capability_matrix)
 
         current_capabilities = (
             REPOSITORY / "docs/product/current-capabilities.md"
         ).read_text(encoding="utf-8")
-        opening_boundary = current_capabilities.split("## Available now", 1)[0]
-        self.assertIn("predates Phases 4 and 5", opening_boundary)
-        self.assertIn("No current-head CUDA or MLX", opening_boundary)
+        opening_boundary = " ".join(
+            current_capabilities.split("## Available now", 1)[0].split()
+        )
+        self.assertIn(
+            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
+            opening_boundary,
+        )
+        self.assertIn(
+            "It closes the current-source Phase 6 runtime gate only for the exact recorded Qwen2.5",
+            opening_boundary,
+        )
+        self.assertIn("No CUDA target-runtime pilot has completed", opening_boundary)
 
         install = (REPOSITORY / "docs/getting-started/install.md").read_text(
             encoding="utf-8"
@@ -869,12 +881,16 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY / "docs/maintenance/documentation-health.md"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            "Renew qualifying current-head MLX-LM target-runtime",
+            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
             documentation_debt,
         )
         self.assertIn(
-            "current-head MLX and CUDA target-host evidence",
-            documentation_health,
+            "Access to approved CUDA target hosts",
+            documentation_debt,
+        )
+        self.assertIn(
+            "No qualifying CUDA target-runtime acceptance has been collected",
+            " ".join(documentation_health.split()),
         )
 
         inventory = (
@@ -896,29 +912,31 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY / "Reference/hparam_methods_reference.md",
             REPOSITORY
             / "docs/operations/evidence/2026-07-29-documentation-drift-audit/README.md",
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/diagnostics/attempt-01-unreceipted-parent-promotion/README.md",
             *(REPOSITORY / "docs/audits/aptus-legacy").glob("*.md"),
         }
         governed_documents = repository_documents - excluded_documents
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 113)
-        self.assertEqual(len(excluded_documents), 12)
-        self.assertEqual(len(governed_documents), 101)
-        self.assertEqual(len(active_documents), 85)
+        self.assertEqual(len(repository_documents), 116)
+        self.assertEqual(len(excluded_documents), 13)
+        self.assertEqual(len(governed_documents), 103)
+        self.assertEqual(len(active_documents), 86)
         self.assertEqual(len(deprecated_documents), 2)
-        self.assertEqual(len(archived_documents), 14)
+        self.assertEqual(len(archived_documents), 15)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 92)
-        self.assertIn("101 governed tracked Markdown documents", inventory)
-        self.assertIn("92 Markdown files", inventory)
-        self.assertIn("113 tracked Markdown files", " ".join(inventory.split()))
-        self.assertIn("| Active | 85 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 94)
+        self.assertIn("103 governed tracked Markdown documents", inventory)
+        self.assertIn("94 Markdown files", inventory)
+        self.assertIn("116 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("| Active | 86 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
-        self.assertIn("| Archived | 14 |", inventory)
+        self.assertIn("| Archived | 15 |", inventory)
 
     def test_phase5_workbench_policy_authority_is_documented(self) -> None:
         def normalized(relative_path: str) -> str:
@@ -934,7 +952,6 @@ class DocumentationTests(unittest.TestCase):
                 "typed `authorization_status` values `current`, `deferred`, and `blocked`",
                 "recommendation must structurally equal the complete listed candidate record",
                 "browser never derives a status from diagnostic prose",
-                "Phase 6 remains pending",
             ),
             "docs/product/current-capabilities.md": (
                 "Phase 5's server-authoritative workbench policy boundary",
@@ -958,7 +975,6 @@ class DocumentationTests(unittest.TestCase):
                 "exact `authorization_status` vocabulary of `current`, `deferred`, and `blocked`",
                 "never infers a status from diagnostic prose",
                 "Phase 5 is complete",
-                "Phase 6 remains pending",
             ),
             "docs/product/user-workflows.md": (
                 "typed HTTP 422 response together with the server decision",
@@ -979,7 +995,6 @@ class DocumentationTests(unittest.TestCase):
                 "optional `authorization_status` vocabulary is exactly `current`, `deferred`, or `blocked`",
                 "recommendation must structurally equal its complete listed candidate record",
                 "MoE topology rail separately explains routing",
-                "Phase 6 remains pending",
             ),
             "docs/architecture/data-and-identity-flow.md": (
                 "HTTP planning boundary preserves this chain on both success and failure",
@@ -1008,7 +1023,6 @@ class DocumentationTests(unittest.TestCase):
                 "Reuse that exact predicate for model-policy evidence, workflow-stage completion, and validation or run action enablement",
                 "optional typed tuple: `authorization_status` is exactly `current`, `deferred`, or `blocked`",
                 "surface the request error while preserving the prior report",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-debt.md": (
                 "### DOC-023: Remove browser-side model-policy reconstruction",
@@ -1018,20 +1032,18 @@ class DocumentationTests(unittest.TestCase):
                 "required model subject must match the submitted ID and immutable revision",
                 "recommendation must structurally equal its complete listed candidate record",
                 "tuple with no non-null member means not checked",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-health.md": (
-                "current Phase 5 maintained-guidance closeout",
+                "Phase 5 maintained-guidance closeout",
                 "strict v2 decision, path, receipt, and candidate/report ingress",
                 "Evidence completeness stays separate from the optional typed `authorization_status` values",
                 "Recommendations structurally equal their complete listed candidate records",
                 "tuple with no non-null member means not checked",
                 "does not infer status from prose or mutate the report",
                 "unused flattened compatibility normalizer was removed",
-                "Phase 6 remains pending",
             ),
             "docs/maintenance/documentation-inventory.md": (
-                "after the Phase 5 closeout",
+                "after the Phase 6 runtime-evidence closeout",
                 "`web/src/lib/modelPolicy.ts`",
             ),
             "docs/reference/api.md": (
@@ -1205,6 +1217,150 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(
             authorization_status["anyOf"][0]["enum"],
             ["current", "deferred", "blocked"],
+        )
+
+    def test_phase6_second_policy_and_evidence_boundary_are_documented(self) -> None:
+        def normalized(relative_path: str) -> str:
+            text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        acceptance_leaf = "2026-08-05-qwen2-mlx-lm-acceptance/README.md"
+        acceptance_documents = (
+            "README.md",
+            "ROADMAP.md",
+            "docs/reference/capability-matrix.md",
+            "docs/reference/plan-schema.md",
+            "docs/reference/model-policy-snapshot.md",
+            "docs/reference/api.md",
+            "docs/reference/evidence-records.md",
+            "docs/product/current-capabilities.md",
+            "docs/product/claim-language.md",
+            "docs/operations/release-gates.md",
+            "docs/contributing/changing-contracts.md",
+            "docs/contributing/generated-code.md",
+            "docs/maintenance/documentation-debt.md",
+            "docs/maintenance/documentation-health.md",
+        )
+        for relative_path in acceptance_documents:
+            text = normalized(relative_path)
+            self.assertIn(acceptance_leaf, text, relative_path)
+            self.assertNotIn("runtime-evidence-open", text, relative_path)
+            self.assertNotIn("Phase 6 remains pending", text, relative_path)
+
+        required_claims = {
+            "README.md": (
+                "`model.qwen2-24l.mlx-qlora`",
+                "reviewed dense configuration footprint rather than an artifact allowlist",
+                "The two 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime gate",
+            ),
+            "ROADMAP.md": (
+                "Phase 6 is implemented at the registry, planner, compiler, portable-contract, and test boundaries",
+                "`mlx-lm.qlora.single.dense-causal-lm.v1`",
+            ),
+            "docs/reference/capability-matrix.md": (
+                "This is a reviewed configuration footprint, not an artifact allowlist",
+                "Uniform four-bit, group size 64, with no module overrides",
+                "Two v5/v3 `measured-run-pass` repetitions for the exact 2026-08-05 accepted artifact",
+            ),
+            "docs/reference/plan-schema.md": (
+                "runtime configuration footprint, not an artifact allowlist",
+                "two clean `measured-run-pass` repetitions",
+                "does not qualify CUDA or establish model quality or production throughput",
+            ),
+            "docs/reference/model-policy-snapshot.md": (
+                "`model.qwen2-24l.mlx-qlora`",
+                "targets `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and `down_proj`",
+                "Another matching artifact still has to pass its own model-data, measured-preflight, and pilot gates",
+            ),
+            "docs/reference/api.md": (
+                "the Qwen2 policy remains a configuration footprint rather than an artifact allowlist",
+                "another matching artifact must pass its own gates",
+                "does not qualify CUDA or establish model quality or production throughput",
+            ),
+            "docs/reference/evidence-records.md": (
+                "It does not broaden or relabel either canonical evidence record",
+                "Carrying the historical runtime ID in a current plan preserves its scope",
+                "The separate August 5 acceptance packet applies only when its exact plan, bundle, artifact, source, host, runtime, dataset, and policy snapshot bindings match",
+            ),
+            "docs/reference/cli.md": (
+                "`--quantization-group-size INTEGER`",
+                "The reviewed dense Qwen2 footprint",
+            ),
+            "docs/product/claim-language.md": (
+                "A configuration-footprint policy is not an artifact allowlist",
+                "They close the Phase 6 runtime gate for that exact fixture",
+            ),
+            "docs/operations/release-gates.md": (
+                "`policy.qwen2-24l.mlx-qlora.v1`",
+                "`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`",
+                "closes the current-source Phase 6 MLX-LM runtime gate",
+            ),
+            "docs/contributing/changing-contracts.md": (
+                "closes its current-source v5/v3 runtime gate with two clean",
+                "other matching artifacts still require their own gates",
+                "does not qualify CUDA or establish model quality or production throughput",
+            ),
+            "docs/contributing/generated-code.md": (
+                "Generated-code changes that affect any of those bindings require renewed evidence",
+                "another matching artifact remains gated",
+                "does not qualify CUDA or establish model quality or production throughput",
+            ),
+            "docs/maintenance/documentation-debt.md": (
+                "### DOC-024: Close Phase 6 runtime evidence for the second model policy",
+                "**Status:** Resolved",
+                "`14ed44b52a76bb84d8d9db4f2303951aa641339b`",
+                "The policy remains a reviewed configuration footprint, not an artifact allowlist",
+            ),
+            "docs/maintenance/documentation-health.md": (
+                "That acceptance closes the current-source Phase 6 MLX-LM runtime gate for its exact scope",
+                "A different matching artifact remains conditional",
+                "No qualifying CUDA target-runtime acceptance has been collected",
+            ),
+        }
+        for relative_path, claims in required_claims.items():
+            text = normalized(relative_path)
+            for claim in claims:
+                self.assertIn(claim, text, (relative_path, claim))
+
+        acceptance_readme = normalized(
+            "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md"
+        )
+        for claim in (
+            "Passed — two clean `measured-run-pass` repetitions",
+            "current training-plan v5 and bundle v3 MLX-LM QLoRA ladder twice",
+            "Exact pinned artifact, source, host, runtime, dataset, and policy snapshot",
+            "Model quality, general Qwen2 compatibility, CUDA acceptance, or production throughput",
+        ):
+            self.assertIn(claim, acceptance_readme)
+
+        acceptance_summary = json.loads(
+            (
+                REPOSITORY
+                / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/acceptance-summary.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(acceptance_summary["state"], "measured-run-pass")
+        self.assertEqual(
+            acceptance_summary["phase_6_status"], "runtime-evidence-complete"
+        )
+        self.assertEqual(acceptance_summary["completed_clean_repetitions"], 2)
+        self.assertEqual(
+            acceptance_summary["source"]["acceptance_fix_commit"],
+            "14ed44b52a76bb84d8d9db4f2303951aa641339b",
+        )
+        self.assertEqual(
+            acceptance_summary["model"]["revision"],
+            "53a32aee5e9447773fd2b85988395066aef3700a",
+        )
+        self.assertEqual(acceptance_summary["host"]["chip"], "Apple M5 Pro")
+        self.assertEqual(acceptance_summary["runtime"]["mlx_lm"], "0.31.3")
+        self.assertEqual(
+            acceptance_summary["compiled_input"]["plan_schema_version"],
+            "aptus.training-plan.v5",
+        )
+        self.assertEqual(
+            acceptance_summary["compiled_input"]["bundle_schema_version"],
+            "aptus.bundle.v3",
         )
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:

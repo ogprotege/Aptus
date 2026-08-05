@@ -1,0 +1,30 @@
+{
+  "artifact_manifest_sha256": "a6c8bcf0ec100bc6fb42f4e9797ce3894f13cefbb6a0eeec4fabe0434e916e0c",
+  "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+  "compute_backend": "mps",
+  "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+  "distribution": "single",
+  "execution_semantics": "uninterrupted",
+  "files": [
+    {
+      "path": "adapter_config.json",
+      "sha256": "32075fe8c7c5d212a3cd3fe2c11a689ec7cc9d955bc748e491c10b03a305e40d",
+      "size_bytes": 1571
+    },
+    {
+      "path": "adapters.safetensors",
+      "sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+      "size_bytes": 17632042
+    }
+  ],
+  "method": "qlora",
+  "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+  "plan_id": "plan_bd33e8ab37765b7efa93",
+  "reload_evidence_sha256": "1720aef546887015e81e0be6dc247b7fd08f6334a5685b98307c6020a0398a6c",
+  "resume_supported": false,
+  "schema_version": "aptus.mlx-final-export.v1",
+  "total_bytes": 17633613,
+  "training_runtime": "mlx-lm",
+  "verification_level": "immutable-adapter-file-tree",
+  "world_size": 1
+}

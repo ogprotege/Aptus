@@ -1,0 +1,272 @@
+{
+  "compatibility": {
+    "adapter_profile_id": "dense-causal-lm.v1",
+    "compute_backend": "mps",
+    "distribution": "single",
+    "evidence_requirement": "pilot-required",
+    "family": "qwen",
+    "reason": "The provider identity and 24-layer dense four-bit, group-size-64 configuration match the reviewed Qwen2 MLX-LM runtime footprint. Runtime evidence remains scoped to the pinned artifact, and every execution still requires model-data, measured-preflight, and pilot validation.",
+    "status": "conditional",
+    "supported_methods": [
+      "qlora"
+    ],
+    "supported_runtime": "mlx-lm"
+  },
+  "explicit_user_facts_required": [
+    "parameters",
+    "training_allowed"
+  ],
+  "facts": {
+    "architecture": "Qwen2ForCausalLM",
+    "architectures": [
+      "Qwen2ForCausalLM"
+    ],
+    "attention_heads": 14,
+    "context_length": 32768,
+    "family": "qwen",
+    "hidden_size": 896,
+    "intermediate_size": 4864,
+    "key_value_heads": 2,
+    "layers": 24,
+    "license_name": "apache-2.0",
+    "model_type": "qwen2",
+    "moe": null,
+    "parameters": null,
+    "quantization_bits": 4,
+    "quantization_layout": {
+      "default_bits": 4,
+      "default_group_size": 64,
+      "module_overrides": []
+    },
+    "training_allowed": null,
+    "vocab_size": 151936
+  },
+  "inspection_receipt": {
+    "decision": {
+      "decision_id": "compat_2eed87680e03402a39c7",
+      "evidence_ids": [
+        "policy.qwen2-24l.mlx-qlora.v1",
+        "runtime.qwen2-0.5b.mlx-qlora.2026-07-27"
+      ],
+      "family": "qwen",
+      "kind": "path-matched",
+      "paths": [
+        {
+          "adapter_profile_id": "dense-causal-lm.v1",
+          "distribution": "single",
+          "evidence_ids": [
+            "policy.qwen2-24l.mlx-qlora.v1",
+            "runtime.qwen2-0.5b.mlx-qlora.2026-07-27"
+          ],
+          "method": "qlora",
+          "path_id": "mlx-lm.qlora.single.dense-causal-lm.v1",
+          "required_validation_levels": [
+            "model-data",
+            "measured-preflight",
+            "pilot"
+          ],
+          "runtime_contract": {
+            "compiler_id": "mlx-lm.qlora.v1",
+            "compute_backend": "mps",
+            "estimator_id": "aptus-memory-mlx-v2",
+            "evidence_requirement": "pilot-required",
+            "export_kind": "mlx-lm-adapter",
+            "schema_version": "aptus.runtime-contract.v1",
+            "training_runtime": "mlx-lm"
+          },
+          "target_modules": [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj"
+          ]
+        }
+      ],
+      "policy_id": "model.qwen2-24l.mlx-qlora",
+      "policy_version": "1.0.0",
+      "reason": "The provider identity and 24-layer dense four-bit, group-size-64 configuration match the reviewed Qwen2 MLX-LM runtime footprint. Runtime evidence remains scoped to the pinned artifact, and every execution still requires model-data, measured-preflight, and pilot validation.",
+      "reason_codes": [
+        "reviewed-runtime-path",
+        "pilot-not-yet-proven"
+      ],
+      "schema_version": "aptus.model-compatibility.v2",
+      "subject_facts_sha256": "5cada6b4dab060b39ad941e548e1b6d0bb2ff05b2ab202bf062401a84c3d2b54"
+    },
+    "evaluated_at": "2026-08-05T12:34:17.303838+00:00",
+    "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    "observed_facts_sha256": "05d3fb5edc6ed0fc23daf6dea917889e7232e5b3df2b394ed17cbd3951c1f72a",
+    "provenance_requirement": "provider-declared",
+    "provenance_requirement_met": true,
+    "provenance_summary": [
+      {
+        "field": "architecture",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "context_length",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "family",
+        "kind": "inferred",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "Aptus exact model-type compatibility mapping of https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "hidden_size",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "intermediate_size",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "layers",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "license_name",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/api/models/mlx-community/Qwen2.5-0.5B-Instruct-4bit/revision/53a32aee5e9447773fd2b85988395066aef3700a"
+      },
+      {
+        "field": "model_type",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "quantization_bits",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      },
+      {
+        "field": "quantization_layout",
+        "kind": "provider-declared",
+        "observed_at": "2026-08-05T12:34:17.303838+00:00",
+        "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+      }
+    ],
+    "receipt_id": "receipt_136d0127382a01dbc868",
+    "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "schema_version": "aptus.model-inspection-receipt.v1"
+  },
+  "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+  "provenance": {
+    "architecture": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "architectures": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "attention_heads": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "context_length": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "family": {
+      "kind": "inferred",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "Aptus exact model-type compatibility mapping of https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "hidden_size": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "intermediate_size": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "key_value_heads": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "layers": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "license_name": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/api/models/mlx-community/Qwen2.5-0.5B-Instruct-4bit/revision/53a32aee5e9447773fd2b85988395066aef3700a"
+    },
+    "model_type": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "quantization_bits": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "quantization_layout": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    },
+    "vocab_size": {
+      "kind": "provider-declared",
+      "observed_at": "2026-08-05T12:34:17.303838+00:00",
+      "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "source": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/resolve/53a32aee5e9447773fd2b85988395066aef3700a/config.json"
+    }
+  },
+  "requested_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+  "resolved_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+  "status": "ok",
+  "warnings": [
+    "Provider model_type 'qwen2' was normalized to Aptus catalog family 'qwen'. Raw provider identifiers remain in the model_type and architecture evidence fields."
+  ]
+}

@@ -268,6 +268,61 @@ def require_full_admission(plan: dict) -> dict:
     }
 
 
+def record_execution_approval(plan: dict, root: Path, admission: dict) -> None:
+    report_path = ROOT / "validation-report.json"
+    pilot_path = ROOT / "pilot-output" / "metrics.json"
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(
+            "MLX validation report disappeared before execution approval."
+        ) from error
+    candidate = plan["recommended"]
+    bindings = report.get("bindings") if isinstance(report, dict) else None
+    expected_bindings = {
+        "bundle": bundle_fingerprint(ROOT),
+        "dataset": plan["dataset"]["source_sha256"],
+        "plan_id": plan["plan_id"],
+        "candidate_id": candidate["candidate_id"],
+        "model_revision": plan["model"]["revision"],
+        "pilot_metrics": admission.get("pilot_metrics_sha256"),
+    }
+    if (
+        not isinstance(report, dict)
+        or report.get("state")
+        not in {"pilot-pass", "execution-approved", "measured-run-pass"}
+        or report.get("artifact_fingerprint") != expected_bindings["bundle"]
+        or not isinstance(bindings, dict)
+        or any(bindings.get(name) != value for name, value in expected_bindings.items())
+        or sha256(pilot_path) != expected_bindings["pilot_metrics"]
+    ):
+        raise RuntimeError("MLX pilot attestation changed before execution approval.")
+    for name in (
+        "measured_run_completed_at",
+        "measured_run_pending_at",
+        "final_export",
+        "measured_run",
+        "pending_final_export",
+        "pending_measured_run",
+        "parent_promotion",
+    ):
+        report.pop(name, None)
+    report.update(
+        state="execution-approved",
+        validation_level="pilot",
+        execution_approved_at=datetime.now(timezone.utc).isoformat(),
+        active_run={
+            "output_dir": str(root.resolve()),
+            "run_id": root.name,
+            "plan_id": plan["plan_id"],
+            "candidate_id": candidate["candidate_id"],
+        },
+        prelaunch_capacity_check=admission,
+        latest_recheck=None,
+    )
+    write_json(report_path, report)
+
+
 def verify_adapter_manifest(root: Path, metrics: dict) -> list[dict]:
     adapter_path = (ROOT / str(metrics.get("adapter_path", ""))).resolve()
     if root.resolve() not in adapter_path.parents:
@@ -470,6 +525,7 @@ def promote_full_completion(
         "measured_run_pending_at",
         "pending_final_export",
         "pending_measured_run",
+        "parent_promotion",
     ):
         report.pop(name, None)
     write_json(report_path, report)
@@ -493,8 +549,17 @@ def launch(arguments: argparse.Namespace) -> int:
             "MLX-LM resume is unsupported. Runs start from the pinned base model."
         )
     action = selected[0]
+    defer_parent_promotion = bool(getattr(arguments, "defer_parent_promotion", False))
+    if defer_parent_promotion and action != "full":
+        raise RuntimeError(
+            "Deferred parent promotion is valid only for confirmed full MLX training."
+        )
     full_admission = require_full_admission(plan) if action == "full" else None
     output = claim_output(plan, action, arguments.output_dir)
+    if action == "full":
+        if full_admission is None:
+            raise RuntimeError("MLX execution approval lacks full admission.")
+        record_execution_approval(plan, output, full_admission)
     adapter_path = output / ("final" if action == "full" else "adapters")
     train_action = "--confirm-full-train" if action == "full" else f"--{action}"
     command = [
@@ -520,7 +585,8 @@ def launch(arguments: argparse.Namespace) -> int:
         verified = require_completed_run(plan, output, action="full")
         if verified != metrics or full_admission is None:
             raise RuntimeError("MLX full completion changed before promotion.")
-        promote_full_completion(plan, output, metrics, full_admission)
+        if not defer_parent_promotion:
+            promote_full_completion(plan, output, metrics, full_admission)
     print(f"Aptus MLX-LM {action} completed: {output}")
     return 0
 
@@ -530,6 +596,11 @@ def main() -> int:
     parser.add_argument("--bounded-smoke", action="store_true")
     parser.add_argument("--pilot", action="store_true")
     parser.add_argument("--confirm-full-train", action="store_true")
+    parser.add_argument(
+        "--defer-parent-promotion",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--resume-from", type=Path)
     parser.add_argument("--model")

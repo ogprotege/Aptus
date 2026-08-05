@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-04 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-05 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -26,8 +26,9 @@ Completed evidence:
   cover lifecycle, session, shutdown, navigation, and packaging contracts.
 - Phase 4's repository, installed-wheel, and desktop package gates closed the
   portable policy-snapshot source and contract review. They did not renew
-  target-runtime acceptance: the July MLX-LM record predates Phases 4 and 5, and
-  no current-head MLX or CUDA target-runtime pilot was collected.
+  target-runtime acceptance: the July MLX-LM record predates the current v5
+  plan, v3 bundle, and Phase 6 registry expansion, and no current-head MLX or
+  CUDA target-runtime pilot was collected.
 
 Remaining release work:
 
@@ -160,10 +161,36 @@ The MoE topology rail remains separate: it explains routed activity and total
 resident weight memory without making a policy claim or reducing residency by
 active parameters.
 
-Phase 6 remains pending: it adds a second reviewed policy only with its own real
-runtime evidence. Phase 5 did not add that policy or change the portable-policy
-contract. `aptus.api.v1`, `aptus.facts.v3`, and
-`aptus.runtime-contract.v1` remain unchanged.
+Phase 6 is implemented at the registry, planner, compiler, portable-contract,
+and test boundaries. The host registry and canonical snapshot carry a second
+data-driven policy,
+`model.qwen2-24l.mlx-qlora`, for the exact `qwen`, `qwen2`, and
+`Qwen2ForCausalLM` identity with 24 layers, dense topology, and a uniform
+four-bit group-64 layout with no overrides. It emits only
+`mlx-lm.qlora.single.dense-causal-lm.v1`, whose adapter profile targets
+`q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and
+`down_proj`.
+
+This policy is a reviewed configuration footprint, not an artifact allowlist.
+The
+[2026-08-05 Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` from acceptance source
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. It binds the exact pinned
+`mlx-community/Qwen2.5-0.5B-Instruct-4bit` artifact and revision, Apple M5 Pro
+host, Python/MLX runtime, four-row synthetic dataset, source commit, and policy
+snapshot. Each repetition completed dependency, model-data, measured preflight,
+an uninterrupted real-model pilot, confirmed full training, immutable export,
+fresh-process reload, parent reconciliation, and final `measured-run-pass`.
+
+That record closes the current-source Phase 6 MLX-LM runtime gate only for its
+exact scope. A different matching artifact remains conditional and must pass
+its own model-data, measured-preflight, and pilot gates. The result does not
+qualify CUDA, establish general Qwen2 compatibility or model quality, or promise
+production throughput. Phase 5's browser-authority history remains unchanged.
+`aptus.api.v1`, `aptus.facts.v3`, `aptus.model-policy-snapshot.v1`, and
+`aptus.runtime-contract.v1` remain unchanged, while the added registry row
+changes the canonical snapshot digest and requires older v5 plans to replan.
 
 ## Planner depth
 

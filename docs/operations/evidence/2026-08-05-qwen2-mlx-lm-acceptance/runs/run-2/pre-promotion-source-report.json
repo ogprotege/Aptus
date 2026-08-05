@@ -1,0 +1,478 @@
+{
+  "active_run": {
+    "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+    "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/runs/run_cd5512825a844a89839c9312adab7f94",
+    "plan_id": "plan_bd33e8ab37765b7efa93",
+    "run_id": "run_cd5512825a844a89839c9312adab7f94"
+  },
+  "artifact_fingerprint": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+  "bindings": {
+    "bundle": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+    "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+    "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "model_data_evidence": "3398526ae7f8f37b271277550d33ad25242d859f70326e92d986ebcda77fefce",
+    "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "pilot_metrics": "0bca074a5b70eae02beeef2e8110fd74e59a94d20b379edf43f140e4a21b2ba5",
+    "plan_id": "plan_bd33e8ab37765b7efa93",
+    "preflight_metrics": "69c49c1694f023835c5a4b1e13bbbc69f96cd3bb35296a1f874c7c82a9a56952"
+  },
+  "checked_files": [
+    "bundle-manifest.json",
+    "plan.json",
+    "requirements.txt"
+  ],
+  "execution_approved_at": "2026-08-05T12:40:14.424398+00:00",
+  "findings": [],
+  "latest_recheck": null,
+  "pilot_metrics": {
+    "action": "pilot",
+    "active_memory_bytes": 224694172,
+    "actual_world_size": 1,
+    "adapter_delta_l1": 3773.8726009726524,
+    "adapter_manifest": [
+      {
+        "path": "adapter_config.json",
+        "sha256": "38c684a2ee11fb8662cb031bd1b9ecc586ac4af5c93fad05c1049a4fa40ae2aa",
+        "size_bytes": 1584
+      },
+      {
+        "path": "adapters.safetensors",
+        "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+        "size_bytes": 17632042
+      }
+    ],
+    "adapter_path": "pilot-output/pilot_93808504c439463083f27af6b70274a9/adapters",
+    "artifact_manifest": {
+      "action": "pilot",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "execution_semantics": "uninterrupted",
+      "files": [
+        {
+          "path": ".aptus-run.json",
+          "sha256": "93276a8416f537abfd6bb680d8e09d35bc06a4ccc990c9ee94e4ceaef184b0cf",
+          "size_bytes": 489
+        },
+        {
+          "path": "adapters/adapter_config.json",
+          "sha256": "38c684a2ee11fb8662cb031bd1b9ecc586ac4af5c93fad05c1049a4fa40ae2aa",
+          "size_bytes": 1584
+        },
+        {
+          "path": "adapters/adapters.safetensors",
+          "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+          "size_bytes": 17632042
+        },
+        {
+          "path": "reload-evidence.json",
+          "sha256": "8f1f7271975cffce3ddc840ed3fe84437c34a8b9e9d02fa945405111303aeed7",
+          "size_bytes": 1321
+        },
+        {
+          "path": "training-metrics.json",
+          "sha256": "a1d376d2a436d9e21414bb7de03f4a5a6386f0083957907883ad23ac19210de7",
+          "size_bytes": 5543
+        }
+      ],
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "resume_supported": false,
+      "schema_version": "aptus.mlx-artifact-manifest.v1",
+      "total_bytes": 17640979
+    },
+    "artifact_manifest_sha256": "44e592ae963296c77b2b873e35648fb9805180a0fb217925918f3bd127b10eae",
+    "cache_memory_bytes": 144231568,
+    "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+    "changed_adapter_tensor_count": 336,
+    "compiler_id": "mlx-lm.qlora.v1",
+    "completed_at": "2026-08-05T12:39:53.686404+00:00",
+    "completed_optimizer_updates": 2,
+    "compute_backend": "mps",
+    "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "distribution": "single",
+    "execution_semantics": "uninterrupted",
+    "final_export": null,
+    "finite_train_loss": true,
+    "finite_validation_loss": true,
+    "global_step": 2,
+    "gradient_accumulation_steps": 1,
+    "max_epochs": 1,
+    "measured_peak_bytes": 521461772,
+    "memory_metric_backend": "mlx",
+    "method": "qlora",
+    "micro_iterations": 2,
+    "model_load_binding": {
+      "architecture_contract": {
+        "active_parameters": 494000000,
+        "architecture": "Qwen2ForCausalLM",
+        "context_length": 32768,
+        "contract_sha256": "fb0a36e331aa62812a867cc6c6e6b8794cd62c6a04bb8cd16b67573854a5a045",
+        "hidden_size": 896,
+        "intermediate_size": 4864,
+        "layers": 24,
+        "model_type": "qwen2",
+        "moe": null,
+        "parameters": 494000000,
+        "quantization_bits": 4,
+        "quantization_layout": {
+          "default_bits": 4,
+          "default_group_size": 64,
+          "module_overrides": []
+        },
+        "quantization_layout_sha256": "e91f303325bc394115b2a9bdd500cbe7c860ddf69e0652235749848f5e3d9605",
+        "schema_version": "aptus.model-architecture-contract.v1",
+        "sparse_layer_count": 0
+      },
+      "descriptor_sha256": "b5a897ce5e8f0e30c2e5b7327f77ef1fd68b16c192bdc0587acd40cca799d062",
+      "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "packed_checkpoint_binding": {
+        "container_overhead_bytes": 171488,
+        "container_overhead_limit_bytes": 1048576,
+        "descriptor_sha256": "13f8721f734ca754806eb8b841a9e67ab55281eb77885a8d9f4b0a0da36e263a",
+        "expected_packed_tensor_bytes": 277893432,
+        "expected_quantization_metadata_bytes": 30877048,
+        "expected_weight_bytes": 247016384,
+        "observed_logical_parameters": 494032768,
+        "observed_safetensors_bytes": 278064920,
+        "schema_version": "aptus.mlx-packed-checkpoint.v1"
+      },
+      "parameter_census": {
+        "active_routed_expert_parameters": 0,
+        "census_method": "mlx-lm.get_total_parameters.v1",
+        "declared_active_parameters": 494000000,
+        "declared_total_parameters": 494000000,
+        "descriptor_sha256": "ed0f38dea776cd536dd337260e93bc39c9dade4bb53a78c992171f381b30a906",
+        "inactive_expert_parameters": 0,
+        "observed_active_parameters": 494032768,
+        "observed_total_parameters": 494032768,
+        "routed_expert_parameters": 0,
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "sparse_layer_count": 0,
+        "total_parameter_delta": 32768,
+        "total_parameter_tolerance": 9880000
+      },
+      "resolved_local_snapshot": true,
+      "schema_version": "aptus.mlx-model-load-binding.v3",
+      "trust_remote_code": false
+    },
+    "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "optimizer_update_observed": true,
+    "optimizer_update_opportunities": 2,
+    "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/pilot-output/pilot_93808504c439463083f27af6b70274a9",
+    "plan_id": "plan_bd33e8ab37765b7efa93",
+    "reload_evidence": {
+      "adapter_manifest_sha256": "68bebf23f119bbe1ba4282ce1d39d3347388204cf11b053842aac356f268b278",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "compute_backend": "mps",
+      "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "execution_semantics": "uninterrupted",
+      "fresh_process_observed": true,
+      "generation_max_tokens": 4,
+      "generation_text_sha256": "ad57366865126e55649ecb23ae1d48887544976efea46a48eb5d85a6eeb4d306",
+      "generation_tokens": 4,
+      "measured_peak_bytes": 311639792,
+      "method": "qlora",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "resume_supported": false,
+      "schema_version": "aptus.mlx-reload-evidence.v1",
+      "training_runtime": "mlx-lm",
+      "unified_memory_admission": {
+        "adjusted_point_estimate_bytes": 2373179919,
+        "adjusted_upper_estimate_bytes": 4458117590,
+        "available_unified_memory_bytes": 35219226624,
+        "observed_safetensors_bytes": 278064920,
+        "planned_resident_bytes": 277875000,
+        "required_available_bytes": 13048052182,
+        "reserve_bytes": 8589934592,
+        "resident_adjustment_bytes": 189920,
+        "schema_version": "aptus.mlx-unified-memory-admission.v2"
+      },
+      "verified_at": "2026-08-05T12:39:54.810812+00:00"
+    },
+    "reload_evidence_sha256": "8f1f7271975cffce3ddc840ed3fe84437c34a8b9e9d02fa945405111303aeed7",
+    "resume_supported": false,
+    "run_completed": true,
+    "run_id": "pilot_93808504c439463083f27af6b70274a9",
+    "run_marker_sha256": "93276a8416f537abfd6bb680d8e09d35bc06a4ccc990c9ee94e4ceaef184b0cf",
+    "schema_version": "aptus.runtime-metrics.v1",
+    "scope": "uninterrupted-pilot",
+    "source_train_examples": 3,
+    "source_validation_examples": 1,
+    "train_examples": 3,
+    "train_loss_observations": [
+      3.8527462482452393,
+      3.1543750762939453
+    ],
+    "trainable_target_binding": {
+      "adapter_target_instance_count": 168,
+      "descriptor_sha256": "543f7bc313af564b696dfec1b9bfb7c4e2f50e5d6112259e5e6f94c581b6e98a",
+      "expected_adapter_target_instance_count": 168,
+      "planned_target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "resolved_layer_keys": [
+        "self_attn.q_proj",
+        "self_attn.k_proj",
+        "self_attn.v_proj",
+        "self_attn.o_proj",
+        "mlp.gate_proj",
+        "mlp.up_proj",
+        "mlp.down_proj"
+      ],
+      "schema_version": "aptus.mlx-trainable-target-binding.v1",
+      "target_instance_counts": {
+        "down_proj": 24,
+        "gate_proj": 24,
+        "k_proj": 24,
+        "o_proj": 24,
+        "q_proj": 24,
+        "up_proj": 24,
+        "v_proj": 24
+      },
+      "trainable_tensor_count": 336,
+      "transformer_layer_count": 24
+    },
+    "training_runtime": "mlx-lm",
+    "unified_memory_admission": {
+      "adjusted_point_estimate_bytes": 2373179919,
+      "adjusted_upper_estimate_bytes": 4458117590,
+      "available_unified_memory_bytes": 35105964032,
+      "observed_safetensors_bytes": 278064920,
+      "planned_resident_bytes": 277875000,
+      "required_available_bytes": 13048052182,
+      "reserve_bytes": 8589934592,
+      "resident_adjustment_bytes": 189920,
+      "schema_version": "aptus.mlx-unified-memory-admission.v2"
+    },
+    "validation_examples": 1,
+    "validation_loss_observations": [
+      4.8986897468566895,
+      3.818800449371338
+    ]
+  },
+  "preflight_metrics": {
+    "action": "bounded-smoke",
+    "active_memory_bytes": 215424888,
+    "actual_world_size": 1,
+    "adapter_delta_l1": 3773.8726009726524,
+    "adapter_manifest": [
+      {
+        "path": "adapter_config.json",
+        "sha256": "2887f428be4fe3e8a257b506db47d05141838d6bd6cdabfc7b9de0019b004dd6",
+        "size_bytes": 1592
+      },
+      {
+        "path": "adapters.safetensors",
+        "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+        "size_bytes": 17632042
+      }
+    ],
+    "adapter_path": "pilot-output/bounded-smoke_875ad524b2594ceea89cde42ee73c9e4/adapters",
+    "artifact_manifest": {
+      "action": "bounded-smoke",
+      "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+      "execution_semantics": "uninterrupted",
+      "files": [
+        {
+          "path": ".aptus-run.json",
+          "sha256": "a76250a4679e74af954c341a271d155e7354322df2541cc2ca400ec6cc46ea3e",
+          "size_bytes": 505
+        },
+        {
+          "path": "adapters/adapter_config.json",
+          "sha256": "2887f428be4fe3e8a257b506db47d05141838d6bd6cdabfc7b9de0019b004dd6",
+          "size_bytes": 1592
+        },
+        {
+          "path": "adapters/adapters.safetensors",
+          "sha256": "c6f24e6a72148f6fd4556520064f47969c9ed62f2ac253c7963a72ef4bb74fdb",
+          "size_bytes": 17632042
+        },
+        {
+          "path": "training-metrics.json",
+          "sha256": "1df96c9ecf736f826a4727b055d65dc9a7144fad1a1492366231a4c074935d72",
+          "size_bytes": 5581
+        }
+      ],
+      "plan_id": "plan_bd33e8ab37765b7efa93",
+      "resume_supported": false,
+      "schema_version": "aptus.mlx-artifact-manifest.v1",
+      "total_bytes": 17639720
+    },
+    "artifact_manifest_sha256": "adc1dc5fbcc65d7ce0a476da52d93956057a1e3cfe4663a9a70bb306f7f54b1d",
+    "cache_memory_bytes": 153920392,
+    "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+    "changed_adapter_tensor_count": 336,
+    "compiler_id": "mlx-lm.qlora.v1",
+    "completed_at": "2026-08-05T12:39:52.170912+00:00",
+    "completed_optimizer_updates": 2,
+    "compute_backend": "mps",
+    "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "distribution": "single",
+    "execution_semantics": "uninterrupted",
+    "final_export": null,
+    "finite_train_loss": true,
+    "finite_validation_loss": true,
+    "global_step": 2,
+    "gradient_accumulation_steps": 1,
+    "max_epochs": 1,
+    "measured_peak_bytes": 521542484,
+    "memory_metric_backend": "mlx",
+    "method": "qlora",
+    "micro_iterations": 2,
+    "model_load_binding": {
+      "architecture_contract": {
+        "active_parameters": 494000000,
+        "architecture": "Qwen2ForCausalLM",
+        "context_length": 32768,
+        "contract_sha256": "fb0a36e331aa62812a867cc6c6e6b8794cd62c6a04bb8cd16b67573854a5a045",
+        "hidden_size": 896,
+        "intermediate_size": 4864,
+        "layers": 24,
+        "model_type": "qwen2",
+        "moe": null,
+        "parameters": 494000000,
+        "quantization_bits": 4,
+        "quantization_layout": {
+          "default_bits": 4,
+          "default_group_size": 64,
+          "module_overrides": []
+        },
+        "quantization_layout_sha256": "e91f303325bc394115b2a9bdd500cbe7c860ddf69e0652235749848f5e3d9605",
+        "schema_version": "aptus.model-architecture-contract.v1",
+        "sparse_layer_count": 0
+      },
+      "descriptor_sha256": "b5a897ce5e8f0e30c2e5b7327f77ef1fd68b16c192bdc0587acd40cca799d062",
+      "model_id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+      "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+      "packed_checkpoint_binding": {
+        "container_overhead_bytes": 171488,
+        "container_overhead_limit_bytes": 1048576,
+        "descriptor_sha256": "13f8721f734ca754806eb8b841a9e67ab55281eb77885a8d9f4b0a0da36e263a",
+        "expected_packed_tensor_bytes": 277893432,
+        "expected_quantization_metadata_bytes": 30877048,
+        "expected_weight_bytes": 247016384,
+        "observed_logical_parameters": 494032768,
+        "observed_safetensors_bytes": 278064920,
+        "schema_version": "aptus.mlx-packed-checkpoint.v1"
+      },
+      "parameter_census": {
+        "active_routed_expert_parameters": 0,
+        "census_method": "mlx-lm.get_total_parameters.v1",
+        "declared_active_parameters": 494000000,
+        "declared_total_parameters": 494000000,
+        "descriptor_sha256": "ed0f38dea776cd536dd337260e93bc39c9dade4bb53a78c992171f381b30a906",
+        "inactive_expert_parameters": 0,
+        "observed_active_parameters": 494032768,
+        "observed_total_parameters": 494032768,
+        "routed_expert_parameters": 0,
+        "schema_version": "aptus.mlx-model-parameter-census.v1",
+        "sparse_layer_count": 0,
+        "total_parameter_delta": 32768,
+        "total_parameter_tolerance": 9880000
+      },
+      "resolved_local_snapshot": true,
+      "schema_version": "aptus.mlx-model-load-binding.v3",
+      "trust_remote_code": false
+    },
+    "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "optimizer_update_observed": true,
+    "optimizer_update_opportunities": 2,
+    "output_dir": "<ACCEPTANCE_ROOT>/run-2/bundle/pilot-output/bounded-smoke_875ad524b2594ceea89cde42ee73c9e4",
+    "plan_id": "plan_bd33e8ab37765b7efa93",
+    "reload_evidence": null,
+    "reload_evidence_sha256": null,
+    "resume_supported": false,
+    "run_completed": true,
+    "run_id": "bounded-smoke_875ad524b2594ceea89cde42ee73c9e4",
+    "run_marker_sha256": "a76250a4679e74af954c341a271d155e7354322df2541cc2ca400ec6cc46ea3e",
+    "schema_version": "aptus.runtime-metrics.v1",
+    "scope": "bounded-compiler-smoke-not-pilot-evidence",
+    "source_train_examples": 3,
+    "source_validation_examples": 1,
+    "train_examples": 3,
+    "train_loss_observations": [
+      3.8527462482452393,
+      3.1543750762939453
+    ],
+    "trainable_target_binding": {
+      "adapter_target_instance_count": 168,
+      "descriptor_sha256": "543f7bc313af564b696dfec1b9bfb7c4e2f50e5d6112259e5e6f94c581b6e98a",
+      "expected_adapter_target_instance_count": 168,
+      "planned_target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "resolved_layer_keys": [
+        "self_attn.q_proj",
+        "self_attn.k_proj",
+        "self_attn.v_proj",
+        "self_attn.o_proj",
+        "mlp.gate_proj",
+        "mlp.up_proj",
+        "mlp.down_proj"
+      ],
+      "schema_version": "aptus.mlx-trainable-target-binding.v1",
+      "target_instance_counts": {
+        "down_proj": 24,
+        "gate_proj": 24,
+        "k_proj": 24,
+        "o_proj": 24,
+        "q_proj": 24,
+        "up_proj": 24,
+        "v_proj": 24
+      },
+      "trainable_tensor_count": 336,
+      "transformer_layer_count": 24
+    },
+    "training_runtime": "mlx-lm",
+    "unified_memory_admission": {
+      "adjusted_point_estimate_bytes": 2373179919,
+      "adjusted_upper_estimate_bytes": 4458117590,
+      "available_unified_memory_bytes": 30759239680,
+      "observed_safetensors_bytes": 278064920,
+      "planned_resident_bytes": 277875000,
+      "required_available_bytes": 13048052182,
+      "reserve_bytes": 8589934592,
+      "resident_adjustment_bytes": 189920,
+      "schema_version": "aptus.mlx-unified-memory-admission.v2"
+    },
+    "validation_examples": 1,
+    "validation_loss_observations": [
+      4.8986897468566895,
+      3.818800449371338
+    ]
+  },
+  "prelaunch_capacity_check": {
+    "available_unified_memory_bytes": 35404169216,
+    "disk_free_bytes": 413084741632,
+    "measured_adapter_bytes": 17633626,
+    "measured_pilot_peak_bytes": 521461772,
+    "pilot_artifact_bytes": 17640979,
+    "pilot_metrics_sha256": "0bca074a5b70eae02beeef2e8110fd74e59a94d20b379edf43f140e4a21b2ba5",
+    "planned_final_export_bytes": 67108864,
+    "required_available_bytes": 9111396364,
+    "required_disk_bytes": 1548216358,
+    "reserve_bytes": 8589934592
+  },
+  "runtime_evidence": [
+    "Observed MLX-LM validation state: pilot-pass.",
+    "No model-fit or quality guarantee is implied."
+  ],
+  "smoke_command": null,
+  "state": "execution-approved",
+  "validated_at": "2026-08-05T12:39:54.903089+00:00",
+  "validation_level": "pilot",
+  "validator_version": "aptus-validator-mlx-v1"
+}

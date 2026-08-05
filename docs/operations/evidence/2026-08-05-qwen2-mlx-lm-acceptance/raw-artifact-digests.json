@@ -1,0 +1,53 @@
+{
+  "schema_version": "aptus.phase6-raw-artifact-digests.v1",
+  "note": "Raw temporary artifacts are retained outside Git. Committed projections remove machine paths, process identifiers, raw state, and generated text.",
+  "inputs": {
+    "input_plan_json": "c9340b4f003fa8bf1f98cdedc0c0afa90d11c780918353ebfadf389d08a6ec65",
+    "embedded_bundle_plan_json": "673495afd38aee3ebab44c3692fc052bdad5bb0f2c2e8f23fad11e12278dfd23",
+    "provider_inspection_json": "6ce07d7731be32068511449db555bdca986d2186fc2911fdcb323821b979f995",
+    "inspection_receipt_json": "9c8479fd0f293d3ee72c497f8fb1783035aba3165a53bd5e2fd5f50f26f0c03d",
+    "host_hardware_json": "fa0207b78ae4ac00a28a67451496e12b49ac104f61f529adf2d229741734e9d5",
+    "environment_doctor_json": "b767d8de0c2a9c382b457bd8804acd79be58e215a03cbeec23a72081d5eefea1",
+    "model_files_manifest": "05c9112050c0196bcbd4b4b07d55f15e29496f8ed8ae12d6af222f28cb12ef74",
+    "policy_snapshot_json": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "split_contract_json": "6b6e50825bffc8ace1141e817cb1442fe82da072ef34d98f0179b606b0ddb852",
+    "bundle_manifest_json": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+    "bundle_zip": "0a7a912b97f82f2c3f7b9069281c8d49ca6543a3894ab050840549c3b258b664"
+  },
+  "runs": [
+    {
+      "ordinal": 1,
+      "dependency_command_json": "b69c85a2ab42d83f93d44d2caa06bae4b74d5fca249820f4b9f0cb0d42a58913",
+      "model_data_command_json": "013daf0ec9e928fc2965626bf8bddbd7bb112e80ab008bd03e61c62d7d23b91f",
+      "preflight_command_json": "a26fb542923255ad20e0622a33796527f7f92c14f6b8216574cf6e498300cb25",
+      "pilot_command_json": "d1ffc5f26b9d848b11ac57f4827aa4c4d6208211b2155985d05bdbcae9781b08",
+      "train_command_json": "9c1736dbc3f460ba52588f62a364fbd4bb616b31ed1c531d161cf7a55cfbd00d",
+      "jobs_ledger_json": "fb70162c289a43e361481b77535c6a7f1e00812521a2d558acc21ca859148988",
+      "pre_promotion_source_report_json": "a739616aebb7df85b49d760fed3e665e8073249cd09cacc314ca9bcea30f404e",
+      "validation_report_json": "b6dcd6bb406f5ab64c0f064530f8ec875a7df23e7a1cce8c72c5930bdf34d3ba",
+      "reconciled_train_job_json": "9c1736dbc3f460ba52588f62a364fbd4bb616b31ed1c531d161cf7a55cfbd00d",
+      "full_metrics_json": "9f29a5de1d68d91bd99b07ecd77c5b268c287df7d24b89f4b723324986d98e3b",
+      "final_export_json": "5ead66cee9e4b1b0a654587bba194a7294f1043742591de627367813762ebc08",
+      "final_artifact_manifest_json": "a6c8bcf0ec100bc6fb42f4e9797ce3894f13cefbb6a0eeec4fabe0434e916e0c",
+      "reload_evidence_json": "1720aef546887015e81e0be6dc247b7fd08f6334a5685b98307c6020a0398a6c",
+      "parent_promotion_evidence_json": "6abecc89be8159edda9235aa957b5a99447501ed4454ece446d9f03557d7c0c1"
+    },
+    {
+      "ordinal": 2,
+      "dependency_command_json": "1e0ccaab00bc2de705cf5a345c7b5745d67a1d564a86d0e4f7045982f26a2e66",
+      "model_data_command_json": "80b6fc10f9f6a34af946b558c2c6c66789f1b4196308d6e1a9da61b7ad0c68d5",
+      "preflight_command_json": "e8e8d6bfdb1b5d03730d24f73e18970eb4c64c088e5b8b5d1dbb583db2c26d2a",
+      "pilot_command_json": "2302ce9648341371b5baf1219956540030ba3848ba2cadb1090256e52f463f8a",
+      "train_command_json": "2b97680fd723fff7ebf04787cd437940a4cc669436a422f16067185bc5239c7b",
+      "jobs_ledger_json": "2a5646645e384f0604b2d40cc28407d92037fdbaf8368975635cd61e0c674c48",
+      "pre_promotion_source_report_json": "24c697ee5db90a58df40d5e80871e841459e69a41353f59b04bad0ba480d95c6",
+      "validation_report_json": "85adc8dac89e8c19f327fd51db7ff6e763782fcdff9bd740d52f8563893a8baa",
+      "reconciled_train_job_json": "2b97680fd723fff7ebf04787cd437940a4cc669436a422f16067185bc5239c7b",
+      "full_metrics_json": "1e46e7b93b3b344965ea4d587f923d091bc6c6b81434962400634d9e2f5bf9ae",
+      "final_export_json": "ce332acf15f72c1216a7da683ae18092cc86f920a89e427c65626ae809a5f905",
+      "final_artifact_manifest_json": "cd2357dc47278a9e5644d0434fead5fbe586faa01fce6d6a6ed4828de9cf243f",
+      "reload_evidence_json": "53d5f3dbff9982e4e035d48c91b15716fc3e0a528d63ceda1bd0128989840c10",
+      "parent_promotion_evidence_json": "a3603a2e30bf3981c0f2971ccebe15d72cff548013c75fd6303460dc0ff8d42b"
+    }
+  ]
+}

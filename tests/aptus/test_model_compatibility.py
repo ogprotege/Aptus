@@ -36,7 +36,13 @@ from aptus.model_compatibility import (
     validate_execution_path_selection,
 )
 from aptus.policy_snapshot import evaluate_model_policy_snapshot
-from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
+from tests.aptus.helpers import (
+    QWEN2_5_ACCEPTANCE_MODEL_ID,
+    QWEN2_5_ACCEPTANCE_REVISION,
+    make_plan,
+    make_qwen2_runtime_footprint_plan,
+    make_qwen3_moe_plan,
+)
 
 
 class ModelCompatibilityPolicyTests(unittest.TestCase):
@@ -44,7 +50,187 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             cls.plan = make_qwen3_moe_plan(Path(temporary))
+            cls.qwen2_plan = make_qwen2_runtime_footprint_plan(Path(temporary))
         cls.subject = subject_from_model(cls.plan.model)
+        cls.qwen2_subject = subject_from_model(cls.qwen2_plan.model)
+
+    def test_qwen2_reviewed_runtime_footprint_emits_one_dense_mlx_path(
+        self,
+    ) -> None:
+        decision = evaluate_model_compatibility(self.qwen2_subject)
+        response = compatibility_response_v1(decision)
+
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
+        self.assertEqual(decision.policy_id, "model.qwen2-24l.mlx-qlora")
+        self.assertEqual(decision.policy_version, "1.0.0")
+        self.assertEqual(decision.family, "qwen")
+        self.assertEqual(
+            [item.value for item in decision.reason_codes],
+            ["reviewed-runtime-path", "pilot-not-yet-proven"],
+        )
+        self.assertEqual(len(decision.paths), 1)
+        path = decision.paths[0]
+        self.assertEqual(
+            path.path_id,
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(path.adapter_profile_id.value, "dense-causal-lm.v1")
+        self.assertEqual(path.method, Method.QLORA)
+        self.assertEqual(path.distribution, Distribution.SINGLE)
+        self.assertEqual(
+            path.target_modules,
+            (
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ),
+        )
+        self.assertEqual(
+            path.required_validation_levels,
+            ("model-data", "measured-preflight", "pilot"),
+        )
+        self.assertEqual(path.runtime_contract.training_runtime, TrainingRuntime.MLX_LM)
+        self.assertEqual(path.runtime_contract.compute_backend, Backend.MPS)
+        self.assertEqual(
+            response,
+            {
+                "status": "conditional",
+                "family": "qwen",
+                "supported_runtime": "mlx-lm",
+                "supported_methods": ["qlora"],
+                "compute_backend": "mps",
+                "distribution": "single",
+                "evidence_requirement": "pilot-required",
+                "adapter_profile_id": "dense-causal-lm.v1",
+                "reason": decision.reason,
+            },
+        )
+
+        subject_payload = to_primitive(self.qwen2_subject)
+        self.assertNotIn("model_id", subject_payload)
+        self.assertNotIn("revision", subject_payload)
+        artifact_evidence = [
+            record
+            for record in self.qwen2_plan.evidence_records
+            if record.revision == QWEN2_5_ACCEPTANCE_REVISION
+        ]
+        self.assertEqual(len(artifact_evidence), 1)
+        self.assertIn(QWEN2_5_ACCEPTANCE_MODEL_ID, artifact_evidence[0].scope)
+
+    def test_qwen2_host_and_portable_policy_have_exact_mutation_parity(
+        self,
+    ) -> None:
+        assert self.subject.moe is not None
+        cases = {
+            "exact reviewed runtime footprint": (
+                self.qwen2_subject,
+                ModelPolicyDecisionKind.PATH_MATCHED,
+                "model.qwen2-24l.mlx-qlora",
+                ("reviewed-runtime-path", "pilot-not-yet-proven"),
+            ),
+            "family": (
+                replace(self.qwen2_subject, family="llama"),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("identity-mismatch",),
+            ),
+            "model type": (
+                replace(self.qwen2_subject, model_type="qwen3"),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("identity-mismatch",),
+            ),
+            "architecture": (
+                replace(
+                    self.qwen2_subject,
+                    architecture="Qwen3ForCausalLM",
+                ),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("identity-mismatch",),
+            ),
+            "layers": (
+                replace(self.qwen2_subject, layers=25),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("layer-count-mismatch",),
+            ),
+            "quantization layout": (
+                replace(
+                    self.qwen2_subject,
+                    quantization_layout=QuantizationLayout(4, 128),
+                ),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("quantization-layout-mismatch",),
+            ),
+            "quantization bits": (
+                replace(self.qwen2_subject, quantization_bits=8),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("four-bit-required",),
+            ),
+            "dense topology": (
+                replace(self.qwen2_subject, moe=self.subject.moe),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("dense-topology-required",),
+            ),
+            "invalid facts": (
+                replace(
+                    self.qwen2_subject,
+                    fact_errors=("quantization: conflicting provider facts",),
+                ),
+                ModelPolicyDecisionKind.BLOCKED,
+                "model.qwen2-24l.mlx-qlora",
+                ("invalid-compatibility-facts",),
+            ),
+            "unclaimed dense qwen variant": (
+                replace(
+                    self.qwen2_subject,
+                    model_type="qwen3",
+                    architecture="Qwen3ForCausalLM",
+                ),
+                ModelPolicyDecisionKind.FAMILY_RECOGNIZED,
+                None,
+                ("family-recognized",),
+            ),
+            "unclaimed sparse qwen variant": (
+                replace(
+                    self.qwen2_subject,
+                    architecture="Qwen2MoeForCausalLM",
+                    layers=32,
+                    quantization_bits=None,
+                    quantization_layout=None,
+                ),
+                ModelPolicyDecisionKind.BLOCKED,
+                None,
+                ("unreviewed-sparse-model",),
+            ),
+        }
+        snapshot = current_model_policy_snapshot()
+        for name, (
+            subject,
+            expected_kind,
+            expected_policy_id,
+            expected_reason_codes,
+        ) in cases.items():
+            with self.subTest(name=name):
+                portable = evaluate_model_policy_snapshot(
+                    snapshot,
+                    to_primitive(subject),
+                )
+                host = to_primitive(evaluate_model_compatibility(subject))
+                self.assertEqual(portable, host)
+                self.assertEqual(host["kind"], expected_kind.value)
+                self.assertEqual(host["policy_id"], expected_policy_id)
+                self.assertEqual(host["reason_codes"], list(expected_reason_codes))
+                if expected_kind == ModelPolicyDecisionKind.BLOCKED:
+                    self.assertEqual(host["paths"], [])
 
     def test_exact_qwen_policy_emits_one_registry_bound_path(self) -> None:
         decision = evaluate_model_compatibility(self.subject)
@@ -487,28 +673,30 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
     def test_policy_registry_fails_import_when_catalog_targets_drift(self) -> None:
         environment = dict(os.environ)
         environment["PYTHONPATH"] = "src:."
-        completed = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                (
-                    "import aptus.catalog as catalog; "
-                    "catalog.TARGET_MODULES['qwen3_moe'] = ('q_proj',); "
-                    "import aptus.model_compatibility"
-                ),
-            ],
-            cwd=Path(__file__).resolve().parents[2],
-            env=environment,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        for family in ("qwen3_moe", "qwen"):
+            with self.subTest(family=family):
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-c",
+                        (
+                            "import aptus.catalog as catalog; "
+                            f"catalog.TARGET_MODULES[{family!r}] = ('q_proj',); "
+                            "import aptus.model_compatibility"
+                        ),
+                    ],
+                    cwd=Path(__file__).resolve().parents[2],
+                    env=environment,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
 
-        self.assertNotEqual(completed.returncode, 0)
-        self.assertIn(
-            "adapter targets differ from the family catalog",
-            completed.stderr,
-        )
+                self.assertNotEqual(completed.returncode, 0)
+                self.assertIn(
+                    "adapter targets differ from the family catalog",
+                    completed.stderr,
+                )
 
     def test_qwen_v5_identities_are_deterministic_and_policy_bound(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

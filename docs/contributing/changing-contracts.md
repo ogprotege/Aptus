@@ -1,6 +1,6 @@
 # Changing Contracts
 
-> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Core contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Architecture | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
 
 Aptus contracts bind facts, decisions, generated files, runtime evidence, and
 completion. A field change can alter identity even when its JSON shape looks
@@ -180,6 +180,25 @@ updated policy and method references, and a regenerated plan identity. The
 portable validator must continue to require exact canonical record content and
 the exact union cited by candidates.
 
+Adding a policy is a registry-data change even when the snapshot schema remains
+compatible. Supply portable claims, exact constraints, reason keys and codes,
+paths, adapter profile, required provenance fields, and canonical evidence; do
+not add a host callback or duplicate family branch. Claims may intentionally
+use only the discriminating identity fields, while the exact identity
+constraint still binds family, model type, and architecture. Prove that nearby
+dense and sparse identities are not captured. Required receipt provenance must
+come from the matched policy in the loaded snapshot rather than from another
+policy's hard-coded field set.
+
+Every added policy changes canonical snapshot bytes and their SHA-256. Replan
+even when an older plan's subject would receive the same semantic decision, then
+cross-bind the new digest through the v5 plan, v3 manifest, manifested snapshot,
+installed-host currency checks, and package-free evaluator. Keep implementation
+evidence distinct from runtime evidence. A historical measured record may
+support a policy decision only within its exact artifact, revision, host,
+runtime, dataset, and contract scope; it cannot establish a current run or a
+broader artifact claim.
+
 Phase 4 introduced a deterministic `aptus.model-policy-snapshot.v1`, its generic
 portable evaluator, `aptus.training-plan.v5`, and `aptus.bundle.v3`. Generate
 the snapshot twice and require byte-for-byte identity. Its SHA-256 must agree
@@ -198,9 +217,19 @@ requires a non-null binding; unbound or rejected candidates receive no
 synthesized policy ladder or action. The typed HTTP 422 `no_feasible_plan`
 response preserves the same policy chain as successful planning, correlates it
 with the request and receipt, requires complete rejected candidate tuples, and
-remains non-compilable. Phase 6 remains pending and owns the second reviewed
-policy with its own runtime evidence. `aptus.api.v1`, `aptus.facts.v3`, and
-`aptus.runtime-contract.v1` remain unchanged.
+remains non-compilable. Phase 6 has since implemented the second registry-driven
+`model.qwen2-24l.mlx-qlora` configuration-footprint policy and
+`mlx-lm.qlora.single.dense-causal-lm.v1` path. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+closes its current-source v5/v3 runtime gate with two clean
+`measured-run-pass` repetitions for the exact pinned artifact, source commit,
+Apple M5 Pro host, Python/MLX runtime, dataset, and policy snapshot. The policy
+remains a configuration footprint, not an artifact allowlist; other matching
+artifacts still require their own gates, and the result does not qualify CUDA
+or establish model quality or production throughput. `aptus.api.v1`,
+`aptus.facts.v3`,
+`aptus.model-policy-snapshot.v1`, and `aptus.runtime-contract.v1` remain
+unchanged; the acceptance closeout does not change the already-bound snapshot.
 
 ## API and workbench changes
 

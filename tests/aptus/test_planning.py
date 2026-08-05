@@ -25,7 +25,11 @@ from aptus.model_compatibility import (
 from aptus.planning import NoFeasiblePlanError, estimate_candidate, plan_training
 from aptus.profiling import build_hardware_spec
 
-from tests.aptus.helpers import make_plan, make_qwen3_moe_plan
+from tests.aptus.helpers import (
+    make_plan,
+    make_qwen2_runtime_footprint_plan,
+    make_qwen3_moe_plan,
+)
 
 
 def _provider_receipt(model):
@@ -856,6 +860,62 @@ class PlannerTests(unittest.TestCase):
             any(
                 "total parameters" in assumption
                 for assumption in candidate.memory.assumptions
+            )
+        )
+
+    def test_qwen2_runtime_footprint_binds_only_dense_single_mlx_qlora(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_qwen2_runtime_footprint_plan(Path(temporary))
+
+        self.assertEqual(
+            plan.model_policy_decision.policy_id,
+            "model.qwen2-24l.mlx-qlora",
+        )
+        bound = [
+            candidate
+            for candidate in plan.candidates
+            if candidate.policy_binding is not None
+        ]
+        self.assertEqual(len(bound), 1)
+        candidate = bound[0]
+        self.assertEqual(candidate.candidate_id, plan.recommended.candidate_id)
+        self.assertTrue(candidate.feasible)
+        self.assertEqual(candidate.status, CandidateStatus.CONDITIONAL)
+        self.assertEqual(candidate.method, Method.QLORA)
+        self.assertEqual(candidate.distribution, Distribution.SINGLE)
+        self.assertEqual(
+            candidate.runtime_contract.training_runtime,
+            TrainingRuntime.MLX_LM,
+        )
+        self.assertEqual(candidate.runtime_contract.compute_backend, Backend.MPS)
+        self.assertEqual(
+            candidate.target_modules,
+            (
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ),
+        )
+        assert candidate.policy_binding is not None
+        self.assertEqual(
+            candidate.policy_binding.path_id,
+            "mlx-lm.qlora.single.dense-causal-lm.v1",
+        )
+        self.assertEqual(
+            sum(item.feasible for item in plan.candidates),
+            1,
+        )
+        self.assertTrue(
+            all(
+                item.status == CandidateStatus.UNSUPPORTED
+                for item in plan.candidates
+                if item.candidate_id != candidate.candidate_id
             )
         )
 

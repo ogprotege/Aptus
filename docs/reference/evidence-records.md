@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-08-03 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when domain, evidence, validation, or execution contracts change |
 
 Aptus separates seven concepts that answer different questions:
@@ -71,8 +71,21 @@ observation timestamp, digest, and detail are retained when present.
 feasibility. Its `subject_facts_sha256` covers only compatibility inputs. Stable
 reason codes and evidence IDs identify the result. A matched or blocked
 registered policy can also name a stable policy ID and semantic version. The
-current exact row uses policy `model.qwen3-moe.mlx-qlora` version `1.0.0` and
-path `mlx-lm.qlora.single.attention-qkvo.v1`.
+registry currently contains two reviewed version `1.0.0` paths:
+
+- `model.qwen3-moe.mlx-qlora` binds the exact reviewed sparse identity and
+  topology row to `mlx-lm.qlora.single.attention-qkvo.v1`.
+- `model.qwen2-24l.mlx-qlora` binds a reviewed dense Qwen2 configuration
+  footprint to `mlx-lm.qlora.single.dense-causal-lm.v1`. The footprint requires
+  the `qwen`, `qwen2`, and `Qwen2ForCausalLM` identity, exactly 24 layers, no
+  MoE topology, and a uniform four-bit group-size-64 layout with no module
+  overrides. Its adapter targets are `q_proj`, `k_proj`, `v_proj`, `o_proj`,
+  `gate_proj`, `up_proj`, and `down_proj`.
+
+The Qwen2 policy is a configuration-footprint decision, not an artifact
+allowlist or a transferable runtime attestation. A different model artifact can
+match the configuration while still requiring its own model-data, measured-
+preflight, and pilot evidence.
 
 `aptus.model-inspection-receipt.v1` separately records
 `observed_facts_sha256`. That digest covers every provider-declared or inferred
@@ -134,6 +147,7 @@ The current confidence labels are:
 | `uncalibrated` | Aptus records an analytic methodology that still requires empirical calibration |
 | `implementation-reviewed` | An Aptus compatibility path has passed code and contract review but still requires runtime gates |
 | `measured-blocked` | A recorded target-host attempt failed at a named measured admission gate |
+| `measured-historical` | A dated runtime result passed for its exact historical artifact and contracts but does not establish current-contract acceptance |
 
 Confidence does not cross scopes. For example, `paper-reported` on a LoRA
 definition does not provide runtime evidence for an Aptus LoRA bundle.
@@ -158,9 +172,21 @@ The registry currently contains these records.
 | `estimate.memory.v2` | Aptus methodology | `uncalibrated` | Aptus emits a point estimate and heuristic upper envelope; an exact pilot remains required |
 | `policy.qwen3-moe.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The exact reviewed Qwen3 MoE tuple maps to one MLX-LM QLoRA path; runtime validation remains mandatory |
 | `admission.qwen3-30b-a3b.memory-blocked.2026-07-28` | Measured admission record | `measured-blocked` | One exact 30B attempt failed live unified-memory admission before model loading; it is refusal evidence, not a passing pilot |
+| `policy.qwen2-24l.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The reviewed 24-layer dense Qwen2 four-bit group-size-64 configuration maps to one single-device MLX-LM QLoRA path with seven dense targets; runtime gates remain mandatory |
+| `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` | Measured runtime record | `measured-historical` | Two clean runs passed for the exact pinned Qwen2.5 0.5B artifact under training-plan v2 and bundle v2; this is not current v5/v3 acceptance and does not transfer to other matching artifacts |
 
 Canonical source URLs and revisions are serialized into each generated plan.
 Consumers should read the record rather than reconstructing a URL from its ID.
+The two Qwen2 records intentionally answer different questions: the policy
+record supports the reviewed configuration-to-path mapping, while the runtime
+record supports only the exact July 27 artifact, host, dataset, runtime, v2
+plan, and v2 bundle named by its scope. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+is a separate operational packet recording two clean current-source
+`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions.
+It closes the Phase 6 MLX-LM runtime gate only for its exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. It does not broaden or relabel either canonical evidence record.
 
 ## Candidate evidence mapping
 
@@ -172,6 +198,18 @@ Selectable candidates reference evidence IDs directly.
 | `lora` | `method.lora.paper`, `estimate.memory.v2` |
 | `int8-lora` | `method.lora.paper`, `method.bitsandbytes.int8`, `estimate.memory.v2` |
 | `qlora` | `method.qlora.paper`, `estimate.memory.v2` |
+
+A candidate that matches a registered policy path also cites that path's
+policy-specific evidence. The Qwen2 path therefore adds
+`policy.qwen2-24l.mlx-qlora.v1` and
+`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`. Carrying the historical runtime ID in
+a current plan preserves its scope; it does not relabel the current plan or
+bundle as runtime-tested. The separate August 5 acceptance packet applies only
+when its exact plan, bundle, artifact, source, host, runtime, dataset, and policy
+snapshot bindings match. The policy remains a configuration footprint rather
+than an artifact allowlist; other matching artifacts still require their own
+model-data, measured-preflight, and pilot gates. The packet does not qualify
+CUDA or establish model quality or production throughput.
 
 Research-only and experimental method descriptors reference their own papers,
 but they do not enter the v0.2 candidate matrix. Their citations make their

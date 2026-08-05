@@ -1,0 +1,15 @@
+{
+  "micro_batch_size": 1,
+  "padding_policy": "repeat-within-disjoint-split-to-complete-final-batch",
+  "schema_version": "aptus.mlx-split.v1",
+  "splits": {
+    "train": {
+      "compiled_row_count": 3,
+      "source_row_count": 3
+    },
+    "valid": {
+      "compiled_row_count": 1,
+      "source_row_count": 1
+    }
+  }
+}

@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler and validator authors, operators, and security reviewers |
 | Authority | Normative reference for `aptus.model-policy-snapshot.v1` |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when model-policy registry, snapshot, or validation code changes |
 
 An Aptus model-policy snapshot is the portable, data-only form of the host
@@ -19,6 +19,12 @@ The snapshot is an integrity and reproducibility contract. It is not durable
 authorization that the policy remains current. A transferred package-free
 bundle can validate only its embedded frozen snapshot. Installed Aptus performs
 the separate current-host-registry comparison described below.
+
+The current registry contains two ordered policy rows, but this additive
+registry change does not alter the contract shape. The snapshot remains
+`aptus.model-policy-snapshot.v1`, decisions remain
+`aptus.model-compatibility.v2`, plans remain `aptus.training-plan.v5`, and
+bundles remain `aptus.bundle.v3`.
 
 ## Canonical bytes and digest
 
@@ -70,8 +76,12 @@ Every policy requires:
 
 `claims` contains only `any_identity`. That value is a non-empty mapping whose
 keys are drawn from `family`, `model_type`, and `architecture`; each value is a
-non-empty unique unpadded string list. The one exact identity must provide all
-three fields, and each exact value must appear in the corresponding claim list.
+non-empty unique unpadded string list. Claims may intentionally name only a
+subset of the three exact-identity fields. For every field that is claimed, the
+corresponding exact-identity value must appear in its claim list. The
+`exact_identity` constraint itself still supplies all three fields. This lets a
+policy claim a distinguishing provider model type or architecture without
+claiming every model in a broader normalized family.
 
 ## Constraint objects
 
@@ -85,7 +95,7 @@ the selected kind:
 | `quantization_layout` | `default_bits`, `default_group_size`, `override_module_template`, `override_bits`, `override_group_size` | Every numeric operand is a positive non-boolean integer; the template contains exactly one plain `{layer}` placeholder and no other placeholder |
 | `sparse_topology` | None | Requires a structurally usable sparse cadence and at least one sparse decoder layer |
 | `no_shared_expert` | None | Requires an MoE mapping whose `shared_expert_intermediate_size` lookup is absent or JSON null |
-| `field_equals` | `field`, `value` | `field` is non-empty unpadded text; its subject lookup must compare equal to `value` using the evaluator's ordinary equality operation |
+| `field_equals` | `field`, `value` | `field` is one of the fixed compatibility-subject fields; its subject lookup must compare equal to `value` using the evaluator's ordinary equality operation |
 
 Unknown kinds, missing or additional operand fields, malformed templates, and
 undefined reasons invalidate the snapshot before evaluation.
@@ -110,6 +120,63 @@ or differently valued override objects do not match.
 semantics rather than a type-strict JSON comparison. For example, JSON `true`
 and the number `1` compare equal. Policy authors must account for that behavior
 when choosing a field and value.
+
+## Current registry policies
+
+The snapshot currently carries these two registry-driven policies. Both emit a
+single-device MLX-LM QLoRA path and remain conditional on `model-data`,
+`measured-preflight`, and `pilot` validation.
+
+### Qwen3 MoE
+
+- Policy: `model.qwen3-moe.mlx-qlora`, version `1.0.0`.
+- Exact identity: family and model type `qwen3_moe`, architecture
+  `Qwen3MoeForCausalLM`.
+- Layout and topology: four-bit group-64 defaults, one eight-bit group-64
+  `model.layers.N.mlp.gate` override per layer, a usable sparse topology, and no
+  shared expert.
+- Path: `mlx-lm.qlora.single.attention-qkvo.v1` with adapter profile
+  `attention-qkvo.v1` and targets `q_proj`, `k_proj`, `v_proj`, and `o_proj`.
+- Provider-inspection requirement: `architecture`, `layers`, `model_type`,
+  `moe`, `quantization_bits`, and `quantization_layout` must all be
+  provider-declared at the resolved revision.
+
+### Dense Qwen2, 24 layers
+
+- Policy: `model.qwen2-24l.mlx-qlora`, version `1.0.0`.
+- Claims: provider model type `qwen2` or architecture `Qwen2ForCausalLM`.
+  Family `qwen` remains an exact-identity constraint but is deliberately not a
+  broad claim.
+- Exact configuration footprint: family `qwen`, model type `qwen2`,
+  architecture `Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit
+  metadata, no MoE topology, and a uniform group-64 layout:
+
+  ```json
+  {
+    "default_bits": 4,
+    "default_group_size": 64,
+    "module_overrides": []
+  }
+  ```
+
+- Path: `mlx-lm.qlora.single.dense-causal-lm.v1` with adapter profile
+  `dense-causal-lm.v1` and targets `q_proj`, `k_proj`, `v_proj`, `o_proj`,
+  `gate_proj`, `up_proj`, and `down_proj`.
+- Provider-inspection requirement: `architecture`, `layers`, `model_type`,
+  `quantization_bits`, and `quantization_layout` must all be provider-declared
+  at the resolved revision. Dense topology is enforced by the `moe: null`
+  constraint rather than by requiring a provider-declared `moe` field.
+
+The Qwen2 row describes a reviewed configuration footprint, not an artifact
+allowlist. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under the current
+`aptus.training-plan.v5` and `aptus.bundle.v3` contracts for the exact pinned
+artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and
+policy snapshot. It closes Phase 6's current-source runtime gate only for that
+scope. Another matching artifact still has to pass its own model-data,
+measured-preflight, and pilot gates. The result does not qualify CUDA or
+establish model quality or production throughput.
 
 ## Portable path objects
 
@@ -161,10 +228,12 @@ result. Other constraints and paths are not evaluated as if malformed facts
 were sound.
 
 With no fact errors, policies are evaluated in snapshot order. The first policy
-whose identity claims match is checked in constraint order. The first failed
-constraint produces `blocked`; a complete match produces `path-matched` with
-the policy's full portable path list. With no claimed policy, sparse evidence
-produces a fail-closed `blocked` result, a listed dense family produces
+whose eligible identity claims match is checked in constraint order. A dense
+policy claim is not eligible to capture a subject carrying sparse identity
+markers unless that policy's own exact identity is also sparse. The first
+failed constraint produces `blocked`; a complete match produces `path-matched`
+with the policy's full portable path list. With no claimed policy, sparse
+evidence produces a fail-closed `blocked` result, a listed dense family produces
 `family-recognized`, and every other subject produces `unknown`.
 
 The four decision outcomes are therefore:

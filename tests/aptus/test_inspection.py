@@ -11,6 +11,8 @@ from aptus.model_compatibility import (
     evaluate_model_compatibility,
 )
 from tests.aptus.helpers import (
+    QWEN2_5_ACCEPTANCE_MODEL_ID,
+    QWEN2_5_ACCEPTANCE_REVISION,
     QWEN3_MOE_MODEL_ID,
     QWEN3_MOE_REVISION,
     qwen3_moe_quantization_config,
@@ -346,6 +348,72 @@ class ModelInspectionTests(unittest.TestCase):
         self.assertEqual(
             compatibility_response_v1(evaluate_model_compatibility(subject)),
             result["compatibility"],
+        )
+
+    def test_reviewed_qwen2_runtime_footprint_is_conditionally_supported(
+        self,
+    ) -> None:
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "qwen2",
+                        "architectures": ["Qwen2ForCausalLM"],
+                        "hidden_size": 896,
+                        "intermediate_size": 4864,
+                        "num_hidden_layers": 24,
+                        "max_position_embeddings": 32768,
+                        "num_attention_heads": 14,
+                        "num_key_value_heads": 2,
+                        "vocab_size": 151936,
+                        "quantization": {"bits": 4, "group_size": 64},
+                    },
+                    {"X-Repo-Commit": QWEN2_5_ACCEPTANCE_REVISION},
+                ),
+                FakeResponse(
+                    {"cardData": {"license": "apache-2.0"}},
+                    {"X-Repo-Commit": QWEN2_5_ACCEPTANCE_REVISION},
+                ),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            QWEN2_5_ACCEPTANCE_MODEL_ID,
+            "main",
+            transport=transport,
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["facts"]["family"], "qwen")
+        self.assertEqual(
+            result["facts"]["quantization_layout"],
+            {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+        )
+        self.assertEqual(
+            result["compatibility"]["adapter_profile_id"],
+            "dense-causal-lm.v1",
+        )
+        self.assertEqual(result["compatibility"]["supported_methods"], ["qlora"])
+        receipt = result["inspection_receipt"]
+        self.assertEqual(
+            receipt["decision"]["policy_id"],
+            "model.qwen2-24l.mlx-qlora",
+        )
+        self.assertTrue(receipt["provenance_requirement_met"])
+        receipt_fields = {item["field"] for item in receipt["provenance_summary"]}
+        self.assertNotIn("moe", receipt_fields)
+        self.assertTrue(
+            {
+                "architecture",
+                "layers",
+                "model_type",
+                "quantization_bits",
+                "quantization_layout",
+            }.issubset(receipt_fields)
         )
 
     def test_dense_family_with_sparse_topology_does_not_bypass_policy(self) -> None:

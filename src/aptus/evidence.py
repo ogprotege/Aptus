@@ -127,6 +127,24 @@ EVIDENCE_REGISTRY: dict[str, EvidenceRecord] = {
         "measured-blocked",
         "e9675aa3ca5f900ccef55267914466d55ab325fa",
     ),
+    "policy.qwen2-24l.mlx-qlora.v1": EvidenceRecord(
+        "policy.qwen2-24l.mlx-qlora.v1",
+        "Aptus defines one reviewed 24-layer dense Qwen2 MLX-LM QLoRA runtime configuration footprint as eligible for gated validation.",
+        "aptus://operations/evidence/2026-07-27-mlx-lm-acceptance",
+        "aptus-compatibility-policy",
+        "Reviewed qwen, qwen2, and Qwen2ForCausalLM identity; 24-layer dense topology; uniform four-bit group-size-64 layout; and dense adapter targets. Runtime evidence remains artifact-scoped.",
+        "implementation-reviewed",
+        "1.0.0",
+    ),
+    "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": EvidenceRecord(
+        "runtime.qwen2-0.5b.mlx-qlora.2026-07-27",
+        "Two clean historical workflows for the exact pinned Qwen2.5 0.5B artifact reached measured-run-pass under Aptus training-plan v2 and bundle v2.",
+        "aptus://operations/evidence/2026-07-27-mlx-lm-acceptance",
+        "measured-runtime-record",
+        "Exact mlx-community/Qwen2.5-0.5B-Instruct-4bit revision 53a32aee5e9447773fd2b85988395066aef3700a on the recorded Apple M5 Pro host, runtime, and dataset. This historical result does not validate current contracts or other matching artifacts.",
+        "measured-historical",
+        "53a32aee5e9447773fd2b85988395066aef3700a",
+    ),
 }
 
 

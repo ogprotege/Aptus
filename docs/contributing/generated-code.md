@@ -1,6 +1,6 @@
 # Generated Code and Bundle Changes
 
-> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Compiler and runtime contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Artifact compiler | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
 
 A compiled bundle is a portable product artifact. Its Python programs,
 configuration, data copies, reports, and manifest must agree with the selected
@@ -93,13 +93,24 @@ bundle. They must not import the installed Aptus policy registry or claim that
 the frozen snapshot is still current. Installed Aptus owns the separate current
 registry check used by host admission and managed execution.
 
+The host currently serializes two ordered registry rows into that snapshot:
+Qwen3 MoE attention-only QLoRA and dense 24-layer Qwen2 QLoRA. Snapshot
+generation and portable evaluation must remain registry-driven; generated code
+must not select a row through a policy-ID singleton branch. A policy's
+`any_identity` claims may cover only the exact-identity fields that distinguish
+that row, while its `exact_identity` constraint still binds family, model type,
+and architecture. Provider-inspection validation must read
+`required_provenance_fields` from the matched policy rather than apply one
+model's field set globally.
+
 ## Preserve identity and mutation rules
 
 Every semantic value comes from `plan.json` or a versioned generated
 configuration bound to it. Generated programs revalidate plan and candidate
 identity before use.
 
-The policy snapshot has one exact path and one canonical digest chain:
+The policy snapshot has two current registered policy rows, one current path per
+row, and one canonical digest chain for the complete ordered snapshot:
 
 - `policy/model-policy-snapshot.v1.json` contains the canonical snapshot bytes;
 - `plan.json` binds them as `model_policy_snapshot_sha256`;
@@ -110,6 +121,25 @@ Package-free validation proves this frozen-snapshot integrity and reproduces the
 saved decision. It cannot prove current host policy. Installed-host validation
 adds the fourth, current-registry digest comparison; a coherent v5 plan that is
 no longer current requires replanning and a newly compiled bundle.
+
+The current path identities are
+`mlx-lm.qlora.single.attention-qkvo.v1` with profile `attention-qkvo.v1` for
+Qwen3 MoE, and `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
+`dense-causal-lm.v1` for dense Qwen2. The dense row binds a uniform four-bit,
+group-size-64 layout with no module overrides and targets q/k/v/o plus
+gate/up/down projections. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean current v5/v3 `measured-run-pass` repetitions for the exact
+pinned artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset,
+and policy snapshot. Generated-code changes that affect any of those bindings
+require renewed evidence. The policy is still a configuration footprint rather
+than an artifact allowlist; another matching artifact remains gated, and the
+record does not qualify CUDA or establish model quality or production
+throughput.
+
+This additive registry change does not rename the surrounding contracts. Keep
+`aptus.model-policy-snapshot.v1`, `aptus.training-plan.v5`, and
+`aptus.bundle.v3` unless the serialized shapes themselves change.
 
 When adding a compiler-managed file:
 

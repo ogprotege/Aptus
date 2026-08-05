@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -25,7 +25,8 @@ The current portable contract uses `aptus.training-plan.v5`,
 | Change the code | [Contributor index](contributing/index.md) | [Code map](architecture/code-map.md) |
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
-| Inspect the real MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the current MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the historical MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Apple Silicon pilot matrix](operations/apple-silicon-pilot.md) |
 | Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect the Qwen3 MoE admission attempt | [2026-07-28 Qwen3 MoE evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md) | [Capability matrix](reference/capability-matrix.md) |
 | Review source research | [Research index](research/index.md) | [Retained Reference packet](../Reference/README.md) |
@@ -119,6 +120,7 @@ Authority labels have a separate meaning:
 - [State, storage, and retention](operations/state-storage-retention.md)
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
+- [2026-08-05 Phase 6 Qwen2 MLX-LM target-host acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
 - [2026-07-28 Qwen3 MoE admission and performance evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -178,12 +180,19 @@ Repository tests are necessary but do not replace target-runtime evidence.
 Apple Silicon MLX-LM LoRA and QLoRA implement dependency, model-data, and
 measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
 full-duration adapter training from the pinned base model. Two clean workflows
-reached `measured-run-pass` in the dated acceptance record. Fresh-process adapter
-reload and bounded generation prove that the emitted adapter can be loaded. They
-do not prove training resume. That July MLX-LM record predates Phase 4 and does
-not bind the current source head; no current-head MLX or CUDA target-runtime
-pilot was collected for the Phase 4 closeout. The exact `qwen3_moe` MLX-LM
-QLoRA row remains conditional and has only safe-refusal evidence: the recorded
-30B attempt stopped before model loading when live unified-memory admission
-failed. CUDA training remains an external-host path on this Mac, with no
-qualifying target-host run recorded.
+reached `measured-run-pass` in the
+[2026-08-05 record](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+under a v5 plan and v3 bundle at
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. Fresh-process adapter reload and
+bounded generation prove that the emitted adapter can be loaded. They do not
+prove training resume, model quality, or production throughput.
+
+That acceptance closes the current-source Phase 6 MLX-LM runtime gate only for
+the exact pinned Qwen2.5 artifact, host, runtime, dataset, policy snapshot,
+plan, and bundle. The 24-layer dense Qwen2 policy remains a
+configuration-footprint rule: every different matching artifact remains
+conditional and must pass its own model-data, measured-preflight, and pilot
+gates. The exact `qwen3_moe` MLX-LM QLoRA row remains conditional and has only
+safe-refusal evidence; the recorded 30B attempt stopped before model loading
+when live unified-memory admission failed. CUDA training remains an
+external-host path on this Mac, with no qualifying target-host run recorded.

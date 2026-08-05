@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
 | Authority | Normative field reference for `aptus.training-plan.v5` |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
@@ -24,6 +24,13 @@ source facts. Do not relabel the old plan. A coherent v5 plan also enters
 `replan_required` when its decision or snapshot digest no longer matches the
 current host registry. Malformed or tampered v5 policy state is invalid input,
 not a stale-plan migration.
+
+The current snapshot has two registered policy rows. Adding the dense Qwen2 row
+did not change the serialized contract shapes: the plan remains
+`aptus.training-plan.v5`, its embedded policy decision remains
+`aptus.model-compatibility.v2`, the snapshot remains
+`aptus.model-policy-snapshot.v1`, and compiled bundles remain
+`aptus.bundle.v3`.
 
 ## Top-level object
 
@@ -85,7 +92,7 @@ not a stale-plan migration.
 | `architecture` | string | Exact provider architecture when inspected; otherwise defaults to `causal-lm` |
 | `model_type` | string or null | Exact provider model type when inspected |
 | `quantization_bits` | integer or null | Pinned checkpoint precision from 1 through 16 bits |
-| `quantization_layout` | object or null | Canonical MLX groupwise defaults and module overrides; required by the exact Qwen3 MoE row |
+| `quantization_layout` | object or null | Canonical MLX groupwise defaults and module overrides; required by both current registered Qwen policy rows |
 | `moe` | object or null | Exact routed-expert topology when present |
 | `sparse_layer_count` | integer | Backend-derived sparse decoder-layer count; zero for dense models |
 | `tokenizer_id` | string or null | Optional tokenizer override; current builders leave it null |
@@ -124,11 +131,27 @@ policy identity and version, complete path objects, reason codes, and evidence
 IDs. See the [model-policy snapshot reference](model-policy-snapshot.md) for the
 portable evaluation order and rule shapes.
 
-The current exact sparse row uses:
+The current registry contains two exact configuration rows:
 
-- policy ID `model.qwen3-moe.mlx-qlora`;
-- policy version `1.0.0`; and
-- path ID `mlx-lm.qlora.single.attention-qkvo.v1`.
+- Qwen3 MoE uses policy `model.qwen3-moe.mlx-qlora` version `1.0.0`, path
+  `mlx-lm.qlora.single.attention-qkvo.v1`, and adapter profile
+  `attention-qkvo.v1`.
+- Dense 24-layer Qwen2 uses policy `model.qwen2-24l.mlx-qlora` version
+  `1.0.0`, path `mlx-lm.qlora.single.dense-causal-lm.v1`, and adapter profile
+  `dense-causal-lm.v1`.
+
+The Qwen2 row requires family `qwen`, model type `qwen2`, architecture
+`Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit metadata, a uniform
+group-size-64 layout with no module overrides, and `moe: null`. It is a reviewed
+runtime configuration footprint, not an artifact allowlist. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. That result closes the current-source Phase 6 runtime gate only for
+that scope. A different matching artifact still requires its own model-data,
+measured-preflight, and pilot gates; the result does not qualify CUDA or
+establish model quality or production throughput.
 
 Each policy path binds method, distribution, adapter profile, target modules,
 `aptus.runtime-contract.v1`, required `model-data`, `measured-preflight`, and
@@ -165,7 +188,15 @@ Receipt provenance is intentionally narrower than general plan provenance.
 Every receipt entry must be `provider-declared` or `inferred`. Every non-null
 compatibility subject field must have one sorted receipt entry, and at least one
 subject field must be provider-declared. A registered path can require a
-stricter provider-declared field set. The exact Qwen3 MoE path does.
+stricter provider-declared field set. That set comes from the matched policy,
+not from a global model-family rule:
+
+- Qwen3 MoE requires provider-declared `architecture`, `layers`, `model_type`,
+  `moe`, `quantization_bits`, and `quantization_layout`.
+- Dense Qwen2 requires provider-declared `architecture`, `layers`,
+  `model_type`, `quantization_bits`, and `quantization_layout`. It does not
+  require a provider-declared `moe` entry; the policy constraint requires the
+  normalized subject value to be null.
 
 A supplied receipt is revalidated against the model ID, resolved revision,
 observed-facts digest, current policy decision, provenance requirements, and
@@ -187,13 +218,17 @@ When `quantization_layout` is present, it contains:
 | `module_overrides` | array | Canonical module exceptions, sorted by unique `module_path` |
 
 Each module override contains a dotted `module_path`, `bits` from 1 through 16,
-and a positive `group_size`. The exact Qwen3 MoE row requires
-`default_bits: 4` and `default_group_size: 64`. It also requires exactly one
-override for every model layer, and no others. The override for layer `N` is
-`model.layers.N.mlp.gate` with `bits: 8` and `group_size: 64`. The array uses
-canonical module-path order. Its complete content participates in candidate and
-plan identity. Compilation also records the canonical layout SHA-256 and checks
-the generated MLX configuration against it.
+and a positive `group_size`. The dense Qwen2 row requires a uniform layout with
+`default_bits: 4`, `default_group_size: 64`, and an empty `module_overrides`
+array. Its MLX packed-storage arithmetic uses the declared defaults for every
+logical parameter.
+
+The exact Qwen3 MoE row uses the same four-bit group-64 defaults but requires
+exactly one override for every model layer, and no others. The override for
+layer `N` is `model.layers.N.mlp.gate` with `bits: 8` and `group_size: 64`.
+The array uses canonical module-path order. Complete layout content participates
+in candidate and plan identity. Compilation also records the canonical layout
+SHA-256 and checks the generated MLX configuration against it.
 
 When `moe` is present, it contains:
 
@@ -349,7 +384,7 @@ ID. A user-attested binding must use `inspection_receipt_id: null`.
 | `rank` | integer | Zero for full training; adapter prior otherwise |
 | `alpha` | integer | Zero for full training; `2 * rank` for adapters |
 | `learning_rate` | number | Method-class prior |
-| `target_modules` | string array | Empty for full and for unsupported adapters on an unregistered family; otherwise the exact family catalog modules. The Qwen3 MoE row uses only attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
+| `target_modules` | string array | Empty for full and for unsupported adapters on an unregistered family; otherwise the exact family catalog modules. Qwen3 MoE uses attention `q_proj`, `k_proj`, `v_proj`, and `o_proj`; dense Qwen2 additionally uses `gate_proj`, `up_proj`, and `down_proj` |
 
 ### Resource and decision fields
 
@@ -417,6 +452,13 @@ adds calculated `point_estimate_bytes`, compatibility alias
 `estimated_peak_bytes`, `upper_estimate_bytes`, and `uncertainty_bytes`. The
 user reserve is not a memory-use component.
 
+For a dense layout with no module overrides, MLX QLoRA storage is derived from
+the bound defaults: weight bytes are `parameters * default_bits / 8`, and
+affine scale-and-bias metadata bytes are
+`parameters * 4 / default_group_size`, each rounded to an integer. Nonempty
+module overrides still require the reviewed MoE topology needed to price their
+parameter scope.
+
 ## Provenance object
 
 ```json
@@ -474,6 +516,15 @@ consistent candidate targets. It does not reinterpret the old plan through a
 newer family-target catalog. Current plans still validate against the current
 catalog, so copied targets on an unknown family fail closed. Malformed JSON
 scalar types return validation errors instead of escaping as runtime failures.
+
+When a bundle is available, installed-host currency checks use its validated,
+digest-bound historical snapshot to recheck the old policy-specific receipt
+requirements before returning `replan_required`. A standalone plan does not
+carry that snapshot payload. If its historical policy definition is no longer
+in the installed registry, stale classification conservatively requires every
+non-null compatibility field except the normalized family alias to remain
+provider-declared. A downgraded inferred field therefore stays invalid instead
+of being relabeled as legitimate stale state.
 
 The package-free generated validator evaluates the plan against the canonical
 snapshot embedded in its bundle. That proves frozen snapshot integrity and

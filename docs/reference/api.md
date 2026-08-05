@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -40,6 +40,10 @@ uv run --isolated --python 3.12 --locked --extra server --extra test \
 
 Run the generators after changing a request or response contract. Run the check
 forms without changing files in validation and CI.
+
+The second registry policy is additive within the existing shapes. The HTTP
+contract remains `aptus.api.v1`; model-policy snapshots remain v1, returned
+plans remain v5, and compiled bundle manifests remain v3.
 
 The OpenAPI artifact and
 [`web/src/generated/openapi.ts`](../../web/src/generated/openapi.ts) are
@@ -309,8 +313,13 @@ uses a closed, status-discriminated contract:
 Runtime IDs are `transformers-peft-cuda`, `mlx-lm`, and `pytorch-mps`. Backend
 IDs are `cuda`, `rocm`, `mps`, and `cpu`. Method IDs are `full`, `lora`,
 `int8-lora`, and `qlora`. Distribution IDs are `single`, `ddp`, and `fsdp`.
-The closed adapter-profile vocabulary contains `attention-qkvo.v1`, which binds
-the attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` target policy.
+The closed adapter-profile vocabulary contains:
+
+- `attention-qkvo.v1`, which binds attention `q_proj`, `k_proj`, `v_proj`, and
+  `o_proj`; and
+- `dense-causal-lm.v1`, which binds those four attention projections plus
+  `gate_proj`, `up_proj`, and `down_proj`.
+
 Unknown IDs and malformed combinations fail closed at the producer, API, and
 response-model boundaries. A known tuple that is not registered for the stated
 model family fails at the producer and API response boundary. Invalid evidence
@@ -340,24 +349,50 @@ the workbench policy authority.
 Receipt entries use only `provider-declared` or `inferred`. They cover every
 non-null compatibility subject fact and include at least one provider-declared
 subject observation. Registered policies can require additional fields to be
-provider-declared. In particular, a provider path-matched receipt must name and
-satisfy the `provider-declared` requirement with provider-declared evidence;
-inferred-only observations cannot satisfy the match.
+provider-declared. The required set is read from the matched policy. Qwen3 MoE
+requires `architecture`, `layers`, `model_type`, `moe`, `quantization_bits`,
+and `quantization_layout`. Dense Qwen2 requires `architecture`, `layers`,
+`model_type`, `quantization_bits`, and `quantization_layout`; its dense
+constraint expects a null normalized MoE value rather than a provider-declared
+`moe` entry. A provider path-matched receipt must name and satisfy the
+`provider-declared` requirement with provider-declared evidence; inferred-only
+observations cannot satisfy the match.
 
 Receipt content IDs and digests are tamper-evident, not authenticated
 signatures. A caller that passes the receipt to planning must trust its local
 client boundary. Aptus still recomputes the receipt, observed facts, policy
 decision, provenance requirements, and content identity before using it.
 
-Exact aliases normalize reviewed dense Qwen and Gemma model types. The first
-sparse compatibility row requires `qwen3_moe`, `Qwen3MoeForCausalLM`, a
-four-bit group-64 default layout, one eight-bit group-64 router-gate override
-per layer, a complete reviewed topology, and no shared expert. It reports
-conditional eligibility for the reviewed single-device `mlx-lm` on `mps` QLoRA
-pilot path with adapter profile `attention-qkvo.v1`. Prefix matching never
-admits MoE or multimodal variants. Sparse model-type and architecture markers
-remain unsupported when provider topology is absent, even if their normalized
-family has a dense policy.
+Exact aliases normalize reviewed dense Qwen and Gemma model types. The registry
+currently has two conditional MLX-LM QLoRA policies:
+
+- Dense Qwen2 policy `model.qwen2-24l.mlx-qlora` version `1.0.0` claims exact
+  provider model type `qwen2` or architecture `Qwen2ForCausalLM`, then requires
+  family `qwen`, both exact provider identities, exactly 24 layers, explicit
+  four-bit metadata, no MoE topology, and a uniform group-size-64 layout with
+  no module overrides. It emits path
+  `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
+  `dense-causal-lm.v1` and dense q/k/v/o/gate/up/down targets.
+- Qwen3 MoE policy `model.qwen3-moe.mlx-qlora` version `1.0.0` requires
+  `qwen3_moe`, `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit
+  group-64 router-gate override per layer, a complete reviewed topology, and no
+  shared expert. It emits path
+  `mlx-lm.qlora.single.attention-qkvo.v1` with profile
+  `attention-qkvo.v1`.
+
+Both rows report only gated conditional eligibility and require model-data,
+measured-preflight, and pilot validation. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot. It closes Phase 6's current-source runtime gate only for that scope;
+the Qwen2 policy remains a configuration footprint rather than an artifact
+allowlist, and another matching artifact must pass its own gates. The result
+does not qualify CUDA or establish model quality or production throughput.
+Prefix matching never admits MoE or multimodal variants. Sparse model-type and
+architecture markers remain unsupported when provider topology is absent, even
+if their normalized family has a dense policy.
 
 ### `POST /api/v1/profile`
 
@@ -402,18 +437,20 @@ Top-level request:
 | `context_length` | integer | Yes | Greater than 0 |
 | `license_name` | string | Yes | Non-empty in the domain layer |
 | `training_allowed` | boolean | Yes | Must be true in the domain layer |
-| `model_type` | string or null | No | Exact provider identity; required by the sparse allowlist |
-| `architecture` | string or null | No | Exact provider class; omitted dense requests use the domain default |
-| `quantization_bits` | integer or null | No | From 1 through 16; the first sparse row requires 4 |
-| `quantization_layout` | object or null | No | Canonical MLX groupwise defaults and overrides; required by the first sparse row |
+| `model_type` | string or null | No | Exact provider identity; required by both current registered Qwen rows |
+| `architecture` | string or null | No | Exact provider class; required by both current registered Qwen rows, while other omitted dense requests use the domain default |
+| `quantization_bits` | integer or null | No | From 1 through 16; both current registered Qwen rows require 4 |
+| `quantization_layout` | object or null | No | Canonical MLX groupwise defaults and overrides; required by both current registered Qwen rows |
 | `moe` | object or null | No | Exact routed-expert topology |
 
 `quantization_layout` contains positive `default_bits` and
 `default_group_size`, plus a `module_overrides` array. Each override contains a
 dotted `module_path`, `bits`, and `group_size`. Override paths must be sorted and
-unique. The exact Qwen3 MoE row requires four-bit group-64 defaults and exactly
-one eight-bit group-64 `model.layers.N.mlp.gate` override per layer. The layout
-is bound into plan identity. A merely four-bit Qwen3 MoE request is not enough.
+unique. Dense Qwen2 requires four-bit group-64 defaults and an empty override
+array. Qwen3 MoE uses the same defaults and requires exactly one eight-bit
+group-64 `model.layers.N.mlp.gate` override per layer. The complete layout is
+bound into plan identity. Merely supplying four-bit metadata is not enough for
+either registered row.
 
 `moe` fields:
 
@@ -424,7 +461,7 @@ is bound into plan identity. A merely four-bit Qwen3 MoE request is not enough.
 | `expert_intermediate_size` | integer | Yes | Greater than 0 |
 | `decoder_sparse_step` | integer | Yes | Greater than 0 |
 | `mlp_only_layers` | integer array | No | Empty by default; domain validation requires sorted, unique, in-range indices |
-| `shared_expert_intermediate_size` | integer or null | No | Greater than 0 when present; unsupported by the first sparse row |
+| `shared_expert_intermediate_size` | integer or null | No | Greater than 0 when present; unsupported by the current Qwen3 MoE row |
 
 The request never accepts `active_parameters` or `sparse_layer_count`. The
 backend derives both and serializes them in the plan. `parameters_b` remains the

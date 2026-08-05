@@ -53,14 +53,6 @@ EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
 QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
-QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS = {
-    "architecture",
-    "layers",
-    "model_type",
-    "moe",
-    "quantization_bits",
-    "quantization_layout",
-}
 RECEIPT_FACT_FIELDS = {
     "architecture",
     "context_length",
@@ -149,6 +141,12 @@ EVIDENCE_RECORD_SHA256 = {
     ),
     "admission.qwen3-30b-a3b.memory-blocked.2026-07-28": (
         "8def6f7dd2591edd1ac5dbedb49b49a4740a65b6398ad56669f32423f7c56ac2"
+    ),
+    "policy.qwen2-24l.mlx-qlora.v1": (
+        "c7a097e7140ade3f48a9cf9cfbc01cb95dd31b5124e7e9d10d90b8b0f3b63264"
+    ),
+    "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": (
+        "2b1905044b84b3473d536fbe73af31841af15857523f458bb58a6d34d89447bc"
     ),
 }
 METHOD_EVIDENCE_IDS = {
@@ -601,7 +599,11 @@ def _policy_snapshot_sha256(snapshot: Mapping[str, Any]) -> str:
     return _policy_snapshot_module().model_policy_snapshot_sha256(snapshot)
 
 
-def require_current_model_policy_snapshot(plan_value: Any) -> None:
+def require_current_model_policy_snapshot(
+    plan_value: Any,
+    *,
+    historical_policy_snapshot: Mapping[str, Any] | None = None,
+) -> None:
     """Require a bundle-bound snapshot to match the installed host registry.
 
     Bundle-manifest validation establishes that the recorded digest belongs to
@@ -618,13 +620,18 @@ def require_current_model_policy_snapshot(plan_value: Any) -> None:
     snapshot = _policy_snapshot_for_validation()
     if recorded_digest == _policy_snapshot_sha256(snapshot):
         return
-    require_current_model_policy(plan_value, policy_snapshot=snapshot)
+    require_current_model_policy(
+        plan_value,
+        policy_snapshot=snapshot,
+        historical_policy_snapshot=historical_policy_snapshot,
+    )
 
 
 def require_current_model_policy(
     plan_value: Any,
     *,
     policy_snapshot: Mapping[str, Any] | None = None,
+    historical_policy_snapshot: Mapping[str, Any] | None = None,
 ) -> None:
     """Raise a distinct error when a same-schema plan needs policy replanning.
 
@@ -717,7 +724,9 @@ def require_current_model_policy(
             plan_value,
             verify_dataset=False,
             expected_policy_decision_override=decision,
-            enforce_current_policy=False,
+            policy_snapshot=(historical_policy_snapshot or snapshot),
+            enforce_current_policy=historical_policy_snapshot is not None,
+            allow_unavailable_policy_provenance=(historical_policy_snapshot is None),
         )
     except (
         AttributeError,
@@ -842,6 +851,8 @@ def _validate_inspection_receipt(
     *,
     model: Mapping[str, Any],
     expected_decision: Mapping[str, Any],
+    policy_snapshot: Mapping[str, Any] | None,
+    allow_unavailable_policy_provenance: bool,
     errors: list[str],
 ) -> Mapping[str, Any] | None:
     if receipt_value is None:
@@ -995,15 +1006,79 @@ def _validate_inspection_receipt(
 
     has_registered_policy = expected_decision.get("policy_id") is not None
     expected_requirement = "provider-declared" if has_registered_policy else None
-    expected_requirement_met = bool(
-        has_registered_policy
-        and QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS.issubset(provenance_fields)
-        and all(
-            item.get("kind") == "provider-declared"
-            for item in provenance
-            if _known_text(item.get("field"), QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS)
+    required_policy_fields: set[str] = set()
+    policy_definition_unavailable = False
+    if has_registered_policy:
+        policies = (
+            policy_snapshot.get("policies")
+            if isinstance(policy_snapshot, Mapping)
+            else None
         )
-    )
+        policy = (
+            next(
+                (
+                    item
+                    for item in policies
+                    if isinstance(item, Mapping)
+                    and item.get("policy_id") == expected_decision.get("policy_id")
+                    and item.get("policy_version")
+                    == expected_decision.get("policy_version")
+                ),
+                None,
+            )
+            if isinstance(policies, list)
+            else None
+        )
+        fields = (
+            policy.get("required_provenance_fields")
+            if isinstance(policy, Mapping)
+            else None
+        )
+        if policy is None:
+            policy_definition_unavailable = True
+            if not allow_unavailable_policy_provenance:
+                errors.append(
+                    "Plan inspection receipt policy provenance requirements are unavailable."
+                )
+        elif not isinstance(fields, list) or any(
+            not isinstance(field, str) for field in fields
+        ):
+            errors.append(
+                "Plan inspection receipt policy provenance requirements are unavailable."
+            )
+        else:
+            required_policy_fields = set(fields)
+    if (
+        has_registered_policy
+        and policy_definition_unavailable
+        and allow_unavailable_policy_provenance
+    ):
+        # A standalone stale plan does not carry its frozen snapshot payload.
+        # Conservatively require every non-null compatibility field except the
+        # normalized family alias to remain provider-declared. This matches the
+        # reviewed policies and refuses a stale classification when the missing
+        # historical definition cannot prove an equal or narrower requirement.
+        fallback_required_fields = required_subject_fields.difference({"family"})
+        expected_requirement_met = bool(
+            fallback_required_fields
+            and fallback_required_fields.issubset(provenance_fields)
+            and all(
+                item.get("kind") == "provider-declared"
+                for item in provenance
+                if _known_text(item.get("field"), fallback_required_fields)
+            )
+        )
+    else:
+        expected_requirement_met = bool(
+            has_registered_policy
+            and required_policy_fields
+            and required_policy_fields.issubset(provenance_fields)
+            and all(
+                item.get("kind") == "provider-declared"
+                for item in provenance
+                if _known_text(item.get("field"), required_policy_fields)
+            )
+        )
     if receipt.get("provenance_requirement") != expected_requirement:
         errors.append("Plan inspection receipt provenance requirement is stale.")
     if not isinstance(receipt.get("provenance_requirement_met"), bool) or (
@@ -1503,7 +1578,17 @@ def validate_model_config_against_plan(
             raise ValueError(
                 "Pinned model quantization layout does not match the plan."
             )
+    moe_config_names = (
+        "num_experts",
+        "num_experts_per_tok",
+        "moe_intermediate_size",
+        "decoder_sparse_step",
+        "mlp_only_layers",
+        "shared_expert_intermediate_size",
+    )
     expected_moe = expected["moe"]
+    if expected_moe is None and any(name in source for name in moe_config_names):
+        raise ValueError("Pinned model unexpectedly declares MoE topology.")
     if expected_moe is not None:
         observed_moe = {
             "expert_count": source.get("num_experts"),
@@ -1718,6 +1803,11 @@ def mlx_quantized_storage_bytes_for_contract(
         or not isinstance(overrides, list)
     ):
         raise ValueError("MLX quantization layout is incomplete.")
+    if not overrides:
+        return (
+            round(parameters * default_bits / 8),
+            round(parameters * 4 / default_group_size),
+        )
 
     moe = model.get("moe")
     hidden_size = model.get("hidden_size")
@@ -2029,6 +2119,7 @@ def _validate_plan_payload_impl(
     expected_policy_decision_override: Mapping[str, Any] | None = None,
     policy_snapshot: Mapping[str, Any] | None = None,
     enforce_current_policy: bool = True,
+    allow_unavailable_policy_provenance: bool = False,
 ) -> tuple[str, ...]:
     errors: list[str] = []
     if not isinstance(plan_value, dict) or not plan_value:
@@ -2216,6 +2307,8 @@ def _validate_plan_payload_impl(
             plan.get("inspection_receipt"),
             model=model,
             expected_decision=expected_policy_decision,
+            policy_snapshot=snapshot,
+            allow_unavailable_policy_provenance=allow_unavailable_policy_provenance,
             errors=errors,
         )
         if expected_policy_decision is not None

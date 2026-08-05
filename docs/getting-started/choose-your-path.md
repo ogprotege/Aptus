@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its CUDA compiler covers the complete
@@ -80,9 +80,18 @@ not resumable checkpoints, and every resume argument fails. QLoRA also requires
 a pinned MLX model with explicit four-bit quantization metadata. It never uses
 bitsandbytes.
 
-The July MLX-LM acceptance record predates Phase 4 and does not bind the current
-source head. Run the complete five-action sequence for the exact current bundle
-before making a target-runtime claim.
+The [2026-08-05 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+covers two clean current-source v5-plan and v3-bundle ladders for the exact
+pinned Qwen2.5 artifact at commit
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the Phase 6 runtime gate
+for that artifact, immutable revision, host, runtime, dataset, and policy
+snapshot only. A matching 24-layer dense Qwen2 configuration can enter the
+reviewed path, but that policy match is not artifact-wide runtime acceptance.
+Run the complete five-action sequence for every other exact bundle before
+making a target-runtime claim. The recorded acceptance does not establish model
+quality or production throughput, and CUDA target-runtime acceptance remains
+open.
 
 ## Path C: Validate and train on CUDA
 

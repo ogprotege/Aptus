@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-04
+> **Last reviewed:** 2026-08-05
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -159,15 +159,18 @@ when its evidence, owner, or resolution changes.
   [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
   adds exact fail-closed evidence for the 30B checkpoint. It stopped before
   model loading and is not passing pilot, training, reload, export,
-  performance, or quality evidence. The July MLX-LM and desktop records predate
-  the current Phase 5 source head; no current-head CUDA or MLX target-runtime
-  pilot was collected for the Phase 5 closeout.
-- **Required result:** Renew qualifying current-head MLX-LM target-runtime
-  evidence, add equivalent evidence for every claimed CUDA method and placement,
-  and add Developer ID signed and notarized desktop evidence for the exact
-  public release commit.
-- **Blocker:** Access to approved CUDA and MLX target hosts and public
-  notarization credentials for a public Mac artifact
+  performance, or quality evidence. The
+  [2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+  now records two clean current-source v5/v3 `measured-run-pass` repetitions
+  for its exact pinned artifact, source commit, Apple M5 Pro host, Python/MLX
+  runtime, dataset, and policy snapshot. It closes the Phase 6 MLX-LM runtime
+  gate only for that scope. The July MLX-LM and desktop records remain
+  historical at their tested commits.
+- **Required result:** Add equivalent evidence for every claimed CUDA method and
+  placement, and add Developer ID signed and notarized desktop evidence for the
+  exact public release commit.
+- **Blocker:** Access to approved CUDA target hosts and public notarization
+  credentials for a public Mac artifact
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
@@ -344,8 +347,9 @@ when its evidence, owner, or resolution changes.
   manifest bindings with the current host digest; a different host binding is
   stale and requires replanning.
 - **Boundary:** At the Phase 4 closeout, browser policy reconstruction remained
-  assigned to Phase 5. DOC-023 records its completion. A second reviewed policy
-  remains pending in Phase 6.
+  assigned to Phase 5. DOC-023 records its completion. The second reviewed
+  policy was still pending at that historical closeout; DOC-024 records its
+  current implementation, exact runtime closeout, and preserved evidence scope.
 - **Verification:** Deterministic double generation, host-versus-portable
   decision parity, package-free validation, host-registry currency, exact digest
   binding, scalar plan and manifest rejection, controlled excessive-nesting and
@@ -393,8 +397,9 @@ when its evidence, owner, or resolution changes.
   broken chain is rejected before the non-compilable rows render.
 - **Boundary:** `aptus.api.v1`, `aptus.facts.v3`,
   `aptus.training-plan.v5`, `aptus.bundle.v3`, and
-  `aptus.runtime-contract.v1` remain unchanged. Phase 6 remains pending and owns
-  a second reviewed policy with its own runtime evidence.
+  `aptus.runtime-contract.v1` remain unchanged. Phase 6 has since implemented a
+  second reviewed configuration-footprint policy; DOC-024 records the exact
+  Phase 6 runtime closeout and the limits that remain in force.
 - **Verification:** Strict ingress and presentation cases live in
   `web/src/api.test.ts`, `web/src/lib/modelPolicy.test.ts`,
   `web/src/components/ModelPolicyPanel.test.tsx`,
@@ -405,6 +410,41 @@ when its evidence, owner, or resolution changes.
   `test_phase5_workbench_policy_authority_is_documented` protect the server,
   planner, client, presentation, and maintained-guidance boundaries.
 - **Owner:** API, planning, workbench, and documentation maintainers
+
+### DOC-024: Close Phase 6 runtime evidence for the second model policy
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Implemented boundary:** The data-driven host registry and canonical
+  snapshot now contain `model.qwen2-24l.mlx-qlora`. It binds exact `qwen`,
+  `qwen2`, and `Qwen2ForCausalLM` identity, 24 layers, dense topology, a uniform
+  four-bit group-size-64 layout with no overrides, and the single
+  `mlx-lm.qlora.single.dense-causal-lm.v1` path. The
+  `dense-causal-lm.v1` profile covers all seven attention and MLP projection
+  targets. Host and portable evaluation, planner binding, per-policy receipt
+  provenance, canonical evidence, compiler storage, and mutation tests cover
+  the implementation.
+- **Resolution:** The
+  [2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+  records two clean `measured-run-pass` repetitions from acceptance source
+  `14ed44b52a76bb84d8d9db4f2303951aa641339b`. Both repetitions completed the
+  dependency, exact model-data, measured-preflight, uninterrupted real-model
+  pilot, full-train, immutable export, fresh-process reload, and parent-owned
+  reconciliation ladder under `aptus.training-plan.v5` and `aptus.bundle.v3`.
+  The packet binds the exact pinned Qwen2.5 0.5B artifact and revision, source,
+  Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, plan, bundle,
+  metrics, and artifacts.
+- **Evidence boundary:** This closes the current-source Phase 6 MLX-LM runtime
+  gate only for that exact scope. The policy remains a reviewed configuration
+  footprint, not an artifact allowlist; a different matching artifact must
+  complete its own model-data, measured-preflight, and pilot gates. The result
+  does not qualify CUDA, establish model quality, or promise production-scale
+  throughput. The retained July runtime evidence remains historical under its
+  own v2/v2 scope.
+- **Verification:** The acceptance packet's machine-readable summary and
+  `SHA256SUMS` bind both five-job repetitions, terminal validation reports,
+  immutable exports, reload evidence, and parent-promotion receipts.
+- **Owner:** Policy, MLX runtime, release-evidence, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

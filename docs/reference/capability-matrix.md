@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -22,17 +22,25 @@ Aptus rejects a coherent v5 plan whose decision or snapshot digest is no longer
 current and requires deterministic replanning. An earlier `pilot-pass` cannot
 authorize training or completion promotion after that policy boundary changes.
 
-Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` in the
-[2026-07-27 acceptance record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md).
-That evidence predates the Phase 4 source head and does not establish a
-current-head MLX-LM pilot pass. No current-head CUDA or MLX target-runtime pilot
-was collected for the Phase 4 closeout.
+Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` under the
+current v5 plan and v3 bundle contracts in the
+[2026-08-05 acceptance record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md).
+The acceptance source is
+`14ed44b52a76bb84d8d9db4f2303951aa641339b`. That evidence closes the Phase 6
+MLX-LM runtime gate only for its exact pinned Qwen2.5 artifact, host, runtime,
+dataset, policy snapshot, plan, and bundle. It does not transfer to another
+artifact that matches the reviewed Qwen2 configuration footprint. The
+[2026-07-27 record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
+remains historical v2/v2 evidence for the same pinned artifact.
+
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the
 exact GitHub-tested merge commit and records it in `COMMIT`. No real CUDA
 target-host pilot has been recorded, and no Developer ID signed and notarized
-public Mac artifact has passed its gate. Aptus v0.2 remains unreleased.
+public Mac artifact has passed its gate. The MLX-LM acceptance does not
+establish model quality or production throughput. Aptus v0.2 remains
+unreleased.
 
 ## CUDA method and placement matrix
 
@@ -125,7 +133,7 @@ MPS or MLX.
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
 | `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass` is reachable, but no qualifying target-host run is recorded |
-| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the exact conditional Qwen3 MoE row | Two clean dense QLoRA workflows reached `measured-run-pass`; the Qwen3 MoE acceptance gate remains open |
+| `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the conditional Qwen3 MoE row and reviewed 24-layer dense Qwen2 footprint | Two current v5/v3 dense QLoRA workflows reached `measured-run-pass` for the exact accepted Qwen2.5 artifact; every different Qwen2 artifact and the Qwen3 MoE row remain conditional and pilot-required |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
 LM Studio and oMLX are not training runtimes. They are loopback inference-only
@@ -177,6 +185,27 @@ only exact alias normalization:
 - `gemma3` only for explicitly accepted text architectures.
 
 Multimodal, prefix-matched, and unknown architectures are not silently mapped.
+The reviewed dense Qwen2 configuration footprint requires all fields below:
+
+| Qwen2 field | Required value |
+| --- | --- |
+| Aptus family | `qwen` |
+| Provider model type | `qwen2` |
+| Architecture | `Qwen2ForCausalLM` |
+| Layer count | 24 |
+| Topology | Dense, with no MoE configuration |
+| Checkpoint layout | Uniform four-bit, group size 64, with no module overrides |
+| Runtime and backend | `mlx-lm` on `mps` |
+| Method and placement | QLoRA, `single` |
+| Adapter scope | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, and `down_proj` |
+| Evidence | Two v5/v3 `measured-run-pass` repetitions for the exact 2026-08-05 accepted artifact; `pilot-required` for every different artifact |
+
+This is a reviewed configuration footprint, not an artifact allowlist. An
+inspection receipt binds the exact model ID and immutable revision. The August
+5 record closes the current Phase 6 ladder for its exact artifact and acceptance
+source only. Its runtime evidence does not transfer to another artifact, which
+must complete its own model-data, measured-preflight, and pilot gates.
+
 The only sparse exception is exact and requires all fields below:
 
 | Qwen3 MoE field | Required value |
@@ -206,8 +235,9 @@ remains unsupported.
 CUDA model-data validation checks the loaded parameter count, hidden size,
 optional intermediate size, layers, context length, and adapter targets.
 MLX-LM model-data validation loads the exact revision, validates QLoRA
-quantization metadata and exact MoE topology when applicable, and tokenizes
-every bound row.
+quantization metadata, the uniform Qwen2 or mixed Qwen3 layout bound by the
+selected policy when applicable, and exact MoE topology when applicable. It
+then tokenizes every bound row.
 
 ## Dataset support
 
@@ -336,3 +366,4 @@ adapters are outside the current support contract.
 - [Validation states](validation-states.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-05 Phase 6 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

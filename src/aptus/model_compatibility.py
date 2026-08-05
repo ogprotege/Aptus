@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 import hashlib
 import json
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from .catalog import (
     DENSE_CAUSAL_LM_TARGET_MODULES,
@@ -12,8 +12,6 @@ from .catalog import (
     QWEN3_MOE_MODEL_TYPE,
     QWEN3_MOE_TARGET_MODULES,
     TARGET_MODULES,
-    has_reviewed_qwen3_moe_quantization_layout,
-    is_exact_qwen3_moe,
 )
 from .domain import (
     AdapterProfile,
@@ -34,6 +32,7 @@ from .domain import (
     MODEL_COMPATIBILITY_SCHEMA_VERSION,
     MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION,
     MODEL_POLICY_BINDING_SCHEMA_VERSION,
+    model_policy_decision_from_primitive,
     ProvenanceKind,
     Provenance,
     RuntimeContract,
@@ -47,6 +46,7 @@ from .methods import (
     runtime_contract_for,
 )
 from .policy_snapshot import (
+    evaluate_model_policy_snapshot,
     model_policy_snapshot_bytes,
     model_policy_snapshot_payload,
     model_policy_snapshot_sha256,
@@ -113,17 +113,64 @@ QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS = (
     "quantization_bits",
     "quantization_layout",
 )
-_QWEN3_EXACT_IDENTITY_BLOCKING_REASONS = {
-    QWEN3_MOE_LAYOUT_REASON,
-    QWEN3_MOE_TOPOLOGY_REASON,
-    QWEN3_MOE_SHARED_EXPERT_REASON,
-    QWEN3_MOE_FOUR_BIT_REASON,
-    INVALID_COMPATIBILITY_FACTS_REASON,
-}
+
+QWEN2_FAMILY = "qwen"
+QWEN2_MODEL_TYPE = "qwen2"
+QWEN2_ARCHITECTURE = "Qwen2ForCausalLM"
+QWEN2_LAYERS = 24
+QWEN2_IDENTITY_REASON = (
+    "Dense Qwen2 execution requires the reviewed qwen, qwen2, and "
+    "Qwen2ForCausalLM provider identity."
+)
+QWEN2_LAYER_REASON = (
+    "The reviewed Qwen2 MLX-LM runtime footprint requires exactly 24 "
+    "transformer layers."
+)
+QWEN2_LAYOUT_REASON = (
+    "The reviewed Qwen2 MLX-LM runtime footprint requires a uniform four-bit, "
+    "group-size-64 quantization layout with no module overrides."
+)
+QWEN2_DENSE_REASON = (
+    "The reviewed Qwen2 MLX-LM runtime footprint requires dense topology with "
+    "no MoE configuration."
+)
+QWEN2_FOUR_BIT_REASON = (
+    "The reviewed Qwen2 MLX-LM runtime footprint requires explicit four-bit "
+    "model metadata."
+)
+QWEN2_PATH_REASON = (
+    "The reviewed Qwen2 runtime footprint is executable only as single-device "
+    "MLX-LM QLoRA with dense q/k/v/o/gate/up/down adapters."
+)
+QWEN2_MATCHED_REASON = (
+    "The provider identity and 24-layer dense four-bit, group-size-64 "
+    "configuration match the reviewed Qwen2 MLX-LM runtime footprint. Runtime "
+    "evidence remains scoped to the pinned artifact, and every execution still "
+    "requires model-data, measured-preflight, and pilot validation."
+)
+QWEN2_BLOCKED_INSPECTION_REASON = (
+    "The Qwen2 identity was recognized, but this configuration does not match "
+    "the reviewed 24-layer dense four-bit, group-size-64 runtime footprint."
+)
+QWEN2_POLICY_ID = "model.qwen2-24l.mlx-qlora"
+QWEN2_POLICY_VERSION = "1.0.0"
+QWEN2_PATH_ID = "mlx-lm.qlora.single.dense-causal-lm.v1"
+QWEN2_POLICY_EVIDENCE_IDS = (
+    "policy.qwen2-24l.mlx-qlora.v1",
+    "runtime.qwen2-0.5b.mlx-qlora.2026-07-27",
+)
+QWEN2_REQUIRED_PROVENANCE_FIELDS = (
+    "architecture",
+    "layers",
+    "model_type",
+    "quantization_bits",
+    "quantization_layout",
+)
 
 
 ADAPTER_PROFILE_TARGET_MODULES: dict[AdapterProfile, tuple[str, ...]] = {
     AdapterProfile.ATTENTION_QKVO_V1: QWEN3_MOE_TARGET_MODULES,
+    AdapterProfile.DENSE_CAUSAL_LM_V1: DENSE_CAUSAL_LM_TARGET_MODULES,
 }
 
 
@@ -132,13 +179,17 @@ class _ModelCompatibilityPolicy:
     policy_id: str
     policy_version: str
     family: str
-    claims: Callable[[ModelCompatibilitySubject], bool]
-    first_blocking_reason: Callable[[ModelCompatibilitySubject], str | None]
+    claims: Mapping[str, tuple[str, ...]]
+    constraints: tuple[Mapping[str, Any], ...]
     paths: tuple[ModelPolicyPath, ...]
+    matched_reason_key: str
     matched_reason: str
     matched_reason_codes: tuple[ModelPolicyReasonCode, ...]
     evidence_ids: tuple[str, ...]
     required_provenance_fields: tuple[str, ...]
+    path_rejection_reason: str
+    blocked_inspection_reason: str
+    inspection_blocking_reason_codes: tuple[ModelPolicyReasonCode, ...]
 
 
 def adapter_target_modules(
@@ -269,72 +320,54 @@ def _policy_path(
     )
 
 
-def _qwen3_moe_claims(subject: ModelCompatibilitySubject) -> bool:
-    return bool(
-        (isinstance(subject.family, str) and subject.family.lower() == QWEN3_MOE_FAMILY)
-        or subject.model_type == QWEN3_MOE_MODEL_TYPE
-        or subject.architecture == QWEN3_MOE_ARCHITECTURE
-    )
-
-
-def _has_sparse_identity_marker(subject: ModelCompatibilitySubject) -> bool:
-    markers = ("moe", "mixtral")
-    return any(
-        marker in value.lower()
-        for value in (subject.family, subject.model_type, subject.architecture)
-        if value is not None
-        for marker in markers
-    )
-
-
-def _has_executable_sparse_layer(subject: ModelCompatibilitySubject) -> bool:
-    if subject.moe is None or subject.layers is None:
-        return False
-    dense_layers = set(subject.moe.mlp_only_layers)
-    return any(
-        (index + 1) % subject.moe.decoder_sparse_step == 0 and index not in dense_layers
-        for index in range(subject.layers)
-    )
-
-
-def _is_exact_qwen3_moe_subject(subject: ModelCompatibilitySubject) -> bool:
-    return bool(
-        isinstance(subject.family, str)
-        and is_exact_qwen3_moe(
-            family=subject.family,
-            model_type=subject.model_type,
-            architecture=subject.architecture or "",
-        )
-    )
-
-
-def _qwen3_moe_first_blocking_reason(
-    subject: ModelCompatibilitySubject,
-) -> str | None:
-    if not _is_exact_qwen3_moe_subject(subject):
-        return QWEN3_MOE_IDENTITY_REASON
-    if subject.layers is None or not has_reviewed_qwen3_moe_quantization_layout(
-        subject.quantization_layout,
-        layers=subject.layers,
-    ):
-        return QWEN3_MOE_LAYOUT_REASON
-    if subject.moe is None or not _has_executable_sparse_layer(subject):
-        return QWEN3_MOE_TOPOLOGY_REASON
-    if any(index >= subject.layers for index in subject.moe.mlp_only_layers):
-        return QWEN3_MOE_TOPOLOGY_REASON
-    if subject.moe.shared_expert_intermediate_size is not None:
-        return QWEN3_MOE_SHARED_EXPERT_REASON
-    if subject.quantization_bits != 4:
-        return QWEN3_MOE_FOUR_BIT_REASON
-    return None
-
-
 _QWEN3_MOE_POLICY = _ModelCompatibilityPolicy(
     policy_id=QWEN3_MOE_POLICY_ID,
     policy_version=QWEN3_MOE_POLICY_VERSION,
     family=QWEN3_MOE_FAMILY,
-    claims=_qwen3_moe_claims,
-    first_blocking_reason=_qwen3_moe_first_blocking_reason,
+    claims={
+        "architecture": (QWEN3_MOE_ARCHITECTURE,),
+        "family": (QWEN3_MOE_FAMILY,),
+        "model_type": (QWEN3_MOE_MODEL_TYPE,),
+    },
+    constraints=(
+        {
+            "kind": "exact_identity",
+            "values": {
+                "architecture": QWEN3_MOE_ARCHITECTURE,
+                "family": QWEN3_MOE_FAMILY,
+                "model_type": QWEN3_MOE_MODEL_TYPE,
+            },
+            "reason": "identity",
+            "reason_code": ModelPolicyReasonCode.IDENTITY_MISMATCH.value,
+        },
+        {
+            "kind": "quantization_layout",
+            "default_bits": 4,
+            "default_group_size": 64,
+            "override_module_template": "model.layers.{layer}.mlp.gate",
+            "override_bits": 8,
+            "override_group_size": 64,
+            "reason": "layout",
+            "reason_code": ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH.value,
+        },
+        {
+            "kind": "sparse_topology",
+            "reason": "topology",
+            "reason_code": ModelPolicyReasonCode.TOPOLOGY_INCOMPLETE.value,
+        },
+        {
+            "kind": "no_shared_expert",
+            "reason": "shared",
+            "reason_code": ModelPolicyReasonCode.SHARED_EXPERT_UNSUPPORTED.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "quantization_bits",
+            "value": 4,
+            "reason": "four_bit",
+            "reason_code": ModelPolicyReasonCode.FOUR_BIT_REQUIRED.value,
+        },
+    ),
     paths=(
         _policy_path(
             path_id=QWEN3_MOE_PATH_ID,
@@ -347,6 +380,7 @@ _QWEN3_MOE_POLICY = _ModelCompatibilityPolicy(
             evidence_ids=QWEN3_MOE_POLICY_EVIDENCE_IDS,
         ),
     ),
+    matched_reason_key="matched",
     matched_reason=QWEN3_MOE_MATCHED_REASON,
     matched_reason_codes=(
         ModelPolicyReasonCode.EXACT_REVIEWED_ARTIFACT,
@@ -354,10 +388,103 @@ _QWEN3_MOE_POLICY = _ModelCompatibilityPolicy(
     ),
     evidence_ids=QWEN3_MOE_POLICY_EVIDENCE_IDS,
     required_provenance_fields=QWEN3_MOE_REQUIRED_PROVENANCE_FIELDS,
+    path_rejection_reason=QWEN3_MOE_PATH_REASON,
+    blocked_inspection_reason=QWEN3_MOE_BLOCKED_INSPECTION_REASON,
+    inspection_blocking_reason_codes=(
+        ModelPolicyReasonCode.INVALID_FACTS,
+        ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH,
+        ModelPolicyReasonCode.TOPOLOGY_INCOMPLETE,
+        ModelPolicyReasonCode.SHARED_EXPERT_UNSUPPORTED,
+        ModelPolicyReasonCode.FOUR_BIT_REQUIRED,
+    ),
+)
+
+_QWEN2_POLICY = _ModelCompatibilityPolicy(
+    policy_id=QWEN2_POLICY_ID,
+    policy_version=QWEN2_POLICY_VERSION,
+    family=QWEN2_FAMILY,
+    claims={
+        "architecture": (QWEN2_ARCHITECTURE,),
+        "model_type": (QWEN2_MODEL_TYPE,),
+    },
+    constraints=(
+        {
+            "kind": "exact_identity",
+            "values": {
+                "architecture": QWEN2_ARCHITECTURE,
+                "family": QWEN2_FAMILY,
+                "model_type": QWEN2_MODEL_TYPE,
+            },
+            "reason": "qwen2_identity",
+            "reason_code": ModelPolicyReasonCode.IDENTITY_MISMATCH.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "layers",
+            "value": QWEN2_LAYERS,
+            "reason": "qwen2_layers",
+            "reason_code": ModelPolicyReasonCode.LAYER_COUNT_MISMATCH.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "quantization_bits",
+            "value": 4,
+            "reason": "qwen2_four_bit",
+            "reason_code": ModelPolicyReasonCode.FOUR_BIT_REQUIRED.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "quantization_layout",
+            "value": {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+            "reason": "qwen2_layout",
+            "reason_code": ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "moe",
+            "value": None,
+            "reason": "qwen2_dense",
+            "reason_code": ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED.value,
+        },
+    ),
+    paths=(
+        _policy_path(
+            path_id=QWEN2_PATH_ID,
+            family=QWEN2_FAMILY,
+            method=Method.QLORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.DENSE_CAUSAL_LM_V1,
+            evidence_ids=QWEN2_POLICY_EVIDENCE_IDS,
+        ),
+    ),
+    matched_reason_key="qwen2_matched",
+    matched_reason=QWEN2_MATCHED_REASON,
+    matched_reason_codes=(
+        ModelPolicyReasonCode.REVIEWED_RUNTIME_PATH,
+        ModelPolicyReasonCode.PILOT_NOT_YET_PROVEN,
+    ),
+    evidence_ids=QWEN2_POLICY_EVIDENCE_IDS,
+    required_provenance_fields=QWEN2_REQUIRED_PROVENANCE_FIELDS,
+    path_rejection_reason=QWEN2_PATH_REASON,
+    blocked_inspection_reason=QWEN2_BLOCKED_INSPECTION_REASON,
+    inspection_blocking_reason_codes=(
+        ModelPolicyReasonCode.INVALID_FACTS,
+        ModelPolicyReasonCode.LAYER_COUNT_MISMATCH,
+        ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH,
+        ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED,
+        ModelPolicyReasonCode.FOUR_BIT_REQUIRED,
+    ),
 )
 
 MODEL_COMPATIBILITY_POLICIES: tuple[_ModelCompatibilityPolicy, ...] = (
     _QWEN3_MOE_POLICY,
+    _QWEN2_POLICY,
 )
 
 
@@ -388,72 +515,29 @@ _validate_model_compatibility_policies()
 def current_model_policy_snapshot() -> dict[str, Any]:
     """Return the canonical portable snapshot generated from the host registry."""
 
-    policies = []
-    for policy in MODEL_COMPATIBILITY_POLICIES:
-        if policy.policy_id != QWEN3_MOE_POLICY_ID:
-            raise RuntimeError(
-                "Every registered model policy requires portable rule data."
-            )
-        policies.append(
-            {
-                "policy_id": policy.policy_id,
-                "policy_version": policy.policy_version,
-                "family": policy.family,
-                "claims": {
-                    "any_identity": {
-                        "architecture": [QWEN3_MOE_ARCHITECTURE],
-                        "family": [QWEN3_MOE_FAMILY],
-                        "model_type": [QWEN3_MOE_MODEL_TYPE],
-                    }
-                },
-                "constraints": [
-                    {
-                        "kind": "exact_identity",
-                        "values": {
-                            "architecture": QWEN3_MOE_ARCHITECTURE,
-                            "family": QWEN3_MOE_FAMILY,
-                            "model_type": QWEN3_MOE_MODEL_TYPE,
-                        },
-                        "reason": "identity",
-                        "reason_code": "identity-mismatch",
-                    },
-                    {
-                        "kind": "quantization_layout",
-                        "default_bits": 4,
-                        "default_group_size": 64,
-                        "override_module_template": "model.layers.{layer}.mlp.gate",
-                        "override_bits": 8,
-                        "override_group_size": 64,
-                        "reason": "layout",
-                        "reason_code": "quantization-layout-mismatch",
-                    },
-                    {
-                        "kind": "sparse_topology",
-                        "reason": "topology",
-                        "reason_code": "topology-incomplete",
-                    },
-                    {
-                        "kind": "no_shared_expert",
-                        "reason": "shared",
-                        "reason_code": "shared-expert-unsupported",
-                    },
-                    {
-                        "kind": "field_equals",
-                        "field": "quantization_bits",
-                        "value": 4,
-                        "reason": "four_bit",
-                        "reason_code": "four-bit-required",
-                    },
-                ],
-                "paths": [to_primitive(path) for path in policy.paths],
-                "matched_reason": "matched",
-                "matched_reason_codes": [
-                    item.value for item in policy.matched_reason_codes
-                ],
-                "evidence_ids": list(policy.evidence_ids),
-                "required_provenance_fields": list(policy.required_provenance_fields),
-            }
-        )
+    policies = [
+        {
+            "policy_id": policy.policy_id,
+            "policy_version": policy.policy_version,
+            "family": policy.family,
+            "claims": {
+                "any_identity": {
+                    field: list(values) for field, values in policy.claims.items()
+                }
+            },
+            "constraints": [
+                to_primitive(constraint) for constraint in policy.constraints
+            ],
+            "paths": [to_primitive(path) for path in policy.paths],
+            "matched_reason": policy.matched_reason_key,
+            "matched_reason_codes": [
+                item.value for item in policy.matched_reason_codes
+            ],
+            "evidence_ids": list(policy.evidence_ids),
+            "required_provenance_fields": list(policy.required_provenance_fields),
+        }
+        for policy in MODEL_COMPATIBILITY_POLICIES
+    ]
     return model_policy_snapshot_payload(
         {
             "compatibility_schema_version": MODEL_COMPATIBILITY_SCHEMA_VERSION,
@@ -471,6 +555,12 @@ def current_model_policy_snapshot() -> dict[str, Any]:
                 "four_bit": QWEN3_MOE_FOUR_BIT_REASON,
                 "invalid": INVALID_COMPATIBILITY_FACTS_REASON,
                 "matched": QWEN3_MOE_MATCHED_REASON,
+                "qwen2_identity": QWEN2_IDENTITY_REASON,
+                "qwen2_layers": QWEN2_LAYER_REASON,
+                "qwen2_layout": QWEN2_LAYOUT_REASON,
+                "qwen2_dense": QWEN2_DENSE_REASON,
+                "qwen2_four_bit": QWEN2_FOUR_BIT_REASON,
+                "qwen2_matched": QWEN2_MATCHED_REASON,
                 "dense": FAMILY_RECOGNIZED_REASON,
                 "sparse": UNREVIEWED_SPARSE_MODEL_REASON,
                 "unknown": UNKNOWN_POLICY_REASON,
@@ -637,55 +727,6 @@ def _decision_identity_payload(
         "reason_codes": [item.value for item in reason_codes],
         "evidence_ids": list(evidence_ids),
     }
-
-
-def _decision(
-    subject: ModelCompatibilitySubject,
-    *,
-    kind: ModelPolicyDecisionKind,
-    family: str | None,
-    policy: _ModelCompatibilityPolicy | None,
-    paths: tuple[ModelPolicyPath, ...],
-    reason_codes: tuple[ModelPolicyReasonCode, ...],
-    evidence_ids: tuple[str, ...],
-    reason: str,
-) -> ModelPolicyDecision:
-    subject_digest = compatibility_subject_sha256(subject)
-    policy_id = policy.policy_id if policy is not None else None
-    policy_version = policy.policy_version if policy is not None else None
-    identity = _decision_identity_payload(
-        subject_facts_sha256=subject_digest,
-        kind=kind,
-        family=family,
-        policy_id=policy_id,
-        policy_version=policy_version,
-        paths=paths,
-        reason_codes=reason_codes,
-        evidence_ids=evidence_ids,
-    )
-    return ModelPolicyDecision(
-        schema_version=MODEL_COMPATIBILITY_SCHEMA_VERSION,
-        decision_id=_content_id("compat_", identity),
-        subject_facts_sha256=subject_digest,
-        kind=kind,
-        family=family,
-        policy_id=policy_id,
-        policy_version=policy_version,
-        paths=paths,
-        reason_codes=reason_codes,
-        evidence_ids=evidence_ids,
-        reason=reason,
-    )
-
-
-_BLOCKING_REASON_CODES = {
-    QWEN3_MOE_IDENTITY_REASON: ModelPolicyReasonCode.IDENTITY_MISMATCH,
-    QWEN3_MOE_LAYOUT_REASON: ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH,
-    QWEN3_MOE_TOPOLOGY_REASON: ModelPolicyReasonCode.TOPOLOGY_INCOMPLETE,
-    QWEN3_MOE_SHARED_EXPERT_REASON: ModelPolicyReasonCode.SHARED_EXPERT_UNSUPPORTED,
-    QWEN3_MOE_FOUR_BIT_REASON: ModelPolicyReasonCode.FOUR_BIT_REQUIRED,
-    INVALID_COMPATIBILITY_FACTS_REASON: ModelPolicyReasonCode.INVALID_FACTS,
-}
 
 
 def _normalized_observed_fact(field: str, value: Any) -> Any:
@@ -1077,95 +1118,13 @@ def model_policy_binding_for_path(
 def evaluate_model_compatibility(
     subject: ModelCompatibilitySubject,
 ) -> ModelPolicyDecision:
-    """Return artifact-policy status without deciding hardware feasibility."""
+    """Return model-policy status without deciding hardware feasibility."""
 
-    if subject.fact_errors:
-        claimed_qwen = _qwen3_moe_claims(subject)
-        exact_qwen = _is_exact_qwen3_moe_subject(subject)
-        reason = (
-            INVALID_COMPATIBILITY_FACTS_REASON
-            if not claimed_qwen or exact_qwen
-            else QWEN3_MOE_IDENTITY_REASON
-        )
-        policy = _QWEN3_MOE_POLICY if claimed_qwen else None
-        return _decision(
-            subject,
-            kind=ModelPolicyDecisionKind.BLOCKED,
-            family=QWEN3_MOE_FAMILY if claimed_qwen else subject.family,
-            policy=policy,
-            paths=(),
-            reason_codes=(_BLOCKING_REASON_CODES[reason],),
-            evidence_ids=policy.evidence_ids if policy is not None else (),
-            reason=reason,
-        )
-
-    for policy in MODEL_COMPATIBILITY_POLICIES:
-        if not policy.claims(subject):
-            continue
-        blocking_reason = policy.first_blocking_reason(subject)
-        if blocking_reason is not None:
-            return _decision(
-                subject,
-                kind=ModelPolicyDecisionKind.BLOCKED,
-                family=policy.family,
-                policy=policy,
-                paths=(),
-                reason_codes=(_BLOCKING_REASON_CODES[blocking_reason],),
-                evidence_ids=policy.evidence_ids,
-                reason=blocking_reason,
-            )
-        return _decision(
-            subject,
-            kind=ModelPolicyDecisionKind.PATH_MATCHED,
-            family=policy.family,
-            policy=policy,
-            paths=policy.paths,
-            reason_codes=policy.matched_reason_codes,
-            evidence_ids=policy.evidence_ids,
-            reason=policy.matched_reason,
-        )
-
-    if (
-        subject.moe is not None
-        or _has_sparse_identity_marker(subject)
-        or any(item.startswith("moe:") for item in subject.fact_errors)
-    ):
-        return _decision(
-            subject,
-            kind=ModelPolicyDecisionKind.BLOCKED,
-            family=subject.family,
-            policy=None,
-            paths=(),
-            reason_codes=(ModelPolicyReasonCode.UNREVIEWED_SPARSE_MODEL,),
-            evidence_ids=(),
-            reason=UNREVIEWED_SPARSE_MODEL_REASON,
-        )
-
-    normalized_family = subject.family.lower() if subject.family is not None else None
-    if (
-        normalized_family is not None
-        and TARGET_MODULES.get(normalized_family) == DENSE_CAUSAL_LM_TARGET_MODULES
-    ):
-        return _decision(
-            subject,
-            kind=ModelPolicyDecisionKind.FAMILY_RECOGNIZED,
-            family=normalized_family,
-            policy=None,
-            paths=(),
-            reason_codes=(ModelPolicyReasonCode.FAMILY_RECOGNIZED,),
-            evidence_ids=(),
-            reason=FAMILY_RECOGNIZED_REASON,
-        )
-    return _decision(
-        subject,
-        kind=ModelPolicyDecisionKind.UNKNOWN,
-        family=subject.family,
-        policy=None,
-        paths=(),
-        reason_codes=(ModelPolicyReasonCode.NO_POLICY_MATCH,),
-        evidence_ids=(),
-        reason=UNKNOWN_POLICY_REASON,
+    primitive = evaluate_model_policy_snapshot(
+        current_model_policy_snapshot(),
+        to_primitive(subject),
     )
+    return model_policy_decision_from_primitive(primitive)
 
 
 def candidate_matches_policy_path(
@@ -1210,11 +1169,14 @@ def model_policy_rejection_reasons(
         runtime_contract=runtime_contract,
     ):
         return ()
+    policy = _policy_for_decision(decision)
     if decision.kind == ModelPolicyDecisionKind.BLOCKED:
-        if decision.family == QWEN3_MOE_FAMILY:
-            return tuple(dict.fromkeys((decision.reason, QWEN3_MOE_PATH_REASON)))
+        if policy is not None:
+            return tuple(dict.fromkeys((decision.reason, policy.path_rejection_reason)))
         return (decision.reason,)
-    return (QWEN3_MOE_PATH_REASON,)
+    if policy is None:  # pragma: no cover - guarded by domain decision invariants
+        return (decision.reason,)
+    return (policy.path_rejection_reason,)
 
 
 def compatibility_response_v1(
@@ -1273,10 +1235,14 @@ def compatibility_response_v1(
             "adapter_profile_id": None,
             "reason": decision.reason,
         }
-    exact_identity_blocked = (
+    policy = _policy_for_decision(decision)
+    inspected_configuration_blocked = bool(
         decision.kind == ModelPolicyDecisionKind.BLOCKED
-        and decision.family == QWEN3_MOE_FAMILY
-        and decision.reason in _QWEN3_EXACT_IDENTITY_BLOCKING_REASONS
+        and policy is not None
+        and any(
+            code in policy.inspection_blocking_reason_codes
+            for code in decision.reason_codes
+        )
     )
     return {
         "status": "unsupported",
@@ -1288,8 +1254,8 @@ def compatibility_response_v1(
         "evidence_requirement": "implementation-required",
         "adapter_profile_id": None,
         "reason": (
-            QWEN3_MOE_BLOCKED_INSPECTION_REASON
-            if exact_identity_blocked
+            policy.blocked_inspection_reason
+            if inspected_configuration_blocked and policy is not None
             else UNKNOWN_POLICY_REASON
         ),
     }

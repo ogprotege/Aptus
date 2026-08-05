@@ -158,6 +158,10 @@ Attach evidence for:
       group-64 layout with exactly one eight-bit group-64 router-gate override
       per layer, a complete no-shared-expert topology, MLX-LM QLoRA, single
       placement, and attention-only targets.
+- [ ] The reviewed dense Qwen2 row binds `qwen`, `qwen2`,
+      `Qwen2ForCausalLM`, exactly 24 layers, no MoE topology, a uniform
+      four-bit group-size-64 layout with no overrides, MLX-LM QLoRA, single
+      placement, and all seven attention and MLP projection targets.
 
 ## Target-host inventory
 
@@ -251,6 +255,7 @@ uninterrupted pilot and, when claimed, a parent-verified full-duration run.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `mlx-lm` | LoRA | Single | Conditional | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | `mlx-lm` | QLoRA | Single | Conditional after pinned four-bit metadata check | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| `mlx-lm` | QLoRA, reviewed 24-layer dense Qwen2 footprint | Single | Conditional after identity, dense-topology, and uniform-layout checks | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | `mlx-lm` | QLoRA, exact Qwen3 MoE row | Single | Conditional after identity, topology, and four-bit checks | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 | `pytorch-mps` | Any | Any | Implementation required | `[fill]` | `[fill]` | `[fill]` | `N/A` | `N/A` | `N/A` | `N/A` | `N/A` | `[fill negative evidence]` |
 
@@ -266,6 +271,9 @@ Repeat this section for each runtime row marked passed.
 |---|---|
 | Plan ID | `[fill]` |
 | Model-policy snapshot SHA-256 | `[fill]` |
+| Policy ID and version | `[fill]` |
+| Policy path ID | `[fill]` |
+| Policy evidence IDs | `[fill]` |
 | Candidate ID | `[fill]` |
 | Bundle fingerprint | `[fill]` |
 | Dataset SHA-256 | `[fill]` |
@@ -341,6 +349,9 @@ For MLX-LM, record the uninterrupted pilot separately:
 - [ ] Qwen3 MoE metrics bind the exact provider identity, complete topology,
       canonical quantization layout and digest, logical total and active
       parameter census, sparse-layer count, and attention-only target instances.
+- [ ] Qwen2 metrics bind the exact artifact and revision, reviewed 24-layer
+      dense identity, canonical empty-override quantization layout and digest,
+      seven-module target census, and current v5 plan/v3 bundle IDs.
 
 #### Full-run split and export
 

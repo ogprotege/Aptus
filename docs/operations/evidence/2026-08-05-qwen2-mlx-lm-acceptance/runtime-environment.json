@@ -1,0 +1,32 @@
+{
+  "schema_version": "aptus.phase6-runtime-environment.v1",
+  "status": "ready",
+  "observed_at": "2026-08-05T12:36:13.526481+00:00",
+  "aptus_version": "0.2.0",
+  "preferred_runtime": "mlx-lm",
+  "installation_performed": false,
+  "configured_runtime_keys": {
+    "mlx-lm": true,
+    "pytorch-mps": false,
+    "transformers-peft-cuda": false
+  },
+  "runtime": {
+    "python_version": "3.12.13",
+    "source": "environment:APTUS_MLX_PYTHON:mlx-lm",
+    "mlx_lm": {
+      "available": true,
+      "compatible": true,
+      "expected_versions": {
+        "mlx": "0.31.2",
+        "mlx-lm": "0.31.3"
+      },
+      "reason_present": false,
+      "versions": {
+        "mlx": "0.31.2",
+        "mlx-lm": "0.31.3"
+      }
+    }
+  },
+  "compatible_mlx_lm_interpreters": 1,
+  "paths_included": false
+}

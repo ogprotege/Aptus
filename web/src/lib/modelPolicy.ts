@@ -97,6 +97,7 @@ const DISTRIBUTIONS = new Set<ModelPolicyPath["distribution"]>([
 ]);
 const ADAPTER_PROFILES = new Set<NonNullable<ModelPolicyPath["adapter_profile_id"]>>([
   "attention-qkvo.v1",
+  "dense-causal-lm.v1",
 ]);
 const BACKENDS = new Set<ModelPolicyPath["runtime_contract"]["compute_backend"]>([
   "cuda",
@@ -120,11 +121,14 @@ const VALIDATION_LEVELS = new Set<ModelPolicyValidationLevel>([
 ]);
 const REASON_CODES = new Set<ModelPolicyDecision["reason_codes"][number]>([
   "exact-reviewed-artifact",
+  "reviewed-runtime-path",
   "pilot-not-yet-proven",
   "invalid-compatibility-facts",
   "identity-mismatch",
+  "layer-count-mismatch",
   "quantization-layout-mismatch",
   "topology-incomplete",
+  "dense-topology-required",
   "shared-expert-unsupported",
   "four-bit-required",
   "family-recognized",

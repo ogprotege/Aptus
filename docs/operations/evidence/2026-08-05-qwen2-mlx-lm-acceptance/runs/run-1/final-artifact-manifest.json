@@ -1,0 +1,36 @@
+{
+  "action": "full",
+  "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+  "execution_semantics": "uninterrupted",
+  "files": [
+    {
+      "path": ".aptus-run.json",
+      "sha256": "90a94ecbe52024ace55f2499ce85178dfb4828222a4998d748aa43b9f304c5ed",
+      "size_bytes": 486
+    },
+    {
+      "path": "final/adapter_config.json",
+      "sha256": "32075fe8c7c5d212a3cd3fe2c11a689ec7cc9d955bc748e491c10b03a305e40d",
+      "size_bytes": 1571
+    },
+    {
+      "path": "final/adapters.safetensors",
+      "sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+      "size_bytes": 17632042
+    },
+    {
+      "path": "reload-evidence.json",
+      "sha256": "1720aef546887015e81e0be6dc247b7fd08f6334a5685b98307c6020a0398a6c",
+      "size_bytes": 1321
+    },
+    {
+      "path": "training-metrics.json",
+      "sha256": "ae4293729990226aa9ca867add7280f350dbb8b0321737d3b70f429548595b8f",
+      "size_bytes": 5579
+    }
+  ],
+  "plan_id": "plan_bd33e8ab37765b7efa93",
+  "resume_supported": false,
+  "schema_version": "aptus.mlx-artifact-manifest.v1",
+  "total_bytes": 17640999
+}

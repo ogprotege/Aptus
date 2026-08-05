@@ -355,6 +355,16 @@ def build_mlx_model_parameter_census(
             routed_expert_parameters - active_routed_expert_parameters
         )
         census_method = "mlx-lm.get_total_parameters-plus-exact-qwen3-moe-routing.v1"
+    else:
+        for index, layer in enumerate(layers):
+            mlp = getattr(layer, "mlp", None)
+            if mlp is not None and any(
+                getattr(mlp, name, None) is not None
+                for name in ("switch_mlp", "num_experts", "top_k")
+            ):
+                raise RuntimeError(
+                    f"Loaded MLX-LM layer {index} is sparse where the Aptus plan requires dense topology."
+                )
 
     observed_active = observed_total - inactive_expert_parameters
     if (

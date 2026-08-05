@@ -1,0 +1,57 @@
+[
+  {
+    "id": "job_cd5512825a844a89839c9312adab7f94",
+    "action": "train",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "owner_status": "terminal",
+    "validation_state": null,
+    "validation_level": null
+  },
+  {
+    "id": "job_a333d3ba89a24cdea7860bffd6a56cd9",
+    "action": "pilot",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "owner_status": "terminal",
+    "validation_state": null,
+    "validation_level": null
+  },
+  {
+    "id": "job_d934c8d957194ae09ac8fe957e7eeab0",
+    "action": "preflight",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "owner_status": "terminal",
+    "validation_state": null,
+    "validation_level": null
+  },
+  {
+    "id": "job_136204001992473eb4eed2958d991568",
+    "action": "model-data",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "owner_status": "terminal",
+    "validation_state": null,
+    "validation_level": null
+  },
+  {
+    "id": "job_df77567cfe8142549d7590b5c128b94c",
+    "action": "dependency",
+    "state": "completed",
+    "phase": "completed",
+    "return_code": 0,
+    "error": null,
+    "owner_status": "terminal",
+    "validation_state": null,
+    "validation_level": null
+  }
+]

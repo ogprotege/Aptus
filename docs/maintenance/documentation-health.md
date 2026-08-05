@@ -3,9 +3,10 @@
 > **Documentation status:** Active governance
 >
 > **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
-> the current Phase 5 maintained-guidance closeout
+> the Phase 5 maintained-guidance closeout, Phase 6 policy implementation, and
+> 2026-08-05 exact-scope runtime acceptance
 >
-> **Last reviewed:** 2026-08-04
+> **Last reviewed:** 2026-08-05
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -52,6 +53,19 @@ and evidence readiness as separate records. The typed HTTP 422
 with the required model subject, request, and receipt, and requires rejected-only
 complete candidate tuples.
 
+The current Phase 6 implementation expands the same data-driven registry with
+`model.qwen2-24l.mlx-qlora` and
+`mlx-lm.qlora.single.dense-causal-lm.v1`. Exact 24-layer dense Qwen2 identity,
+uniform four-bit group-size-64 layout, seven-module adapter scope, portable
+parity, per-policy receipt provenance, planner binding, and canonical evidence
+are implemented without a new top-level contract version. The policy describes
+a reviewed configuration footprint rather than an artifact allowlist. The
+[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two clean current-source `aptus.training-plan.v5` and
+`aptus.bundle.v3` `measured-run-pass` repetitions for the exact pinned artifact,
+source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
+snapshot.
+
 The current Phase 4 contract uses a frozen snapshot for package-free portable
 integrity and policy-decision parity. Portable validation cannot determine host
 policy currency. Validation under an installed Aptus host additionally compares
@@ -73,18 +87,25 @@ status from prose or mutate the report after a generic training-request failure.
 authorization does not itself mean stale policy or replanning. The receipt's v2
 decision is the one inspection-time browser policy source; the unused flattened
 compatibility normalizer was removed. The MoE rail owns topology and
-resident-versus-active memory only. Phase 6 remains pending.
+resident-versus-active memory only. The second Phase 6 policy reaches that same
+generic browser boundary without family-specific reconstruction.
+
+That acceptance closes the current-source Phase 6 MLX-LM runtime gate for its
+exact scope. A different matching artifact remains conditional and must pass
+its own model-data, measured-preflight, and pilot gates. The record does not
+qualify CUDA, establish model quality, establish general Qwen2 compatibility,
+or promise production throughput.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
 itself remains blocked until qualifying CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
-capabilities being claimed. Historical real MLX-LM acceptance and a local
-10-build desktop engineering gate passed at their recorded commits, but both
-predate the current Phase 5 source head. No current-head CUDA or MLX
-target-runtime pilot was collected for the Phase 5 closeout. The repository
-checks its principal navigation and executable-reference surfaces, but it does
-not yet derive every default, status, and response field from one source.
+capabilities being claimed. The July MLX-LM acceptance and local 10-build
+desktop engineering gate remain historical at their recorded commits; the
+August 5 packet is the bounded current-source MLX-LM result. No qualifying CUDA
+target-runtime acceptance has been collected. The repository checks its
+principal navigation and executable-reference surfaces, but it does not yet
+derive every default, status, and response field from one source.
 
 ## Scorecard
 
@@ -94,23 +115,23 @@ not yet derive every default, status, and response field from one source.
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the portable snapshot digest, installed-host registry currency remains a separate admission check, and workbench presentation no longer reconstructs policy from topology |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, and workbench presentation no longer reconstructs policy from topology |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress and distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; generated-doc and structured default parity remain partial |
-| Release evidence | Partial | Historical evidence records two clean MLX-LM `measured-run-pass` workflows and 10 of 10 local desktop engineering builds at their tested commits; neither binds the current Phase 5 head, and CUDA target-host and public notarized distribution evidence remain open |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, and exact-scope acceptance closeout, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; generated-doc and structured default parity remain partial |
+| Release evidence | Partial | The August 5 packet records two clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact/source/host/runtime/dataset/policy scope; CUDA target-host and public notarized distribution evidence remain open, and the record is not a quality or production-throughput claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 101
+The [documentation inventory](documentation-inventory.md) classifies 103
 governed tracked Markdown documents:
 
-- 85 active;
+- 86 active;
 - 2 deprecated;
-- 14 archived.
+- 15 archived.
 
-The automated `maintained_documentation()` set contains 92 files because it
+The automated `maintained_documentation()` set contains 94 files because it
 retains the legacy-audit README but excludes nine subordinate historical audit
 pages. That automation scope is intentionally narrower than the governed
 inventory.
@@ -276,9 +297,11 @@ The Phase 4 closeout source tree passed 505 Python tests, 91 web tests, and 81
 native tests, plus Ruff, bytecode compilation, generated-contract parity, a
 fresh installed-wheel smoke, and the complete signed-app/ZIP/DMG engineering
 gate. All five GitHub checks passed for PR #30. These results establish the
-source, contract, packaging, and documentation baseline only. Neither the July
-MLX-LM evidence nor this closeout supplies a current-head MLX or CUDA target
-pilot, and neither establishes public notarized release readiness.
+source, contract, packaging, and documentation baseline only. At that closeout,
+neither the July MLX-LM evidence nor the source tree supplied a current-head MLX
+or CUDA target pilot, and neither established public notarized release
+readiness. The later August 5 packet closes only the exact Phase 6 MLX-LM scope
+described above.
 
 The Phase 4 documentation synchronization passed 506 Python tests, including
 23 documentation and 61 bundle-generation tests, plus 91 web tests and 81
@@ -296,10 +319,24 @@ model-policy records; exact-path binding; plan/candidate/revision evidence
 binding and action gating; structural recommendation equality; provider-declared
 path-match provenance; typed authorization coherence without prose inference or
 generic-failure mutation; topology and resident-memory separation; the typed
-no-feasible policy chain; and the pending Phase 6 boundary. Ruff lint and format
-checks passed for the touched Python test file. This focused result does not
-claim the full Python, web, native, packaging, target-runtime, or notarization
-gates.
+no-feasible policy chain; and the then-pending Phase 6 boundary. Ruff lint and
+format checks passed for the touched Python test file. This focused result does
+not claim the full Python, web, native, packaging, target-runtime, or
+notarization gates.
+
+The Phase 6 implementation candidate adds the second registry-driven Qwen2
+configuration footprint while preserving the Phase 5 browser authority and
+v1 snapshot shape. Focused contract coverage verifies two-policy snapshot
+generation, claims-subset safety, host/portable exact and mutation parity,
+sparse near-match refusal, exactly one seven-target planner binding, per-policy
+receipt provenance, dense empty-override storage, and artifact-scoped canonical
+evidence. These are source and contract results only. They do not replace the
+runtime ladder. The subsequent
+[2026-08-05 acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+records two qualifying v5/v3 repetitions and resolves DOC-024 for its exact
+artifact, source, host, runtime, dataset, and policy-snapshot scope. Other
+matching artifacts remain gated, and CUDA, quality, and production-throughput
+claims remain outside that result.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature
@@ -313,8 +350,8 @@ checks do not replace CUDA target-host acceptance or public notarization.
    parity gaps.
 2. Publish a concrete private security-reporting route.
 3. Resolve the OpenAPI generator development advisories.
-4. Complete qualifying current-head MLX and CUDA target-host evidence and public
-   desktop distribution evidence.
+4. Complete qualifying CUDA target-host evidence and public desktop distribution
+   evidence.
 5. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

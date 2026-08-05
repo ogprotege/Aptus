@@ -30,6 +30,7 @@ from aptus.plan_contract import (
     _current_model_policy_decision,
     candidate_id_for_payload,
     expected_model_architecture_contract,
+    mlx_quantized_storage_bytes_for_contract,
     plan_id_for_payload,
     require_current_model_policy,
     validate_bundle_manifest,
@@ -45,6 +46,7 @@ from aptus.profiling import (
 
 from tests.aptus.helpers import (
     make_plan,
+    make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
     qwen3_moe_quantization_config,
 )
@@ -297,6 +299,50 @@ class PlanContractTests(unittest.TestCase):
             )
         )
 
+    def _provider_qwen2_payload(self) -> dict:
+        base = make_qwen2_runtime_footprint_plan(self.root)
+        model = base.model
+        facts = to_primitive(model)
+        observed_at = "2026-08-04T12:00:00+00:00"
+        receipt_fields = (
+            "architecture",
+            "context_length",
+            "family",
+            "hidden_size",
+            "intermediate_size",
+            "layers",
+            "license_name",
+            "model_type",
+            "quantization_bits",
+            "quantization_layout",
+        )
+        provenance = {
+            field: {
+                "kind": "inferred" if field == "family" else "provider-declared",
+                "source": "https://huggingface.co/provider/pinned-config",
+                "observed_at": observed_at,
+                "resolved_revision": model.revision,
+            }
+            for field in receipt_fields
+        }
+        receipt = create_model_inspection_receipt(
+            model_id=model.model_id,
+            resolved_revision=model.revision,
+            facts=facts,
+            provenance=provenance,
+            subject=subject_from_model(model),
+            evaluated_at=observed_at,
+        )
+        return to_primitive(
+            plan_training(
+                model=model,
+                dataset=base.dataset,
+                hardware=base.hardware,
+                target=base.target,
+                inspection_receipt=receipt,
+            )
+        )
+
     def test_v4_plan_requires_replanning(self) -> None:
         value = copy.deepcopy(self.payload)
         value["schema_version"] = "aptus.training-plan.v4"
@@ -364,6 +410,97 @@ class PlanContractTests(unittest.TestCase):
 
         with self.assertRaisesRegex(StaleModelPolicyError, "replan_required"):
             require_current_model_policy(value)
+
+    def test_stale_provider_policy_uses_its_identity_bound_receipt(self) -> None:
+        value = self._provider_qwen2_payload()
+        changed_snapshot = copy.deepcopy(current_model_policy_snapshot())
+        changed_snapshot["policies"] = [
+            policy
+            for policy in changed_snapshot["policies"]
+            if policy["policy_id"] != "model.qwen2-24l.mlx-qlora"
+        ]
+
+        with (
+            patch(
+                "aptus.model_compatibility.current_model_policy_snapshot",
+                return_value=changed_snapshot,
+            ),
+            self.assertRaisesRegex(StaleModelPolicyError, "replan_required"),
+        ):
+            require_current_model_policy(value)
+
+    def test_stale_provider_policy_rejects_inferred_path_fact_rewrite(self) -> None:
+        value = self._provider_qwen2_payload()
+        receipt = value["inspection_receipt"]
+        recommended_key = (
+            value["recommended"]["method"],
+            value["recommended"]["distribution"],
+        )
+        downgraded_fields = {
+            "layers",
+            "model_type",
+            "quantization_bits",
+            "quantization_layout",
+        }
+        for item in receipt["provenance_summary"]:
+            if item["field"] in downgraded_fields:
+                item["kind"] = "inferred"
+
+        receipt_identity = {
+            "schema_version": receipt["schema_version"],
+            "model_id": receipt["model_id"],
+            "resolved_revision": receipt["resolved_revision"].lower(),
+            "observed_facts_sha256": receipt["observed_facts_sha256"],
+            "decision_id": receipt["decision"]["decision_id"],
+            "provenance_summary": receipt["provenance_summary"],
+            "provenance_requirement": receipt["provenance_requirement"],
+            "provenance_requirement_met": receipt["provenance_requirement_met"],
+            "evaluated_at": receipt["evaluated_at"],
+        }
+        encoded = json.dumps(
+            receipt_identity,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        receipt["receipt_id"] = "receipt_" + hashlib.sha256(encoded).hexdigest()[:20]
+        for item in receipt["provenance_summary"]:
+            model_provenance = value["model"]["provenance"][item["field"]]
+            model_provenance["kind"] = item["kind"]
+            model_provenance["digest"] = receipt["receipt_id"]
+        for candidate in value["candidates"]:
+            binding = candidate["policy_binding"]
+            if binding is not None:
+                binding["inspection_receipt_id"] = receipt["receipt_id"]
+            candidate["candidate_id"] = candidate_id_for_payload(
+                candidate,
+                model=value["model"],
+                dataset=value["dataset"],
+                hardware=value["hardware"],
+                target=value["target"],
+            )
+        value["recommended"] = copy.deepcopy(
+            next(
+                candidate
+                for candidate in value["candidates"]
+                if (candidate["method"], candidate["distribution"]) == recommended_key
+            )
+        )
+        value["plan_id"] = plan_id_for_payload(value)
+
+        changed_snapshot = copy.deepcopy(current_model_policy_snapshot())
+        changed_snapshot["policies"] = [
+            policy
+            for policy in changed_snapshot["policies"]
+            if policy["policy_id"] != "model.qwen2-24l.mlx-qlora"
+        ]
+        with patch(
+            "aptus.model_compatibility.current_model_policy_snapshot",
+            return_value=changed_snapshot,
+        ):
+            with self.assertRaises(ValueError) as caught:
+                require_current_model_policy(value)
+
+        self.assertNotIsInstance(caught.exception, StaleModelPolicyError)
 
     def test_partial_stale_policy_rewrite_is_tampering_not_replan(self) -> None:
         value = to_primitive(make_qwen3_moe_plan(self.root))
@@ -741,6 +878,69 @@ class PlanContractTests(unittest.TestCase):
                 self.assertTrue(
                     any(f"provenance for {field}" in item for item in errors),
                     errors,
+                )
+
+    def test_portable_receipt_uses_each_policy_provenance_requirements(
+        self,
+    ) -> None:
+        cases = {
+            "Qwen3 MoE artifact policy": (
+                self._provider_qwen_payload(),
+                "model.qwen3-moe.mlx-qlora",
+                {
+                    "architecture",
+                    "layers",
+                    "model_type",
+                    "moe",
+                    "quantization_bits",
+                    "quantization_layout",
+                },
+            ),
+            "Qwen2 reviewed runtime footprint": (
+                self._provider_qwen2_payload(),
+                "model.qwen2-24l.mlx-qlora",
+                {
+                    "architecture",
+                    "layers",
+                    "model_type",
+                    "quantization_bits",
+                    "quantization_layout",
+                },
+            ),
+        }
+        policies = {
+            policy["policy_id"]: policy
+            for policy in current_model_policy_snapshot()["policies"]
+        }
+
+        for name, (value, policy_id, required_fields) in cases.items():
+            with self.subTest(name=name):
+                receipt = value["inspection_receipt"]
+                self.assertEqual(receipt["decision"]["policy_id"], policy_id)
+                self.assertEqual(
+                    set(policies[policy_id]["required_provenance_fields"]),
+                    required_fields,
+                )
+                summary = {
+                    item["field"]: item for item in receipt["provenance_summary"]
+                }
+                self.assertTrue(required_fields.issubset(summary))
+                self.assertTrue(
+                    all(
+                        summary[field]["kind"] == "provider-declared"
+                        for field in required_fields
+                    )
+                )
+                self.assertEqual(
+                    receipt["provenance_requirement"],
+                    "provider-declared",
+                )
+                self.assertTrue(receipt["provenance_requirement_met"])
+                if policy_id == "model.qwen2-24l.mlx-qlora":
+                    self.assertNotIn("moe", summary)
+                self.assertEqual(
+                    validate_plan_payload(value, verify_dataset=False),
+                    (),
                 )
 
     def test_portable_receipt_rejects_non_provider_provenance_kinds(self) -> None:
@@ -1194,6 +1394,67 @@ class PlanContractTests(unittest.TestCase):
         config["num_experts_per_tok"] = 4
         with self.assertRaisesRegex(ValueError, "topology"):
             validate_model_config_against_plan(model, config)
+
+    def test_dense_qwen2_architecture_contract_rejects_moe_config(self) -> None:
+        model = to_primitive(make_qwen2_runtime_footprint_plan(self.root))["model"]
+        config = {
+            "model_type": "qwen2",
+            "architectures": ["Qwen2ForCausalLM"],
+            "hidden_size": 896,
+            "intermediate_size": 4864,
+            "num_hidden_layers": 24,
+            "max_position_embeddings": 32768,
+            "quantization": {"bits": 4, "group_size": 64},
+        }
+
+        validate_model_config_against_plan(model, config)
+        config.update(
+            {
+                "num_experts": 8,
+                "num_experts_per_tok": 2,
+                "moe_intermediate_size": 1024,
+                "decoder_sparse_step": 1,
+                "mlp_only_layers": [],
+            }
+        )
+
+        with self.assertRaisesRegex(ValueError, "unexpectedly declares MoE"):
+            validate_model_config_against_plan(model, config)
+
+    def test_dense_mlx_storage_supports_explicit_empty_override_layout(self) -> None:
+        model = {
+            "parameters": 494_000_000,
+            "quantization_layout": {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [],
+            },
+        }
+
+        self.assertEqual(
+            mlx_quantized_storage_bytes_for_contract(model),
+            (247_000_000, 30_875_000),
+        )
+
+    def test_dense_mlx_storage_rejects_router_override_without_moe(self) -> None:
+        model = {
+            "parameters": 494_000_000,
+            "hidden_size": 896,
+            "quantization_layout": {
+                "default_bits": 4,
+                "default_group_size": 64,
+                "module_overrides": [
+                    {
+                        "module_path": "model.layers.0.mlp.gate",
+                        "bits": 8,
+                        "group_size": 64,
+                    }
+                ],
+            },
+        }
+
+        with self.assertRaisesRegex(ValueError, "MoE topology"):
+            mlx_quantized_storage_bytes_for_contract(model)
 
     def test_qwen3_moe_architecture_contract_rejects_quantization_layout_drift(
         self,

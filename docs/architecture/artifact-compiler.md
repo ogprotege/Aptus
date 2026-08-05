@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-05 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -89,7 +89,26 @@ The historical Phase 3 `aptus.bundle.v2` contract used handwritten
 self-contained policy checks. Phase 4 changed the bundle contract to
 `aptus.bundle.v3` and added the portable policy snapshot plus generic evaluator;
 Phase 5 subsequently removed browser policy reconstruction without changing
-this compiler contract. Phase 6 remains pending.
+this compiler contract. Phase 6 now adds the second registry-driven
+`model.qwen2-24l.mlx-qlora` configuration-footprint policy without changing the
+bundle schema. Its path is
+`mlx-lm.qlora.single.dense-causal-lm.v1`, and generated bundles carry the same
+two-policy snapshot bytes and digest as their v5 plan and manifest. Because the
+registry addition changes those canonical bytes, pre-expansion v5 plans require
+replanning.
+
+The compiler path and its exact current-contract runtime evidence are complete.
+The [2026-08-05 Qwen2 MLX-LM acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+binds two clean `aptus.training-plan.v5` and `aptus.bundle.v3` repetitions at
+commit `14ed44b52a76bb84d8d9db4f2303951aa641339b` through dependency, model-data,
+measured preflight, pilot and reload, confirmed full training, final reload and
+export, parent-owned promotion, and `measured-run-pass`. This closes the Phase 6
+runtime gate only for the exact recorded artifact, revision, host, runtime,
+dataset, snapshot, plan, and bundle. Compiler eligibility remains a
+configuration-footprint decision, so another matching artifact must establish
+its own runtime evidence. CUDA target-runtime acceptance remains open, and the
+record establishes neither model quality nor production throughput.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through
@@ -134,7 +153,9 @@ editing generated source or configuration in place.
 The typed registry exposes four selectable `gated-executable` methods. The CUDA
 compiler can emit their guarded single-device and DDP configurations, plus
 conditional LoRA FSDP. The MLX compiler emits supported LoRA and QLoRA adapter
-execution only. MLX full-parameter training and DoRA are unimplemented.
+execution only. Within that generic dense support, the Qwen2 24-layer policy
+binds MLX-LM QLoRA to `dense-causal-lm.v1` and all seven attention and MLP
+projection targets. MLX full-parameter training and DoRA are unimplemented.
 Experimental and research-only descriptors have no compiler or export
 identifiers and cannot enter this boundary. The compiler refuses full-parameter
 FSDP and quantized FSDP. It does not emit cloud infrastructure, provider

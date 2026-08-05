@@ -55,13 +55,13 @@ when its evidence, owner, or resolution changes.
 ### DOC-003: Enforce CLI reference parity
 
 - **Priority:** P1
-- **Status:** In progress
-- **Evidence:** Installed help explains user-facing fact flags, commands,
-  actions, choices, defaults, and hardware scope. Documentation tests now walk
-  the live parser tree and require every command, subcommand, and long option to
-  appear in the CLI reference.
-- **Required result:** Extend parity checks to compare choices and default
-  values as structured data instead of relying on reviewed prose.
+- **Status:** Resolved
+- **Resolution:** `docs/reference/cli.md` now embeds
+  `aptus.cli-parser-contract.v1`. The documentation test recursively projects
+  the live parser tree, expands shared planning-fact groups, and compares every
+  command, subcommand, exposed argument, choice, and non-suppressed default as
+  structured data. Booleans, nulls, lists, numbers, strings, and path defaults
+  are no longer validated by prose substring matching.
 - **Owner:** CLI and documentation maintainers
 
 ### DOC-004: Enforce API and error-reference parity
@@ -96,10 +96,14 @@ when its evidence, owner, or resolution changes.
 - **Evidence:** `SECURITY.md` directs reporters to GitHub private vulnerability
   reporting when available, with an existing private maintainer channel as
   fallback. It publishes supported-version, response-target, and
-  coordinated-disclosure rules. Repository inspection on 2026-07-27 confirmed
-  that GitHub private vulnerability reporting is disabled.
+  coordinated-disclosure rules. Repository and API inspection on 2026-08-05
+  confirmed that the repository is private; GitHub supports repository private
+  vulnerability reporting only for public repositories, so that intake cannot
+  be enabled in the current visibility state.
 - **Required result:** Add a maintained private reporting method, expected
   response window, supported-version table, and disclosure process.
+- **Blocker:** Repository-owner selection of a dedicated private contact or
+  intake URL that is safe to publish
 - **Owner:** Repository owner
 
 ### DOC-007: Improve package and repository discovery metadata
@@ -176,31 +180,30 @@ when its evidence, owner, or resolution changes.
 ### DOC-012: Test generated operator documentation as a contract
 
 - **Priority:** P1
-- **Status:** In progress
-- **Evidence:** Portable CUDA and MLX program sources now live as packaged
-  resources with emitted-byte and manifest parity tests across source, wheel,
-  and frozen layouts. Bundle `README.md`, `decision-report.md`, and `runbook.md`
-  guidance still comes from compiler templates. Representative CUDA and MLX
-  README assertions cover the v5 plan, v3 bundle, frozen-snapshot integrity,
-  and installed-host currency boundary, but not every executable method and
-  placement.
-- **Required result:** Generate representative bundles for all executable
-  methods and placements, then test command order, evidence boundaries,
-  platform notes, file names, and successor links.
+- **Status:** Resolved
+- **Resolution:** A registry-derived test matrix must equal every executable
+  runtime, backend, method, and placement row, then compile a genuine
+  deterministic recommendation for each row to `static-pass`. The current 11
+  rows cover CUDA Full, LoRA, int8-LoRA, and QLoRA across their single, DDP, and
+  LoRA-FSDP placements, plus single-device MLX-LM LoRA and QLoRA. Every emitted
+  `README.md`, `decision-report.md`, and `runbook.md` is checked for command
+  order, evidence and quality boundaries, platform notes, filenames, successor
+  links, selected compiler/export identities, and placement-specific guidance.
+  The resulting template corrections change manifested operator prose only;
+  runtime programs and dependencies are unchanged, and prior exact-bundle
+  runtime evidence is not transferred to a newly compiled fingerprint.
 - **Owner:** Compiler and documentation maintainers
 
 ### DOC-016: Resolve OpenAPI generator development advisories
 
 - **Priority:** P1
-- **Status:** Open
-- **Evidence:** Rechecked 2026-07-29. `npm audit --omit=dev` reports zero
-  production advisories. The full audit reports four high-severity transitive
-  advisories through
-  `openapi-typescript` and `@redocly/openapi-core`: `@redocly/openapi-core`,
-  `js-yaml`, `minimatch`, and `brace-expansion`. The generator consumes the
-  trusted checked-in OpenAPI document during development and release builds.
-- **Required result:** Upgrade or replace the generator dependency chain without
-  changing the generated contract unexpectedly, then record a clean full audit.
+- **Status:** Resolved
+- **Resolution:** A lockfile-only refresh moved `@redocly/openapi-core` to
+  1.34.18, its exact `js-yaml` dependency to 4.3.0, `brace-expansion` to 2.1.4,
+  and `postcss` to 8.5.25. A clean install and the full 2026-08-05 `npm audit`
+  report zero vulnerabilities. The declared dependency ranges, checked OpenAPI
+  schema, generated TypeScript client, and bundled web output remain unchanged;
+  OpenAPI parity, type checking, 127 web tests, and the production build pass.
 - **Owner:** Web and release maintainers
 
 ### DOC-017: Complete the 2026-07-28 documentation-drift remediation

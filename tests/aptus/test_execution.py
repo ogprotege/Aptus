@@ -608,6 +608,10 @@ class ExecutionJobTests(unittest.TestCase):
                 "export_kind": "mlx-lm-adapter",
             }
             plan_path.write_text(json.dumps(plan), encoding="utf-8")
+            (bundle / "run.py").write_text(
+                'parser.add_argument("--defer-parent-promotion")\n',
+                encoding="utf-8",
+            )
             service = JobService(root / "jobs")
             with patch(
                 "aptus.execution.resolve_runtime_interpreter",
@@ -619,11 +623,36 @@ class ExecutionJobTests(unittest.TestCase):
                     resume_from=None,
                     run_id="run_test",
                 )
+                (bundle / "run.py").write_text(
+                    "# Legacy MLX runner without managed deferral.\n",
+                    encoding="utf-8",
+                )
+                legacy_command = service._command(
+                    bundle,
+                    "train",
+                    resume_from=None,
+                    run_id="run_legacy",
+                )
 
         self.assertEqual(command[0], "/managed/mlx-python")
         self.assertEqual(command[1], "run.py")
-        self.assertEqual(command[2:4], ["--confirm-full-train", "--output-dir"])
-        self.assertEqual(command[4], str(Path("runs") / "run_test"))
+        self.assertEqual(
+            command[2:5],
+            [
+                "--confirm-full-train",
+                "--defer-parent-promotion",
+                "--output-dir",
+            ],
+        )
+        self.assertEqual(command[5], str(Path("runs") / "run_test"))
+        self.assertEqual(
+            legacy_command[2:],
+            [
+                "--confirm-full-train",
+                "--output-dir",
+                str(Path("runs") / "run_legacy"),
+            ],
+        )
 
     def test_mlx_runtime_metrics_reject_tampered_and_stale_bindings(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -897,6 +926,187 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertEqual(report["state"], "measured-run-pass")
         self.assertEqual(report["final_export"], evidence["final_export"])
         self.assertEqual(report["measured_run"], evidence["measured_run"])
+
+    def test_mlx_parent_receipts_child_promoted_verified_full_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            plan = fake_mlx_plan()
+            write_json(bundle / "plan.json", plan)
+            write_json(bundle / "bundle-manifest.json", {})
+
+            _pilot_run, pilot_metrics = create_mlx_completed_run(
+                bundle, plan, action="pilot"
+            )
+            pilot_copy = bundle / "pilot-output" / "metrics.json"
+            write_json(pilot_copy, pilot_metrics)
+            full_run, _full_metrics = create_mlx_completed_run(
+                bundle, plan, action="full"
+            )
+            artifact_fingerprint = sha256_file(bundle / "bundle-manifest.json")
+            bindings = {
+                "bundle": artifact_fingerprint,
+                "dataset": plan["dataset"]["source_sha256"],
+                "model_revision": plan["model"]["revision"],
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "pilot_metrics": sha256_file(pilot_copy),
+            }
+            report_path = bundle / "validation-report.json"
+            write_json(
+                report_path,
+                {
+                    "state": "pilot-pass",
+                    "validation_level": "pilot",
+                    "bindings": bindings,
+                    "pilot_metrics": pilot_metrics,
+                },
+            )
+            record = {
+                "id": "job_" + "a" * 32,
+                "run_id": full_run.name,
+                "bundle_dir": str(bundle),
+                "run_output_dir": str(full_run),
+                "artifact_fingerprint": artifact_fingerprint,
+                "command": [
+                    "/managed/mlx-python",
+                    "run.py",
+                    "--confirm-full-train",
+                    "--output-dir",
+                    str(Path("runs") / full_run.name),
+                ],
+            }
+
+            with (
+                patch("aptus.execution.validate_bundle_manifest", return_value=()),
+                patch("aptus.execution.validate_plan_payload", return_value=()),
+            ):
+                expected = _verify_mlx_train_artifacts(record)
+                child_report = json.loads(report_path.read_text(encoding="utf-8"))
+                child_report.update(
+                    state="measured-run-pass",
+                    validation_level="measured-run",
+                    measured_run_completed_at="2026-08-05T12:10:57+00:00",
+                    final_export=expected["final_export"],
+                    measured_run=expected["measured_run"],
+                )
+                write_json(report_path, child_report)
+                evidence = _verify_mlx_train_artifacts(record)
+
+            self.assertEqual(evidence["source_report_state"], "measured-run-pass")
+            self.assertNotIn("parent_promotion", child_report)
+            with patch(
+                "aptus.execution._require_current_bundle_model_policy",
+                return_value=(plan, artifact_fingerprint),
+            ):
+                record["command"] = [
+                    "/managed/mlx-python",
+                    "run.py",
+                    "--confirm-full-train",
+                    "--defer-parent-promotion",
+                    "--output-dir",
+                    str(Path("runs") / full_run.name),
+                ]
+                with self.assertRaisesRegex(
+                    ValueError, "valid parent-promotion receipt"
+                ):
+                    _promote_train_attestation(
+                        record,
+                        evidence,
+                        _allow_legacy_mlx_child_completion=True,
+                    )
+
+                record["command"].remove("--defer-parent-promotion")
+                changed_report = {**child_report, "runtime_evidence": ["changed"]}
+                write_json(report_path, changed_report)
+                with self.assertRaisesRegex(
+                    ValueError, "valid parent-promotion receipt"
+                ):
+                    _promote_train_attestation(
+                        record,
+                        evidence,
+                        _allow_legacy_mlx_child_completion=True,
+                    )
+
+                write_json(report_path, child_report)
+                promoted = _promote_train_attestation(
+                    record,
+                    evidence,
+                    _allow_legacy_mlx_child_completion=True,
+                )
+
+            promoted_report = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(promoted["state"], "measured-run-pass")
+        self.assertEqual(promoted_report["parent_promotion"]["job_id"], record["id"])
+        self.assertEqual(
+            promoted_report["parent_promotion"]["run_id"], record["run_id"]
+        )
+        self.assertEqual(
+            promoted_report["parent_promotion"]["evidence_sha256"],
+            _json_hash(evidence),
+        )
+
+    def test_mlx_parent_receipts_managed_deferred_full_run(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary) / "bundle"
+            bundle.mkdir()
+            write_json(bundle / "bundle-manifest.json", {})
+            report_path = bundle / "validation-report.json"
+            bindings = {"pilot_metrics": "a" * 64}
+            run_id = "run_" + "b" * 32
+            source_active_run = {
+                "output_dir": str((bundle / "runs" / run_id).resolve()),
+                "run_id": run_id,
+                "plan_id": "plan_test",
+                "candidate_id": "cand_test",
+            }
+            write_json(
+                report_path,
+                {
+                    "state": "execution-approved",
+                    "validation_level": "pilot",
+                    "bindings": bindings,
+                    "active_run": source_active_run,
+                    "runtime_evidence": [],
+                },
+            )
+            evidence = {
+                "training_runtime": "mlx-lm",
+                "source_report_state": "execution-approved",
+                "source_bindings": bindings,
+                "source_active_run": source_active_run,
+                "source_report_sha256": sha256_file(report_path),
+                "final_export": {"manifest_sha256": "b" * 64},
+                "measured_run": {"metrics_sha256": "c" * 64},
+            }
+            record = {
+                "id": "job_" + "b" * 32,
+                "run_id": run_id,
+                "bundle_dir": str(bundle),
+                "artifact_fingerprint": sha256_file(bundle / "bundle-manifest.json"),
+            }
+            with patch(
+                "aptus.execution._require_current_bundle_model_policy",
+                return_value=({}, record["artifact_fingerprint"]),
+            ):
+                promoted = _promote_train_attestation(record, evidence)
+            promoted_report = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(promoted["state"], "measured-run-pass")
+        self.assertEqual(promoted_report["validation_level"], "measured-run")
+        self.assertNotIn("active_run", promoted_report)
+        self.assertEqual(
+            promoted_report["parent_promotion"],
+            {
+                "schema_version": "aptus.parent-promotion.v1",
+                "job_id": record["id"],
+                "run_id": record["run_id"],
+                "artifact_fingerprint": record["artifact_fingerprint"],
+                "evidence_sha256": _json_hash(evidence),
+                "promoted_at": promoted["measured_run_completed_at"],
+            },
+        )
 
     def test_mlx_host_accepts_only_the_exact_portable_measured_attestation(
         self,
@@ -1494,7 +1704,6 @@ class ExecutionJobTests(unittest.TestCase):
             write_json(
                 bundle / "validation-report.json",
                 {
-                    "schema_version": "aptus.validation.v2",
                     "state": "execution-approved",
                     "active_run": active_run,
                     "measured_run_pending_at": pending_at,

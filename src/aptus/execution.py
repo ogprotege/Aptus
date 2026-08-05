@@ -1720,6 +1720,26 @@ def _verify_mlx_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
         report,
         bundle / "pilot-output" / "metrics.json",
     )
+    command = record.get("command")
+    managed_deferred = (
+        isinstance(command, list) and "--defer-parent-promotion" in command
+    )
+    if managed_deferred and report.get("state") != "execution-approved":
+        raise ValueError(
+            "Managed MLX training exited without deferred parent promotion."
+        )
+    source_active_run = None
+    if report.get("state") == "execution-approved":
+        source_active_run = {
+            "output_dir": str(Path(run_value).resolve()),
+            "run_id": Path(run_value).resolve().name,
+            "plan_id": plan["plan_id"],
+            "candidate_id": plan["recommended"]["candidate_id"],
+        }
+        if report.get("active_run") != source_active_run:
+            raise ValueError(
+                "Managed MLX execution approval does not bind the completed run."
+            )
     final_export = completed["final_export"]
     metrics = completed["metrics"]
     final_report = {
@@ -1763,6 +1783,7 @@ def _verify_mlx_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
         "measured_run": measured_report,
         "source_report_state": report["state"],
         "source_bindings": report.get("bindings"),
+        "source_active_run": source_active_run,
         "source_report_sha256": sha256_file(bundle / "validation-report.json"),
     }
 
@@ -1881,6 +1902,7 @@ def _promote_mlx_train_attestation(
         report.get("state") == "measured-run-pass"
         and report.get("final_export") == evidence["final_export"]
         and report.get("measured_run") == evidence["measured_run"]
+        and sha256_file(report_path) == evidence.get("source_report_sha256")
     ):
         return {
             "state": report["state"],
@@ -1891,6 +1913,7 @@ def _promote_mlx_train_attestation(
     if (
         report.get("state") != evidence.get("source_report_state")
         or report.get("bindings") != evidence.get("source_bindings")
+        or report.get("active_run") != evidence.get("source_active_run")
         or sha256_file(report_path) != evidence.get("source_report_sha256")
         or report.get("state") not in {"pilot-pass", "execution-approved"}
     ):
@@ -1981,8 +2004,7 @@ def _already_promoted_train_attestation(
             "Matching measured-run state lacks a valid parent-promotion receipt."
         ) from error
     if (
-        report.get("schema_version") != "aptus.validation.v2"
-        or report.get("validation_level") != "measured-run"
+        report.get("validation_level") != "measured-run"
         or pending_fields.intersection(report)
         or report.get("parent_promotion") != expected_receipt
     ):
@@ -1998,7 +2020,10 @@ def _already_promoted_train_attestation(
 
 
 def _promote_train_attestation(
-    record: dict[str, Any], evidence: dict[str, Any]
+    record: dict[str, Any],
+    evidence: dict[str, Any],
+    *,
+    _allow_legacy_mlx_child_completion: bool = False,
 ) -> dict[str, Any]:
     bundle = Path(record["bundle_dir"]).resolve(strict=True)
     expected_fingerprint = record.get("artifact_fingerprint")
@@ -2014,7 +2039,33 @@ def _promote_train_attestation(
             enforce_current_policy=False,
         )
         report = _read_json_object(report_path, "Validation report")
-        promoted = _already_promoted_train_attestation(record, evidence, report)
+        # Bundles compiled before managed MLX deferral let the verified child
+        # write the terminal state. Only the live worker may bridge that exact
+        # report; crash recovery still requires an existing parent receipt.
+        command = record.get("command")
+        legacy_mlx_command = (
+            isinstance(command, list)
+            and "run.py" in command
+            and "--defer-parent-promotion" not in command
+        )
+        verified_mlx_child_completion = (
+            _allow_legacy_mlx_child_completion
+            and legacy_mlx_command
+            and evidence.get("training_runtime") == "mlx-lm"
+            and evidence.get("source_report_state") == "measured-run-pass"
+            and report.get("state") == "measured-run-pass"
+            and report.get("validation_level") == "measured-run"
+            and report.get("bindings") == evidence.get("source_bindings")
+            and report.get("final_export") == evidence.get("final_export")
+            and report.get("measured_run") == evidence.get("measured_run")
+            and "parent_promotion" not in report
+            and sha256_file(report_path) == evidence.get("source_report_sha256")
+        )
+        promoted = (
+            None
+            if verified_mlx_child_completion
+            else _already_promoted_train_attestation(record, evidence, report)
+        )
         if promoted is not None:
             _require_current_bundle_model_policy(
                 bundle,
@@ -2854,6 +2905,10 @@ class JobService:
             training_entrypoint,
             "--confirm-full-train",
         ]
+        if runtime_id == "mlx-lm" and "--defer-parent-promotion" in (
+            bundle / "run.py"
+        ).read_text(encoding="utf-8"):
+            train_arguments.append("--defer-parent-promotion")
         if run_id is None:
             raise ValueError("Full training requires an immutable Aptus run ID.")
         train_arguments.extend(("--output-dir", str(Path("runs") / run_id)))
@@ -3453,7 +3508,9 @@ class JobService:
                         verified_record["pending_evidence_verified_at"] = _now()
                         self._write(verified_record)
                     completion_attestation = _promote_train_attestation(
-                        record, pending_evidence
+                        record,
+                        pending_evidence,
+                        _allow_legacy_mlx_child_completion=True,
                     )
                 except (KeyError, OSError, TypeError, ValueError) as error:
                     completion_error = str(error)

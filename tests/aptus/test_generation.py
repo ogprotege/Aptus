@@ -1439,6 +1439,162 @@ class BundleGenerationTests(unittest.TestCase):
                 ):
                     module.main()
 
+    def test_generated_mlx_managed_full_defers_only_parent_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            help_result = self._run_package_free_entrypoint(output, "run.py", "--help")
+            module = self._load_generated_path(
+                output, "run.py", "aptus_generated_mlx_managed_parent"
+            )
+            plan = module.load_plan()
+            run_output = output / "runs" / "run_managed"
+            metrics = {"run_completed": True}
+            completed = subprocess.CompletedProcess([], 0)
+            verified_calls: list[tuple[dict, Path, str]] = []
+            fake_validate = types.ModuleType("validate")
+
+            def require_completed_run(
+                observed_plan: dict, observed_output: Path, *, action: str
+            ) -> dict:
+                verified_calls.append((observed_plan, observed_output, action))
+                return metrics
+
+            fake_validate.require_completed_run = require_completed_run
+            pilot_path = output / "pilot-output" / "metrics.json"
+            pilot_path.parent.mkdir(exist_ok=True)
+            pilot_path.write_text("{}\n", encoding="utf-8")
+            admission = {"pilot_metrics_sha256": module.sha256(pilot_path)}
+            report_path = output / "validation-report.json"
+            source_report = json.loads(report_path.read_text(encoding="utf-8"))
+            source_report.update(
+                state="measured-run-pass",
+                validation_level="measured-run",
+                artifact_fingerprint=module.bundle_fingerprint(output),
+                bindings={
+                    "bundle": module.bundle_fingerprint(output),
+                    "dataset": plan["dataset"]["source_sha256"],
+                    "plan_id": plan["plan_id"],
+                    "candidate_id": plan["recommended"]["candidate_id"],
+                    "model_revision": plan["model"]["revision"],
+                    "pilot_metrics": admission["pilot_metrics_sha256"],
+                },
+                measured_run_completed_at="2026-08-05T12:10:57+00:00",
+                final_export={"stale": True},
+                measured_run={"stale": True},
+                parent_promotion={"schema_version": "aptus.parent-promotion.v1"},
+            )
+            report_path.write_text(
+                json.dumps(source_report, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            argument_values = {
+                "bounded_smoke": False,
+                "pilot": False,
+                "confirm_full_train": True,
+                "resume_from": None,
+                "output_dir": run_output,
+                "model": None,
+                "data": None,
+                "iters": 2,
+            }
+
+            with (
+                patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "run.py",
+                        "--confirm-full-train",
+                        "--defer-parent-promotion",
+                        "--output-dir",
+                        str(run_output),
+                    ],
+                ),
+                patch.object(module, "portable_execution_lease"),
+                patch.object(module, "launch", return_value=0) as parsed_launch,
+            ):
+                self.assertEqual(module.main(), 0)
+            self.assertTrue(parsed_launch.call_args.args[0].defer_parent_promotion)
+
+            with (
+                patch.dict(sys.modules, {"validate": fake_validate}),
+                patch.object(module, "load_plan", return_value=plan),
+                patch.object(module, "require_full_admission", return_value=admission),
+                patch.object(module, "claim_output", return_value=run_output),
+                patch.object(module, "run_with_lease", return_value=completed),
+                patch.object(module, "finalize", return_value=metrics),
+            ):
+                with patch.object(module, "promote_full_completion") as promote:
+                    result = module.launch(
+                        types.SimpleNamespace(
+                            **argument_values, defer_parent_promotion=True
+                        )
+                    )
+                    promote.assert_not_called()
+                self.assertEqual(result, 0)
+                managed_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(managed_report["state"], "execution-approved")
+                self.assertEqual(managed_report["validation_level"], "pilot")
+                self.assertEqual(
+                    managed_report["active_run"],
+                    {
+                        "output_dir": str(run_output.resolve()),
+                        "run_id": run_output.name,
+                        "plan_id": plan["plan_id"],
+                        "candidate_id": plan["recommended"]["candidate_id"],
+                    },
+                )
+                self.assertEqual(managed_report["prelaunch_capacity_check"], admission)
+                for stale_name in (
+                    "measured_run_completed_at",
+                    "final_export",
+                    "measured_run",
+                    "parent_promotion",
+                ):
+                    self.assertNotIn(stale_name, managed_report)
+
+                with patch.object(module, "promote_full_completion") as promote:
+                    result = module.launch(
+                        types.SimpleNamespace(
+                            **argument_values, defer_parent_promotion=False
+                        )
+                    )
+                    promote.assert_called_once_with(
+                        plan, run_output, metrics, admission
+                    )
+
+                run_output.mkdir(parents=True)
+                (run_output / "final-export.json").write_text("{}\n", encoding="utf-8")
+                (run_output / "metrics.json").write_text("{}\n", encoding="utf-8")
+                managed_report["parent_promotion"] = {"stale": True}
+                report_path.write_text(
+                    json.dumps(managed_report, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                module.promote_full_completion(
+                    plan,
+                    run_output,
+                    {
+                        "final_export": {"total_bytes": 0},
+                        "artifact_manifest_sha256": "a" * 64,
+                        "reload_evidence_sha256": "b" * 64,
+                        "global_step": 1,
+                        "completed_optimizer_updates": 1,
+                        "measured_peak_bytes": 1,
+                    },
+                    admission,
+                )
+                standalone_report = json.loads(report_path.read_text(encoding="utf-8"))
+                self.assertEqual(standalone_report["state"], "measured-run-pass")
+                self.assertNotIn("parent_promotion", standalone_report)
+
+        self.assertEqual(help_result.returncode, 0, help_result.stderr)
+        self.assertNotIn("--defer-parent-promotion", help_result.stdout)
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            verified_calls,
+            [(plan, run_output, "full"), (plan, run_output, "full")],
+        )
+
     def test_generated_mlx_full_refuses_missing_or_stale_pilot_before_output(
         self,
     ) -> None:

@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -80,26 +81,36 @@ class CheckRunnerTests(unittest.TestCase):
             self.assertNotIn("password", str(record))
 
     def test_run_check_normalizes_partial_timeout_output(self) -> None:
+        command = [sys.executable, "-c", "print('ignored')"]
+        timeout = subprocess.TimeoutExpired(
+            cmd=command,
+            timeout=0.05,
+            output=b"partial\n",
+            stderr=b"",
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
-            record = run_check(
-                check_id="unit-timeout",
-                command=[
-                    sys.executable,
-                    "-c",
-                    (
-                        "import sys, time; "
-                        "print('partial'); "
-                        "sys.stdout.flush(); "
-                        "time.sleep(1)"
-                    ),
-                ],
-                cwd=Path(temp_dir),
-                timeout_seconds=0.05,
-            )
+            with patch(
+                "tools.aptus_audit.checks.subprocess.run",
+                side_effect=timeout,
+            ) as run_mock:
+                record = run_check(
+                    check_id="unit-timeout",
+                    command=command,
+                    cwd=Path(temp_dir),
+                    timeout_seconds=0.05,
+                )
 
+            run_mock.assert_called_once()
+            positional, keyword = run_mock.call_args
+            self.assertEqual(positional, (command,))
+            self.assertEqual(keyword["cwd"], Path(temp_dir))
+            self.assertEqual(keyword["timeout"], 0.05)
+            self.assertTrue(keyword["capture_output"])
+            self.assertTrue(keyword["text"])
+            self.assertFalse(keyword["check"])
             self.assertEqual(record["status"], "timed_out")
             self.assertTrue(record["timed_out"])
-            self.assertIn("partial", record["stdout_preview"])
+            self.assertEqual(record["stdout_preview"], "partial\n")
             self.assertEqual(len(record["stdout_sha256"]), 64)
 
 

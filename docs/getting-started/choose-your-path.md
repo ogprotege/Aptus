@@ -80,18 +80,22 @@ not resumable checkpoints, and every resume argument fails. QLoRA also requires
 a pinned MLX model with explicit four-bit quantization metadata. It never uses
 bitsandbytes.
 
-The [2026-08-05 MLX-LM acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-covers two clean current-source v5-plan and v3-bundle ladders for the exact
-pinned Qwen2.5 artifact at commit
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the Phase 6 runtime gate
+The [2026-08-05 MLX-LM exact-source acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+covers two fresh, clean current-source v5-plan and v3-bundle ladders for the
+exact pinned Qwen2.5 artifact at source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+It closes the Phase 6 runtime gate
 for that artifact, immutable revision, host, runtime, dataset, and policy
 snapshot only. A matching 24-layer dense Qwen2 configuration can enter the
 reviewed path, but that policy match is not artifact-wide runtime acceptance.
 Run the complete five-action sequence for every other exact bundle before
-making a target-runtime claim. The recorded acceptance does not establish model
-quality or production throughput, and CUDA target-runtime acceptance remains
-open.
+making a target-runtime claim. The recorded acceptance does not establish
+safety, model quality, performance, production throughput, production
+readiness, or release readiness, and CUDA target-runtime acceptance remains
+open. The [original Phase 6 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 ## Path C: Validate and train on CUDA
 

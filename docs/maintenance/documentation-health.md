@@ -3,8 +3,8 @@
 > **Documentation status:** Active governance
 >
 > **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
-> the Phase 5 maintained-guidance closeout, Phase 6 policy implementation, and
-> 2026-08-05 exact-scope runtime acceptance
+> the Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
+> original runtime acceptance, and 2026-08-05 exact-source evidence refresh
 >
 > **Last reviewed:** 2026-08-05
 >
@@ -60,11 +60,17 @@ uniform four-bit group-size-64 layout, seven-module adapter scope, portable
 parity, per-policy receipt provenance, planner binding, and canonical evidence
 are implemented without a new top-level contract version. The policy describes
 a reviewed configuration footprint rather than an artifact allowlist. The
-[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two clean current-source `aptus.training-plan.v5` and
-`aptus.bundle.v3` `measured-run-pass` repetitions for the exact pinned artifact,
-source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
-snapshot.
+[2026-08-05 Qwen2 MLX-LM exact-source
+refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean, independent current-source
+`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions
+for the exact pinned artifact and revision, source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, Apple M5 Pro host, Python/MLX
+runtime, dataset, policy snapshot, plan, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+The [original Phase 6 acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 The current Phase 4 contract uses a frozen snapshot for package-free portable
 integrity and policy-decision parity. Portable validation cannot determine host
@@ -90,20 +96,25 @@ compatibility normalizer was removed. The MoE rail owns topology and
 resident-versus-active memory only. The second Phase 6 policy reaches that same
 generic browser boundary without family-specific reconstruction.
 
-That acceptance closes the current-source Phase 6 MLX-LM runtime gate for its
+That exact-source refresh closes the current-source Phase 6 MLX-LM runtime gate for its
 exact scope. A different matching artifact remains conditional and must pass
 its own model-data, measured-preflight, and pilot gates. The record does not
-qualify CUDA, establish model quality, establish general Qwen2 compatibility,
-or promise production throughput.
+qualify CUDA, establish safety or model quality, establish general Qwen2
+compatibility, support performance or production-throughput claims, or
+establish production or release readiness. Relative to the historical
+baseline, only manifested operator `README.md` and `runbook.md` changed;
+runtime programs and requirements remained byte-identical. The two fresh runs
+independently qualify the new fingerprint.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
 itself remains blocked until qualifying CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
 capabilities being claimed. The July MLX-LM acceptance and local 10-build
-desktop engineering gate remain historical at their recorded commits; the
-August 5 packet is the bounded current-source MLX-LM result. No qualifying CUDA
-target-runtime acceptance has been collected. The repository checks its
+desktop engineering gate and original Phase 6 acceptance remain historical at
+their recorded commits; the August 5 exact-source refresh is the bounded
+current-source MLX-LM result. No qualifying CUDA target-runtime acceptance has
+been collected. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -119,19 +130,19 @@ derive every default, status, and response field from one source.
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-scope acceptance closeout, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; maintained React normalization and Swift decoding boundaries still require contract care |
-| Release evidence | Partial | The August 5 packet records two clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact/source/host/runtime/dataset/policy scope; CUDA target-host and public notarized distribution evidence remain open, and the record is not a quality or production-throughput claim |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; maintained React normalization and Swift decoding boundaries still require contract care |
+| Release evidence | Partial | The August 5 exact-source refresh records two fresh, clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact and revision/source and tree/host/runtime/dataset/plan/policy/fingerprint scope; the original Phase 6 packet remains its historical baseline, CUDA target-host and public notarized distribution evidence remain open, and neither packet is a safety, quality, performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 103
+The [documentation inventory](documentation-inventory.md) classifies 104
 governed tracked Markdown documents:
 
-- 86 active;
+- 87 active;
 - 2 deprecated;
 - 15 archived.
 
-The automated `maintained_documentation()` set contains 94 files because it
+The automated `maintained_documentation()` set contains 95 files because it
 retains the legacy-audit README but excludes nine subordinate historical audit
 pages. That automation scope is intentionally narrower than the governed
 inventory.
@@ -293,8 +304,9 @@ gate. All five GitHub checks passed for PR #30. These results establish the
 source, contract, packaging, and documentation baseline only. At that closeout,
 neither the July MLX-LM evidence nor the source tree supplied a current-head MLX
 or CUDA target pilot, and neither established public notarized release
-readiness. The later August 5 packet closes only the exact Phase 6 MLX-LM scope
-described above.
+readiness. The later original August 5 packet closed only its exact Phase 6
+MLX-LM scope and now remains the historical baseline for the exact-source
+refresh described above.
 
 The Phase 4 documentation synchronization passed 506 Python tests, including
 23 documentation and 61 bundle-generation tests, plus 91 web tests and 81
@@ -324,12 +336,18 @@ generation, claims-subset safety, host/portable exact and mutation parity,
 sparse near-match refusal, exactly one seven-target planner binding, per-policy
 receipt provenance, dense empty-override storage, and artifact-scoped canonical
 evidence. These are source and contract results only. They do not replace the
-runtime ladder. The subsequent
+runtime ladder. The subsequent original
 [2026-08-05 acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two qualifying v5/v3 repetitions and resolves DOC-024 for its exact
+records two qualifying v5/v3 repetitions, resolves DOC-024 for its exact
 artifact, source, host, runtime, dataset, and policy-snapshot scope. Other
 matching artifacts remain gated, and CUDA, quality, and production-throughput
-claims remain outside that result.
+claims remain outside that result. It is now the unchanged historical baseline.
+The [exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh v5/v3 repetitions at source
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` and resolves DOC-025 only for its
+exact artifact and revision, source and tree, M5 Pro host, Python/MLX runtime,
+dataset, plan, policy snapshot, and new bundle fingerprint. The refresh does not
+broaden the original claim boundary.
 
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature

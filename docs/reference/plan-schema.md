@@ -144,14 +144,19 @@ The Qwen2 row requires family `qwen`, model type `qwen2`, architecture
 `Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit metadata, a uniform
 group-size-64 layout with no module overrides, and `moe: null`. It is a reviewed
 runtime configuration footprint, not an artifact allowlist. The
-[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two clean `measured-run-pass` repetitions under
+[2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean `measured-run-pass` repetitions under
 `aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
-source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
-snapshot. That result closes the current-source Phase 6 runtime gate only for
+source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
+Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
+fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+That result closes the current-source Phase 6 runtime gate only for
 that scope. A different matching artifact still requires its own model-data,
 measured-preflight, and pilot gates; the result does not qualify CUDA or
-establish model quality or production throughput.
+establish safety, model quality, performance, production throughput,
+production readiness, or release readiness. The [original Phase 6
+packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 Each policy path binds method, distribution, adapter profile, target modules,
 `aptus.runtime-contract.v1`, required `model-data`, `measured-preflight`, and

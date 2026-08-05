@@ -25,7 +25,8 @@ The current portable contract uses `aptus.training-plan.v5`,
 | Change the code | [Contributor index](contributing/index.md) | [Code map](architecture/code-map.md) |
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
-| Inspect the current MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the current MLX acceptance | [2026-08-05 Phase 6 exact-source MLX-LM evidence](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the original Phase 6 MLX baseline | [2026-08-05 original acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Current exact-source refresh](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) |
 | Inspect the historical MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Apple Silicon pilot matrix](operations/apple-silicon-pilot.md) |
 | Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect the Qwen3 MoE admission attempt | [2026-07-28 Qwen3 MoE evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md) | [Capability matrix](reference/capability-matrix.md) |
@@ -120,7 +121,8 @@ Authority labels have a separate meaning:
 - [State, storage, and retention](operations/state-storage-retention.md)
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
-- [2026-08-05 Phase 6 Qwen2 MLX-LM target-host acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source target-host acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
 - [2026-07-28 Qwen3 MoE admission and performance evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -179,17 +181,25 @@ Authority labels have a separate meaning:
 Repository tests are necessary but do not replace target-runtime evidence.
 Apple Silicon MLX-LM LoRA and QLoRA implement dependency, model-data, and
 measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
-full-duration adapter training from the pinned base model. Two clean workflows
+full-duration adapter training from the pinned base model. Two fresh, clean,
+independent workflows
 reached `measured-run-pass` in the
-[2026-08-05 record](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+[2026-08-05 exact-source record](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 under a v5 plan and v3 bundle at
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. Fresh-process adapter reload and
-bounded generation prove that the emitted adapter can be loaded. They do not
-prove training resume, model quality, or production throughput.
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` with bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Relative to the unchanged [original Phase 6
+baseline](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), only
+manifested operator `README.md` and `runbook.md` changed; runtime programs and
+requirements remained byte-identical. Fresh-process adapter reload and bounded
+generation prove that the emitted adapter can be loaded. They do not prove
+training resume, safety, model quality, performance, production throughput,
+production readiness, or release readiness.
 
 That acceptance closes the current-source Phase 6 MLX-LM runtime gate only for
-the exact pinned Qwen2.5 artifact, host, runtime, dataset, policy snapshot,
-plan, and bundle. The 24-layer dense Qwen2 policy remains a
+the exact pinned Qwen2.5 artifact and revision, source and tree, host, runtime,
+dataset, policy snapshot, plan, bundle, and fingerprint. The 24-layer dense
+Qwen2 policy remains a
 configuration-footprint rule: every different matching artifact remains
 conditional and must pass its own model-data, measured-preflight, and pilot
 gates. The exact `qwen3_moe` MLX-LM QLoRA row remains conditional and has only

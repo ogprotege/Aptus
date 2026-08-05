@@ -169,14 +169,19 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
 
 The Qwen2 row describes a reviewed configuration footprint, not an artifact
 allowlist. The
-[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two clean `measured-run-pass` repetitions under the current
+[2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean `measured-run-pass` repetitions under the current
 `aptus.training-plan.v5` and `aptus.bundle.v3` contracts for the exact pinned
-artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and
-policy snapshot. It closes Phase 6's current-source runtime gate only for that
+artifact, source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
+Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
+fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+It closes Phase 6's current-source runtime gate only for that
 scope. Another matching artifact still has to pass its own model-data,
 measured-preflight, and pilot gates. The result does not qualify CUDA or
-establish model quality or production throughput.
+establish safety, model quality, performance, production throughput,
+production readiness, or release readiness. The [original Phase 6
+packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 ## Portable path objects
 

@@ -131,10 +131,11 @@ do not prove public notarization.
 - `policy.qwen2-24l.mlx-qlora.v1` records implementation review of that
   configuration-to-path rule.
   `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` records only the exact pinned July
-  27 artifact under training-plan v2 and bundle v2. The separate August 5
-  acceptance records two current v5/v3 `measured-run-pass` repetitions for the
-  same exact pinned artifact at
-  `14ed44b52a76bb84d8d9db4f2303951aa641339b`; neither record supplies runtime
+  27 artifact under training-plan v2 and bundle v2. The current August 5
+  exact-source refresh records two fresh v5/v3 `measured-run-pass` repetitions
+  for the same exact pinned artifact at
+  `719255153e3fc7e38e83b5ff826d587e5e58bf80`; the original August 5 packet
+  remains its historical Phase 6 baseline. None of these records supplies runtime
   evidence for every artifact that matches the configuration footprint.
 - The plan and portable validator recompute sparse-layer count and active
   parameters. Base-weight, metadata, staging, and disk terms use the total
@@ -200,9 +201,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
 - A claimed `model.qwen2-24l.mlx-qlora` path additionally proves the reviewed
   identity, 24-layer dense topology, uniform four-bit group-size-64 layout, and
   exact seven-target census at model-data, preflight, pilot, reload, and
-  completion boundaries. The August 5 acceptance satisfies these gates for its
-  exact artifact, source, host, runtime, dataset, plan, and bundle. It cannot
-  satisfy them for a different artifact or later source state.
+  completion boundaries. The August 5 exact-source refresh satisfies these
+  gates for its exact artifact and revision, source and tree, host, runtime,
+  dataset, plan, policy snapshot, bundle, and fingerprint. It cannot satisfy
+  them for a different artifact or later source state.
 
 ## 4. Full-run transaction
 
@@ -325,9 +327,9 @@ For each claimed MLX-LM LoRA or QLoRA path:
   snapshot digest wherever plan identity is enumerated, and distinguish
   package-free frozen-snapshot integrity from installed-host registry currency.
 - Current documents distinguish the reviewed Qwen2 configuration-footprint
-  policy, the July historical runtime record, and the August current-source
-  exact-artifact acceptance. They do not transfer the August v5/v3 result to a
-  different matching artifact.
+  policy, the July historical runtime record, the original August Phase 6
+  baseline, and the August exact-source current acceptance. They do not
+  transfer the current v5/v3 result to a different matching artifact.
 - No page describes `requirements.txt` as a transitive lock.
 - No page offers full-training resume.
 - No page claims full FSDP support.
@@ -344,17 +346,25 @@ For each claimed MLX-LM LoRA or QLoRA path:
 ## Current result
 
 Partially passed. The
-[2026-08-05 Apple Silicon record](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+[2026-08-05 Apple Silicon exact-source record](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 closes the current-source Phase 6 MLX-LM runtime gate for the exact pinned
 Qwen2.5 0.5B artifact at acceptance source
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. Two clean, independent workflows
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Two fresh, clean, independent workflows
 used `aptus.training-plan.v5` and `aptus.bundle.v3` and completed dependency,
 model-data, measured preflight, uninterrupted pilot, confirmed full training,
 fresh-process reload, final export, parent-owned promotion, and
-`measured-run-pass`. The record is bound to its exact source, artifact, host,
-runtime, dataset, policy snapshot, plan, and bundle. It does not transfer to
-another artifact matching `model.qwen2-24l.mlx-qlora`, qualify CUDA, establish
-model quality, or promise production throughput.
+`measured-run-pass`. Relative to the unchanged [original Phase 6 acceptance
+baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), only manifested
+operator `README.md` and `runbook.md` changed; runtime programs and requirements
+remained byte-identical. The record is bound to its exact source and tree,
+artifact, host, runtime, dataset, policy snapshot, plan, bundle, and fingerprint.
+It does not transfer to another artifact matching
+`model.qwen2-24l.mlx-qlora`, qualify CUDA, establish safety, model quality or
+performance, promise production throughput, or establish production or release
+readiness.
 
 The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact. The
@@ -379,7 +389,8 @@ release gate passes.
 ## Related documentation
 
 - [Release evidence template](release-evidence-template.md)
-- [Phase 6 Qwen2 MLX-LM acceptance](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [Current Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [Original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Current capabilities](../product/current-capabilities.md)

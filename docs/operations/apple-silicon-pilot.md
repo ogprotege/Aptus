@@ -4,10 +4,13 @@
 
 This page records the completed small-model QLoRA acceptance and the proposed
 next experiments for the measured 64 GB M5 Pro host. The
-[2026-08-05 acceptance](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-closed the current-source Phase 6 MLX-LM runtime gate twice with an
+[2026-08-05 exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+closed the current-source Phase 6 MLX-LM runtime gate twice with fresh,
+independent workflows using an
 `aptus.training-plan.v5` plan and `aptus.bundle.v3` bundle at source commit
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`.
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
 
 That result proves only its exact model, immutable revision, synthetic dataset,
 host, runtime, policy snapshot, plan, bundle, and ordered actions. It does not
@@ -82,28 +85,35 @@ The first ID records implementation review of the configuration-to-path rule.
 The second records the July measurements only for
 `mlx-community/Qwen2.5-0.5B-Instruct-4bit` at revision
 `53a32aee5e9447773fd2b85988395066aef3700a`. The policy does not make those
-measurements transferable to another matching artifact. The August 5 record
-separately proves two current v5/v3 runs for that same exact artifact; it also
-does not transfer to a different matching artifact.
+measurements transferable to another matching artifact. The August 5
+exact-source refresh separately proves two fresh current v5/v3 runs for that
+same exact artifact and its newly bound source, tree, environment, and bundle
+fingerprint; it also does not transfer to a different matching artifact.
 
 ## Current Phase 6 QLoRA acceptance
 
-On 2026-08-05, two clean detached-checkout workflows at
-`14ed44b52a76bb84d8d9db4f2303951aa641339b` reached `measured-run-pass` for
+On 2026-08-05, two fresh, clean detached-checkout workflows at exact source
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` reached `measured-run-pass` for
 the exact pinned Qwen2.5 0.5B artifact. Both independently completed dependency,
 model-data, measured-preflight, uninterrupted pilot, confirmed full training,
 immutable adapter export, fresh-process reload, and parent-owned completion
 promotion under the current v5 plan, v3 bundle, and installed-host policy
 snapshot contract.
 
-The two bundles were byte-identical, and both full runs produced the same
+The two fresh bundles were byte-identical with fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`, and
+both full runs produced the same
 learned `adapters.safetensors` SHA-256,
 `4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b`.
-The [acceptance record](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+The [exact-source acceptance record](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 binds the source, host, runtime, model, dataset, policy snapshot, bundle, jobs,
 receipts, metrics, and retained sanitized evidence. It establishes runtime and
-artifact correctness, not model quality, general Qwen2 compatibility, CUDA
-acceptance, or production throughput.
+artifact correctness only for that exact scope, not safety, model quality,
+general Qwen2 compatibility, CUDA acceptance, performance, production
+throughput, production readiness, or release readiness. Relative to the
+unchanged [original Phase 6 baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
+only manifested operator `README.md` and `runbook.md` changed; runtime programs
+and requirements remained byte-identical.
 
 ## Historical completed QLoRA acceptance
 
@@ -280,7 +290,8 @@ plan and bundle rather than modifying the historical artifact.
 ## Related documentation
 
 - [Current capabilities](../product/current-capabilities.md)
-- [2026-08-05 Phase 6 MLX-LM acceptance evidence](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [2026-08-05 Phase 6 MLX-LM exact-source acceptance evidence](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-05 original Phase 6 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM acceptance evidence](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [Method selection guide](../guides/choose-a-method.md)
 - [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)

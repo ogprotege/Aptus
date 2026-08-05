@@ -3,16 +3,22 @@
 > **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
-[2026-08-05 Qwen2 MLX-LM acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-binds two clean v5-plan and v3-bundle repetitions through `measured-run-pass` to
-implementation commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the
+[2026-08-05 Qwen2 MLX-LM exact-source acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+binds two fresh, clean v5-plan and v3-bundle repetitions through
+`measured-run-pass` to source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+It closes the
 current-source Phase 6 runtime gate only for the exact recorded Qwen2.5
 artifact, immutable revision, Apple M5 Pro host, Python and MLX-LM runtime,
-four-row synthetic dataset, and policy snapshot. The Qwen2 policy remains a
+four-row synthetic dataset, plan, bundle, and policy snapshot. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
 artifact remains conditional on its own runtime gates. No CUDA target-runtime
-pilot has completed. A separate local desktop gate completed
+pilot has completed. The [original Phase 6 acceptance
+packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
@@ -309,16 +315,20 @@ acceptance remain open.
 ## Evidence status
 
 Static and local tests confirm contracts and platform-independent behavior. The
-[2026-08-05 Qwen2 MLX-LM acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-binds two clean current-contract runs through dependency, model-data, measured
+[2026-08-05 Qwen2 MLX-LM exact-source acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+binds two fresh, clean current-contract runs through dependency, model-data, measured
 preflight, uninterrupted pilot, fresh-process adapter reload, confirmed full
 training, final export, parent-owned promotion, and `measured-run-pass` to
-commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. It closes the Phase 6
-target-runtime gate for that exact artifact, revision, host, runtime, dataset,
-policy snapshot, plan, and bundle only. It does not make every matching Qwen2
-artifact measured and does not establish model quality or production
-throughput.
+source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Relative to the original Phase 6 baseline, only manifested operator `README.md`
+and `runbook.md` changed; runtime programs and requirements remained
+byte-identical. It closes the Phase 6 target-runtime gate for that exact
+artifact, revision, source and tree, host, runtime, dataset, policy snapshot,
+plan, bundle, and fingerprint only. It does not make every matching Qwen2
+artifact measured and does not establish safety, model quality, performance,
+production throughput, production readiness, or release readiness.
 
 The [2026-07-27 historical MLX-LM acceptance
 record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) remains

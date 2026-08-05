@@ -1,0 +1,89 @@
+{
+  "schema_version": "aptus.exact-source-refresh-procedure.v1",
+  "source": {
+    "commit": "719255153e3fc7e38e83b5ff826d587e5e58bf80",
+    "tree": "be99f5664ccb580f2600471f1ae3241a294b1a7e",
+    "checkout": "clean detached worktree"
+  },
+  "repetitions": 2,
+  "isolation": {
+    "acceptance_root": "<ACCEPTANCE_ROOT>",
+    "host_python": "<HOST_PYTHON>",
+    "runtime_python": "<RUNTIME_PYTHON>",
+    "model_cache": "<MODEL_CACHE>",
+    "separate_bundle_per_repetition": true,
+    "separate_job_state_per_repetition": true,
+    "managed_actions_serial": true,
+    "runtime_network_mode": "offline",
+    "reuse_policy": "immutable baseline model cache, runtime environment, and dataset only after SHA-256 revalidation"
+  },
+  "compile": {
+    "retained_plan": "../2026-08-05-qwen2-mlx-lm-acceptance/clean-plan.json",
+    "compiler_source": "exact detached checkout",
+    "expected_schema": "aptus.bundle.v3",
+    "expected_fingerprint": "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+    "expected_zip_sha256": "fcad829b4c845c6b5d1e548b293ec1107ccd7a78ea08b63bc7a1b8ca487be9b1",
+    "two_compilations_byte_identical": true,
+    "baseline_comparison_required": true
+  },
+  "managed_action_order": [
+    "dependency",
+    "model-data",
+    "preflight",
+    "pilot",
+    "train"
+  ],
+  "train_submission": {
+    "explicit_confirmation": true,
+    "defer_parent_promotion": true,
+    "resume_from": null,
+    "execution_semantics": "uninterrupted"
+  },
+  "required_per_action": {
+    "terminal_state": "completed",
+    "return_code": 0,
+    "artifact_fingerprint_match": true
+  },
+  "required_per_repetition": {
+    "jobs_completed": 5,
+    "terminal_validation_state": "measured-run-pass",
+    "completion_attestation_state": "measured-run-pass",
+    "artifact_integrity_status": "verified-at-completion",
+    "parent_promotion_schema": "aptus.parent-promotion.v1",
+    "parent_receipt_hash_recomputed": true,
+    "pre_promotion_source_report_reconstructed": true,
+    "fresh_process_reload": true,
+    "no_pending_or_active_run_fields": true
+  },
+  "required_cross_run": {
+    "adapter_weights_byte_identical": true,
+    "train_losses_identical": true,
+    "validation_losses_identical": true,
+    "adapter_delta_identical": true,
+    "reload_output_digest_identical": true
+  },
+  "handoff": {
+    "checkout_clean": true,
+    "recorded_acceptance_process_active": false,
+    "host_global_gpu_lease_active": false
+  },
+  "retention": {
+    "committed": [
+      "sanitized semantic projections",
+      "exact bundle manifest",
+      "baseline comparison",
+      "raw source-record SHA-256 digests"
+    ],
+    "not_committed": [
+      "model files",
+      "adapter binaries",
+      "bundle ZIPs",
+      "raw job state",
+      "logs",
+      "process identifiers",
+      "absolute local paths",
+      "environment secrets",
+      "generated text"
+    ]
+  }
+}

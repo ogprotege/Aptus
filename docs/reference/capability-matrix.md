@@ -22,14 +22,18 @@ Aptus rejects a coherent v5 plan whose decision or snapshot digest is no longer
 current and requires deterministic replanning. An earlier `pilot-pass` cannot
 authorize training or completion promotion after that policy boundary changes.
 
-Two clean Apple Silicon MLX-LM workflows reached `measured-run-pass` under the
-current v5 plan and v3 bundle contracts in the
-[2026-08-05 acceptance record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md).
-The acceptance source is
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. That evidence closes the Phase 6
-MLX-LM runtime gate only for its exact pinned Qwen2.5 artifact, host, runtime,
-dataset, policy snapshot, plan, and bundle. It does not transfer to another
+Two fresh, clean Apple Silicon MLX-LM workflows reached `measured-run-pass`
+under the current v5 plan and v3 bundle contracts in the
+[2026-08-05 exact-source acceptance record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md).
+The acceptance source is `719255153e3fc7e38e83b5ff826d587e5e58bf80`, its tree is
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and its bundle fingerprint is
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+That evidence closes the Phase 6 MLX-LM runtime gate only for its exact pinned
+Qwen2.5 artifact and revision, source and tree, host, runtime, dataset, policy
+snapshot, plan, bundle, and fingerprint. It does not transfer to another
 artifact that matches the reviewed Qwen2 configuration footprint. The
+[original Phase 6 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline, and the
 [2026-07-27 record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact.
 
@@ -366,4 +370,5 @@ adapters are outside the current support contract.
 - [Validation states](validation-states.md)
 - [Current capabilities](../product/current-capabilities.md)
 - [Release gates](../operations/release-gates.md)
-- [2026-08-05 Phase 6 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [2026-08-05 Phase 6 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [Original Phase 6 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

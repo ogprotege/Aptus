@@ -173,18 +173,22 @@ residency or establish a policy match.
 Phase 6 has implemented that second entry through the registry, snapshot,
 planner, compiler, host and portable evaluators, receipt provenance, and
 mutation tests. The policy describes a reviewed configuration footprint rather
-than an artifact allowlist. The [2026-08-05 Qwen2 MLX-LM acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-binds two clean current-source v5-plan and v3-bundle ladders through
-`measured-run-pass` at commit
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. This closes the Phase 6 runtime
+than an artifact allowlist. The [2026-08-05 Qwen2 MLX-LM exact-source refresh
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+binds two fresh, clean current-source v5-plan and v3-bundle ladders through
+`measured-run-pass` at source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+This closes the Phase 6 runtime
 gate for the exact recorded Qwen2.5 artifact, revision, host, runtime, dataset,
 policy snapshot, plan, and bundle only; another matching artifact remains
 conditional on its own runtime evidence. Phase 5 did not change the portable
 policy contract, and the Phase 6 addition keeps its schema version while
 changing the canonical snapshot digest. The record establishes neither model
-quality nor production throughput, and CUDA target-runtime acceptance remains
-open.
+quality, safety, performance, production throughput, production readiness, nor
+release readiness, and CUDA target-runtime acceptance remains open. The
+[original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 ## 3. Compilation
 

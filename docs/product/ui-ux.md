@@ -198,17 +198,22 @@ predicate or infer the seven-module binding from family or display text.
 
 The UI describes this row as a reviewed 24-layer dense Qwen2 configuration
 footprint, not as acceptance of every matching artifact. The
-[2026-08-05 acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-binds two clean current-source v5-plan and v3-bundle repetitions through
-`measured-run-pass` at commit
-`14ed44b52a76bb84d8d9db4f2303951aa641339b` for one exact Qwen2.5 artifact,
+[2026-08-05 exact-source acceptance
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+binds two fresh, clean current-source v5-plan and v3-bundle repetitions through
+`measured-run-pass` at source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
+for one exact Qwen2.5 artifact,
 immutable revision, host, runtime, dataset, and selected candidate. The UI may
 present complete evidence only when the active report binds that same
 artifact-specific tuple. A different artifact that merely matches the
 configuration footprint remains incomplete until its own required runtime
-gates pass. This state is not a model-quality or production-throughput claim;
-CUDA target-runtime acceptance remains open.
+gates pass. This state is not a safety, model-quality, performance,
+production-throughput, production-readiness, or release-readiness claim; CUDA
+target-runtime acceptance remains open. The [original Phase 6
+packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 ## Compile and validate stages
 

@@ -1,0 +1,191 @@
+{
+  "schema_version": "aptus.exact-source-refresh-acceptance.v1",
+  "state": "measured-run-pass",
+  "refresh_status": "runtime-evidence-complete",
+  "required_clean_repetitions": 2,
+  "completed_clean_repetitions": 2,
+  "source": {
+    "acceptance_commit": "719255153e3fc7e38e83b5ff826d587e5e58bf80",
+    "acceptance_tree": "be99f5664ccb580f2600471f1ae3241a294b1a7e",
+    "parent_promotion_fix_commit": "14ed44b52a76bb84d8d9db4f2303951aa641339b",
+    "execution_source_sha256": "8ace32ddc8bed7e60c5b6b9b0d2bd2779fdfceeb18a38433cabb06da4a42695f",
+    "generation_source_sha256": "3717561c057757c7a30b8e114e4e719c240dd5d2b8d784791bebc4dabafb798f",
+    "generated_mlx_runner_source_sha256": "b18daa1f4eff82dbe25bd338e2c9ca1c9d03566fc215af6b5d7a19d90e7d3029",
+    "status_before_run_1": "clean",
+    "status_after_run_1": "clean",
+    "status_after_run_2": "clean"
+  },
+  "baseline": {
+    "packet": "../2026-08-05-qwen2-mlx-lm-acceptance/",
+    "packet_sha256s_sha256": "3d8837b38724f27796c8341206ffa7435f5b35baf4f72ca2378276ef1a69bdcb",
+    "acceptance_source": "14ed44b52a76bb84d8d9db4f2303951aa641339b",
+    "bundle_fingerprint": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+    "bundle_zip_sha256": "0a7a912b97f82f2c3f7b9069281c8d49ca6543a3894ab050840549c3b258b664",
+    "preserved_unchanged": true
+  },
+  "host": {
+    "chip": "Apple M5 Pro",
+    "machine": "arm64",
+    "macos_version": "26.6",
+    "macos_build": "25G72",
+    "unified_memory_bytes": 68719476736,
+    "baseline_host_record_sha256": "619fd443ba4f3f9c445c95d7a0f1b2934b02496fefd3caa7ed4181bec7eefaa4"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "mlx_metal": "0.31.2",
+    "external_environment": true,
+    "runtime_interpreter_sha256": "a395f264e5612a2819662ed3e37fd30d39ed61179b98e5f86c3c783a008d8623",
+    "package_inventory_sha256": "1e91d3ee4ea94f83b1e14cc326d72d987ad2a9bf7aef4b62ab67871740baefef",
+    "baseline_runtime_record_sha256": "15327d2893d0e50d824a32ee2d1be1a2922661352509737cef23d19c8f681708",
+    "hf_hub_offline_during_runtime": true
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    "revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+    "model_safetensors_bytes": 278064920,
+    "model_file_manifest_sha256": "05c9112050c0196bcbd4b4b07d55f15e29496f8ed8ae12d6af222f28cb12ef74",
+    "all_model_files_reverified_after_runs": true,
+    "incomplete_cache_files_found": false
+  },
+  "dataset": {
+    "path": "examples/support-sft.jsonl",
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "train_rows": 3,
+    "validation_rows": 1,
+    "split_contract_sha256": "6b6e50825bffc8ace1141e817cb1442fe82da072ef34d98f0179b606b0ddb852"
+  },
+  "policy": {
+    "policy_id": "model.qwen2-24l.mlx-qlora",
+    "policy_version": "1.0.0",
+    "path_id": "mlx-lm.qlora.single.dense-causal-lm.v1",
+    "snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "scope": "exact artifact, revision, host, runtime, dataset, plan, source, and bundle fingerprint"
+  },
+  "compiled_input": {
+    "plan_schema_version": "aptus.training-plan.v5",
+    "bundle_schema_version": "aptus.bundle.v3",
+    "plan_id": "plan_bd33e8ab37765b7efa93",
+    "candidate_id": "cand_ee8a9d7fc575e9eeb71b",
+    "compiler_id": "mlx-lm.qlora.v1",
+    "method": "qlora",
+    "embedded_plan_sha256": "673495afd38aee3ebab44c3692fc052bdad5bb0f2c2e8f23fad11e12278dfd23",
+    "bundle_fingerprint": "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+    "bundle_zip_sha256": "fcad829b4c845c6b5d1e548b293ec1107ccd7a78ea08b63bc7a1b8ca487be9b1",
+    "two_manifests_byte_identical": true,
+    "two_zip_archives_byte_identical": true,
+    "initial_validation_state": "static-pass"
+  },
+  "bundle_comparison": {
+    "changed_paths": [
+      "README.md",
+      "runbook.md"
+    ],
+    "unchanged_manifest_paths": 27,
+    "runtime_programs_byte_identical": true,
+    "requirements_byte_identical": true,
+    "old_evidence_transferred_to_new_fingerprint": false,
+    "new_fingerprint_freshly_qualified": true
+  },
+  "runs": [
+    {
+      "ordinal": 1,
+      "state": "measured-run-pass",
+      "jobs_completed": 5,
+      "preflight": {
+        "run_id": "bounded-smoke_8acddeda2e9f424b8cd47a70d6dd64bf",
+        "measured_peak_bytes": 521459856,
+        "completed_optimizer_updates": 2
+      },
+      "pilot": {
+        "run_id": "pilot_bf7329b400474a3d8175b14f94e3526d",
+        "measured_peak_bytes": 521476024,
+        "completed_optimizer_updates": 2
+      },
+      "full_train": {
+        "job_id": "job_24387e5ba60d43b5a2e7fdbf14f018f8",
+        "run_id": "run_24387e5ba60d43b5a2e7fdbf14f018f8",
+        "source_report_state": "execution-approved",
+        "source_report_sha256": "048795f78eb477842ba8eab0e35be30ae4fb5fa824cd00c03b4713510b67336d",
+        "measured_peak_bytes": 581965116,
+        "completed_optimizer_updates": 3,
+        "artifact_manifest_sha256": "48b08423d473bf57fc62e53e88ad1adce9a3b8dbf10f876bafbf81b60438100b",
+        "reload_evidence_sha256": "1b672a741f87e3dae1162a7527fac6c894a9f28eb59f9a10b9955d42b8b411fc",
+        "adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+        "parent_promotion_evidence_sha256": "48355544d4a1f01455f4c2b96bded2d550d1a2c71217529770dcada64a6dd79e",
+        "parent_promotion_evidence_hash_recomputed": true,
+        "artifact_integrity_status": "verified-at-completion"
+      }
+    },
+    {
+      "ordinal": 2,
+      "state": "measured-run-pass",
+      "jobs_completed": 5,
+      "preflight": {
+        "run_id": "bounded-smoke_44480caaaef048cc895e26740bd883a5",
+        "measured_peak_bytes": 521459856,
+        "completed_optimizer_updates": 2
+      },
+      "pilot": {
+        "run_id": "pilot_359701f2815a4eeeb226b1307baba542",
+        "measured_peak_bytes": 521481360,
+        "completed_optimizer_updates": 2
+      },
+      "full_train": {
+        "job_id": "job_6098adf3e1c246668fdcf2eed426b894",
+        "run_id": "run_6098adf3e1c246668fdcf2eed426b894",
+        "source_report_state": "execution-approved",
+        "source_report_sha256": "6f101f1ffad65865744eb3b1477aad031b00d07313ed1c5361d1e3d8809a5af6",
+        "measured_peak_bytes": 582146010,
+        "completed_optimizer_updates": 3,
+        "artifact_manifest_sha256": "85ff2faa6dca69773ac8b2bffe47ae28fff0dcef68ae9b8b06cdab58f59847bd",
+        "reload_evidence_sha256": "24cd35818f4afb876d168fcaae3070f9cad6d8da12c6e08b48e4d44d8e9e36a7",
+        "adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+        "parent_promotion_evidence_sha256": "601689102f6d8b0570a9ceb628dd56b8c45b14fb3d0183a28c3386b59cb9b59c",
+        "parent_promotion_evidence_hash_recomputed": true,
+        "artifact_integrity_status": "verified-at-completion"
+      }
+    }
+  ],
+  "deterministic_outputs": {
+    "train_loss_observations": [
+      3.8527462482452393,
+      3.1543750762939453,
+      4.094791889190674
+    ],
+    "validation_loss_observations": [
+      4.8986897468566895,
+      3.818800449371338,
+      3.560231924057007
+    ],
+    "adapter_delta_l1": 5297.497747182846,
+    "changed_adapter_tensor_count": 336,
+    "target_instance_count": 168,
+    "transformer_layer_count": 24,
+    "final_adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+    "final_adapter_weights_byte_identical": true,
+    "reload_generation_tokens": 4,
+    "reload_generation_text_sha256": "b8a36d0a0bdb2d671c21e1621c6d50a184f337d826d6c2ddf28b045371db7f31"
+  },
+  "handoff": {
+    "host_global_lease_active": false,
+    "recorded_acceptance_process_active": false,
+    "adapter_binaries_committed": false,
+    "raw_job_state_committed": false,
+    "logs_committed": false,
+    "generated_text_committed": false
+  },
+  "claim_boundary": {
+    "qualifies": "exact refreshed MLX-LM bundle under the recorded bindings",
+    "does_not_qualify": [
+      "CUDA",
+      "general Qwen2 compatibility",
+      "model quality or safety",
+      "performance or production throughput",
+      "production readiness",
+      "release readiness"
+    ]
+  }
+}

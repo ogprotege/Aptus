@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-04 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-05 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -22,6 +22,11 @@ All notable changes are recorded here.
   using `Qwen3MoeForCausalLM`. The implemented conditional planner slice is
   single-device MLX-LM QLoRA with attention-only adapters and mandatory pilot
   evidence.
+- A second registry-driven policy for the reviewed 24-layer dense Qwen2
+  four-bit group-64 configuration footprint. It permits only single-device
+  MLX-LM QLoRA with q/k/v/o and gate/up/down adapters. Two exact pinned-artifact
+  repetitions reached `measured-run-pass`; the record does not admit every
+  matching artifact or establish CUDA, quality, or throughput claims.
 - Provider-declared MoE topology facts, backend-derived active-parameter and
   sparse-layer counts, strict API and CLI inputs, and a workbench expert-routing
   rail. Resident-weight estimates always use the user-attested total parameter
@@ -161,6 +166,13 @@ All notable changes are recorded here.
 - Installed CLI help and generated bundle reports now explain defaults,
   side effects, evidence boundaries, ordered validation, external environment
   setup, and the fail-closed recovery contract.
+- The CLI reference now exposes a structured parser contract checked against
+  every live command, argument, choice, and non-suppressed default. Generated
+  operator-document tests compile every executable runtime, method, and
+  placement row and verify ordered commands, filenames, platform notes,
+  successor links, and evidence boundaries.
+- The web lockfile refresh removes the OpenAPI generator development advisories
+  without changing declared dependency ranges or generated OpenAPI output.
 - The native and web interfaces now form one product surface. Native navigation
   owns Home, Workbench, Machine, and Models. The inline React workbench owns the
   Facts, Compare, Compile, Validate, and Run workflow plus project history.
@@ -172,6 +184,9 @@ All notable changes are recorded here.
   permits an explicit cleanup retry.
 - MLX memory estimation now distinguishes MoE resident weights from routed
   per-token computation under `aptus-memory-mlx-v2`.
+- Managed MLX completion now leaves terminal promotion to the parent, which
+  re-verifies the active run and source report before committing an
+  `aptus.parent-promotion.v1` receipt.
 
 ### Removed
 

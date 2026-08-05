@@ -114,12 +114,12 @@ derive every default, status, and response field from one source.
 | Product boundaries | Good | Current capabilities, claim language, roadmap, and release gates distinguish implemented, conditional, unsupported, and future work |
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
-| API and CLI reference | Good | Automated checks cover commands, options, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries; structured CLI default and choice parity remains incomplete |
+| API and CLI reference | Good | Automated checks cover commands, options, choices, defaults, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries |
 | Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, and workbench presentation no longer reconstructs policy from topology |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, CLI surface, API routes and static errors, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, and exact-scope acceptance closeout, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; generated-doc and structured default parity remain partial |
+| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-scope acceptance closeout, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; maintained React normalization and Swift decoding boundaries still require contract care |
 | Release evidence | Partial | The August 5 packet records two clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact/source/host/runtime/dataset/policy scope; CUDA target-host and public notarized distribution evidence remain open, and the record is not a quality or production-throughput claim |
 
 ## Freshness and classification
@@ -148,27 +148,20 @@ not become a one-time cleanup.
 
 ### High impact
 
-1. CLI choices and defaults still appear in both `src/aptus/cli.py` and prose.
-   Tests cover the parser's commands, subcommands, and long options, but not yet
-   every structured value.
-2. Generated OpenAPI JSON and TypeScript schema and path types have stale-file
+1. Generated OpenAPI JSON and TypeScript schema and path types have stale-file
    checks. Model policy now has semantic tests for the typed no-feasible response,
    strict decision, path, receipt, candidate, binding, and report ingestion;
    request/receipt correlation; exact report identity; and separate validation
    and launch-admission states. Other React normalization code and
    Swift response decoders remain maintained client boundaries that require
    contract tests.
-3. Generated bundle guidance is operationally important but embedded in large
-   source templates. Representative CUDA and MLX README tests now pin the
-   policy-snapshot boundary, but complete method-and-placement coverage remains
-   open.
 
 ### Medium impact
 
-1. GitHub private vulnerability reporting is verified disabled. The security
-   policy therefore lacks a guaranteed private reporting route.
-2. Production npm dependencies have no known advisory, but four high-severity
-   transitive advisories remain in the OpenAPI generator development chain.
+1. The repository is private, so GitHub's public-repository private
+   vulnerability-reporting feature cannot be enabled. The security policy still
+   lacks a guaranteed private intake address selected for publication by the
+   repository owner.
 
 The [documentation debt log](documentation-debt.md) records owners, acceptance
 criteria, and status for each finding.
@@ -346,13 +339,12 @@ checks do not replace CUDA target-host acceptance or public notarization.
 
 ## Recommended actions by impact
 
-1. Close the remaining maintained client, CLI-default, and generated-bundle
-   parity gaps.
+1. Close the remaining maintained React normalization and Swift decoder parity
+   gaps.
 2. Publish a concrete private security-reporting route.
-3. Resolve the OpenAPI generator development advisories.
-4. Complete qualifying CUDA target-host evidence and public desktop distribution
+3. Complete qualifying CUDA target-host evidence and public desktop distribution
    evidence.
-5. Revisit the repository-Markdown delivery decision only when versioning,
+4. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 
 ## Next health review

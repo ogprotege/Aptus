@@ -247,7 +247,9 @@ compiled bundle:
 | `runbook.md` | Ordered dependency, model-data, preflight, pilot, and full-run procedure |
 
 It also generates command help in `train.py`, `run.py`, `preflight.py`, and
-`validate.py`. Template changes require generated-bundle tests.
+`validate.py`. A registry-derived test matrix must equal every executable
+runtime, backend, method, and placement row, then compile each row and verify
+the three operator documents before a template change can pass.
 
 ## Package, API, CLI, and workbench surfaces
 

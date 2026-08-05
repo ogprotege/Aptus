@@ -19,12 +19,10 @@ implementation commit
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
 exact workflow commit. Pull requests use GitHub's synthetic merge commit. CUDA
 target-host evidence and public Developer ID signing and notarization remain
-open. Use GitHub's
-[private vulnerability-reporting flow](https://github.com/ogprotege/Aptus/security/advisories/new)
-when it is available. Otherwise contact the repository owner through an
-existing private channel before sharing technical details. Do not include
-credentials, private datasets, model tokens, exploit details, or unredacted
-logs in a public issue.
+open. Report vulnerabilities privately to
+[aptus-security@proton.me](mailto:aptus-security@proton.me) before sharing
+technical details. Do not include credentials, private datasets, model tokens,
+exploit details, or unredacted logs in a public issue.
 
 | Version | Security fixes | Status |
 |---|---|---|

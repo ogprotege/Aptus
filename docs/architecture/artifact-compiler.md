@@ -98,17 +98,23 @@ registry addition changes those canonical bytes, pre-expansion v5 plans require
 replanning.
 
 The compiler path and its exact current-contract runtime evidence are complete.
-The [2026-08-05 Qwen2 MLX-LM acceptance
-record](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-binds two clean `aptus.training-plan.v5` and `aptus.bundle.v3` repetitions at
-commit `14ed44b52a76bb84d8d9db4f2303951aa641339b` through dependency, model-data,
+The [2026-08-05 Qwen2 MLX-LM exact-source refresh
+record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+binds two fresh, clean `aptus.training-plan.v5` and `aptus.bundle.v3`
+repetitions at source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`
+and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
+through dependency, model-data,
 measured preflight, pilot and reload, confirmed full training, final reload and
 export, parent-owned promotion, and `measured-run-pass`. This closes the Phase 6
 runtime gate only for the exact recorded artifact, revision, host, runtime,
 dataset, snapshot, plan, and bundle. Compiler eligibility remains a
 configuration-footprint decision, so another matching artifact must establish
 its own runtime evidence. CUDA target-runtime acceptance remains open, and the
-record establishes neither model quality nor production throughput.
+record establishes neither safety, model quality, performance, production
+throughput, production readiness, nor release readiness. The
+[original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline.
 
 The canonical program bytes live under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. `generation.py` reads them through

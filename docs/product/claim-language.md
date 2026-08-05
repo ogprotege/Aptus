@@ -49,18 +49,25 @@ Use:
 - “the parent verified the structural export file tree.”
 
 Do not turn a historical pilot pass into a claim of current capacity. Admission
-rechecks current resources. The two clean
-[2026-08-05 MLX-LM acceptance
-runs](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+rechecks current resources. The two fresh, clean
+[2026-08-05 MLX-LM exact-source acceptance
+runs](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 prove only their exact Qwen2.5 artifact, immutable revision, synthetic dataset,
 Apple M5 Pro host, Python and MLX-LM runtime, policy snapshot, v5 plan, v3
-bundle, implementation commit
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`, and actions. They close the Phase 6
+bundle, source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`,
+source tree, bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`,
+and actions. They close the Phase 6
 runtime gate for that exact fixture; they do not prove every Apple Silicon
 configuration or every artifact that matches the Qwen2 configuration
-footprint. They establish neither model quality nor production throughput, and
-CUDA target-runtime acceptance remains open. The 2026-07-27 v2-plan and
-v2-bundle runs remain historical evidence for their older exact scope.
+footprint. Relative to the unchanged [original Phase 6
+baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
+only manifested operator `README.md` and `runbook.md` changed; runtime programs
+and requirements remained byte-identical. They establish neither safety, model
+quality, performance, production throughput, production readiness, nor release
+readiness, and CUDA target-runtime acceptance remains open. The 2026-07-27
+v2-plan and v2-bundle runs remain historical evidence for their older exact
+scope.
 
 ## Quality claims
 
@@ -110,9 +117,10 @@ for managed admission and execution.
 
 Use:
 
-- “two clean current-contract MLX-LM workflows reached `measured-run-pass` for
-  the exact recorded acceptance configuration at implementation commit
-  `14ed44b52a76bb84d8d9db4f2303951aa641339b`”;
+- “two fresh, clean current-contract MLX-LM workflows reached
+  `measured-run-pass` for the exact recorded acceptance configuration at source
+  commit `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+  `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`”;
 - “the local desktop engineering gate passed 10 of 10 clean builds at
   implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`”;
 - “pull-request CI rebuilt and packaged GitHub's exact tested merge commit,” but
@@ -144,4 +152,5 @@ are separate claims. State which one the evidence supports.
 - [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Validation states](../reference/validation-states.md)
 - [Release gates](../operations/release-gates.md)
-- [2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [Original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

@@ -314,9 +314,9 @@ before committing compute time.
 
 | Exact recorded gate | Observed result |
 | --- | ---: |
-| Current Phase 6 MLX-LM v5/v3 workflow at `14ed44b5` | Two clean repetitions reached `measured-run-pass` |
+| Current Phase 6 MLX-LM v5/v3 workflow at `71925515` | Two fresh, clean repetitions reached `measured-run-pass` |
 | Current confirmed full train, export, and fresh reload | 3 optimizer updates and 4 reload-generation tokens in each repetition |
-| Highest current full-run MLX peak | 582,001,282 bytes |
+| Highest current full-run MLX peak | 582,146,010 bytes |
 | Historical MLX-LM five-action workflow (v2 plan/bundle) | 18.65 s and 17.47 s, 18.06 s mean |
 | Historical confirmed full train, export, and fresh reload | 4.73 s and 5.06 s |
 | Historical highest full-run MLX peak | 555.1 MiB |
@@ -330,16 +330,24 @@ scalability, or model-quality measurements. The synthetic MoE forward is not
 autoregressive generation and does not project 30B speed. The 30B checkpoint
 never loaded, so no 30B throughput claim exists.
 
-The two 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime gate for
-the exact recorded Qwen2.5 artifact, immutable revision, Apple M5 Pro host,
-Python and MLX-LM runtime, four-row synthetic dataset, v5 plan, v3 bundle, and
-implementation commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. The policy
-remains a configuration footprint rather than an artifact allowlist. This
-evidence does not transfer to another matching Qwen2 artifact, and it does not
-establish quality, production throughput, or CUDA acceptance. The July runs
-remain historical evidence for their older contract and exact scope.
+The two fresh 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime
+gate for the exact recorded Qwen2.5 artifact and immutable revision, Apple M5
+Pro host, Python and MLX-LM runtime, four-row synthetic dataset, v5 plan, v3
+bundle, policy snapshot, source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Relative to the original Phase 6 baseline, only manifested operator
+`README.md` and `runbook.md` changed; runtime programs and requirements remained
+byte-identical. The fresh runs independently qualify the new fingerprint. The
+policy remains a configuration footprint rather than an artifact allowlist.
+This evidence does not transfer to another matching Qwen2 artifact, and it does
+not establish safety, quality, performance, production throughput, CUDA
+acceptance, production readiness, or release readiness. The original Phase 6
+packet and July runs remain historical evidence for their exact scopes.
 
-Full records: [Current Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
+Full records: [Current exact-source Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
+[Original Phase 6 acceptance baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
 [Historical MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
 [Desktop stability](docs/operations/evidence/2026-07-27-desktop-release/README.md) ·
 [Qwen3 MoE admission](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -463,10 +471,11 @@ Documentation must be updated in the same change as behavior. Read
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
-gates. Two clean, independent current-contract Apple Silicon workflows reached
-`measured-run-pass` for the exact pinned Qwen2.5 artifact at implementation
-commit `14ed44b52a76bb84d8d9db4f2303951aa641339b`. Crash resume remains
-unsupported.
+gates. Two fresh, clean, independent current-contract Apple Silicon workflows
+reached `measured-run-pass` for the exact pinned Qwen2.5 artifact at source
+commit `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Crash resume remains unsupported.
 
 Phase 4's source and contract review is complete. Current
 `aptus.training-plan.v5` plans and `aptus.bundle.v3` bundles cross-bind a
@@ -475,11 +484,13 @@ frozen snapshot's integrity and decision parity; installed Aptus separately
 enforces current host-registry currency during host static validation and again
 during managed admission, pilot authorization, worker launch, and the
 completion verification and promotion transaction.
-The [2026-08-05 acceptance
-record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+The [2026-08-05 exact-source acceptance
+record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 binds the exact Qwen2.5 artifact, revision, runtime, host, dataset, policy
-snapshot, v5 plan, v3 bundle, and source commit. No CUDA target-runtime pilot
-has completed, so this MLX result and the source and packaging gates do not by
+snapshot, v5 plan, v3 bundle, source commit and tree, and bundle fingerprint.
+The [original Phase 6 packet](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains the unchanged historical baseline. No CUDA target-runtime pilot has
+completed, so this MLX result and the source and packaging gates do not by
 themselves establish v0.2 release readiness.
 
 Ten consecutive clean local desktop engineering builds passed at implementation

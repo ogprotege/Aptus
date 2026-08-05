@@ -173,21 +173,29 @@ four-bit group-64 layout with no overrides. It emits only
 
 This policy is a reviewed configuration footprint, not an artifact allowlist.
 The
-[2026-08-05 Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two clean `measured-run-pass` repetitions under
-`aptus.training-plan.v5` and `aptus.bundle.v3` from acceptance source
-`14ed44b52a76bb84d8d9db4f2303951aa641339b`. It binds the exact pinned
+[2026-08-05 Qwen2 MLX-LM exact-source refresh](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean, independent `measured-run-pass` repetitions under
+`aptus.training-plan.v5` and `aptus.bundle.v3` from exact acceptance source
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+It binds the exact pinned
 `mlx-community/Qwen2.5-0.5B-Instruct-4bit` artifact and revision, Apple M5 Pro
 host, Python/MLX runtime, four-row synthetic dataset, source commit, and policy
 snapshot. Each repetition completed dependency, model-data, measured preflight,
 an uninterrupted real-model pilot, confirmed full training, immutable export,
 fresh-process reload, parent reconciliation, and final `measured-run-pass`.
 
-That record closes the current-source Phase 6 MLX-LM runtime gate only for its
+Relative to the unchanged [original Phase 6 acceptance
+baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
+only manifested `README.md` and `runbook.md` prose changed; runtime programs and
+requirements remained byte-identical. The fresh runs qualify the new bundle
+fingerprint. That record closes the current-source Phase 6 MLX-LM runtime gate only for its
 exact scope. A different matching artifact remains conditional and must pass
 its own model-data, measured-preflight, and pilot gates. The result does not
-qualify CUDA, establish general Qwen2 compatibility or model quality, or promise
-production throughput. Phase 5's browser-authority history remains unchanged.
+qualify CUDA, establish general Qwen2 compatibility, model quality or safety,
+or promise performance, production throughput, production readiness, or
+release readiness. Phase 5's browser-authority history remains unchanged.
 `aptus.api.v1`, `aptus.facts.v3`, `aptus.model-policy-snapshot.v1`, and
 `aptus.runtime-contract.v1` remain unchanged, while the added registry row
 changes the canonical snapshot digest and requires older v5 plans to replan.

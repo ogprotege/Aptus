@@ -1,0 +1,95 @@
+{
+  "schema_version": "aptus.exact-source-refresh-run.v1",
+  "ordinal": 1,
+  "state": "measured-run-pass",
+  "artifact_fingerprint": "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+  "jobs": [
+    {
+      "action": "dependency",
+      "job_id": "job_caa6fc987c4d4d00981def1ff098476e",
+      "state": "completed",
+      "return_code": 0
+    },
+    {
+      "action": "model-data",
+      "job_id": "job_67fe6d77dd6342e1a4471f5ce37660f9",
+      "state": "completed",
+      "return_code": 0
+    },
+    {
+      "action": "preflight",
+      "job_id": "job_e74d36924e8340cc8f6f5a2d01cf9bdd",
+      "state": "completed",
+      "return_code": 0
+    },
+    {
+      "action": "pilot",
+      "job_id": "job_2186fd7b755c478eb953f87382c417d1",
+      "state": "completed",
+      "return_code": 0
+    },
+    {
+      "action": "train",
+      "job_id": "job_24387e5ba60d43b5a2e7fdbf14f018f8",
+      "run_id": "run_24387e5ba60d43b5a2e7fdbf14f018f8",
+      "state": "completed",
+      "return_code": 0,
+      "completion_attestation_state": "measured-run-pass",
+      "artifact_integrity_status": "verified-at-completion"
+    }
+  ],
+  "preflight": {
+    "run_id": "bounded-smoke_8acddeda2e9f424b8cd47a70d6dd64bf",
+    "measured_peak_bytes": 521459856,
+    "completed_optimizer_updates": 2
+  },
+  "pilot": {
+    "run_id": "pilot_bf7329b400474a3d8175b14f94e3526d",
+    "measured_peak_bytes": 521476024,
+    "completed_optimizer_updates": 2,
+    "fresh_process_reload": true
+  },
+  "full_train": {
+    "run_id": "run_24387e5ba60d43b5a2e7fdbf14f018f8",
+    "source_report_state": "execution-approved",
+    "source_report_sha256": "048795f78eb477842ba8eab0e35be30ae4fb5fa824cd00c03b4713510b67336d",
+    "source_report_hash_reconstructed": true,
+    "measured_peak_bytes": 581965116,
+    "completed_optimizer_updates": 3,
+    "train_loss_observations": [
+      3.8527462482452393,
+      3.1543750762939453,
+      4.094791889190674
+    ],
+    "validation_loss_observations": [
+      4.8986897468566895,
+      3.818800449371338,
+      3.560231924057007
+    ],
+    "adapter_delta_l1": 5297.497747182846,
+    "changed_adapter_tensor_count": 336,
+    "target_instance_count": 168,
+    "transformer_layer_count": 24,
+    "adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+    "adapter_size_bytes": 17632042
+  },
+  "export": {
+    "artifact_manifest_sha256": "48b08423d473bf57fc62e53e88ad1adce9a3b8dbf10f876bafbf81b60438100b",
+    "final_export_sha256": "7803894b968308202ceb04e8186641bc3677cedc67c8b2591207e4162c2c7183",
+    "total_bytes": 17633592,
+    "verification_level": "immutable-adapter-file-tree"
+  },
+  "reload": {
+    "evidence_sha256": "1b672a741f87e3dae1162a7527fac6c894a9f28eb59f9a10b9955d42b8b411fc",
+    "fresh_process_observed": true,
+    "generation_tokens": 4,
+    "generation_text_sha256": "b8a36d0a0bdb2d671c21e1621c6d50a184f337d826d6c2ddf28b045371db7f31"
+  },
+  "parent_promotion": {
+    "schema_version": "aptus.parent-promotion.v1",
+    "evidence_sha256": "48355544d4a1f01455f4c2b96bded2d550d1a2c71217529770dcada64a6dd79e",
+    "evidence_sha256_recomputed": true,
+    "pending_fields_absent": true
+  },
+  "all_invariants_passed": true
+}

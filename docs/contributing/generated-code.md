@@ -128,14 +128,21 @@ Qwen3 MoE, and `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
 `dense-causal-lm.v1` for dense Qwen2. The dense row binds a uniform four-bit,
 group-size-64 layout with no module overrides and targets q/k/v/o plus
 gate/up/down projections. The
-[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-records two clean current v5/v3 `measured-run-pass` repetitions for the exact
-pinned artifact, source commit, Apple M5 Pro host, Python/MLX runtime, dataset,
-and policy snapshot. Generated-code changes that affect any of those bindings
+[2026-08-05 Qwen2 MLX-LM exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean current v5/v3 `measured-run-pass` repetitions for the
+exact pinned artifact, source commit
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree, Apple M5 Pro host,
+Python/MLX runtime, dataset, policy snapshot, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+Relative to the unchanged [original acceptance
+baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
+the manifested generated `README.md` and `runbook.md` are the only changed
+bundle paths; runtime programs and requirements remain byte-identical.
+Generated-code changes that affect any of those bindings
 require renewed evidence. The policy is still a configuration footprint rather
 than an artifact allowlist; another matching artifact remains gated, and the
-record does not qualify CUDA or establish model quality or production
-throughput.
+record does not qualify CUDA or establish safety, model quality, performance,
+production throughput, production readiness, or release readiness.
 
 This additive registry change does not rename the surrounding contracts. Keep
 `aptus.model-policy-snapshot.v1`, `aptus.training-plan.v5`, and

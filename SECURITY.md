@@ -5,12 +5,15 @@
 ## Supported status
 
 Aptus v0.2 is an engineering preview. The
-[2026-08-05 Apple Silicon MLX-LM record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+[2026-08-05 Apple Silicon MLX-LM exact-source
+record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 reached `measured-run-pass` twice under the current v5 plan and v3 bundle
-contracts. It is bound to its exact Qwen2.5 artifact, source commit, M5 Pro
-host, Python/MLX runtime, synthetic dataset, plan, bundle, and policy snapshot;
-it is not CUDA, quality, broader compatibility, or production-throughput
-evidence. Ten of 10 clean local desktop engineering builds passed at historical
+contracts. It is bound to its exact Qwen2.5 artifact, source commit and tree, M5
+Pro host, Python/MLX runtime, synthetic dataset, plan, bundle, policy snapshot,
+and bundle fingerprint; it is not CUDA, safety, quality, broader compatibility,
+performance, production-throughput, production-readiness, or release-readiness
+evidence. The [original Phase 6 packet](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+remains an unchanged historical baseline. Ten of 10 clean local desktop engineering builds passed at historical
 implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the

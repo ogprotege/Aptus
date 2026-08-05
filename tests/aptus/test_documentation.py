@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import unittest
@@ -908,7 +909,10 @@ class DocumentationTests(unittest.TestCase):
             "POLICY_SNAPSHOT_PATH",
         ):
             self.assertIn(code, release_gates)
-        self.assertIn("2026-08-05-qwen2-mlx-lm-acceptance/README.md", release_gates)
+        self.assertIn(
+            "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md",
+            release_gates,
+        )
         self.assertIn(
             "No real CUDA pilot or full training evidence has completed",
             release_gates,
@@ -919,8 +923,8 @@ class DocumentationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         normalized_capability_matrix = " ".join(capability_matrix.split())
         for evidence_boundary in (
-            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
-            "Two current v5/v3 dense QLoRA workflows reached `measured-run-pass`",
+            "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md",
+            "Two fresh, clean Apple Silicon MLX-LM workflows reached `measured-run-pass`",
             "No real CUDA target-host pilot has been recorded",
         ):
             self.assertIn(evidence_boundary, normalized_capability_matrix)
@@ -932,7 +936,7 @@ class DocumentationTests(unittest.TestCase):
             current_capabilities.split("## Available now", 1)[0].split()
         )
         self.assertIn(
-            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
+            "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md",
             opening_boundary,
         )
         self.assertIn(
@@ -961,7 +965,7 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY / "docs/maintenance/documentation-health.md"
         ).read_text(encoding="utf-8")
         self.assertIn(
-            "2026-08-05-qwen2-mlx-lm-acceptance/README.md",
+            "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md",
             documentation_debt,
         )
         self.assertIn(
@@ -1000,21 +1004,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 116)
+        self.assertEqual(len(repository_documents), 117)
         self.assertEqual(len(excluded_documents), 13)
-        self.assertEqual(len(governed_documents), 103)
-        self.assertEqual(len(active_documents), 86)
+        self.assertEqual(len(governed_documents), 104)
+        self.assertEqual(len(active_documents), 87)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 15)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 94)
-        self.assertIn("103 governed tracked Markdown documents", inventory)
-        self.assertIn("94 Markdown files", inventory)
-        self.assertIn("116 tracked Markdown files", " ".join(inventory.split()))
-        self.assertIn("| Active | 86 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 95)
+        self.assertIn("104 governed tracked Markdown documents", inventory)
+        self.assertIn("95 Markdown files", inventory)
+        self.assertIn("117 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("| Active | 87 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 15 |", inventory)
 
@@ -1123,7 +1127,7 @@ class DocumentationTests(unittest.TestCase):
                 "unused flattened compatibility normalizer was removed",
             ),
             "docs/maintenance/documentation-inventory.md": (
-                "after the Phase 6 runtime-evidence closeout",
+                "after the Phase 6 exact-source evidence refresh",
                 "`web/src/lib/modelPolicy.ts`",
             ),
             "docs/reference/api.md": (
@@ -1304,10 +1308,15 @@ class DocumentationTests(unittest.TestCase):
             text = (REPOSITORY / relative_path).read_text(encoding="utf-8")
             return " ".join(text.split())
 
-        acceptance_leaf = "2026-08-05-qwen2-mlx-lm-acceptance/README.md"
+        acceptance_leaf = "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md"
         acceptance_documents = (
             "README.md",
             "ROADMAP.md",
+            "SECURITY.md",
+            "docs/architecture/artifact-compiler.md",
+            "docs/architecture/system.md",
+            "docs/getting-started/choose-your-path.md",
+            "docs/index.md",
             "docs/reference/capability-matrix.md",
             "docs/reference/plan-schema.md",
             "docs/reference/model-policy-snapshot.md",
@@ -1315,6 +1324,9 @@ class DocumentationTests(unittest.TestCase):
             "docs/reference/evidence-records.md",
             "docs/product/current-capabilities.md",
             "docs/product/claim-language.md",
+            "docs/product/ui-ux.md",
+            "docs/operations/apple-silicon-pilot.md",
+            "docs/operations/index.md",
             "docs/operations/release-gates.md",
             "docs/contributing/changing-contracts.md",
             "docs/contributing/generated-code.md",
@@ -1331,7 +1343,8 @@ class DocumentationTests(unittest.TestCase):
             "README.md": (
                 "`model.qwen2-24l.mlx-qlora`",
                 "reviewed dense configuration footprint rather than an artifact allowlist",
-                "The two 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime gate",
+                "The two fresh 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime gate",
+                "only manifested operator `README.md` and `runbook.md` changed",
             ),
             "ROADMAP.md": (
                 "Phase 6 is implemented at the registry, planner, compiler, portable-contract, and test boundaries",
@@ -1344,8 +1357,8 @@ class DocumentationTests(unittest.TestCase):
             ),
             "docs/reference/plan-schema.md": (
                 "runtime configuration footprint, not an artifact allowlist",
-                "two clean `measured-run-pass` repetitions",
-                "does not qualify CUDA or establish model quality or production throughput",
+                "two fresh, clean `measured-run-pass` repetitions",
+                "does not qualify CUDA or establish safety, model quality, performance",
             ),
             "docs/reference/model-policy-snapshot.md": (
                 "`model.qwen2-24l.mlx-qlora`",
@@ -1355,12 +1368,12 @@ class DocumentationTests(unittest.TestCase):
             "docs/reference/api.md": (
                 "the Qwen2 policy remains a configuration footprint rather than an artifact allowlist",
                 "another matching artifact must pass its own gates",
-                "does not qualify CUDA or establish model quality or production throughput",
+                "does not qualify CUDA or establish safety, model quality, performance",
             ),
             "docs/reference/evidence-records.md": (
                 "It does not broaden or relabel either canonical evidence record",
                 "Carrying the historical runtime ID in a current plan preserves its scope",
-                "The separate August 5 acceptance packet applies only when its exact plan, bundle, artifact, source, host, runtime, dataset, and policy snapshot bindings match",
+                "The separate exact-source refresh applies only when its exact plan, bundle, artifact, source, host, runtime, dataset, policy snapshot, and fingerprint bindings match",
             ),
             "docs/reference/cli.md": (
                 "`--quantization-group-size INTEGER`",
@@ -1374,25 +1387,29 @@ class DocumentationTests(unittest.TestCase):
                 "`policy.qwen2-24l.mlx-qlora.v1`",
                 "`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`",
                 "closes the current-source Phase 6 MLX-LM runtime gate",
+                "only manifested operator `README.md` and `runbook.md` changed",
             ),
             "docs/contributing/changing-contracts.md": (
-                "closes its current-source v5/v3 runtime gate with two clean",
+                "closes its current-source v5/v3 runtime gate with two fresh, clean",
                 "other matching artifacts still require their own gates",
-                "does not qualify CUDA or establish model quality or production throughput",
+                "does not qualify CUDA or establish safety, model quality, performance",
             ),
             "docs/contributing/generated-code.md": (
                 "Generated-code changes that affect any of those bindings require renewed evidence",
                 "another matching artifact remains gated",
-                "does not qualify CUDA or establish model quality or production throughput",
+                "does not qualify CUDA or establish safety, model quality, performance",
             ),
             "docs/maintenance/documentation-debt.md": (
                 "### DOC-024: Close Phase 6 runtime evidence for the second model policy",
                 "**Status:** Resolved",
                 "`14ed44b52a76bb84d8d9db4f2303951aa641339b`",
                 "The policy remains a reviewed configuration footprint, not an artifact allowlist",
+                "### DOC-025: Refresh Phase 6 evidence at the exact current source",
+                "`719255153e3fc7e38e83b5ff826d587e5e58bf80`",
+                "`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`",
             ),
             "docs/maintenance/documentation-health.md": (
-                "That acceptance closes the current-source Phase 6 MLX-LM runtime gate for its exact scope",
+                "That exact-source refresh closes the current-source Phase 6 MLX-LM runtime gate for its exact scope",
                 "A different matching artifact remains conditional",
                 "No qualifying CUDA target-runtime acceptance has been collected",
             ),
@@ -1402,7 +1419,18 @@ class DocumentationTests(unittest.TestCase):
             for claim in claims:
                 self.assertIn(claim, text, (relative_path, claim))
 
-        acceptance_readme = normalized(
+        refresh_readme = normalized(
+            "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md"
+        )
+        for binding in (
+            "719255153e3fc7e38e83b5ff826d587e5e58bf80",
+            "be99f5664ccb580f2600471f1ae3241a294b1a7e",
+            "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+            "measured-run-pass",
+        ):
+            self.assertIn(binding, refresh_readme)
+
+        baseline_readme = normalized(
             "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md"
         )
         for claim in (
@@ -1411,36 +1439,212 @@ class DocumentationTests(unittest.TestCase):
             "Exact pinned artifact, source, host, runtime, dataset, and policy snapshot",
             "Model quality, general Qwen2 compatibility, CUDA acceptance, or production throughput",
         ):
-            self.assertIn(claim, acceptance_readme)
+            self.assertIn(claim, baseline_readme)
 
-        acceptance_summary = json.loads(
+        baseline_summary = json.loads(
             (
                 REPOSITORY
                 / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/acceptance-summary.json"
             ).read_text(encoding="utf-8")
         )
-        self.assertEqual(acceptance_summary["state"], "measured-run-pass")
+        self.assertEqual(baseline_summary["state"], "measured-run-pass")
         self.assertEqual(
-            acceptance_summary["phase_6_status"], "runtime-evidence-complete"
+            baseline_summary["phase_6_status"], "runtime-evidence-complete"
         )
-        self.assertEqual(acceptance_summary["completed_clean_repetitions"], 2)
+        self.assertEqual(baseline_summary["completed_clean_repetitions"], 2)
         self.assertEqual(
-            acceptance_summary["source"]["acceptance_fix_commit"],
+            baseline_summary["source"]["acceptance_fix_commit"],
             "14ed44b52a76bb84d8d9db4f2303951aa641339b",
         )
         self.assertEqual(
-            acceptance_summary["model"]["revision"],
+            baseline_summary["model"]["revision"],
             "53a32aee5e9447773fd2b85988395066aef3700a",
         )
-        self.assertEqual(acceptance_summary["host"]["chip"], "Apple M5 Pro")
-        self.assertEqual(acceptance_summary["runtime"]["mlx_lm"], "0.31.3")
+        self.assertEqual(baseline_summary["host"]["chip"], "Apple M5 Pro")
+        self.assertEqual(baseline_summary["runtime"]["mlx_lm"], "0.31.3")
         self.assertEqual(
-            acceptance_summary["compiled_input"]["plan_schema_version"],
+            baseline_summary["compiled_input"]["plan_schema_version"],
             "aptus.training-plan.v5",
         )
         self.assertEqual(
-            acceptance_summary["compiled_input"]["bundle_schema_version"],
+            baseline_summary["compiled_input"]["bundle_schema_version"],
             "aptus.bundle.v3",
+        )
+
+    def test_exact_source_refresh_packet_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh"
+        )
+        baseline = (
+            REPOSITORY / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "acceptance-procedure.json",
+            "acceptance-summary.json",
+            "bundle-comparison.json",
+            "bundle-manifest.json",
+            "raw-artifact-digests.json",
+            "runs/run-1/run-summary.json",
+            "runs/run-2/run-summary.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        checksum_lines = (
+            (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+        )
+        parsed_checksums: list[tuple[str, str]] = []
+        for line in checksum_lines:
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed_checksums.append((match.group(1), match.group(2)))
+        checksum_paths = [relative for _digest, relative in parsed_checksums]
+        self.assertEqual(checksum_paths, sorted(checksum_paths))
+        self.assertEqual(len(checksum_paths), len(set(checksum_paths)))
+        self.assertEqual(
+            set(checksum_paths),
+            {f"./{relative}" for relative in expected_files - {"SHA256SUMS"}},
+        )
+        for expected_digest, relative in parsed_checksums:
+            target = packet / relative.removeprefix("./")
+            self.assertEqual(
+                hashlib.sha256(target.read_bytes()).hexdigest(),
+                expected_digest,
+                relative,
+            )
+
+        summary = json.loads(
+            (packet / "acceptance-summary.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(summary["state"], "measured-run-pass")
+        self.assertEqual(summary["completed_clean_repetitions"], 2)
+        self.assertEqual(
+            summary["source"]["acceptance_commit"],
+            "719255153e3fc7e38e83b5ff826d587e5e58bf80",
+        )
+        self.assertEqual(
+            summary["source"]["acceptance_tree"],
+            "be99f5664ccb580f2600471f1ae3241a294b1a7e",
+        )
+        self.assertEqual(
+            summary["compiled_input"]["bundle_fingerprint"],
+            "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+        )
+        self.assertEqual(
+            summary["compiled_input"]["bundle_zip_sha256"],
+            "fcad829b4c845c6b5d1e548b293ec1107ccd7a78ea08b63bc7a1b8ca487be9b1",
+        )
+        self.assertFalse(
+            summary["bundle_comparison"]["old_evidence_transferred_to_new_fingerprint"]
+        )
+        self.assertTrue(
+            summary["bundle_comparison"]["new_fingerprint_freshly_qualified"]
+        )
+        self.assertEqual(len(summary["runs"]), 2)
+
+        for ordinal in (1, 2):
+            run = json.loads(
+                (packet / f"runs/run-{ordinal}/run-summary.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(run["ordinal"], ordinal)
+            self.assertEqual(run["state"], "measured-run-pass")
+            self.assertEqual(
+                [job["action"] for job in run["jobs"]],
+                ["dependency", "model-data", "preflight", "pilot", "train"],
+            )
+            self.assertTrue(
+                all(
+                    job["state"] == "completed" and job["return_code"] == 0
+                    for job in run["jobs"]
+                )
+            )
+            self.assertEqual(
+                run["jobs"][-1]["artifact_integrity_status"],
+                "verified-at-completion",
+            )
+            self.assertEqual(
+                run["jobs"][-1]["completion_attestation_state"],
+                "measured-run-pass",
+            )
+            self.assertTrue(run["full_train"]["source_report_hash_reconstructed"])
+            self.assertTrue(run["parent_promotion"]["evidence_sha256_recomputed"])
+            self.assertTrue(run["parent_promotion"]["pending_fields_absent"])
+            self.assertTrue(run["reload"]["fresh_process_observed"])
+            self.assertTrue(run["all_invariants_passed"])
+
+        comparison = json.loads(
+            (packet / "bundle-comparison.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            [entry["path"] for entry in comparison["changed_paths"]],
+            ["README.md", "runbook.md"],
+        )
+        self.assertEqual(comparison["changed_path_count"], 2)
+        self.assertEqual(comparison["unchanged_path_count"], 27)
+        self.assertTrue(comparison["runtime_programs_byte_identical"])
+        self.assertTrue(comparison["runtime_dependencies_byte_identical"])
+        self.assertFalse(comparison["baseline_runtime_evidence_transferred"])
+        expected_runtime_hashes = {
+            "plan_contract.py": "b69d072a7287da9d6536ed3d6fd85734d97e68ad9ce8b7cb9364b96bdfb92efe",
+            "policy_snapshot.py": "aa865c8ec6c3f89c863b22de9bbb9be96f32e1cf59dcf24b9ced2d9da3a94480",
+            "preflight.py": "86cb122f355fae3e7aba0afb77e47c1154eb7fd796bf03f6f4e31e56e77d8561",
+            "reload.py": "5b2ee41adec0ea443aff7a96918d3116d1670ca776c9dbe26d53b3693046b1b7",
+            "run.py": "b18daa1f4eff82dbe25bd338e2c9ca1c9d03566fc215af6b5d7a19d90e7d3029",
+            "runtime_lease.py": "a021fcb8b6da10fa5b443a14edea59280fd4041b3df4020fe07a44aee88bb6ad",
+            "train.py": "a3e943f707e688821587d9b0216f6404d77b5d526c32ce84cc57f5b826e5e27a",
+            "validate.py": "82eaf072abe8575f798b7cea600c111bfb48804f45ef167409a565dc0d72df33",
+        }
+        self.assertEqual(comparison["runtime_programs"], expected_runtime_hashes)
+
+        baseline_manifest = json.loads(
+            (baseline / "bundle-manifest.json").read_text(encoding="utf-8")
+        )
+        refresh_manifest_path = packet / "bundle-manifest.json"
+        refresh_manifest = json.loads(refresh_manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            hashlib.sha256(refresh_manifest_path.read_bytes()).hexdigest(),
+            summary["compiled_input"]["bundle_fingerprint"],
+        )
+        baseline_files = {entry["path"]: entry for entry in baseline_manifest["files"]}
+        refresh_files = {entry["path"]: entry for entry in refresh_manifest["files"]}
+        self.assertEqual(set(baseline_files), set(refresh_files))
+        actual_changed_paths = [
+            path
+            for path in sorted(refresh_files)
+            if baseline_files[path] != refresh_files[path]
+        ]
+        self.assertEqual(actual_changed_paths, ["README.md", "runbook.md"])
+
+        forbidden_patterns = (
+            "/Users/",
+            "/private/tmp",
+            "/tmp/",
+            "owner_pid",
+            "process_pid",
+            "process_group_id",
+            "parent_pid",
+            "verifier_pid",
+            "log_tail",
+        )
+        for relative in expected_files - {"SHA256SUMS"}:
+            text = (packet / relative).read_text(encoding="utf-8")
+            for pattern in forbidden_patterns:
+                self.assertNotIn(pattern, text, (relative, pattern))
+
+        self.assertEqual(
+            hashlib.sha256((baseline / "SHA256SUMS").read_bytes()).hexdigest(),
+            summary["baseline"]["packet_sha256s_sha256"],
         )
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:

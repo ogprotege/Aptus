@@ -1,0 +1,66 @@
+{
+  "schema_version": "aptus.bundle-comparison.v1",
+  "baseline": {
+    "acceptance_source": "14ed44b52a76bb84d8d9db4f2303951aa641339b",
+    "packet": "../2026-08-05-qwen2-mlx-lm-acceptance/",
+    "packet_sha256s_sha256": "3d8837b38724f27796c8341206ffa7435f5b35baf4f72ca2378276ef1a69bdcb",
+    "bundle_fingerprint": "f1d175193792e2b09c606f92c8db1d58e0a7c4bcb531c03c76fc71ad2be10b9e",
+    "bundle_zip_sha256": "0a7a912b97f82f2c3f7b9069281c8d49ca6543a3894ab050840549c3b258b664"
+  },
+  "refresh": {
+    "acceptance_source": "719255153e3fc7e38e83b5ff826d587e5e58bf80",
+    "source_tree": "be99f5664ccb580f2600471f1ae3241a294b1a7e",
+    "bundle_fingerprint": "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+    "bundle_zip_sha256": "fcad829b4c845c6b5d1e548b293ec1107ccd7a78ea08b63bc7a1b8ca487be9b1"
+  },
+  "manifest_entry_count": 29,
+  "changed_path_count": 2,
+  "changed_paths": [
+    {
+      "path": "README.md",
+      "baseline": {
+        "sha256": "be3504bad3933d1341083f4e76c9af63d0af66802b6249a35e9fa21b7cbfb002",
+        "size_bytes": 2441
+      },
+      "refresh": {
+        "sha256": "f0adaece3aa7bd779404d8378d6902442f423b91daf74502f0d2614ddf5298f0",
+        "size_bytes": 3252
+      },
+      "classification": "generated operator prose"
+    },
+    {
+      "path": "runbook.md",
+      "baseline": {
+        "sha256": "8db3288a8e640c7785c4d3480bbe400940e87fb7ee57c37704564cc665fce4fd",
+        "size_bytes": 2138
+      },
+      "refresh": {
+        "sha256": "d4ac38e8cd22557cfae59f713ef15048653b4f1c7542555707f919c8b1288d7d",
+        "size_bytes": 2891
+      },
+      "classification": "generated operator prose"
+    }
+  ],
+  "unchanged_path_count": 27,
+  "unchanged_manifest_entries_verified": true,
+  "top_level_manifest_metadata_identical": true,
+  "runtime_programs": {
+    "plan_contract.py": "b69d072a7287da9d6536ed3d6fd85734d97e68ad9ce8b7cb9364b96bdfb92efe",
+    "policy_snapshot.py": "aa865c8ec6c3f89c863b22de9bbb9be96f32e1cf59dcf24b9ced2d9da3a94480",
+    "preflight.py": "86cb122f355fae3e7aba0afb77e47c1154eb7fd796bf03f6f4e31e56e77d8561",
+    "reload.py": "5b2ee41adec0ea443aff7a96918d3116d1670ca776c9dbe26d53b3693046b1b7",
+    "run.py": "b18daa1f4eff82dbe25bd338e2c9ca1c9d03566fc215af6b5d7a19d90e7d3029",
+    "runtime_lease.py": "a021fcb8b6da10fa5b443a14edea59280fd4041b3df4020fe07a44aee88bb6ad",
+    "train.py": "a3e943f707e688821587d9b0216f6404d77b5d526c32ce84cc57f5b826e5e27a",
+    "validate.py": "82eaf072abe8575f798b7cea600c111bfb48804f45ef167409a565dc0d72df33"
+  },
+  "runtime_dependencies": {
+    "requirements.txt": "51f045a299cc3d16ed74e028f16acf60664f6955f1e087c792a7659b080e4fa0"
+  },
+  "runtime_programs_byte_identical": true,
+  "runtime_dependencies_byte_identical": true,
+  "two_refresh_manifests_byte_identical": true,
+  "two_refresh_zip_archives_byte_identical": true,
+  "baseline_runtime_evidence_transferred": false,
+  "refresh_fingerprint_freshly_qualified": true
+}

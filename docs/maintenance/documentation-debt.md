@@ -164,12 +164,16 @@ when its evidence, owner, or resolution changes.
   adds exact fail-closed evidence for the 30B checkpoint. It stopped before
   model loading and is not passing pilot, training, reload, export,
   performance, or quality evidence. The
-  [2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-  now records two clean current-source v5/v3 `measured-run-pass` repetitions
-  for its exact pinned artifact, source commit, Apple M5 Pro host, Python/MLX
-  runtime, dataset, and policy snapshot. It closes the Phase 6 MLX-LM runtime
-  gate only for that scope. The July MLX-LM and desktop records remain
-  historical at their tested commits.
+  [2026-08-05 Qwen2 MLX-LM exact-source
+  refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+  now records two fresh, clean current-source v5/v3 `measured-run-pass`
+  repetitions for its exact pinned artifact and revision, source commit and
+  tree, Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, plan,
+  bundle, and new fingerprint. It closes the Phase 6 MLX-LM runtime gate only
+  for that scope. The [original Phase 6
+  acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
+  July MLX-LM record, and desktop record remain historical at their tested
+  commits.
 - **Required result:** Add equivalent evidence for every claimed CUDA method and
   placement, and add Developer ID signed and notarized desktop evidence for the
   exact public release commit.
@@ -448,6 +452,41 @@ when its evidence, owner, or resolution changes.
   `SHA256SUMS` bind both five-job repetitions, terminal validation reports,
   immutable exports, reload evidence, and parent-promotion receipts.
 - **Owner:** Policy, MLX runtime, release-evidence, and documentation maintainers
+
+### DOC-025: Refresh Phase 6 evidence at the exact current source
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** The
+  [2026-08-05 exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+  records two fresh, clean, independent v5-plan/v3-bundle workflows through
+  `measured-run-pass` at exact source commit
+  `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
+  `be99f5664ccb580f2600471f1ae3241a294b1a7e`, bundle fingerprint
+  `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`, and
+  ZIP SHA-256
+  `fcad829b4c845c6b5d1e548b293ec1107ccd7a78ea08b63bc7a1b8ca487be9b1`.
+  The [original Phase 6 acceptance
+  packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+  remains byte-for-byte unchanged as the historical baseline.
+- **Comparison boundary:** Relative to that baseline, exactly the manifested
+  operator `README.md` and `runbook.md` changed. The runtime programs,
+  `requirements.txt`, retained plan, policy snapshot, and split contract stayed
+  byte-identical. The original runs do not transfer to the new bundle identity;
+  the two fresh workflows independently qualify the new fingerprint.
+- **Evidence boundary:** The refresh applies only to the exact pinned Qwen2.5
+  artifact and immutable revision, source commit and tree, M5 Pro host,
+  Python/MLX runtime and resolved environment, four-row synthetic dataset, v5
+  plan, v3 bundle, policy snapshot, and new fingerprint. It does not qualify
+  CUDA, generalize Qwen2 compatibility, establish safety or model quality,
+  support performance or throughput claims, or establish production or release
+  readiness.
+- **Verification:** The packet's `SHA256SUMS` covers each committed projection
+  exactly once; its machine-readable comparison binds the two changed operator
+  documents and unchanged runtime/dependency hashes, and its sanitized run
+  projections bind both terminal `measured-run-pass` workflows without raw job
+  state or local absolute paths.
+- **Owner:** MLX runtime, release-evidence, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

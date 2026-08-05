@@ -181,12 +181,18 @@ The two Qwen2 records intentionally answer different questions: the policy
 record supports the reviewed configuration-to-path mapping, while the runtime
 record supports only the exact July 27 artifact, host, dataset, runtime, v2
 plan, and v2 bundle named by its scope. The
-[2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-is a separate operational packet recording two clean current-source
-`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions.
-It closes the Phase 6 MLX-LM runtime gate only for its exact pinned artifact,
-source commit, Apple M5 Pro host, Python/MLX runtime, dataset, and policy
-snapshot. It does not broaden or relabel either canonical evidence record.
+[original 2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+is the unchanged historical Phase 6 baseline. The separate
+[exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean current-source `aptus.training-plan.v5` and
+`aptus.bundle.v3` `measured-run-pass` repetitions at source
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
+`be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
+`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+It closes the Phase 6 MLX-LM runtime gate only for its exact pinned artifact and
+revision, source and tree, Apple M5 Pro host, Python/MLX runtime, dataset, policy
+snapshot, plan, bundle, and fingerprint. It does not broaden or relabel either
+canonical evidence record.
 
 ## Candidate evidence mapping
 
@@ -204,9 +210,9 @@ policy-specific evidence. The Qwen2 path therefore adds
 `policy.qwen2-24l.mlx-qlora.v1` and
 `runtime.qwen2-0.5b.mlx-qlora.2026-07-27`. Carrying the historical runtime ID in
 a current plan preserves its scope; it does not relabel the current plan or
-bundle as runtime-tested. The separate August 5 acceptance packet applies only
-when its exact plan, bundle, artifact, source, host, runtime, dataset, and policy
-snapshot bindings match. The policy remains a configuration footprint rather
+bundle as runtime-tested. The separate exact-source refresh applies only when
+its exact plan, bundle, artifact, source, host, runtime, dataset, policy
+snapshot, and fingerprint bindings match. The policy remains a configuration footprint rather
 than an artifact allowlist; other matching artifacts still require their own
 model-data, measured-preflight, and pilot gates. The packet does not qualify
 CUDA or establish model quality or production throughput.

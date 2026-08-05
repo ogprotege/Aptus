@@ -24,9 +24,15 @@ All notable changes are recorded here.
   evidence.
 - A second registry-driven policy for the reviewed 24-layer dense Qwen2
   four-bit group-64 configuration footprint. It permits only single-device
-  MLX-LM QLoRA with q/k/v/o and gate/up/down adapters. Two exact pinned-artifact
-  repetitions reached `measured-run-pass`; the record does not admit every
-  matching artifact or establish CUDA, quality, or throughput claims.
+  MLX-LM QLoRA with q/k/v/o and gate/up/down adapters. Two fresh exact
+  pinned-artifact repetitions reached `measured-run-pass` at source
+  `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
+  `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
+  Relative to the unchanged original acceptance baseline, only manifested
+  `README.md` and `runbook.md` changed; runtime programs and requirements stayed
+  byte-identical. The refreshed record does not admit every matching artifact
+  or establish CUDA, safety, quality, performance, production, or release
+  readiness claims.
 - Provider-declared MoE topology facts, backend-derived active-parameter and
   sparse-layer counts, strict API and CLI inputs, and a workbench expert-routing
   rail. Resident-weight estimates always use the user-attested total parameter
@@ -215,7 +221,11 @@ record under `docs/operations/evidence/2026-07-27-desktop-release/` proves 10 of
 head. Pull-request CI rebuilds and packages GitHub's exact tested merge commit,
 then records that identity in `COMMIT`. The July MLX-LM record predates Phase 4
 and does not bind the current source head; no current-head MLX or CUDA
-target-runtime pilot was collected for the Phase 4 closeout. No qualifying CUDA
+target-runtime pilot was collected for the Phase 4 closeout. The later
+`docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/`
+packet records two fresh MLX-LM `measured-run-pass` workflows at exact source
+`719255153e3fc7e38e83b5ff826d587e5e58bf80`; the original August 5 Phase 6
+acceptance packet remains its historical baseline. No qualifying CUDA
 target-host pilot or full run has been recorded. The default Mac artifacts are
 ad-hoc signed, not a Developer ID signed and notarized public distribution.
 Version 0.2.0 remains unreleased.

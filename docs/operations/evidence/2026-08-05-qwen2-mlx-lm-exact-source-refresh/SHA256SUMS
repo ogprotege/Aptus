@@ -1,0 +1,8 @@
+1544030bb69f05a3acd138317036e56419f52445bffe5248594a0a6239cea1fc  ./README.md
+24f06b59ad226e6e8dc0af24f9dffc0e17208cd13db55a59edb7ae4108004974  ./acceptance-procedure.json
+6333afc6d34b0d713398ba71b6b81c5fc0403637447d123b966c6c0befbdc977  ./acceptance-summary.json
+534724c716a91fc081175702bb78cd3313de82ce42104c49fae4c0c4a66fbc9b  ./bundle-comparison.json
+ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919  ./bundle-manifest.json
+3f97bc98acbfb46292443f2c6dff298b407ece8e7145cb3431cc0aa49170e3a8  ./raw-artifact-digests.json
+f57825cdd9b997a0164d5a5a559ef389d9701c2fdd51ea0ea9d04e53dd2a5160  ./runs/run-1/run-summary.json
+ff02b5b05e62d7b1821f979aadf6d85d210a275eab12948f83e85b47154be833  ./runs/run-2/run-summary.json

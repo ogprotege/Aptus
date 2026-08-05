@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-08-04 |
+| Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON
@@ -33,6 +33,144 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `inspect hardware` | Alias for `hardware` | Local probe | None |
 | `inspect model` | Inspect bounded provider metadata | 10-second timeout | Provider network requests only |
 | `serve` | Serve an authenticated API and packaged workbench | `127.0.0.1:8787` | Per-launch workbench handoff, bearer token, state, and job records |
+
+## Machine-readable parser contract
+
+This JSON document is checked against the live `argparse` tree. `null` is the
+parser default when an argument is omitted, including required arguments that
+must be supplied before parsing can succeed. Angle brackets identify positional
+arguments and subcommand selectors. The `planning-facts` group is included by
+`spec-plan`, `plan`, and `build`; it is expanded before comparison. This block
+binds command and argument names, choices, and non-suppressed defaults. The
+installed help and reviewed prose remain authoritative for requiredness, value
+types, validation rules, side effects, and operational meaning.
+
+<!-- aptus-cli-parser-contract:start -->
+```json
+{
+  "schema_version": "aptus.cli-parser-contract.v1",
+  "argument_groups": {
+    "planning-facts": {
+      "--architecture": {"default": null},
+      "--backend": {"choices": ["cuda", "rocm", "mps", "cpu"], "default": "cuda"},
+      "--bf16": {"default": false},
+      "--checkpoint-steps": {"default": 100},
+      "--confirm-training-allowed": {"default": false},
+      "--context-length": {"default": null},
+      "--dataset": {"default": null},
+      "--disk-free-gib": {"default": null},
+      "--effective-batch-size": {"default": 16},
+      "--eight-bit": {"default": false},
+      "--epochs": {"default": 3},
+      "--evaluation-fraction": {"default": 0.1},
+      "--family": {"default": null},
+      "--four-bit": {"default": false},
+      "--free-vram-gib": {"default": null},
+      "--gpu-count": {"default": null},
+      "--hidden-size": {"default": null},
+      "--host-ram-free-gib": {"default": null},
+      "--host-ram-gib": {"default": null},
+      "--inspection-receipt": {"default": null},
+      "--intermediate-size": {"default": null},
+      "--layers": {"default": null},
+      "--license": {"default": null},
+      "--model-id": {"default": null},
+      "--model-type": {"default": null},
+      "--moe-decoder-sparse-step": {"default": null},
+      "--moe-expert-count": {"default": null},
+      "--moe-expert-intermediate-size": {"default": null},
+      "--moe-experts-per-token": {"default": null},
+      "--moe-mlp-only-layer": {"default": []},
+      "--moe-shared-expert-intermediate-size": {"default": null},
+      "--objective": {"choices": ["quality", "memory", "speed"], "default": "memory"},
+      "--packing": {"default": false},
+      "--parameters-b": {"default": null},
+      "--prefer-method": {"choices": ["full", "lora", "int8-lora", "qlora"], "default": null},
+      "--quantization-bits": {"choices": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], "default": null},
+      "--quantization-group-size": {"default": null},
+      "--quantization-layout-profile": {"choices": ["qwen3-moe-4bit-group64-router-gates-8bit"], "default": null},
+      "--reserve-gib": {"default": 2.0},
+      "--revision": {"default": null},
+      "--sample-limit": {"default": 512},
+      "--sequence-length": {"default": null},
+      "--training-runtime": {"choices": ["transformers-peft-cuda", "mlx-lm", "pytorch-mps"], "default": null},
+      "--vram-gib": {"default": null}
+    }
+  },
+  "commands": {
+    "aptus": {
+      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "inspect"], "default": null}
+    },
+    "aptus profile": {
+      "--dataset": {"default": null},
+      "--sample-limit": {"default": 512},
+      "--sequence-length": {"default": null},
+      "--output": {"default": null}
+    },
+    "aptus spec-plan": {
+      "$groups": ["planning-facts"],
+      "--output": {"default": null}
+    },
+    "aptus plan": {
+      "$groups": ["planning-facts"],
+      "--output": {"default": null},
+      "--plan-output": {"default": null}
+    },
+    "aptus build": {
+      "$groups": ["planning-facts"],
+      "--output": {"default": null},
+      "--plan-output": {"default": null}
+    },
+    "aptus compile": {
+      "--plan": {"default": null},
+      "--output": {"default": null},
+      "--archive": {"default": null}
+    },
+    "aptus validate": {
+      "<bundle>": {"default": null},
+      "--level": {"choices": ["contract", "static", "dependency", "model-data", "measured-preflight", "pilot"], "default": "static"},
+      "--run": {"default": false},
+      "--state-dir": {"default": ".aptus-state"}
+    },
+    "aptus run": {
+      "<bundle>": {"default": null},
+      "--action": {"choices": ["dependency", "model-data", "preflight", "pilot", "train"], "default": "preflight"},
+      "--confirm-full-train": {"default": false},
+      "--state-dir": {"default": ".aptus-state"}
+    },
+    "aptus jobs": {
+      "--state-dir": {"default": ".aptus-state"},
+      "--id": {"default": null}
+    },
+    "aptus doctor": {
+      "--state-dir": {"default": ".aptus-state"},
+      "--output": {"default": null}
+    },
+    "aptus diagnostics": {
+      "--state-dir": {"default": ".aptus-state"},
+      "--output": {"default": null}
+    },
+    "aptus serve": {
+      "--host": {"default": "127.0.0.1"},
+      "--port": {"default": 8787},
+      "--state-dir": {"default": ".aptus-state"},
+      "--web-dist": {"default": null},
+      "--allow-non-loopback": {"default": false}
+    },
+    "aptus hardware": {},
+    "aptus inspect": {
+      "<inspect_command>": {"choices": ["hardware", "model"], "default": null}
+    },
+    "aptus inspect hardware": {},
+    "aptus inspect model": {
+      "--model-id": {"default": null},
+      "--revision": {"default": null},
+      "--timeout": {"default": 10.0}
+    }
+  }
+}
+```
+<!-- aptus-cli-parser-contract:end -->
 
 ## Planning fact options
 

@@ -390,11 +390,23 @@ This portable bundle contains candidate `{plan.recommended.candidate_id}` from
 plan `{plan.plan_id}`. It is compiled for Apple silicon and MLX-LM.
 {policy_boundary}
 
+## Before execution
+
+1. Review `decision-report.md`, `plan.json`, and `evidence.jsonl`.
+2. Confirm the model revision, data rights, target facts, and selected Apple
+   silicon host.
+3. Create the Python environment outside this directory. An in-bundle virtual
+   environment is an unexpected path and invalidates the manifest.
+4. Install the exact direct pins from `requirements.txt`.
+5. Follow `runbook.md` in order.
+
 The candidate is conditional and pilot-required. The generated wrapper runs a
 bounded compiler smoke, an uninterrupted pilot, or a confirmed uninterrupted
 full train from the pinned base revision. Each action rechecks live Apple
 unified-memory headroom before loading the model.
 {moe_policy}
+
+## Portable commands
 
 ```bash
 python validate.py --level static
@@ -416,6 +428,14 @@ Failed or cancelled runs never promote.
 MLX-LM crash resume is unsupported in this bundle. `--resume-from` always
 fails closed. Pilot and full actions start from the pinned base revision and
 must run uninterrupted.
+
+## Evidence boundary
+
+`pilot-pass` authorizes a later full-train admission check. It does not
+guarantee that current resources still suffice. `measured-run-pass` proves the
+bound run, metrics, trainable census, dataset split, immutable adapter export,
+and fresh-process reload passed parent verification. It does not prove model
+quality, safety, or deployment fitness.
 """
     return f"""# Aptus training bundle
 
@@ -486,7 +506,18 @@ python -m pip install -r requirements.txt
 python validate.py --level dependency
 ```
 
-## 3. Exercise the compiler slice
+## 3. Validate model and data
+
+```bash
+python validate.py --level model-data
+```
+
+This resolves only the plan-pinned model revision, disables remote model code,
+checks the architecture, parameter census, packed checkpoint, target modules,
+unified-memory admission, compiled split, tokenization, and prompt masking. It
+constructs no optimizer and takes no training step.
+
+## 4. Exercise the compiler slice
 
 ```bash
 python validate.py --level measured-preflight
@@ -502,7 +533,7 @@ metadata. Aptus never substitutes bitsandbytes and never quantizes an unbound
 model during training.
 {moe_policy}
 
-## 4. Pilot gate
+## 5. Pilot gate
 
 ```bash
 python validate.py --level pilot
@@ -513,7 +544,10 @@ It promotes `pilot-pass` only after two completed optimizer updates, finite
 train and validation loss, exact adapter-target census, positive adapter
 change, live headroom, and fresh-process adapter reload plus bounded generation.
 
-## 5. Confirm full training
+Review `pilot-output/metrics.json`, the adapter and reload evidence, and
+`validation-report.json`. A pilot failure blocks full training.
+
+## 6. Confirm full training
 
 ```bash
 python run.py --confirm-full-train --output-dir runs/run_<new-name>
@@ -527,6 +561,12 @@ derives its iteration count from the compiled train split and
 reload evidence, and `final-export.json` have passed verification. It then
 re-verifies the owned tree and atomically promotes `measured-run-pass`. A failed
 or cancelled process leaves an unpromoted owned directory.
+
+## 7. Interpret the result
+
+Read `validation-report.json`, the selected run `metrics.json`, and
+`final-export.json`. `measured-run-pass` is operational and structural
+evidence. Use a separate evaluation contract before making a quality claim.
 
 ## Resume boundary
 
@@ -593,8 +633,8 @@ one writes a checkpoint. A fresh process continues from it and completes phase
 two. Both phases must report the same plan-bound trainable census.
 
 Review `pilot-output/metrics.json`, the checkpoint and export manifests, the
-recorded CUDA peaks, and `validation-report.json`. A pilot failure blocks full
-training.
+recorded CUDA peaks, and `validation-report.json`. `pilot-pass` is required
+before full training; a pilot failure blocks it.
 
 ## 6. Start a unique full run
 

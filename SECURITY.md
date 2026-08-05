@@ -1,14 +1,16 @@
 # Security Policy
 
-> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Supported status
 
-Aptus v0.2 is an engineering preview. The July 27 Apple Silicon MLX-LM record
-reached `measured-run-pass` twice in a clean isolated checkout, but it predates
-the Phase 4 portable-policy snapshot contract and does not bind the current
-source head. No current-head CUDA or MLX target-runtime pilot was collected for
-the Phase 4 closeout. Ten of 10 clean local desktop engineering builds passed at
+Aptus v0.2 is an engineering preview. The
+[2026-08-05 Apple Silicon MLX-LM record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+reached `measured-run-pass` twice under the current v5 plan and v3 bundle
+contracts. It is bound to its exact Qwen2.5 artifact, source commit, M5 Pro
+host, Python/MLX runtime, synthetic dataset, plan, bundle, and policy snapshot;
+it is not CUDA, quality, broader compatibility, or production-throughput
+evidence. Ten of 10 clean local desktop engineering builds passed at historical
 implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
@@ -173,12 +175,10 @@ It is not a transitive dependency lock. Install in an isolated environment,
 review resolved dependencies, and retain the environment binding. Do not run
 untrusted bundles or install unreviewed packages on a sensitive host.
 
-The 2026-07-27 web audit reports zero production dependency advisories. The
-full development audit reports four high-severity transitive advisories in the
-OpenAPI generator chain: `@redocly/openapi-core`, `js-yaml`, `minimatch`, and
-`brace-expansion`. That generator processes the trusted checked-in OpenAPI
-document, but the advisories remain open release-engineering debt. Do not feed
-it untrusted schemas.
+The 2026-08-05 clean web install reports zero production or development
+dependency vulnerabilities in the full `npm audit`. The OpenAPI generator still
+processes only the trusted checked-in schema during development and release
+builds; do not use the repository workflow to process untrusted schemas.
 
 ## Related documentation
 

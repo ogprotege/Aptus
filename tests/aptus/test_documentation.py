@@ -112,22 +112,102 @@ def subparser_actions(
     ]
 
 
-def cli_surface() -> tuple[set[str], set[str]]:
-    commands: set[str] = set()
-    options: set[str] = set()
+def cli_parser_contract() -> dict[str, dict[str, dict[str, object]]]:
+    commands: dict[str, dict[str, dict[str, object]]] = {}
     pending = deque([("aptus", _parser())])
     while pending:
         prefix, parser = pending.popleft()
+        arguments: dict[str, dict[str, object]] = {}
         for action in parser._actions:
-            options.update(
-                option for option in action.option_strings if option != "--help"
+            if isinstance(action, argparse._HelpAction):
+                continue
+            has_default = action.default != argparse.SUPPRESS
+            argument = (
+                " / ".join(action.option_strings)
+                if action.option_strings
+                else f"<{action.dest}>"
             )
+            contract: dict[str, object] = {}
+            if has_default:
+                default = action.default
+                contract["default"] = (
+                    default.as_posix() if isinstance(default, Path) else default
+                )
+            if action.choices is not None:
+                contract["choices"] = list(action.choices)
+            arguments[argument] = contract
+        commands[prefix] = arguments
         for action in subparser_actions(parser):
             for name, child in action.choices.items():
                 command = f"{prefix} {name}"
-                commands.add(command)
                 pending.append((command, child))
-    return commands, options
+    return commands
+
+
+def documented_cli_parser_contract(
+    reference: str,
+) -> dict[str, dict[str, dict[str, object]]]:
+    start = "<!-- aptus-cli-parser-contract:start -->"
+    end = "<!-- aptus-cli-parser-contract:end -->"
+    _before, separator, remainder = reference.partition(start)
+    if not separator:
+        raise AssertionError("CLI parser contract start marker is missing")
+    payload, separator, _remainder = remainder.partition(end)
+    if not separator:
+        raise AssertionError("CLI parser contract end marker is missing")
+    fenced = payload.strip()
+    if not fenced.startswith("```json\n") or not fenced.endswith("\n```"):
+        raise AssertionError("CLI parser contract must be one fenced JSON document")
+    document = json.loads(fenced.removeprefix("```json\n").removesuffix("\n```"))
+    if set(document) != {"schema_version", "argument_groups", "commands"}:
+        raise AssertionError("CLI parser contract has unexpected top-level fields")
+    if document["schema_version"] != "aptus.cli-parser-contract.v1":
+        raise AssertionError("CLI parser contract schema version is unsupported")
+
+    groups = document["argument_groups"]
+    command_documents = document["commands"]
+    if not isinstance(groups, dict) or not isinstance(command_documents, dict):
+        raise AssertionError("CLI parser contract groups and commands must be objects")
+    referenced_groups: set[str] = set()
+    commands: dict[str, dict[str, dict[str, object]]] = {}
+    for command, command_document in command_documents.items():
+        if not isinstance(command_document, dict):
+            raise AssertionError(f"CLI parser contract for {command} must be an object")
+        local_document = dict(command_document)
+        group_names = local_document.pop("$groups", [])
+        if not isinstance(group_names, list) or not all(
+            isinstance(name, str) for name in group_names
+        ):
+            raise AssertionError(
+                f"CLI parser contract groups for {command} are invalid"
+            )
+        arguments: dict[str, dict[str, object]] = {}
+        for group_name in group_names:
+            if group_name not in groups:
+                raise AssertionError(
+                    f"CLI parser contract group {group_name!r} is not defined"
+                )
+            referenced_groups.add(group_name)
+            overlap = arguments.keys() & groups[group_name].keys()
+            if overlap:
+                raise AssertionError(
+                    f"CLI parser contract repeats grouped arguments for {command}: "
+                    f"{sorted(overlap)}"
+                )
+            arguments.update(groups[group_name])
+        overlap = arguments.keys() & local_document.keys()
+        if overlap:
+            raise AssertionError(
+                f"CLI parser contract repeats local arguments for {command}: "
+                f"{sorted(overlap)}"
+            )
+        arguments.update(local_document)
+        commands[command] = arguments
+    if referenced_groups != set(groups):
+        raise AssertionError(
+            "CLI parser contract contains unreferenced argument groups"
+        )
+    return commands
 
 
 class DocumentationTests(unittest.TestCase):
@@ -1624,20 +1704,12 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertEqual(unreachable, [], "Maintained docs are missing from navigation")
 
-    def test_cli_reference_covers_executable_surface(self) -> None:
+    def test_cli_reference_matches_parser_choices_and_defaults(self) -> None:
         reference = (REPOSITORY / "docs/reference/cli.md").read_text(encoding="utf-8")
-        commands, options = cli_surface()
-        missing_commands = sorted(
-            command for command in commands if command not in reference
-        )
-        missing_options = sorted(
-            option for option in options if option not in reference
-        )
         self.assertEqual(
-            missing_commands, [], "CLI commands are missing from the reference"
-        )
-        self.assertEqual(
-            missing_options, [], "CLI options are missing from the reference"
+            documented_cli_parser_contract(reference),
+            cli_parser_contract(),
+            "CLI parser choices or defaults differ from the structured reference",
         )
 
     def test_api_reference_covers_routes_and_static_errors(self) -> None:

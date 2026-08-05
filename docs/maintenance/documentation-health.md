@@ -5,7 +5,8 @@
 > **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
 > the Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
 > original runtime acceptance, 2026-08-05 exact-source evidence refresh, and
-> the dedicated private-security intake closeout
+> the dedicated private-security intake and maintained-client contract-parity
+> closeouts
 >
 > **Last reviewed:** 2026-08-05
 >
@@ -17,8 +18,8 @@ Aptus has a substantive v0.2 documentation set. It explains evidence boundaries,
 supported methods, planning assumptions, bundle structure, validation states,
 execution controls, and known release blockers with unusual care. The main risk
 is maintenance scale. The same contracts appear in prose, code, generated
-artifacts, API shapes, CLI help, and workbench copy without enough automated
-parity checks.
+artifacts, API shapes, CLI help, and workbench copy; generated surfaces and
+maintained decoders therefore need explicit parity checks.
 
 Overall documentation health is **strong with named maintenance gaps**. The
 2026-07-28 drift audit identified 32 confirmed locations across 12 root causes.
@@ -131,7 +132,7 @@ derive every default, status, and response field from one source.
 | Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
-| Automation | Good with gaps | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, and the 2026-07-28 audit closeout; maintained React normalization and Swift decoding boundaries still require contract care |
+| Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
 | Release evidence | Partial | The August 5 exact-source refresh records two fresh, clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact and revision/source and tree/host/runtime/dataset/plan/policy/fingerprint scope; the original Phase 6 packet remains its historical baseline, CUDA target-host and public notarized distribution evidence remain open, and neither packet is a safety, quality, performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
@@ -160,13 +161,13 @@ not become a one-time cleanup.
 
 ### High impact
 
-1. Generated OpenAPI JSON and TypeScript schema and path types have stale-file
-   checks. Model policy now has semantic tests for the typed no-feasible response,
-   strict decision, path, receipt, candidate, binding, and report ingestion;
-   request/receipt correlation; exact report identity; and separate validation
-   and launch-admission states. Other React normalization code and
-   Swift response decoders remain maintained client boundaries that require
-   contract tests.
+No unresolved high-impact documentation drift remains at the maintained client
+boundaries. Generated OpenAPI JSON and TypeScript schema and path types retain
+stale-file checks. React semantic tests now cover the remaining job, profile,
+live-versus-restored compile, and method-catalog normalizers. Native tests cover
+health, runtime configuration, six-field runtime inventory, and supported or
+unsupported platform responses; the Swift/OpenAPI checker binds those four
+routes, their required top-level fields, and closed response values.
 
 ### Medium impact
 
@@ -351,6 +352,14 @@ exact artifact and revision, source and tree, M5 Pro host, Python/MLX runtime,
 dataset, plan, policy snapshot, and new bundle fingerprint. The refresh does not
 broaden the original claim boundary.
 
+The maintained-client parity closeout resolves DOC-026. React rejects malformed
+required response records without weakening the existing Phase 5 policy ingress.
+Swift rejects incomplete health and runtime configuration responses, requires
+all six runtime-inventory fields with advertised-versus-measured path parity,
+and distinguishes valid platform `unsupported` responses from malformed status
+or payload shapes. Mutation tests keep the native checker aligned with OpenAPI
+when a required field, closed value, decoder marker, or endpoint changes.
+
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature
 checks, and DMG verification. Two clean real MLX workflows and ten consecutive
@@ -359,12 +368,9 @@ checks do not replace CUDA target-host acceptance or public notarization.
 
 ## Recommended actions by impact
 
-1. Close the remaining maintained React normalization and Swift decoder parity
-   gaps.
-2. Publish a concrete private security-reporting route.
-3. Complete qualifying CUDA target-host evidence and public desktop distribution
+1. Complete qualifying CUDA target-host evidence and public desktop distribution
    evidence.
-4. Revisit the repository-Markdown delivery decision only when versioning,
+2. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 
 ## Next health review

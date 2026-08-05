@@ -294,13 +294,23 @@ final class BackendController {
     }
 
     private func checkHealth(origin: URL, token: String, readiness: BackendReadiness) {
+        guard let healthURL = DesktopBackendEndpointPolicy.url(
+            for: DesktopBackendEndpointPolicy.healthPath,
+            origin: origin
+        ) else {
+            fail(BackendError.invalidReadiness(
+                "The desktop service reported an invalid health endpoint."
+            ))
+            return
+        }
         healthCheckInFlight = true
-        var request = URLRequest(url: origin.appendingPathComponent("api/v1/health"))
+        var request = URLRequest(url: healthURL)
         request.timeoutInterval = 2
         request.setValue("aptus_desktop_session=\(token)", forHTTPHeaderField: "Cookie")
-        session.dataTask(with: request) { [weak self] _, response, _ in
+        session.dataTask(with: request) { [weak self] data, response, _ in
             DispatchQueue.main.async {
                 self?.handleHealthResponse(
+                    data,
                     response,
                     origin: origin,
                     token: token,
@@ -311,6 +321,7 @@ final class BackendController {
     }
 
     private func handleHealthResponse(
+        _ data: Data?,
         _ response: URLResponse?,
         origin: URL,
         token: String,
@@ -318,7 +329,22 @@ final class BackendController {
     ) {
         healthCheckInFlight = false
         guard case .starting = state, self.token == token else { return }
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { return }
+        guard let response = response as? HTTPURLResponse,
+              response.statusCode == 200,
+              let data else { return }
+        let health: BackendHealthResponse
+        do {
+            health = try JSONDecoder().decode(BackendHealthResponse.self, from: data)
+            try health.validate(expectedVersion: expectedVersion)
+        } catch let error as BackendError {
+            fail(error)
+            return
+        } catch {
+            fail(BackendError.invalidReadiness(
+                "The desktop service returned an invalid health response."
+            ))
+            return
+        }
         startupTimer?.cancel()
         startupTimer = nil
         guard let paths else { return }

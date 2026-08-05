@@ -191,6 +191,88 @@ function boundTrainingPlanResponse(): Record<string, unknown> {
   });
 }
 
+function methodDescriptor(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    schema_version: "aptus.method-descriptor.v1",
+    method_id: "lora",
+    display_name: "LoRA",
+    summary: "Train low-rank adapters.",
+    lifecycle: "gated-executable",
+    selectable: true,
+    parameter_scope: "frozen-base-plus-adapter",
+    parameterization: "lora",
+    base_storage: "unquantized",
+    compiler_id: "transformers.peft-lora.v2",
+    export_kind: "peft-adapter-safetensors",
+    supported_backends: ["cuda"],
+    supported_distributions: ["single", "ddp", "fsdp"],
+    evidence_ids: ["method.lora.paper"],
+    pilot_requirement: "A bounded pilot is mandatory.",
+    blocker: null,
+    runtime_bindings: [
+      {
+        schema_version: "aptus.runtime-binding.v1",
+        training_runtime: "transformers-peft-cuda",
+        compute_backend: "cuda",
+        compiler_id: "transformers.peft-lora.v2",
+        estimator_id: "aptus-memory-v2",
+        export_kind: "peft-adapter-safetensors",
+        supported_distributions: ["single", "ddp", "fsdp"],
+        evidence_requirement: "pilot-required",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function jobResponse(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    schema_version: "aptus.job-record.v1",
+    id: "job_123",
+    job_id: "job_123",
+    state: "queued",
+    action: "pilot",
+    bundle_dir: "/tmp/bundle",
+    created_at: "2026-07-21T12:00:00Z",
+    ...overrides,
+  };
+}
+
+function profileResponse(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    source_path: "/tmp/train.jsonl",
+    source_sha256: "a".repeat(64),
+    source_format: "jsonl",
+    schema_name: "messages",
+    example_count: 3,
+    total_estimated_tokens: 45,
+    sequence_p50: 12,
+    sequence_p95: 20,
+    sequence_max: 24,
+    measurement: "estimated",
+    warnings: [],
+    schema_counts: { messages: 3 },
+    sampled_examples: 3,
+    sample_indices: [0, 1, 2],
+    duplicate_count: 0,
+    empty_count: 0,
+    truncation_count: 1,
+    truncation_rate: 1 / 3,
+    source_size_bytes: 128,
+    canonical_size_bytes: 120,
+    max_canonical_row_bytes: 40,
+    bundle_path: null,
+    provenance: { kind: "measured", source: "local-file" },
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -254,8 +336,18 @@ describe("typed API client", () => {
               warnings: [],
               recommendation_rationale: ["restored"],
             }),
-            bundle: { bundle_dir: "/tmp/restored", files: [] },
-            job: { job_id: "job_restored", state: "cancelling", action: "pilot" },
+            bundle: {
+              bundle_dir: "/tmp/restored",
+              archive_path: null,
+              files: [],
+              runtime_contract: null,
+              report: null,
+            },
+            job: jobResponse({
+              id: "job_restored",
+              job_id: "job_restored",
+              state: "cancelling",
+            }),
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
@@ -266,46 +358,71 @@ describe("typed API client", () => {
 
     expect(bootstrap.plan?.recommended?.id).toBe(`cand_${"3".repeat(20)}`);
     expect(bootstrap.plan?.rationale).toEqual(["restored"]);
+    expect(bootstrap.bundle?.report).toBeNull();
     expect(bootstrap.job?.id).toBe("job_restored");
     expect(bootstrap.job?.state).toBe("cancelling");
   });
 
-  it("rejects unknown method lifecycles at the bootstrap boundary", async () => {
+  it("enforces method descriptor versions and lifecycle invariants", async () => {
+    const accepted = methodDescriptor();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            api_contract_version: "aptus.api.v1",
-            capabilities: {
-              method_catalog: [
-                {
-                  schema_version: "aptus.method-descriptor.v1",
-                  method_id: "future-method",
-                  display_name: "Future method",
-                  summary: "Unknown lifecycle fixture.",
-                  lifecycle: "secretly-executable",
-                  selectable: false,
-                  parameter_scope: "unknown",
-                  parameterization: "unknown",
-                  base_storage: "unknown",
-                  compiler_id: null,
-                  export_kind: null,
-                  supported_backends: [],
-                  supported_distributions: [],
-                  evidence_ids: ["fixture"],
-                  pilot_requirement: "Unknown",
-                  blocker: "Unknown",
-                },
-              ],
-            },
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
+        new Response(JSON.stringify({
+          api_contract_version: "aptus.api.v1",
+          capabilities: { method_catalog: [accepted] },
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
       ),
     );
+    await expect(api.bootstrap()).resolves.toMatchObject({
+      capabilities: { method_catalog: [{ method_id: "lora" }] },
+    });
 
-    await expect(api.bootstrap()).rejects.toThrow(/violates its API contract/i);
+    const cases: Array<(descriptor: Record<string, unknown>) => void> = [
+      (descriptor) => { descriptor.schema_version = "aptus.method-descriptor.v2"; },
+      (descriptor) => { descriptor.lifecycle = "secretly-executable"; },
+      (descriptor) => { descriptor.lifecycle = "experimental"; },
+      (descriptor) => { descriptor.supported_backends = []; },
+      (descriptor) => { descriptor.runtime_bindings = []; },
+      (descriptor) => {
+        const bindings = descriptor.runtime_bindings as Array<Record<string, unknown>>;
+        bindings[0].schema_version = "aptus.runtime-binding.v2";
+      },
+      (descriptor) => {
+        Object.assign(descriptor, {
+          lifecycle: "experimental",
+          selectable: false,
+          compiler_id: null,
+          export_kind: null,
+          supported_backends: [],
+          supported_distributions: [],
+          blocker: null,
+        });
+      },
+    ];
+
+    for (const mutate of cases) {
+      const descriptor = methodDescriptor();
+      mutate(descriptor);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify({
+            api_contract_version: "aptus.api.v1",
+            capabilities: { method_catalog: [descriptor] },
+          }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.bootstrap()).rejects.toThrow(
+        /method descriptor.*(contract|blocker)/i,
+      );
+    }
   });
 
   it("translates the UI fact draft and retained project into the strict plan request", async () => {
@@ -766,6 +883,61 @@ describe("typed API client", () => {
     });
   });
 
+  it("requires complete live compile responses", async () => {
+    const plan = {
+      plan_id: `plan_${"a".repeat(20)}`,
+      project_id: `project_${"b".repeat(32)}`,
+      project_revision_id: `revision_${"c".repeat(32)}`,
+    };
+    const response = {
+      bundle_dir: "/tmp/bundle",
+      archive_path: "/tmp/bundle.zip",
+      files: ["plan.json"],
+      runtime_contract: null,
+      report: { state: "static-pass" },
+      project_id: plan.project_id,
+      project_revision_id: `revision_${"d".repeat(32)}`,
+    } as Record<string, unknown>;
+    const cases: Array<{
+      mutate: (payload: Record<string, unknown>) => void;
+      pattern: RegExp;
+    }> = [
+      {
+        mutate: (payload) => { delete payload.report; },
+        pattern: /compile response requires a validation report/i,
+      },
+      {
+        mutate: (payload) => { payload.report = null; },
+        pattern: /compile response requires a validation report/i,
+      },
+      {
+        mutate: (payload) => { payload.files = { path: "plan.json" }; },
+        pattern: /bundle files must be a list/i,
+      },
+      {
+        mutate: (payload) => { payload.project_revision_id = null; },
+        pattern: /bundle project revision id/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const payload = structuredClone(response);
+      testCase.mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.compileBundle(plan, "/tmp/bundle")).rejects.toThrow(
+        testCase.pattern,
+      );
+    }
+  });
+
   it("refuses compilation when a plan has no project revision identity", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -846,16 +1018,13 @@ describe("typed API client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({
-            job_id: "job_123",
+          JSON.stringify(jobResponse({
             state: "completed",
-            action: "pilot",
             log: "/tmp/aptus/jobs/job_123.log",
             log_tail: "phase one\nphase two",
-            created_at: "2026-07-21T12:00:00Z",
             started_at: "2026-07-21T12:00:01Z",
             finished_at: "2026-07-21T12:00:02Z",
-          }),
+          })),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       ),
@@ -879,6 +1048,71 @@ describe("typed API client", () => {
       project_id: `project_${"a".repeat(32)}`,
       expected_project_revision_id: `revision_${"b".repeat(32)}`,
     });
+  });
+
+  it("rejects malformed persisted job contracts before hydration", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(jobResponse({ bundle_dir: "" })), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    await expect(api.getJob("job_123")).resolves.toMatchObject({
+      id: "job_123",
+      bundle_dir: "",
+    });
+
+    const cases: Array<{
+      mutate: (payload: Record<string, unknown>) => void;
+      pattern: RegExp;
+    }> = [
+      {
+        mutate: (payload) => { payload.schema_version = "aptus.job-record.v2"; },
+        pattern: /unsupported job contract/i,
+      },
+      {
+        mutate: (payload) => { delete payload.id; },
+        pattern: /job id.*non-empty/i,
+      },
+      {
+        mutate: (payload) => { payload.job_id = "job_other"; },
+        pattern: /job whose ids disagree/i,
+      },
+      {
+        mutate: (payload) => { payload.bundle_dir = null; },
+        pattern: /job bundle directory must be text/i,
+      },
+      {
+        mutate: (payload) => { payload.state = { value: "running" }; },
+        pattern: /job state.*non-empty/i,
+      },
+      {
+        mutate: (payload) => { payload.log_tail = ["valid", 7]; },
+        pattern: /job log tail/i,
+      },
+      {
+        mutate: (payload) => { payload.validation_report = "static-pass"; },
+        pattern: /job validation report must be an object/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const payload = jobResponse();
+      testCase.mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      );
+      await expect(api.getJob("job_123")).rejects.toThrow(testCase.pattern);
+    }
   });
 
   it("requests provider model facts without sending user permission or parameter claims", async () => {
@@ -998,15 +1232,14 @@ describe("typed API client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({
-            id: "job_123",
+          JSON.stringify(jobResponse({
             state: "completed",
             action: "preflight",
             validation_report: {
               state: "measured-preflight-pass",
               findings: [],
             },
-          }),
+          })),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       ),
@@ -1020,7 +1253,7 @@ describe("typed API client", () => {
   it("cancels a job through the bound job endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
-        JSON.stringify({ id: "job_123", state: "cancelled", action: "pilot" }),
+        JSON.stringify(jobResponse({ state: "cancelled" })),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
@@ -1035,28 +1268,81 @@ describe("typed API client", () => {
     expect(job.state).toBe("cancelled");
   });
 
-  it("labels estimated token statistics as inferred evidence", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            source_sha256: "a".repeat(64),
-            example_count: 3,
-            sequence_p95: 20,
-            truncation_rate: 0.1,
-            measurement: "estimated",
-            provenance: { kind: "measured", source: "local-file" },
+  it("distinguishes estimated and tokenizer-measured profile evidence", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(profileResponse()), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(profileResponse({
+          measurement: "tokenizer-measured",
+          provenance: { kind: "provider-declared", source: "cached-metadata" },
+        })), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const estimated = await api.profile(EXAMPLE_DRAFT);
+    const measured = await api.profile(EXAMPLE_DRAFT);
+
+    expect(estimated.facts?.find((fact) => fact.key === "dataset_hash")).toMatchObject({
+      value: "aaaaaaaa…aaaa",
+      provenance: "measured",
+      source: "local-file",
+    });
+    expect(estimated.facts?.find((fact) => fact.key === "sequence_p95")?.provenance).toBe("inferred");
+    expect(measured.facts?.find((fact) => fact.key === "dataset_hash")?.provenance).toBe("inferred");
+    expect(measured.facts?.find((fact) => fact.key === "sequence_p95")?.provenance).toBe("measured");
+  });
+
+  it("rejects incomplete or malformed profile contracts", async () => {
+    const cases: Array<{
+      mutate: (payload: Record<string, unknown>) => void;
+      pattern: RegExp;
+    }> = [
+      {
+        mutate: (payload) => { delete payload.total_estimated_tokens; },
+        pattern: /total_estimated_tokens.*positive integer/i,
+      },
+      {
+        mutate: (payload) => { payload.measurement = "provider-guessed"; },
+        pattern: /unknown measurement kind/i,
+      },
+      {
+        mutate: (payload) => {
+          payload.provenance = { kind: "future", source: "local-file" };
+        },
+        pattern: /invalid provenance/i,
+      },
+      {
+        mutate: (payload) => { payload.sequence_p95 = 4; },
+        pattern: /percentiles are out of order/i,
+      },
+      {
+        mutate: (payload) => { payload.sample_indices = [0, "1"]; },
+        pattern: /sample indices/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const payload = profileResponse();
+      testCase.mutate(payload);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { "content-type": "application/json" },
           }),
-          { status: 200, headers: { "content-type": "application/json" } },
         ),
-      ),
-    );
-
-    const profile = await api.profile(EXAMPLE_DRAFT);
-
-    expect(profile.facts?.find((fact) => fact.key === "dataset_hash")?.provenance).toBe("measured");
-    expect(profile.facts?.find((fact) => fact.key === "sequence_p95")?.provenance).toBe("inferred");
+      );
+      await expect(api.profile(EXAMPLE_DRAFT)).rejects.toThrow(testCase.pattern);
+    }
   });
 
   it("preserves rejected candidates when no strategy is feasible", async () => {

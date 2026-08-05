@@ -275,16 +275,16 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Thirteen tracked implementation or workflow files sit outside the 104-file
+Fourteen tracked implementation or workflow files sit outside the 104-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
 - `desktop/macos/README.md`; and
-- the eleven active review and design notes under `dev/active/`.
+- the twelve active review and design notes under `dev/active/`.
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 117 tracked Markdown
+This distinction explains the repository-wide total of 118 tracked Markdown
 files.
 
 ## Excluded local and generated material

@@ -108,6 +108,17 @@ const METHOD_LIFECYCLES = new Set([
   "experimental",
   "research-only",
 ]);
+const METHOD_DESCRIPTOR_SCHEMA_VERSION = "aptus.method-descriptor.v1";
+const JOB_RECORD_SCHEMA_VERSION = "aptus.job-record.v1";
+const PROFILE_MEASUREMENTS = new Set(["estimated", "tokenizer-measured"]);
+const PROFILE_PROVENANCE_KINDS = new Set([
+  "measured",
+  "provider-declared",
+  "user-attested",
+  "inferred",
+  "unknown",
+]);
+const RUNTIME_BINDING_SCHEMA_VERSION = "aptus.runtime-binding.v1";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -115,6 +126,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isNonnegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return isNonnegativeInteger(value) && value > 0;
+}
+
+function requireNonemptyText(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`${label} requires non-empty text.`);
+  }
+  return value;
 }
 
 function requireNonblankText(value: unknown, label: string): string {
@@ -166,8 +192,12 @@ function normalizeMethodCatalog(value: unknown): MethodDescriptor[] {
       "evidence_ids",
     ];
     if (
-      requiredStrings.some(
-        (key) => typeof item[key] !== "string" || !item[key],
+      item.schema_version !== METHOD_DESCRIPTOR_SCHEMA_VERSION
+      || typeof item.method_id !== "string"
+      || item.method_id.length === 0
+      || item.method_id !== item.method_id.trim().toLowerCase()
+      || requiredStrings.some(
+        (key) => typeof item[key] !== "string" || !String(item[key]).trim(),
       )
       || requiredArrays.some((key) => !isStringArray(item[key]))
       || !METHOD_LIFECYCLES.has(String(item.lifecycle))
@@ -180,14 +210,91 @@ function normalizeMethodCatalog(value: unknown): MethodDescriptor[] {
         || typeof item.blocker === "string"
       )
       || !(item.aliases === undefined || isStringArray(item.aliases))
+      || !Array.isArray(item.runtime_bindings)
     ) {
       throw new Error(`Aptus method descriptor ${index} violates its API contract.`);
     }
+    const bindingKeys = new Set<string>();
+    const bindingBackends = new Set<string>();
+    const bindingDistributions = new Set<string>();
+    const bindingCompilers = new Set<string>();
+    const bindingExports = new Set<string>();
+    for (const binding of item.runtime_bindings) {
+      if (!isRecord(binding)) {
+        throw new Error(
+          `Aptus method descriptor ${index} violates its runtime binding contract.`,
+        );
+      }
+      const requiredBindingStrings = [
+        "training_runtime",
+        "compute_backend",
+        "compiler_id",
+        "estimator_id",
+        "export_kind",
+        "evidence_requirement",
+      ];
+      if (
+        binding.schema_version !== RUNTIME_BINDING_SCHEMA_VERSION
+        || requiredBindingStrings.some(
+          (key) => typeof binding[key] !== "string" || !String(binding[key]).trim(),
+        )
+        || !isStringArray(binding.supported_distributions)
+        || binding.supported_distributions.length === 0
+        || new Set(binding.supported_distributions).size
+          !== binding.supported_distributions.length
+      ) {
+        throw new Error(
+          `Aptus method descriptor ${index} violates its runtime binding contract.`,
+        );
+      }
+      const key = `${binding.training_runtime}\u0000${binding.compute_backend}`;
+      if (bindingKeys.has(key)) {
+        throw new Error(
+          `Aptus method descriptor ${index} has duplicate runtime bindings.`,
+        );
+      }
+      bindingKeys.add(key);
+      bindingBackends.add(String(binding.compute_backend));
+      binding.supported_distributions.forEach((distribution) => {
+        bindingDistributions.add(distribution);
+      });
+      bindingCompilers.add(String(binding.compiler_id));
+      bindingExports.add(String(binding.export_kind));
+    }
     if (
       item.selectable
-      && (!item.compiler_id || !item.export_kind)
+      && (
+        item.lifecycle !== "gated-executable"
+        || typeof item.compiler_id !== "string"
+        || item.compiler_id.trim().length === 0
+        || typeof item.export_kind !== "string"
+        || item.export_kind.trim().length === 0
+        || !isStringArray(item.supported_backends)
+        || item.supported_backends.length === 0
+        || !isStringArray(item.supported_distributions)
+        || item.supported_distributions.length === 0
+        || item.runtime_bindings.length === 0
+        || bindingBackends.size !== item.supported_backends.length
+        || !item.supported_backends.every((backend) => bindingBackends.has(backend))
+        || bindingDistributions.size !== item.supported_distributions.length
+        || !item.supported_distributions.every(
+          (distribution) => bindingDistributions.has(distribution)
+        )
+        || !bindingCompilers.has(item.compiler_id)
+        || !bindingExports.has(item.export_kind)
+      )
     ) {
-      throw new Error(`Selectable Aptus method descriptor ${index} has no compiler contract.`);
+      throw new Error(
+        `Selectable Aptus method descriptor ${index} has an incomplete execution contract.`,
+      );
+    }
+    if (
+      !item.selectable
+      && (typeof item.blocker !== "string" || item.blocker.trim().length === 0)
+    ) {
+      throw new Error(
+        `Non-selectable Aptus method descriptor ${index} requires a blocker.`,
+      );
     }
     return item as unknown as MethodDescriptor;
   });
@@ -303,10 +410,79 @@ function planRequest(
 }
 
 function normalizeJob(payload: Record<string, unknown>): Job {
-  const id = String(payload.id ?? payload.job_id ?? "");
-  if (!id) throw new Error("The Aptus API returned a job without an id.");
+  if (payload.schema_version !== JOB_RECORD_SCHEMA_VERSION) {
+    throw new Error(
+      `The Aptus API returned an unsupported job contract ${JSON.stringify(payload.schema_version)}.`,
+    );
+  }
+  const id = requireNonblankText(payload.id, "Aptus job id");
+  const jobId = requireNonblankText(payload.job_id, "Aptus job record id");
+  if (jobId !== id) {
+    throw new Error("The Aptus API returned a job whose ids disagree.");
+  }
+  const state = requireNonblankText(payload.state, "Aptus job state");
+  const action = requireNonblankText(payload.action, "Aptus job action");
+  if (typeof payload.bundle_dir !== "string") {
+    throw new Error("Aptus job bundle directory must be text.");
+  }
+  const createdAt = requireNonblankText(payload.created_at, "Aptus job creation time");
+  for (const [key, value] of [
+    ["started_at", payload.started_at],
+    ["finished_at", payload.finished_at],
+    ["completed_at", payload.completed_at],
+  ] as const) {
+    if (value !== undefined && value !== null && typeof value !== "string") {
+      throw new Error(`Aptus job ${key} must be text or null.`);
+    }
+  }
+  if (
+    payload.return_code !== undefined
+    && payload.return_code !== null
+    && (typeof payload.return_code !== "number" || !Number.isInteger(payload.return_code))
+  ) {
+    throw new Error("Aptus job return code must be an integer or null.");
+  }
+  if (
+    payload.validation_report_error !== undefined
+    && payload.validation_report_error !== null
+    && typeof payload.validation_report_error !== "string"
+  ) {
+    throw new Error("Aptus job validation report error must be text or null.");
+  }
+  if (
+    payload.validation_report !== undefined
+    && payload.validation_report !== null
+    && !isRecord(payload.validation_report)
+  ) {
+    throw new Error("Aptus job validation report must be an object or null.");
+  }
+  if (
+    payload.log_path !== undefined
+    && payload.log_path !== null
+    && typeof payload.log_path !== "string"
+  ) {
+    throw new Error("Aptus job log path must be text or null.");
+  }
   const rawLog = payload.log;
-  const hasLogTail = typeof payload.log_tail === "string" || Array.isArray(payload.log_tail);
+  for (const [label, value] of [
+    ["log", rawLog],
+    ["log tail", payload.log_tail],
+    ["logs", payload.logs],
+  ] as const) {
+    if (
+      value !== undefined
+      && value !== null
+      && typeof value !== "string"
+      && !isStringArray(value)
+    ) {
+      throw new Error(`Aptus job ${label} must be text or a list of text lines.`);
+    }
+  }
+  const logTail = payload.log_tail ?? payload.logs ?? (Array.isArray(rawLog) ? rawLog : "");
+  if (typeof logTail !== "string" && !isStringArray(logTail)) {
+    throw new Error("Aptus job log tail must be text or a list of text lines.");
+  }
+  const hasLogTail = typeof payload.log_tail === "string" || isStringArray(payload.log_tail);
   const logPath = typeof payload.log_path === "string"
     ? payload.log_path
     : hasLogTail && typeof rawLog === "string"
@@ -315,12 +491,12 @@ function normalizeJob(payload: Record<string, unknown>): Job {
   return {
     ...payload,
     id,
-    job_id: typeof payload.job_id === "string" ? payload.job_id : undefined,
-    state: String(payload.state ?? "queued"),
-    mode: String(payload.mode ?? payload.action ?? "preflight"),
-    log: (payload.log_tail ?? payload.logs ?? (Array.isArray(rawLog) ? rawLog : "")) as string | string[],
+    job_id: jobId,
+    state,
+    mode: action,
+    log: logTail,
     log_path: logPath,
-    created_at: typeof payload.created_at === "string" ? payload.created_at : null,
+    created_at: createdAt,
     started_at: typeof payload.started_at === "string" ? payload.started_at : null,
     finished_at:
       typeof payload.finished_at === "string"
@@ -341,8 +517,45 @@ function normalizeJob(payload: Record<string, unknown>): Job {
   } as Job;
 }
 
-function normalizeCompileResponse(payload: Record<string, unknown>): CompileResponse {
+function normalizeCompileResponse(
+  payload: Record<string, unknown>,
+  { restored = false }: { restored?: boolean } = {},
+): CompileResponse {
+  requireNonemptyText(payload.bundle_dir, "Aptus bundle directory");
+  if (!isStringArray(payload.files)) {
+    throw new Error("Aptus bundle files must be a list of paths.");
+  }
+  if (
+    payload.runtime_contract !== null
+    && !isRecord(payload.runtime_contract)
+  ) {
+    throw new Error("Aptus bundle runtime contract must be an object or null.");
+  }
+  if (restored) {
+    if (
+      payload.archive_path !== undefined
+      && payload.archive_path !== null
+      && typeof payload.archive_path !== "string"
+    ) {
+      throw new Error("Aptus restored bundle archive path must be text or null.");
+    }
+    for (const [label, value] of [
+      ["project id", payload.project_id],
+      ["project revision id", payload.project_revision_id],
+    ] as const) {
+      if (value !== undefined && value !== null) {
+        requireNonblankText(value, `Aptus restored bundle ${label}`);
+      }
+    }
+  } else {
+    requireNonemptyText(payload.archive_path, "Aptus bundle archive path");
+    requireNonblankText(payload.project_id, "Aptus bundle project id");
+    requireNonblankText(payload.project_revision_id, "Aptus bundle project revision id");
+  }
   const rawReport = payload.report;
+  if (!restored && (rawReport === undefined || rawReport === null)) {
+    throw new Error("Aptus compile response requires a validation report.");
+  }
   return {
     ...payload,
     ...(rawReport === undefined || rawReport === null
@@ -352,7 +565,97 @@ function normalizeCompileResponse(payload: Record<string, unknown>): CompileResp
 }
 
 function normalizeProfile(payload: Record<string, unknown>): ProfileResponse {
-  const provenance = (payload.provenance as { kind?: string; source?: string } | undefined);
+  const requiredText = ["source_path", "source_format", "schema_name"];
+  if (requiredText.some((key) => typeof payload[key] !== "string" || !payload[key])) {
+    throw new Error("Aptus dataset profile requires its source and schema identity.");
+  }
+  if (
+    typeof payload.source_sha256 !== "string"
+    || !/^[0-9a-fA-F]{64}$/.test(payload.source_sha256)
+  ) {
+    throw new Error("Aptus dataset profile requires a SHA-256 source digest.");
+  }
+  for (const key of [
+    "example_count",
+    "total_estimated_tokens",
+    "sequence_p50",
+    "sequence_p95",
+    "sequence_max",
+    "source_size_bytes",
+    "canonical_size_bytes",
+    "max_canonical_row_bytes",
+  ]) {
+    if (!isPositiveInteger(payload[key])) {
+      throw new Error(`Aptus dataset profile ${key} must be a positive integer.`);
+    }
+  }
+  if (
+    (payload.sequence_p50 as number) > (payload.sequence_p95 as number)
+    || (payload.sequence_p95 as number) > (payload.sequence_max as number)
+  ) {
+    throw new Error("Aptus dataset profile sequence percentiles are out of order.");
+  }
+  for (const key of [
+    "sampled_examples",
+    "duplicate_count",
+    "empty_count",
+    "truncation_count",
+  ]) {
+    if (!isNonnegativeInteger(payload[key])) {
+      throw new Error(`Aptus dataset profile ${key} must be a nonnegative integer.`);
+    }
+  }
+  if (
+    typeof payload.truncation_rate !== "number"
+    || !Number.isFinite(payload.truncation_rate)
+    || payload.truncation_rate < 0
+    || payload.truncation_rate > 1
+  ) {
+    throw new Error("Aptus dataset profile truncation rate must be a fraction.");
+  }
+  if (!PROFILE_MEASUREMENTS.has(String(payload.measurement))) {
+    throw new Error("Aptus dataset profile has an unknown measurement kind.");
+  }
+  if (!isStringArray(payload.warnings)) {
+    throw new Error("Aptus dataset profile warnings must be a list of text.");
+  }
+  if (
+    !Array.isArray(payload.sample_indices)
+    || !payload.sample_indices.every(isNonnegativeInteger)
+  ) {
+    throw new Error("Aptus dataset profile sample indices must be nonnegative integers.");
+  }
+  if (
+    !isRecord(payload.schema_counts)
+    || !Object.values(payload.schema_counts).every(isNonnegativeInteger)
+  ) {
+    throw new Error("Aptus dataset profile schema counts must be nonnegative integers.");
+  }
+  if (
+    payload.bundle_path !== undefined
+    && payload.bundle_path !== null
+    && typeof payload.bundle_path !== "string"
+  ) {
+    throw new Error("Aptus dataset profile bundle path must be text or null.");
+  }
+  const provenance = payload.provenance === undefined || payload.provenance === null
+    ? undefined
+    : isRecord(payload.provenance)
+      ? payload.provenance
+      : null;
+  if (provenance === null) {
+    throw new Error("Aptus dataset profile provenance must be an object or null.");
+  }
+  if (
+    provenance
+    && (
+      !PROFILE_PROVENANCE_KINDS.has(String(provenance.kind))
+      || typeof provenance.source !== "string"
+      || provenance.source.trim().length === 0
+    )
+  ) {
+    throw new Error("Aptus dataset profile has invalid provenance.");
+  }
   const fileKind = provenance?.kind === "measured" ? "measured" : "inferred";
   const tokenKind = payload.measurement === "tokenizer-measured" ? "measured" : "inferred";
   return {
@@ -824,7 +1127,10 @@ export const api = {
       plan,
       bundle:
         typeof payload.bundle === "object" && payload.bundle !== null
-          ? normalizeCompileResponse(payload.bundle as Record<string, unknown>)
+          ? normalizeCompileResponse(
+              payload.bundle as Record<string, unknown>,
+              { restored: true },
+            )
           : null,
       job,
       projects: Array.isArray(payload.projects)

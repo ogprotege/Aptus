@@ -262,6 +262,17 @@ export interface CandidatePlan extends PlanCandidateResponseContract {
   [key: string]: unknown;
 }
 
+export interface MethodRuntimeBinding {
+  schema_version: "aptus.runtime-binding.v1";
+  training_runtime: string;
+  compute_backend: string;
+  compiler_id: string;
+  estimator_id: string;
+  export_kind: string;
+  supported_distributions: string[];
+  evidence_requirement: string;
+}
+
 export interface MethodDescriptor {
   schema_version: string;
   method_id: string;
@@ -281,6 +292,7 @@ export interface MethodDescriptor {
   pilot_requirement: string;
   blocker?: string | null;
   aliases?: string[];
+  runtime_bindings: MethodRuntimeBinding[];
 }
 
 export interface EvidenceRecord {

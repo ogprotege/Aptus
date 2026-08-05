@@ -1004,8 +1004,8 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 117)
-        self.assertEqual(len(excluded_documents), 13)
+        self.assertEqual(len(repository_documents), 118)
+        self.assertEqual(len(excluded_documents), 14)
         self.assertEqual(len(governed_documents), 104)
         self.assertEqual(len(active_documents), 87)
         self.assertEqual(len(deprecated_documents), 2)
@@ -1017,7 +1017,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(maintained_documentation()), 95)
         self.assertIn("104 governed tracked Markdown documents", inventory)
         self.assertIn("95 Markdown files", inventory)
-        self.assertIn("117 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("118 tracked Markdown files", " ".join(inventory.split()))
         self.assertIn("| Active | 87 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 15 |", inventory)
@@ -1682,6 +1682,34 @@ class DocumentationTests(unittest.TestCase):
             "still lacks a guaranteed private intake address",
             health,
         )
+        self.assertNotIn(
+            "Publish a concrete private security-reporting route.",
+            health,
+        )
+
+    def test_maintained_client_contract_closeout_is_documented(self) -> None:
+        debt = (REPOSITORY / "docs/maintenance/documentation-debt.md").read_text(
+            encoding="utf-8"
+        )
+        health = (REPOSITORY / "docs/maintenance/documentation-health.md").read_text(
+            encoding="utf-8"
+        )
+        doc_026 = debt.split("### DOC-026:", 1)[1].split("\n## ", 1)[0]
+        normalized_doc_026 = " ".join(doc_026.split())
+
+        self.assertIn("**Status:** Resolved", doc_026)
+        self.assertIn("all six runtime-inventory fields", normalized_doc_026)
+        self.assertIn("all four native HTTP routes", normalized_doc_026)
+        self.assertIn(
+            "unknown extra response properties stay forward-compatible",
+            normalized_doc_026,
+        )
+        for stale_claim in (
+            "maintained React normalization and Swift decoding boundaries still require",
+            "Other React normalization code",
+            "Close the remaining maintained React normalization and Swift decoder parity",
+        ):
+            self.assertNotIn(stale_claim, health)
 
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []

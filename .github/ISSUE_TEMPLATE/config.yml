@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/ogprotege/Aptus/security/advisories/new
-    about: Use GitHub private vulnerability reporting when it is available for this repository.
+    url: https://github.com/ogprotege/Aptus/security/policy
+    about: Email aptus-security@proton.me privately. Do not open a public issue.

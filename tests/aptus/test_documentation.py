@@ -1647,6 +1647,42 @@ class DocumentationTests(unittest.TestCase):
             summary["baseline"]["packet_sha256s_sha256"],
         )
 
+    def test_private_security_reporting_route_is_concrete(self) -> None:
+        address = "aptus-security@proton.me"
+        mailto = f"mailto:{address}"
+        security = (REPOSITORY / "SECURITY.md").read_text(encoding="utf-8")
+        normalized_security = " ".join(security.split())
+        issue_config = (REPOSITORY / ".github/ISSUE_TEMPLATE/config.yml").read_text(
+            encoding="utf-8"
+        )
+        debt = (REPOSITORY / "docs/maintenance/documentation-debt.md").read_text(
+            encoding="utf-8"
+        )
+        health = (REPOSITORY / "docs/maintenance/documentation-health.md").read_text(
+            encoding="utf-8"
+        )
+        doc_006 = debt.split("### DOC-006:", 1)[1].split("\n### ", 1)[0]
+
+        self.assertIn(mailto, security)
+        self.assertIn(address, issue_config)
+        self.assertIn(
+            "https://github.com/ogprotege/Aptus/security/policy",
+            issue_config,
+        )
+        self.assertNotIn("security/advisories/new", security)
+        self.assertNotIn("security/advisories/new", issue_config)
+        self.assertIn("| Version | Security fixes | Status |", security)
+        self.assertIn("acknowledgment within three business days", normalized_security)
+        self.assertIn("initial assessment within seven", normalized_security)
+        self.assertIn("Keep the report private until", normalized_security)
+        self.assertIn("**Status:** Resolved", doc_006)
+        self.assertIn(address, doc_006)
+        self.assertNotIn("**Status:** Open", doc_006)
+        self.assertNotIn(
+            "still lacks a guaranteed private intake address",
+            health,
+        )
+
     def test_local_markdown_links_and_anchors_resolve(self) -> None:
         failures: list[str] = []
         anchor_cache: dict[Path, set[str]] = {}

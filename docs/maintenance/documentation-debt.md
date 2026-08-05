@@ -92,18 +92,15 @@ when its evidence, owner, or resolution changes.
 ### DOC-006: Provide a concrete private security-reporting route
 
 - **Priority:** P1
-- **Status:** Open
-- **Evidence:** `SECURITY.md` directs reporters to GitHub private vulnerability
-  reporting when available, with an existing private maintainer channel as
-  fallback. It publishes supported-version, response-target, and
-  coordinated-disclosure rules. Repository and API inspection on 2026-08-05
-  confirmed that the repository is private; GitHub supports repository private
-  vulnerability reporting only for public repositories, so that intake cannot
-  be enabled in the current visibility state.
-- **Required result:** Add a maintained private reporting method, expected
-  response window, supported-version table, and disclosure process.
-- **Blocker:** Repository-owner selection of a dedicated private contact or
-  intake URL that is safe to publish
+- **Status:** Resolved
+- **Resolution:** The repository owner confirmed the dedicated
+  `aptus-security@proton.me` mailbox is active. `SECURITY.md` and the GitHub
+  issue-routing configuration now publish the mailbox, with the chooser linking
+  to the policy page that exposes its private `mailto:` route. The policy retains
+  the supported-version table, three-business-day acknowledgment target,
+  seven-day initial-assessment target, and coordinated-disclosure process.
+  Reporters no longer depend on GitHub private vulnerability reporting being
+  available for the repository's visibility state.
 - **Owner:** Repository owner
 
 ### DOC-007: Improve package and repository discovery metadata

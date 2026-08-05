@@ -4,7 +4,8 @@
 >
 > **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
 > the Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
-> original runtime acceptance, and 2026-08-05 exact-source evidence refresh
+> original runtime acceptance, 2026-08-05 exact-source evidence refresh, and
+> the dedicated private-security intake closeout
 >
 > **Last reviewed:** 2026-08-05
 >
@@ -169,10 +170,11 @@ not become a one-time cleanup.
 
 ### Medium impact
 
-1. The repository is private, so GitHub's public-repository private
-   vulnerability-reporting feature cannot be enabled. The security policy still
-   lacks a guaranteed private intake address selected for publication by the
-   repository owner.
+No unresolved medium-impact documentation drift remains from the prior security
+intake finding. The repository owner confirmed `aptus-security@proton.me` is
+active, and both the normative security policy and GitHub issue routing now
+publish that dedicated private mailbox. DOC-006 records the resolved acceptance
+criteria.
 
 The [documentation debt log](documentation-debt.md) records owners, acceptance
 criteria, and status for each finding.

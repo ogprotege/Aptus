@@ -1,6 +1,6 @@
 # Aptus Examples
 
-> **Status:** Active | **Authority:** Example guide | **Applies to:** Aptus 0.2 | **Audience:** New users and test authors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when example data changes
+> **Status:** Active | **Authority:** Example guide | **Applies to:** Aptus 0.2 | **Audience:** New users and test authors | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when example data changes
 
 `support-sft.jsonl` is a small prompt-completion dataset for exercising Aptus
 planning, compilation, and static validation. It is synthetic example data. It
@@ -32,8 +32,10 @@ full training, final export, and parent verification. Both reached
 
 That result proves the recorded Aptus runtime and artifact contracts on the
 recorded host. The four synthetic rows remain unsuitable for model-quality,
-safety, or usefulness claims. CUDA target-host acceptance remains separate and
-open.
+safety, or usefulness claims. The separate [2026-08-06 SmolLM2 CUDA LoRA
+single-device record](../docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact workflow using the same synthetic fixture; repeatability
+and every other CUDA target-host scope remain open.
 
 `reviewed-sft.jsonl` demonstrates the governed-feedback shape described in the
 [reviewed corpus contract](../docs/reference/reviewed-corpus-contract.md). Its

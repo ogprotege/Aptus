@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-05 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-06 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -225,8 +225,13 @@ target-runtime pilot was collected for the Phase 4 closeout. The later
 `docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/`
 packet records two fresh MLX-LM `measured-run-pass` workflows at exact source
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`; the original August 5 Phase 6
-acceptance packet remains its historical baseline. No qualifying CUDA
-target-host pilot or full run has been recorded. The default Mac artifacts are
+acceptance packet remains its historical baseline. The later
+`docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/`
+packet records one exact five-job SmolLM2 CUDA LoRA single-device workflow
+through `measured-run-pass` at source
+`c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It does not establish
+repeatability or qualify other CUDA methods, placements, devices, artifacts,
+or environments. The default Mac artifacts are
 ad-hoc signed, not a Developer ID signed and notarized public distribution.
 Version 0.2.0 remains unreleased.
 

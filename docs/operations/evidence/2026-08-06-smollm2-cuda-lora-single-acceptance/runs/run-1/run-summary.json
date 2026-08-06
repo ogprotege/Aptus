@@ -1,0 +1,316 @@
+{
+  "schema_version": "aptus.cuda-lora-single-run-summary.v1",
+  "ordinal": 1,
+  "state": "measured-run-pass",
+  "source": {
+    "commit": "c12c4d8db0037a2c278a2ad95a0a2cbda4387eed",
+    "tree": "ad482883cfb6ad2b8ac72f7b7d1009c918e5c345"
+  },
+  "bindings": {
+    "plan_id": "plan_ed1d3fc5ecef48acf6af",
+    "candidate_id": "cand_e0f49f5d708a27ff96ca",
+    "bundle_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+    "policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+    "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "environment_sha256": "e047104e4bcf157ea7fb5ee54ecab1c41e31ff27008184629363a69a44daa106",
+    "hardware_sha256": "e63d5d25c98dbcd40c8c26a32d1cd160849d552ebb1e6c1a552b7e57996034f6",
+    "planned_hardware_sha256": "08ea53459fece1f692b48d0edfb4c593d16ce2a25ca3dcba887d290814ccf28a"
+  },
+  "jobs": [
+    {
+      "action": "dependency",
+      "job_id": "job_ee931456c78c4137b71935c97aaea7a4",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "runtime_interpreter": "accepted-runtime-python",
+      "state": "completed",
+      "return_code": 0,
+      "error": null,
+      "created_at": "2026-08-06T15:29:20.523149+00:00",
+      "started_at": "2026-08-06T15:29:22.716590+00:00",
+      "finished_at": "2026-08-06T15:29:25.117225+00:00"
+    },
+    {
+      "action": "model-data",
+      "job_id": "job_d7539c1ec3864e31a472720dbbc097ad",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "runtime_interpreter": "accepted-runtime-python",
+      "state": "completed",
+      "return_code": 0,
+      "error": null,
+      "created_at": "2026-08-06T15:29:56.077794+00:00",
+      "started_at": "2026-08-06T15:29:58.234071+00:00",
+      "finished_at": "2026-08-06T15:30:04.732083+00:00"
+    },
+    {
+      "action": "preflight",
+      "job_id": "job_5225b4a20dd045fb85398e94f2d478b8",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "runtime_interpreter": "accepted-runtime-python",
+      "state": "completed",
+      "return_code": 0,
+      "error": null,
+      "created_at": "2026-08-06T15:30:17.752447+00:00",
+      "started_at": "2026-08-06T15:30:19.875391+00:00",
+      "finished_at": "2026-08-06T15:30:29.622113+00:00"
+    },
+    {
+      "action": "pilot",
+      "job_id": "job_aca00b60df374907b8cec25a519866a5",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "runtime_interpreter": "accepted-runtime-python",
+      "state": "completed",
+      "return_code": 0,
+      "error": null,
+      "created_at": "2026-08-06T15:30:43.779256+00:00",
+      "started_at": "2026-08-06T15:30:45.898403+00:00",
+      "finished_at": "2026-08-06T15:31:04.643874+00:00"
+    },
+    {
+      "action": "train",
+      "job_id": "job_dad3b56e4f6d4ae1964f19839cc72b99",
+      "run_id": "run_dad3b56e4f6d4ae1964f19839cc72b99",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "authorized_model_policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "runtime_interpreter": "accepted-runtime-python",
+      "state": "completed",
+      "return_code": 0,
+      "error": null,
+      "created_at": "2026-08-06T15:31:16.409789+00:00",
+      "started_at": "2026-08-06T15:31:19.728326+00:00",
+      "finished_at": "2026-08-06T15:31:29.471210+00:00",
+      "artifact_integrity_status": "verified-at-completion",
+      "artifact_verified_at": "2026-08-06T15:31:29.471215+00:00"
+    }
+  ],
+  "job_binding_verification": {
+    "source": "excluded-raw-job-records-and-terminal-validation-report",
+    "raw_record_digests": "../../raw-artifact-digests.json",
+    "all_job_records_share_bundle_fingerprint": true,
+    "all_job_records_share_authorized_policy_snapshot": true,
+    "all_job_commands_use_accepted_runtime_interpreter": true,
+    "accepted_environment_binding": {
+      "sha256": "e047104e4bcf157ea7fb5ee54ecab1c41e31ff27008184629363a69a44daa106",
+      "source": "terminal-validation-report",
+      "persisted_on_each_job_record": false
+    },
+    "raw_commands_committed": false
+  },
+  "model_data": {
+    "actual_parameter_count": 134515008,
+    "adapter_target_match_count": 210,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "canonical_training_rows": 4,
+    "trainable_parameter_count": 4884480,
+    "all_trainable_values_finite": true,
+    "trainable_parameter_census_sha256": "7fdc6d3cf6b58b14c9b35f64dad52259e89e2a4494d73075cb555cbe4c335ccb"
+  },
+  "measured_preflight": {
+    "schema_version": "aptus.preflight-metrics.v1",
+    "scope": "synthetic-method-preflight",
+    "measured_peak_cuda_bytes": 17260032,
+    "metrics_sha256": "d3be111e956c862f287e1e246314eea6fe35a9e05c8e7a2f53a9f80d6fdb4196",
+    "trainable_parameter_census": {
+      "parameter_scope": "lora-adapter-only",
+      "trainable_parameter_count": 2048,
+      "trainable_tensor_count": 8,
+      "adapter_target_instance_count": 4,
+      "expected_adapter_target_match_count": 4,
+      "unexpected_trainable_tensor_count": 0,
+      "incomplete_adapter_target_instance_count": 0,
+      "all_values_finite": true,
+      "descriptor_sha256": "48c90c7ee5e9a0a2cab8594e08b1415ec0767a99eac556a6ac14946f83536d57"
+    }
+  },
+  "pilot": {
+    "schema_version": "aptus.pilot-metrics.v2",
+    "pilot_run_id": "pilot_8d5680e9730049069d5c7954e8217e64",
+    "metrics_sha256": "a31ecccd12263eef802132309b368ede2a3078dcd2f68daa99b8b49cc3e7463b",
+    "phase_one": {
+      "global_step": 1,
+      "train_loss": 4.794458866119385,
+      "measured_peak_cuda_bytes": 384181760,
+      "measured_reserved_cuda_bytes": 486539264,
+      "metrics_sha256": "341ce7b73dfcf65d2e3eec13bc3b554390932b06937ade2dce4dc3483b9a095d",
+      "checkpoint_step": 1
+    },
+    "phase_two": {
+      "resumed_from_checkpoint_step": 1,
+      "global_step": 2,
+      "train_loss": 1.819174885749817,
+      "measured_peak_cuda_bytes": 416460288,
+      "measured_reserved_cuda_bytes": 486539264,
+      "metrics_sha256": "be4a95d02e6ce4988ddbfb3b85c29c800e7fa0e6981e889b46e3c21fb72e1cc0"
+    },
+    "phase_two_resumed": true,
+    "checkpoint_continuation_observed": true,
+    "measured_checkpoint_bytes": 62574708,
+    "measured_final_export_bytes": 23123131,
+    "census_equal_between_phases": true,
+    "trainable_parameter_census": {
+      "parameter_scope": "lora-adapter-only",
+      "trainable_parameter_count": 4884480,
+      "trainable_tensor_count": 420,
+      "adapter_target_instance_count": 210,
+      "expected_adapter_target_match_count": 210,
+      "unexpected_trainable_tensor_count": 0,
+      "incomplete_adapter_target_instance_count": 0,
+      "all_values_finite": true,
+      "descriptor_sha256": "7fdc6d3cf6b58b14c9b35f64dad52259e89e2a4494d73075cb555cbe4c335ccb"
+    }
+  },
+  "capacity_checks": {
+    "validation_report_snapshot": {
+      "source": "terminal-validation-report",
+      "free_cuda_bytes": [
+        7862419456
+      ],
+      "required_free_cuda_bytes": 2634022912,
+      "host_ram_free_bytes": 46533550080,
+      "required_host_ram_bytes": 295933018,
+      "free_disk_bytes": 306434330624,
+      "required_training_output_disk_bytes": 273421963,
+      "required_checkpoint_disk_bytes": 250298832,
+      "required_final_export_disk_bytes": 23123131
+    },
+    "train_job_parent_prelaunch": {
+      "source": "persisted-train-job-record",
+      "checked_at": "2026-08-06T15:31:17.710239+00:00",
+      "free_cuda_bytes": [
+        7953776640
+      ],
+      "required_free_cuda_bytes": 2634022912,
+      "host_ram_free_bytes": 47076720640,
+      "required_host_ram_bytes": 295933018,
+      "free_disk_bytes": 306434355200,
+      "required_training_output_disk_bytes": 273421963,
+      "required_checkpoint_disk_bytes": 250298832,
+      "required_final_export_disk_bytes": 23123131
+    }
+  },
+  "full_training": {
+    "run_id": "run_dad3b56e4f6d4ae1964f19839cc72b99",
+    "global_step": 3,
+    "training_row_count": 3,
+    "evaluation_row_count": 1,
+    "total_row_count": 4,
+    "realized_evaluation_fraction": 0.25,
+    "dataset_split_assignment_sha256": "d455198b29e90786fc17a6f48dda9442ce480d5597c94076a4a533d0e637eedb",
+    "canonical_training_jsonl_sha256": "c72fa81979cc562d1d1240d11ae804f05abec3e70428b873721595388e0d0806",
+    "train_loss": 4.159115632375081,
+    "eval_loss": 3.0737040042877197,
+    "trainer_reported_train_runtime_seconds": 1.8402,
+    "trainer_reported_steps_per_second": 1.63,
+    "measured_peak_cuda_bytes": 384180224,
+    "measured_reserved_cuda_bytes": 440401920,
+    "metrics_sha256": "6c595f2771847fcd16d624e9bd5a6b768d2f3cebc1c4dfa45887e5f68f45b6c9",
+    "finite_guard_counts": {
+      "raw_loss": 7,
+      "backward_loss": 3,
+      "gradient_norm": 3,
+      "trainable_parameter_scans": 1,
+      "optimizer_parameter_binding": 1,
+      "non_skipped_optimizer_steps": 3
+    },
+    "trainable_parameter_census": {
+      "parameter_scope": "lora-adapter-only",
+      "frozen_parameter_count": 134515008,
+      "frozen_tensor_count": 272,
+      "trainable_parameter_count": 4884480,
+      "trainable_tensor_count": 420,
+      "adapter_target_instance_count": 210,
+      "expected_adapter_target_match_count": 210,
+      "unexpected_trainable_tensor_count": 0,
+      "incomplete_adapter_target_instance_count": 0,
+      "all_values_finite": true,
+      "descriptor_sha256": "7fdc6d3cf6b58b14c9b35f64dad52259e89e2a4494d73075cb555cbe4c335ccb"
+    }
+  },
+  "final_export": {
+    "schema_version": "aptus.final-export.v1",
+    "verification_level": "structural-file-tree",
+    "method": "lora",
+    "distribution": "single",
+    "world_size": 1,
+    "device_indices": [
+      0
+    ],
+    "base_model": {
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac"
+    },
+    "manifest_sha256": "374439efafd542576178e1843ae433e0c7a05f2042fb4da030712dccec7aca02",
+    "total_bytes": 23123131,
+    "weight_files": [
+      "adapter_model.safetensors"
+    ],
+    "files": [
+      {
+        "path": "README.md",
+        "sha256": "f9b48a87d653b2af6971a2240d29ab5a8929fe7e156cc566102f50da655aefa2",
+        "size_bytes": 5224
+      },
+      {
+        "path": "adapter_config.json",
+        "sha256": "3871970784823ea8900c26748d06354d7b94525b84dfb40a239987c25a8694e1",
+        "size_bytes": 1152
+      },
+      {
+        "path": "adapter_model.safetensors",
+        "sha256": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+        "size_bytes": 19593064
+      },
+      {
+        "path": "chat_template.jinja",
+        "sha256": "872be49dbb638044ad01b60388f48d469ff2980e5f0dccdc22ec907db54d0788",
+        "size_bytes": 368
+      },
+      {
+        "path": "tokenizer.json",
+        "sha256": "bf346d64f6f0fbcefb4c1b6928a98241467dff36c6fbae5fe1785c4ff90667f4",
+        "size_bytes": 3522871
+      },
+      {
+        "path": "tokenizer_config.json",
+        "sha256": "9b6f7008bcd69b60572d2e15b28caa540d605df1c08149553296574f66545e53",
+        "size_bytes": 452
+      }
+    ]
+  },
+  "terminal_validation": {
+    "validation_level": "measured-run",
+    "state": "measured-run-pass",
+    "validated_at": "2026-08-06T15:31:04.399230+00:00",
+    "measured_run_completed_at": "2026-08-06T15:31:29.456383+00:00",
+    "validator": "aptus-portable-validator-v2",
+    "findings": [],
+    "artifact_integrity_status": "verified-at-completion",
+    "pending_or_active_fields_present": false,
+    "parent_promotion": {
+      "schema_version": "aptus.parent-promotion.v1",
+      "job_id": "job_dad3b56e4f6d4ae1964f19839cc72b99",
+      "run_id": "run_dad3b56e4f6d4ae1964f19839cc72b99",
+      "artifact_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "evidence_sha256": "59562af2c758df7b985bb6d1cc5b8e3eca7f4fbdf06f86e86f45891a19244f66",
+      "promoted_at": "2026-08-06T15:31:29.456383+00:00",
+      "evidence_hash_recomputed": true
+    }
+  },
+  "handoff": {
+    "exact_source_checkout_clean": true,
+    "active_cuda_compute_process_count": 0,
+    "host_global_aptus_gpu_lease_active": false
+  }
+}

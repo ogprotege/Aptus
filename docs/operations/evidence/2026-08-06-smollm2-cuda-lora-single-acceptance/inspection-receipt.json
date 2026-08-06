@@ -1,0 +1,83 @@
+{
+  "decision": {
+    "decision_id": "compat_567dba076416f929bfbd",
+    "evidence_ids": [],
+    "family": "llama",
+    "kind": "family-recognized",
+    "paths": [],
+    "policy_id": null,
+    "policy_version": null,
+    "reason": "The provider identity maps to an existing dense Aptus family; the planner still decides the executable runtime and method.",
+    "reason_codes": [
+      "family-recognized"
+    ],
+    "schema_version": "aptus.model-compatibility.v2",
+    "subject_facts_sha256": "bef657bd1901171352ede6bfec0e6e56c7e536a8f402129af3c70e45d6b96431"
+  },
+  "evaluated_at": "2026-08-06T15:22:03.315936+00:00",
+  "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+  "observed_facts_sha256": "1e32f04538e1e4b8a9209b0665746ec69660429b8313540191f9eab01b49897a",
+  "provenance_requirement": null,
+  "provenance_requirement_met": false,
+  "provenance_summary": [
+    {
+      "field": "architecture",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "context_length",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "family",
+      "kind": "inferred",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "Aptus exact model-type compatibility mapping of https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "hidden_size",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "intermediate_size",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "layers",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    },
+    {
+      "field": "license_name",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-135M-Instruct/revision/12fd25f77366fa6b3b4b768ec3050bf629380bac"
+    },
+    {
+      "field": "model_type",
+      "kind": "provider-declared",
+      "observed_at": "2026-08-06T15:22:03.315936+00:00",
+      "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "source": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/resolve/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json"
+    }
+  ],
+  "receipt_id": "receipt_32fe0a55e1602da334e0",
+  "resolved_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+  "schema_version": "aptus.model-inspection-receipt.v1"
+}

@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-05 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-06 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -10,6 +10,11 @@ target-host evidence all agree.
 
 Completed evidence:
 
+- One exact SmolLM2 CUDA LoRA single-device workflow reached
+  `measured-run-pass` at source `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`
+  after dependency, model-data, measured-preflight, two-phase
+  checkpoint-continuation pilot, full training, structural PEFT export, and
+  parent promotion. It is not repeatability or broad CUDA acceptance.
 - Two clean, independent MLX-LM QLoRA workflows reached
   `measured-run-pass` with the exact recorded model, revision, dataset, host,
   runtime, plan, and generated bundle.
@@ -26,13 +31,16 @@ Completed evidence:
   cover lifecycle, session, shutdown, navigation, and packaging contracts.
 - Phase 4's repository, installed-wheel, and desktop package gates closed the
   portable policy-snapshot source and contract review. They did not renew
-  target-runtime acceptance: the July MLX-LM record predates the current v5
-  plan, v3 bundle, and Phase 6 registry expansion, and no current-head MLX or
-  CUDA target-runtime pilot was collected.
+  target-runtime acceptance: at that Phase 4 closeout, the July MLX-LM record
+  predated the current v5 plan, v3 bundle, and Phase 6 registry expansion, and
+  no current-head MLX or CUDA target-runtime pilot had been collected. The
+  later August 5 MLX and August 6 CUDA records now supply their separately
+  bounded exact-source evidence.
 
 Remaining release work:
 
-- Complete a real CUDA run for every claimed executable method and placement.
+- Complete real CUDA runs for every claimed executable method and placement
+  beyond the one exact LoRA single-device acceptance already recorded.
 - Extend MLX-LM acceptance beyond the exact recorded M5 Pro, Qwen QLoRA, and
   synthetic-dataset configuration before making broader Apple Silicon claims.
 - Record clean-environment dependency installation on every claimed CUDA path.

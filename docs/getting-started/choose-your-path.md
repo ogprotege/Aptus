@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its CUDA compiler covers the complete
@@ -93,8 +93,10 @@ reviewed path, but that policy match is not artifact-wide runtime acceptance.
 Run the complete five-action sequence for every other exact bundle before
 making a target-runtime claim. The recorded acceptance does not establish
 safety, model quality, performance, production throughput, production
-readiness, or release readiness, and CUDA target-runtime acceptance remains
-open. The [original Phase 6 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+readiness, or release readiness, and it does not qualify CUDA. The separate
+[2026-08-06 CUDA LoRA single-device
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact SmolLM2 workflow only. The [original Phase 6 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 
 ## Path C: Validate and train on CUDA
@@ -119,8 +121,10 @@ Do not skip an action. A higher validation action repeats its lower checks, but
 the managed workflow still requires the preceding recorded state before it
 admits a forward action.
 
-No real CUDA pilot has been recorded for this release. The repository remains
-an engineering preview until the applicable
+One exact CUDA LoRA single-device workflow has completed this sequence and
+reached `measured-run-pass` on its recorded target host. It does not establish
+repeatability or qualify another method, placement, artifact, device, host, or
+environment. The repository remains an engineering preview until the applicable
 [release gates](../operations/release-gates.md) pass on target hardware.
 
 ## Path D: Use the Mac app, browser workbench, or CLI

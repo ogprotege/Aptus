@@ -1,0 +1,40 @@
+{
+  "schema_version": "aptus.cuda-host-hardware-evidence.v1",
+  "recorded_at": "2026-08-06T15:31:04.399230+00:00",
+  "handoff_checked_at": "2026-08-06T11:41:40-04:00",
+  "host": {
+    "operating_system": "Ubuntu 24.04.4 LTS",
+    "architecture": "x86_64",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "physical_cores": 8,
+    "logical_threads": 16,
+    "ram_bytes": 67207442432
+  },
+  "gpu": {
+    "device_index": 0,
+    "name": "NVIDIA GeForce RTX 3050",
+    "nvidia_smi_total_memory_mib": 8192,
+    "torch_visible_total_memory_bytes": 8220573696,
+    "driver_version": "595.84",
+    "compute_capability": "8.6",
+    "bf16_supported": true,
+    "planned_reserve_bytes": 2147483648,
+    "planned_free_vram_bytes": 7964524544
+  },
+  "bindings": {
+    "planned_hardware_sha256": "08ea53459fece1f692b48d0edfb4c593d16ce2a25ca3dcba887d290814ccf28a",
+    "measured_hardware_sha256": "e63d5d25c98dbcd40c8c26a32d1cd160849d552ebb1e6c1a552b7e57996034f6"
+  },
+  "handoff": {
+    "source_checkout_clean": true,
+    "active_cuda_compute_process_count": 0,
+    "aptus_gpu_lease_present": false
+  },
+  "privacy": {
+    "hostname_included": false,
+    "network_identifiers_included": false,
+    "gpu_uuid_included": false,
+    "hardware_serials_included": false,
+    "process_identifiers_included": false
+  }
+}

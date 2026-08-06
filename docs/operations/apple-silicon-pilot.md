@@ -1,6 +1,6 @@
 # Apple Silicon runtime and pilot matrix
 
-> **Status:** Active | **Authority:** Measured acceptance record and proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or before any additional model download
+> **Status:** Active | **Authority:** Measured acceptance record and proposed experiment plan | **Applies to:** Measured 64 GB M5 Pro host | **Audience:** Local experiment operators | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or before any additional model download
 
 This page records the completed small-model QLoRA acceptance and the proposed
 next experiments for the measured 64 GB M5 Pro host. The
@@ -17,8 +17,11 @@ host, runtime, policy snapshot, plan, bundle, and ordered actions. It does not
 authorize every artifact with the same `model.qwen2-24l.mlx-qlora`
 configuration footprint. The July 27 v2/v2 acceptance remains valid historical
 evidence for its tested source and contracts; it is not the source of the
-current v5/v3 claim. The larger-model and LoRA rows remain proposals, and CUDA
-target-runtime acceptance remains open.
+current v5/v3 claim. The larger-model and LoRA rows remain proposals. A
+separate [2026-08-06 CUDA LoRA single-device
+record](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact external-host workflow only; it is not an Apple matrix
+result, repeatability evidence, or support for any other CUDA scope.
 
 ## Measured host
 

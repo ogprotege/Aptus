@@ -314,6 +314,9 @@ before committing compute time.
 
 | Exact recorded gate | Observed result |
 | --- | ---: |
+| Exact CUDA LoRA single-device workflow at `c12c4d8` | One fresh five-job sequence reached `measured-run-pass` |
+| CUDA pilot checkpoint continuation | Step 1 resumed and reached step 2 with the same 4,884,480-parameter LoRA census |
+| CUDA full train and structural PEFT export | 3 optimizer updates, 384,180,224-byte allocated peak, 23,123,131-byte export |
 | Current Phase 6 MLX-LM v5/v3 workflow at `71925515` | Two fresh, clean repetitions reached `measured-run-pass` |
 | Current confirmed full train, export, and fresh reload | 3 optimizer updates and 4 reload-generation tokens in each repetition |
 | Highest current full-run MLX peak | 582,146,010 bytes |
@@ -324,11 +327,11 @@ before committing compute time.
 | Real MLX synthetic MoE forward | 0.877 ms median, small unquantized two-layer probe |
 | Ten clean desktop builds at `1038ecdd` | 58.1 s mean, 55–63 s range |
 
-These are acceptance telemetry for one recorded M5 Pro host, a 0.5B four-bit
-model, and a four-row synthetic dataset. They are **not** production throughput,
-scalability, or model-quality measurements. The synthetic MoE forward is not
-autoregressive generation and does not project 30B speed. The 30B checkpoint
-never loaded, so no 30B throughput claim exists.
+These are acceptance telemetry for exact recorded host, runtime, model,
+dataset, source, plan, and bundle bindings. They are **not** production
+throughput, scalability, repeatability, or model-quality measurements. The
+synthetic MoE forward is not autoregressive generation and does not project
+30B speed. The 30B checkpoint never loaded, so no 30B throughput claim exists.
 
 The two fresh 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime
 gate for the exact recorded Qwen2.5 artifact and immutable revision, Apple M5
@@ -346,7 +349,17 @@ not establish safety, quality, performance, production throughput, CUDA
 acceptance, production readiness, or release readiness. The original Phase 6
 packet and July runs remain historical evidence for their exact scopes.
 
-Full records: [Current exact-source Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
+The 2026-08-06 CUDA record adds one exact SmolLM2 LoRA single-device
+`measured-run-pass` workflow at source commit
+`c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It covers dependency,
+model-data, measured preflight, two-phase checkpoint-continuation pilot, full
+training, structural PEFT adapter export, and parent-owned promotion on the
+recorded Ubuntu/RTX 3050 runtime. It is one qualifying execution, not a
+repeatability result or evidence for other CUDA methods, placements, devices,
+models, datasets, or environments.
+
+Full records: [SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) ·
+[Current exact-source Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
 [Original Phase 6 acceptance baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
 [Historical MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
 [Desktop stability](docs/operations/evidence/2026-07-27-desktop-release/README.md) ·
@@ -467,7 +480,7 @@ Documentation must be updated in the same change as behavior. Read
 <summary>Engineering preview — what is and is not proven</summary>
 
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
-**Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or when the support contract changes
+**Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when the support contract changes
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
@@ -489,16 +502,22 @@ record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/RE
 binds the exact Qwen2.5 artifact, revision, runtime, host, dataset, policy
 snapshot, v5 plan, v3 bundle, source commit and tree, and bundle fingerprint.
 The [original Phase 6 packet](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-remains the unchanged historical baseline. No CUDA target-runtime pilot has
-completed, so this MLX result and the source and packaging gates do not by
-themselves establish v0.2 release readiness.
+remains the unchanged historical baseline. The separate [2026-08-06 CUDA LoRA
+single-device record](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+binds one fresh five-action workflow through `measured-run-pass` to its exact
+SmolLM2 revision, Ubuntu/RTX 3050 host, runtime closure, synthetic dataset,
+plan, policy, bundle, source commit, and source tree. One execution does not
+establish repeatability or qualify other CUDA paths, so these bounded results
+and the source and packaging gates do not by themselves establish v0.2 release
+readiness.
 
 Ten consecutive clean local desktop engineering builds passed at implementation
 commit `1038ecdd13103418ef1135e1ced634c10370a961`. That record is historical
 evidence for that exact commit. Pull-request CI rebuilds and packages GitHub's
 exact tested merge commit and records it in `COMMIT`. The default Mac build is
 ad-hoc signed; public distribution still requires a Developer ID identity and
-notarization. **No real CUDA target-host pilot has completed the release gates.**
+notarization. **One exact CUDA LoRA single-device workflow has completed; the
+remaining CUDA method/placement and public-distribution gates stay open.**
 
 The first MoE compatibility slice is exact and fail-closed. It recognizes
 `qwen3_moe` checkpoints with `Qwen3MoeForCausalLM` only when they use the

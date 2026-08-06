@@ -2,13 +2,13 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through PR #30, merge `6490256`, plus
-> the Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
-> original runtime acceptance, 2026-08-05 exact-source evidence refresh, and
-> the dedicated private-security intake and maintained-client contract-parity
-> closeouts
+> **Applies to:** Repository documentation through merge `c12c4d8`, plus the
+> Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
+> original runtime acceptance, 2026-08-05 exact-source MLX evidence refresh,
+> 2026-08-06 exact CUDA LoRA single-device acceptance, and the dedicated
+> private-security intake and maintained-client contract-parity closeouts
 >
-> **Last reviewed:** 2026-08-05
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -108,15 +108,24 @@ baseline, only manifested operator `README.md` and `runbook.md` changed;
 runtime programs and requirements remained byte-identical. The two fresh runs
 independently qualify the new fingerprint.
 
+The [2026-08-06 CUDA
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+adds one exact SmolLM2 LoRA single-device workflow through
+`measured-run-pass`, including a two-phase checkpoint-continuation pilot, full
+training, structural PEFT export, and parent promotion. It is bound to its
+exact source, host, runtime, model, dataset, plan, policy, and bundle. It does
+not establish repeatability or general CUDA compatibility.
+
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
-itself remains blocked until qualifying CUDA target-host evidence and a
+itself remains blocked until the remaining CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
 capabilities being claimed. The July MLX-LM acceptance and local 10-build
 desktop engineering gate and original Phase 6 acceptance remain historical at
 their recorded commits; the August 5 exact-source refresh is the bounded
-current-source MLX-LM result. No qualifying CUDA target-runtime acceptance has
-been collected. The repository checks its
+current-source MLX-LM result. One qualifying exact CUDA LoRA single-device
+acceptance has been collected; other CUDA methods, placements, artifacts,
+hosts, and environments remain unqualified. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -133,18 +142,18 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
 | Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 exact-source refresh records two fresh, clean current-source v5/v3 MLX-LM `measured-run-pass` repetitions for its exact Qwen2.5 artifact and revision/source and tree/host/runtime/dataset/plan/policy/fingerprint scope; the original Phase 6 packet remains its historical baseline, CUDA target-host and public notarized distribution evidence remain open, and neither packet is a safety, quality, performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 exact-source refresh records two fresh current-source MLX-LM repetitions for its exact scope, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 104
+The [documentation inventory](documentation-inventory.md) classifies 105
 governed tracked Markdown documents:
 
-- 87 active;
+- 88 active;
 - 2 deprecated;
 - 15 archived.
 
-The automated `maintained_documentation()` set contains 95 files because it
+The automated `maintained_documentation()` set contains 96 files because it
 retains the legacy-audit README but excludes nine subordinate historical audit
 pages. That automation scope is intentionally narrower than the governed
 inventory.
@@ -360,16 +369,22 @@ and distinguishes valid platform `unsupported` responses from malformed status
 or payload shapes. Mutation tests keep the native checker aligned with OpenAPI
 when a required field, closed value, decoder marker, or endpoint changes.
 
+The exact CUDA packet resolves DOC-027. It records one qualifying LoRA
+single-device execution without broadening the claim to repeatability or
+another CUDA matrix cell. DOC-011 remains in progress for the remaining
+target-host and public-distribution evidence.
+
 The PR #21 implementation candidate separately passed the full Python, web, and
 native test gates, generated-contract checks, packaged launch, app-signature
 checks, and DMG verification. Two clean real MLX workflows and ten consecutive
-desktop engineering builds supply bounded runtime and packaging evidence. These
-checks do not replace CUDA target-host acceptance or public notarization.
+desktop engineering builds and one exact CUDA LoRA workflow supply bounded
+runtime and packaging evidence. These checks do not replace remaining CUDA
+target-host coverage or public notarization.
 
 ## Recommended actions by impact
 
-1. Complete qualifying CUDA target-host evidence and public desktop distribution
-   evidence.
+1. Complete the remaining claimed CUDA target-host coverage, repeatability
+   evidence, and public desktop distribution evidence.
 2. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -210,8 +210,11 @@ present complete evidence only when the active report binds that same
 artifact-specific tuple. A different artifact that merely matches the
 configuration footprint remains incomplete until its own required runtime
 gates pass. This state is not a safety, model-quality, performance,
-production-throughput, production-readiness, or release-readiness claim; CUDA
-target-runtime acceptance remains open. The [original Phase 6
+production-throughput, production-readiness, or release-readiness claim, and
+it does not qualify CUDA. One separate [exact SmolLM2 CUDA LoRA single-device
+workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+has target-runtime evidence; repeatability and every other CUDA scope remain
+open. The [original Phase 6
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 

@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-05 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-06 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -65,9 +65,18 @@ baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
 only manifested operator `README.md` and `runbook.md` changed; runtime programs
 and requirements remained byte-identical. They establish neither safety, model
 quality, performance, production throughput, production readiness, nor release
-readiness, and CUDA target-runtime acceptance remains open. The 2026-07-27
+readiness, and they do not qualify CUDA. The 2026-07-27
 v2-plan and v2-bundle runs remain historical evidence for their older exact
 scope.
+
+The separate [2026-08-06 CUDA LoRA single-device
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+supports this exact wording: “one exact SmolLM2 CUDA LoRA single-device
+workflow reached `measured-run-pass` under the recorded source, host, runtime,
+model revision, synthetic dataset, plan, policy, bundle, and five-job
+sequence.” Do not shorten that to “CUDA passed.” The record is one execution,
+does not establish repeatability, and does not qualify another CUDA method,
+placement, artifact, device, host, or environment.
 
 ## Quality claims
 
@@ -127,7 +136,10 @@ Use:
   only after that workflow has completed successfully;
 - “the default desktop artifact is ad-hoc signed for review and testing”;
 - “the exact Phase 6 Qwen2 fixture passed two current-source v5/v3 MLX-LM
-  ladders, while CUDA target-runtime acceptance remains open.”
+  ladders”;
+- “one exact SmolLM2 CUDA LoRA single-device workflow completed the five-action
+  ladder through `measured-run-pass`; repeatability and other CUDA paths remain
+  open.”
 
 Do not:
 
@@ -139,8 +151,10 @@ Do not:
 - apply either the historical July MLX-LM result or the exact 2026-08-05
   acceptance to another artifact, revision, host, runtime, dataset, source
   commit, or CUDA path;
-- call v0.2 release-ready while claimed CUDA target-host evidence and public
-  Developer ID signing and notarization remain open.
+- apply the 2026-08-06 CUDA result to another method, placement, artifact,
+  revision, device, host, runtime, dataset, source, plan, policy, or bundle;
+- call v0.2 release-ready while remaining claimed CUDA target-host coverage and
+  public Developer ID signing and notarization remain open.
 
 Repository tests, real MLX target-host evidence, desktop stability evidence,
 workflow-commit CI packaging, CUDA acceptance, and public distribution approval

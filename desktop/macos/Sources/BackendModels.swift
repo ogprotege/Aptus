@@ -23,6 +23,40 @@ struct BackendReadiness: Decodable, Equatable {
     }
 }
 
+struct BackendHealthResponse: Decodable, Equatable {
+    static let expectedStatus = "ok"
+    static let expectedAPIContractVersion = "aptus.api.v1"
+
+    let status: String
+    let version: String
+    let apiContractVersion: String
+
+    private enum CodingKeys: String, CodingKey {
+        case status
+        case version
+        case apiContractVersion = "api_contract_version"
+    }
+
+    func validate(expectedVersion: String) throws {
+        guard status == Self.expectedStatus else {
+            throw BackendError.invalidReadiness(
+                "The desktop service returned an invalid health status."
+            )
+        }
+        guard apiContractVersion == Self.expectedAPIContractVersion else {
+            throw BackendError.invalidReadiness(
+                "The desktop service returned an incompatible API contract."
+            )
+        }
+        guard version == expectedVersion else {
+            throw BackendError.incompatibleVersion(
+                expected: expectedVersion,
+                actual: version
+            )
+        }
+    }
+}
+
 struct BackendSession: Equatable {
     let origin: URL
     let token: String

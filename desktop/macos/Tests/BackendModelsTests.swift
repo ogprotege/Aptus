@@ -26,6 +26,43 @@ final class BackendModelsTests: XCTestCase {
         XCTAssertThrowsError(try readiness.validatedOrigin(expectedVersion: "0.2.0"))
     }
 
+    func testHealthResponseAcceptsCurrentContractAndUnknownProperties() throws {
+        let data = Data(#"{"status":"ok","version":"0.2.0","api_contract_version":"aptus.api.v1","future":"allowed"}"#.utf8)
+        let response = try JSONDecoder().decode(BackendHealthResponse.self, from: data)
+
+        XCTAssertNoThrow(try response.validate(expectedVersion: "0.2.0"))
+        XCTAssertEqual(response.status, "ok")
+        XCTAssertEqual(response.apiContractVersion, "aptus.api.v1")
+    }
+
+    func testHealthResponseRejectsUnknownStatusContractAndVersion() throws {
+        let invalidResponses = [
+            BackendHealthResponse(
+                status: "starting",
+                version: "0.2.0",
+                apiContractVersion: "aptus.api.v1"
+            ),
+            BackendHealthResponse(
+                status: "ok",
+                version: "0.2.0",
+                apiContractVersion: "aptus.api.v2"
+            ),
+            BackendHealthResponse(
+                status: "ok",
+                version: "0.3.0",
+                apiContractVersion: "aptus.api.v1"
+            ),
+        ]
+        for response in invalidResponses {
+            XCTAssertThrowsError(try response.validate(expectedVersion: "0.2.0"))
+        }
+
+        let missingContract = Data(#"{"status":"ok","version":"0.2.0"}"#.utf8)
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(BackendHealthResponse.self, from: missingContract)
+        )
+    }
+
     func testSessionTokenHasAtLeastThirtyTwoRandomBytes() throws {
         let first = try SessionToken.generate()
         let second = try SessionToken.generate()

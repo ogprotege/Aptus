@@ -24,6 +24,28 @@ const methods: MethodDescriptor[] = [
     supported_distributions: ["single"],
     evidence_ids: ["method.lora.paper"],
     pilot_requirement: "A bounded pilot is required.",
+    runtime_bindings: [
+      {
+        schema_version: "aptus.runtime-binding.v1",
+        training_runtime: "transformers-peft-cuda",
+        compute_backend: "cuda",
+        compiler_id: "transformers.peft-lora.v2",
+        estimator_id: "aptus-memory-v2",
+        export_kind: "peft-adapter-safetensors",
+        supported_distributions: ["single"],
+        evidence_requirement: "pilot-required",
+      },
+      {
+        schema_version: "aptus.runtime-binding.v1",
+        training_runtime: "mlx-lm",
+        compute_backend: "mps",
+        compiler_id: "mlx-lm.lora.v1",
+        estimator_id: "aptus-memory-mlx-v2",
+        export_kind: "mlx-lm-adapter",
+        supported_distributions: ["single"],
+        evidence_requirement: "pilot-required",
+      },
+    ],
   },
   {
     schema_version: "aptus.method-descriptor.v1",
@@ -42,6 +64,7 @@ const methods: MethodDescriptor[] = [
     evidence_ids: ["method.bitfit.paper"],
     blocker: "The exact architecture may expose no eligible bias tensors.",
     pilot_requirement: "A non-empty trainable census is required.",
+    runtime_bindings: [],
   },
 ];
 

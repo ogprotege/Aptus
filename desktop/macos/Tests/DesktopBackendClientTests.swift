@@ -70,6 +70,10 @@ final class DesktopBackendClientTests: XCTestCase {
             for: "/api/v1/runtimes",
             origin: origin
         )?.absoluteString, "http://127.0.0.1:49152/api/v1/runtimes")
+        XCTAssertEqual(DesktopBackendEndpointPolicy.url(
+            for: DesktopBackendEndpointPolicy.healthPath,
+            origin: origin
+        )?.absoluteString, "http://127.0.0.1:49152/api/v1/health")
         XCTAssertNil(DesktopBackendEndpointPolicy.url(
             for: "/api/v1/hardware",
             origin: origin
@@ -170,6 +174,55 @@ final class DesktopBackendClientTests: XCTestCase {
         XCTAssertEqual(selection, .configured(path: path))
     }
 
+    func testRuntimeConfigurationResponseRequiresCompletePersistedContract() throws {
+        var payload = validRuntimeConfigurationPayload()
+        payload["future_field"] = ["nested": "allowed"]
+        var interpreter = try XCTUnwrap(payload["interpreter"] as? [String: Any])
+        interpreter["future_field"] = true
+        payload["interpreter"] = interpreter
+
+        let result = try DesktopBackendClient.runtimeConfigurationResult(
+            from: payload,
+            expectedRuntimeID: "mlx-lm"
+        )
+
+        XCTAssertEqual(result, RuntimeConfigurationResult(
+            runtimeID: "mlx-lm",
+            interpreterPath: "/opt/aptus/mlx/bin/python"
+        ))
+    }
+
+    func testRuntimeConfigurationResponseRejectsMissingMalformedAndContradictoryFields() {
+        let mutations: [(inout [String: Any]) -> Void] = [
+            { $0.removeValue(forKey: "status") },
+            { $0["status"] = "configured" },
+            { $0.removeValue(forKey: "runtime_id") },
+            { $0["runtime_id"] = "pytorch-mps" },
+            { $0.removeValue(forKey: "interpreter_path") },
+            {
+                $0["interpreter_path"] = "relative/python"
+                $0["interpreter"] = ["path": "relative/python"]
+            },
+            { $0.removeValue(forKey: "interpreter") },
+            { $0["interpreter"] = ["path": "/different/python"] },
+            { $0.removeValue(forKey: "persisted") },
+            { $0["persisted"] = false },
+            { $0["persisted"] = 1 },
+        ]
+
+        for (index, mutation) in mutations.enumerated() {
+            var payload = validRuntimeConfigurationPayload()
+            mutation(&payload)
+            XCTAssertThrowsError(
+                try DesktopBackendClient.runtimeConfigurationResult(
+                    from: payload,
+                    expectedRuntimeID: "mlx-lm"
+                ),
+                "Mutation \(index) must fail closed."
+            )
+        }
+    }
+
     func testRuntimeInventoryHydratesEveryMLXProbeWithBoundedEvidence() throws {
         let readyPath = "/opt/aptus/mlx/bin/python"
         let missingPath = "/usr/bin/python3"
@@ -178,6 +231,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "selected": ["mlx-lm": readyPath],
             "available": ["mlx-lm": [readyPath]],
             "compatible": ["mlx-lm": [readyPath]],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
             "interpreters": [
                 [
                     "path": readyPath,
@@ -232,6 +286,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "selected": [:],
             "available": ["mlx-lm": []],
             "compatible": ["mlx-lm": []],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
             "interpreters": [[
                 "path": "/usr/bin/python3",
                 "source": "known-path:system",
@@ -247,6 +302,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "selected": ["mlx-lm": path],
             "available": ["mlx-lm": [path]],
             "compatible": ["mlx-lm": [path]],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
             "interpreters": [[
                 "path": path,
                 "source": "configured:APTUS_MLX_PYTHON",
@@ -271,6 +327,7 @@ final class DesktopBackendClientTests: XCTestCase {
             "selected": ["mlx-lm": path],
             "available": ["mlx-lm": []],
             "compatible": ["mlx-lm": [path]],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
             "interpreters": [[
                 "path": path,
                 "source": "configured:APTUS_MLX_PYTHON",
@@ -343,6 +400,93 @@ final class DesktopBackendClientTests: XCTestCase {
         ]))
     }
 
+    func testRuntimeInventoryRequiresEveryDeclaredTopLevelField() throws {
+        let payload = completeEmptyRuntimeInventory()
+        XCTAssertNoThrow(try DesktopBackendClient.mlxRuntimeInventory(from: payload))
+
+        for field in [
+            "schema_version",
+            "interpreters",
+            "available",
+            "compatible",
+            "configuration",
+            "selected",
+        ] {
+            var incomplete = payload
+            incomplete.removeValue(forKey: field)
+            XCTAssertThrowsError(
+                try DesktopBackendClient.mlxRuntimeInventory(from: incomplete),
+                "Missing \(field) must fail closed."
+            )
+        }
+
+        var unknownSchema = payload
+        unknownSchema["schema_version"] = "aptus.runtime-inventory.v2"
+        XCTAssertThrowsError(
+            try DesktopBackendClient.mlxRuntimeInventory(from: unknownSchema)
+        )
+
+        let malformedValues: [(String, Any)] = [
+            ("schema_version", 1),
+            ("interpreters", "not-an-array"),
+            ("available", ["mlx-lm": "not-an-array"]),
+            ("compatible", ["mlx-lm": [1]]),
+            ("configuration", ["mlx-lm": 1]),
+            ("selected", ["mlx-lm": 1]),
+        ]
+        for (field, value) in malformedValues {
+            var malformed = payload
+            malformed[field] = value
+            XCTAssertThrowsError(
+                try DesktopBackendClient.mlxRuntimeInventory(from: malformed),
+                "Malformed \(field) must fail closed."
+            )
+        }
+    }
+
+    func testRuntimeInventoryRejectsAvailableListContradictingProbeEvidence() {
+        let path = "/opt/aptus/mlx/bin/python"
+        XCTAssertThrowsError(try DesktopBackendClient.mlxRuntimeInventory(from: [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": [:],
+            "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
+            "interpreters": [[
+                "path": path,
+                "source": "configured:APTUS_MLX_PYTHON",
+                "python_version": NSNull(),
+                "error": NSNull(),
+                "runtimes": [
+                    "mlx-lm": [
+                        "available": true,
+                        "compatible": false,
+                        "reason": "The dependency versions do not match.",
+                    ],
+                ],
+            ]],
+        ]))
+    }
+
+    func testRuntimeInventoryAcceptsUnknownPropertiesAndNullOptionalEvidence() throws {
+        var payload = completeEmptyRuntimeInventory()
+        payload["future_field"] = "allowed"
+        payload["interpreters"] = [[
+            "path": "/usr/bin/python3",
+            "source": "known-path:system",
+            "python_version": NSNull(),
+            "error": NSNull(),
+            "runtimes": [:],
+            "future_field": ["nested": true],
+        ]]
+
+        let inventory = try DesktopBackendClient.mlxRuntimeInventory(from: payload)
+
+        XCTAssertEqual(inventory.candidates.count, 1)
+        XCTAssertNil(inventory.candidates[0].pythonVersion)
+        XCTAssertFalse(inventory.candidates[0].probePassed)
+    }
+
     func testPlatformSnapshotParsesMeasuredMemoryWithoutInventingPilotEvidence() throws {
         let gibibyte: UInt64 = 1_024 * 1_024 * 1_024
         let snapshot = try DesktopBackendClient.platformMemorySnapshot(from: [
@@ -376,6 +520,78 @@ final class DesktopBackendClientTests: XCTestCase {
                 "memory_free_percent": 101,
             ],
         ]))
+    }
+
+    func testPlatformResponseDistinguishesUnsupportedFromMalformed() {
+        XCTAssertThrowsError(try DesktopBackendClient.platformMemorySnapshot(from: [
+            "status": "unsupported",
+            "platform": NSNull(),
+            "error": "Apple platform probing requires a Darwin arm64 host.",
+            "future_field": true,
+        ])) { error in
+            guard let clientError = error as? DesktopBackendClientError else {
+                return XCTFail("Expected a desktop backend client error.")
+            }
+            guard case let .platformUnsupported(message) = clientError else {
+                return XCTFail("Expected the typed unsupported-platform variant.")
+            }
+            XCTAssertEqual(
+                message,
+                "Apple platform probing requires a Darwin arm64 host."
+            )
+        }
+
+        for payload: [String: Any] in [
+            ["status": "future", "platform": NSNull()],
+            ["status": "unsupported", "platform": [:]],
+            ["status": "unsupported", "platform": NSNull(), "error": 3],
+        ] {
+            XCTAssertThrowsError(
+                try DesktopBackendClient.platformMemorySnapshot(from: payload)
+            ) { error in
+                guard let clientError = error as? DesktopBackendClientError,
+                      case .invalidPlatformResponse = clientError else {
+                    return XCTFail("Malformed variants must be invalid responses.")
+                }
+            }
+        }
+    }
+
+    func testPlatformSnapshotAcceptsMissingAndNullOptionalMeasurements() throws {
+        let snapshot = try DesktopBackendClient.platformMemorySnapshot(from: [
+            "status": "ok",
+            "platform": [
+                "unified_memory_bytes": 16 * 1_024 * 1_024 * 1_024,
+                "available_memory_bytes": NSNull(),
+                "memory_free_percent": NSNull(),
+                "metal_gpu_core_count": NSNull(),
+                "observed_at": NSNull(),
+                "future_field": "allowed",
+            ],
+            "future_field": ["nested": "allowed"],
+        ])
+
+        XCTAssertNil(snapshot.availableMemoryBytes)
+        XCTAssertNil(snapshot.memoryFreePercent)
+        XCTAssertNil(snapshot.metalGPUCoreCount)
+        XCTAssertNil(snapshot.observedAt)
+    }
+
+    func testPlatformSnapshotRejectsMalformedPresentOptionalMeasurements() {
+        for (field, value): (String, Any) in [
+            ("available_memory_bytes", "unknown"),
+            ("memory_free_percent", false),
+            ("metal_gpu_core_count", 2.5),
+            ("observed_at", 1),
+        ] {
+            XCTAssertThrowsError(try DesktopBackendClient.platformMemorySnapshot(from: [
+                "status": "ok",
+                "platform": [
+                    "unified_memory_bytes": 16 * 1_024 * 1_024 * 1_024,
+                    field: value,
+                ],
+            ]), "Malformed \(field) must fail closed.")
+        }
     }
 
     func testShellLoadsPlatformSnapshotWithoutBlockingInitialization() {
@@ -506,6 +722,17 @@ final class DesktopBackendClientTests: XCTestCase {
         )
     }
 
+    func testRuntimeConfigurationErrorUsesCurrentTopLevelResponseShape() {
+        XCTAssertEqual(
+            DesktopBackendClient.errorMessage(from: [
+                "error": "runtime_configuration_invalid",
+                "details": "The selected interpreter does not provide MLX-LM.",
+                "future_field": true,
+            ]),
+            "The selected interpreter does not provide MLX-LM."
+        )
+    }
+
     func testShellPersistsSelectedMLXPythonThroughRuntimeConfigurator() throws {
         let python = "/usr/bin/python3"
         guard FileManager.default.isExecutableFile(atPath: python) else {
@@ -611,5 +838,26 @@ final class DesktopBackendClientTests: XCTestCase {
             lmStudioInstalled: false,
             oMLXExecutablePath: nil
         )
+    }
+
+    private func validRuntimeConfigurationPayload() -> [String: Any] {
+        [
+            "status": "ok",
+            "runtime_id": "mlx-lm",
+            "interpreter_path": "/opt/aptus/mlx/bin/python",
+            "interpreter": ["path": "/opt/aptus/mlx/bin/python"],
+            "persisted": true,
+        ]
+    }
+
+    private func completeEmptyRuntimeInventory() -> [String: Any] {
+        [
+            "schema_version": "aptus.runtime-inventory.v1",
+            "selected": [:],
+            "available": ["mlx-lm": []],
+            "compatible": ["mlx-lm": []],
+            "configuration": ["mlx-lm": "APTUS_MLX_PYTHON"],
+            "interpreters": [],
+        ]
     }
 }

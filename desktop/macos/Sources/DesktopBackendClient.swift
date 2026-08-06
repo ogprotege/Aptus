@@ -58,6 +58,7 @@ enum DesktopBackendClientError: LocalizedError {
     case rejected(statusCode: Int, message: String)
     case invalidResponse
     case invalidPlatformResponse
+    case platformUnsupported(String)
     case invalidRuntimeInventory
     case responseTooLarge
 
@@ -77,6 +78,8 @@ enum DesktopBackendClientError: LocalizedError {
             "The private local service returned an invalid runtime configuration."
         case .invalidPlatformResponse:
             "The private local service returned an invalid platform snapshot."
+        case let .platformUnsupported(message):
+            message
         case .invalidRuntimeInventory:
             "The private local service returned an invalid runtime inventory."
         case .responseTooLarge:
@@ -86,10 +89,12 @@ enum DesktopBackendClientError: LocalizedError {
 }
 
 enum DesktopBackendEndpointPolicy {
+    static let healthPath = "/api/v1/health"
     static let runtimeConfigurationPath = "/api/v1/runtimes/configure"
     static let runtimeInventoryPath = "/api/v1/runtimes"
     static let platformPath = "/api/v1/platform"
     private static let allowedPaths = Set([
+        healthPath,
         runtimeConfigurationPath,
         runtimeInventoryPath,
         platformPath,
@@ -288,24 +293,15 @@ final class DesktopBackendClient: RuntimeConfiguring,
                 )
                 return
             }
-            guard payload?["status"] as? String == "ok",
-                  let responseRuntimeID = payload?["runtime_id"] as? String,
-                  let responsePath = payload?["interpreter_path"] as? String,
-                  responseRuntimeID == runtimeID,
-                  !responsePath.isEmpty else {
-                self.complete(
-                    .failure(DesktopBackendClientError.invalidResponse),
-                    completion: completion
+            do {
+                let result = try Self.runtimeConfigurationResult(
+                    from: payload,
+                    expectedRuntimeID: runtimeID
                 )
-                return
+                self.complete(.success(result), completion: completion)
+            } catch {
+                self.complete(.failure(error), completion: completion)
             }
-            self.complete(
-                .success(RuntimeConfigurationResult(
-                    runtimeID: responseRuntimeID,
-                    interpreterPath: responsePath
-                )),
-                completion: completion
-            )
         }.resume()
     }
 
@@ -430,11 +426,50 @@ final class DesktopBackendClient: RuntimeConfiguring,
         }
     }
 
+    static func runtimeConfigurationResult(
+        from payload: [String: Any]?,
+        expectedRuntimeID: String
+    ) throws -> RuntimeConfigurationResult {
+        guard payload?["status"] as? String == "ok",
+              let responseRuntimeID = payload?["runtime_id"] as? String,
+              responseRuntimeID == expectedRuntimeID,
+              let responsePath = payload?["interpreter_path"] as? String,
+              isCanonicalAbsolutePath(responsePath),
+              let interpreter = payload?["interpreter"] as? [String: Any],
+              interpreter["path"] as? String == responsePath,
+              strictBoolean(payload?["persisted"]) == true else {
+            throw DesktopBackendClientError.invalidResponse
+        }
+        return RuntimeConfigurationResult(
+            runtimeID: responseRuntimeID,
+            interpreterPath: responsePath
+        )
+    }
+
     static func platformMemorySnapshot(
         from payload: [String: Any]?
     ) throws -> PlatformMemorySnapshot {
-        guard payload?["status"] as? String == "ok",
-              let platform = payload?["platform"] as? [String: Any],
+        guard let payload,
+              let status = payload["status"] as? String,
+              payload.keys.contains("platform") else {
+            throw DesktopBackendClientError.invalidPlatformResponse
+        }
+        let responseError = try optionalPlatformString(payload["error"])
+        switch status {
+        case "unsupported":
+            guard payload["platform"] is NSNull else {
+                throw DesktopBackendClientError.invalidPlatformResponse
+            }
+            throw DesktopBackendClientError.platformUnsupported(
+                responseError.flatMap { $0.isEmpty ? nil : $0 }
+                    ?? "Apple platform probing is unsupported on this host."
+            )
+        case "ok":
+            break
+        default:
+            throw DesktopBackendClientError.invalidPlatformResponse
+        }
+        guard let platform = payload["platform"] as? [String: Any],
               let installedMemory = unsignedInteger(platform["unified_memory_bytes"]),
               installedMemory > 0 else {
             throw DesktopBackendClientError.invalidPlatformResponse
@@ -477,7 +512,7 @@ final class DesktopBackendClient: RuntimeConfiguring,
             metalGPUCoreCount = Int(parsed)
         }
 
-        let observedAt = (platform["observed_at"] as? String).flatMap {
+        let observedAt = try optionalPlatformString(platform["observed_at"]).flatMap {
             $0.isEmpty ? nil : $0
         }
         return PlatformMemorySnapshot(
@@ -496,7 +531,7 @@ final class DesktopBackendClient: RuntimeConfiguring,
               let selected = payload?["selected"] as? [String: Any] else {
             throw DesktopBackendClientError.invalidRuntimeInventory
         }
-        let compatiblePaths = try compatibleMLXPaths(from: payload)
+        let compatiblePaths = try mlxPaths(named: "compatible", from: payload)
 
         guard let rawSelectedPath = selected["mlx-lm"] else {
             return .notConfigured
@@ -534,6 +569,16 @@ final class DesktopBackendClient: RuntimeConfiguring,
     static func mlxRuntimeInventory(
         from payload: [String: Any]?
     ) throws -> MLXRuntimeInventory {
+        guard let configuration = payload?["configuration"] as? [String: Any],
+              configuration.allSatisfy({
+                  !$0.key.isEmpty
+                      && ($0.value as? String).map { !$0.isEmpty } == true
+              }),
+              let selected = payload?["selected"] as? [String: Any],
+              selected.allSatisfy({ !$0.key.isEmpty && $0.value is String }) else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        let advertisedAvailablePaths = try mlxPaths(named: "available", from: payload)
         let selection = try persistedMLXRuntimeSelection(from: payload)
         guard let rawInterpreters = payload?["interpreters"] as? [Any] else {
             throw DesktopBackendClientError.invalidRuntimeInventory
@@ -610,7 +655,13 @@ final class DesktopBackendClient: RuntimeConfiguring,
                 packageVersions: packageVersions
             ))
         }
-        let advertisedCompatiblePaths = try compatibleMLXPaths(from: payload)
+        let measuredAvailablePaths = Set(
+            candidates.lazy.filter(\.probePassed).map(\.path)
+        )
+        guard advertisedAvailablePaths == measuredAvailablePaths else {
+            throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        let advertisedCompatiblePaths = try mlxPaths(named: "compatible", from: payload)
         let measuredCompatiblePaths = Set(
             candidates.lazy.filter(\.compatible).map(\.path)
         )
@@ -620,15 +671,20 @@ final class DesktopBackendClient: RuntimeConfiguring,
         return MLXRuntimeInventory(selection: selection, candidates: candidates)
     }
 
-    private static func compatibleMLXPaths(
+    private static func mlxPaths(
+        named field: String,
         from payload: [String: Any]?
     ) throws -> Set<String> {
-        guard let compatible = payload?["compatible"] as? [String: Any],
-              let rawCompatiblePaths = compatible["mlx-lm"] as? [Any] else {
+        guard let pathsByRuntime = payload?[field] as? [String: Any],
+              pathsByRuntime.allSatisfy({ key, value in
+                  !key.isEmpty
+                      && (value as? [Any])?.allSatisfy { $0 is String } == true
+              }),
+              let rawPaths = pathsByRuntime["mlx-lm"] as? [Any] else {
             throw DesktopBackendClientError.invalidRuntimeInventory
         }
         var paths = Set<String>()
-        for value in rawCompatiblePaths {
+        for value in rawPaths {
             guard let path = value as? String,
                   isCanonicalAbsolutePath(path),
                   paths.insert(path).inserted else {
@@ -684,6 +740,16 @@ final class DesktopBackendClient: RuntimeConfiguring,
         }
         guard let string = value as? String else {
             throw DesktopBackendClientError.invalidRuntimeInventory
+        }
+        return string
+    }
+
+    private static func optionalPlatformString(_ value: Any?) throws -> String? {
+        if value == nil || value is NSNull {
+            return nil
+        }
+        guard let string = value as? String else {
+            throw DesktopBackendClientError.invalidPlatformResponse
         }
         return string
     }

@@ -485,6 +485,32 @@ when its evidence, owner, or resolution changes.
   state or local absolute paths.
 - **Owner:** MLX runtime, release-evidence, and documentation maintainers
 
+### DOC-026: Close maintained client response-contract parity
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** React now fails closed on malformed job and profile records,
+  live compile responses without their required report, and method catalogs that
+  violate schema identity, lifecycle, or runtime-binding coverage invariants.
+  Restored bundles retain their documented allowance for an absent report.
+  Swift now validates the health contract and service version before readiness, requires
+  the complete persisted runtime-configuration response, consumes all six
+  runtime-inventory fields with advertised-versus-measured availability and
+  compatibility parity, and handles only the documented `ok` and `unsupported`
+  platform statuses.
+- **Verification:** Focused React and XCTest regression tables cover canonical
+  fixtures and malformed required, closed-vocabulary, and cross-field variants.
+  `tools/check_client_contracts.py` now binds all four native HTTP routes to
+  their OpenAPI response models, required top-level fields, constants, and
+  closed status values. Python mutation tests prove that new required fields,
+  changed closed values, missing decoder markers, and endpoint drift fail the
+  checker.
+- **Boundary:** OpenAPI JSON and generated TypeScript remain generated. React
+  normalization and Swift decoding remain maintained layers: unknown extra
+  response properties stay forward-compatible, while missing required fields,
+  malformed values, and unknown closed statuses fail closed.
+- **Owner:** Web, native host, API-contract, and documentation maintainers
+
 ## Resolved in the 2026-07-22 governance batch
 
 ### DOC-013: Separate raw Reference material from current authority

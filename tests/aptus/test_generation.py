@@ -2785,6 +2785,18 @@ class BundleGenerationTests(unittest.TestCase):
 
                 def readline(self):
                     race.write_bytes(mutated_race)
+                    # Same-size rewrites can share a timestamp tick on some
+                    # filesystems. Force the metadata identity to change so
+                    # this test deterministically exercises the consumption
+                    # guard instead of depending on timestamp granularity.
+                    mutated_stat = race.stat()
+                    os.utime(
+                        race,
+                        ns=(
+                            mutated_stat.st_atime_ns,
+                            mutated_stat.st_mtime_ns + 2_000_000_000,
+                        ),
+                    )
                     return verified_source.readline()
 
                 def close(self):

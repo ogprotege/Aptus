@@ -1,0 +1,61 @@
+{
+  "schema_version": "aptus.cuda-lora-single-acceptance-procedure.v1",
+  "source_lock": {
+    "commit": "c12c4d8db0037a2c278a2ad95a0a2cbda4387eed",
+    "tree": "ad482883cfb6ad2b8ac72f7b7d1009c918e5c345",
+    "exact_source_bundle_sha256": "340d15c6b92def8ea9087dd6b9fda232949f7e80207aef31bf83ad86750eff37",
+    "clean_checkout_required_before_and_after": true
+  },
+  "preparation": [
+    "Verify the exact source bundle and detached checkout identity.",
+    "Build and hash the Aptus wheel from that exact checkout.",
+    "Install Aptus and all pinned training packages into one isolated Python environment.",
+    "Cache and rehash the immutable model revision.",
+    "Verify the four-row synthetic dataset digest.",
+    "Run the complete Python test suite at the producing source."
+  ],
+  "compilation": {
+    "root_plan_sha256": "d381aeeacd1a96960bd441a16fc415c6ab264c62e76ed41ce61281ff330d721e",
+    "embedded_plan_sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+    "independent_compilations": 2,
+    "manifests_byte_identical": true,
+    "archives_byte_identical": true,
+    "bundle_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+    "bundle_zip_sha256": "6e79b01f5b723ef9b30f7bc5f886fa5e93e2884ba504733b9d8194ef5c5a04c1"
+  },
+  "qualifying_action_order": [
+    "dependency",
+    "model-data",
+    "preflight",
+    "pilot",
+    "train"
+  ],
+  "admission_rules": {
+    "fresh_state_root_for_qualifying_sequence": true,
+    "one_accepted_environment_binding_for_qualifying_workflow": true,
+    "accepted_environment_binding_source": "terminal-validation-report",
+    "same_runtime_interpreter_for_all_five_jobs": true,
+    "job_level_bundle_and_policy_bindings_retained": true,
+    "every_job_completed_with_return_code_zero": true,
+    "full_train_requires_explicit_confirmation": true,
+    "parent_owned_completion_verification_required": true,
+    "terminal_state_required": "measured-run-pass"
+  },
+  "independent_verification": [
+    "Count exactly five persisted job records and sort them by immutable creation time.",
+    "Verify the action order, terminal state, return code, bundle fingerprint, policy binding, and accepted runtime interpreter for every record.",
+    "Rehash the manifest, metrics, final export, adapter weights, and complete final export tree.",
+    "Recompute the parent-promotion evidence hash from the complete raw verified-pending-evidence object using Aptus canonical JSON encoding.",
+    "Verify that the validation report has no active or pending run fields.",
+    "Verify that no CUDA compute process or Aptus host-global lease remains at handoff."
+  ],
+  "publication": {
+    "raw_job_records_committed": false,
+    "logs_committed": false,
+    "model_or_adapter_binaries_committed": false,
+    "archives_committed": false,
+    "absolute_paths_committed": false,
+    "raw_artifacts_bound_by_digest": true,
+    "checksum_file_covers_every_other_packet_file": true
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "candidate_id": "cand_e0f49f5d708a27ff96ca",
+  "compiler": {
+    "name": "aptus",
+    "version": "0.2.0"
+  },
+  "entrypoints": {
+    "preflight": "preflight.py",
+    "run": "run.py",
+    "train": "train.py",
+    "validate": "validate.py"
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "7dd53277a9e8148a7bd23c1e94af63548b6bdd83d9b8827c38ec3cfe2c4663de",
+      "size_bytes": 2535
+    },
+    {
+      "path": "accelerate_config.yaml",
+      "sha256": "a0b39092c4d19ba9a2d4037bb58c9359b00b01976a57cd408d0feb37cee93af5",
+      "size_bytes": 161
+    },
+    {
+      "path": "candidates.json",
+      "sha256": "0b679be360ea2f3a00bf8d768b648b936235ef901cc6ceb6123b0013fa62121c",
+      "size_bytes": 64835
+    },
+    {
+      "path": "config/accelerate.yaml",
+      "sha256": "a0b39092c4d19ba9a2d4037bb58c9359b00b01976a57cd408d0feb37cee93af5",
+      "size_bytes": 161
+    },
+    {
+      "path": "config/trainer.json",
+      "sha256": "00460943412c1c8817accb3289b3ee755669b98d3fce5d1a1e169b9e085820b3",
+      "size_bytes": 1230
+    },
+    {
+      "path": "data/dataset.jsonl",
+      "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+      "size_bytes": 925
+    },
+    {
+      "path": "data/pilot-sample.jsonl",
+      "sha256": "600b792ed47ca51ce79a45a03cee8cb2c9b8d23c9b2ce20700e33df1a3aa7d8b",
+      "size_bytes": 7496
+    },
+    {
+      "path": "data/training.jsonl",
+      "sha256": "c72fa81979cc562d1d1240d11ae804f05abec3e70428b873721595388e0d0806",
+      "size_bytes": 937
+    },
+    {
+      "path": "decision-report.md",
+      "sha256": "44d6755e9323cf55c15cf82ebd430dd253160de937f55a86b824cd2b0d00aae1",
+      "size_bytes": 5054
+    },
+    {
+      "path": "evidence.jsonl",
+      "sha256": "4b0b1778bf26496f998010caafee19e3e5620d9445b83ca5549ba1518fe1831a",
+      "size_bytes": 1676
+    },
+    {
+      "path": "plan.json",
+      "sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+      "size_bytes": 87886
+    },
+    {
+      "path": "plan_contract.py",
+      "sha256": "b69d072a7287da9d6536ed3d6fd85734d97e68ad9ce8b7cb9364b96bdfb92efe",
+      "size_bytes": 126215
+    },
+    {
+      "path": "policy/model-policy-snapshot.v1.json",
+      "sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "size_bytes": 5945
+    },
+    {
+      "path": "policy_snapshot.py",
+      "sha256": "aa865c8ec6c3f89c863b22de9bbb9be96f32e1cf59dcf24b9ced2d9da3a94480",
+      "size_bytes": 23619
+    },
+    {
+      "path": "preflight.py",
+      "sha256": "e54981a3c0a49e3f6d55f729fb888118dd2616fb0af9d081c0989877c422a90e",
+      "size_bytes": 18365
+    },
+    {
+      "path": "profiles/dataset.json",
+      "sha256": "6ced614e7556de3bb88646790fad070a1a132e8c9f45ad7eb08413cc80498ad5",
+      "size_bytes": 1100
+    },
+    {
+      "path": "profiles/hardware.json",
+      "sha256": "21590a9ec99af04747e767b380b19442dd85486b79481c423e9ab63790093dab",
+      "size_bytes": 827
+    },
+    {
+      "path": "profiles/model.json",
+      "sha256": "8b0bbaf0779aa30a9fa5d1c399e57b69ef1075cb9744d347a62a7d52d15eadbf",
+      "size_bytes": 4684
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "710ddba146959711f422a1ad700fe68cf88dbfdbc58c80daa9984cdfec258a49",
+      "size_bytes": 86
+    },
+    {
+      "path": "run.py",
+      "sha256": "1ac0ee9922270c1a513541647b9d64d8c612495c30be2351cc6c7fbdcd70df1e",
+      "size_bytes": 7788
+    },
+    {
+      "path": "runbook.md",
+      "sha256": "ae4c5334e7d339acb999a30b178f7672c93a50e3cb19f3292677d741fb3aa791",
+      "size_bytes": 3097
+    },
+    {
+      "path": "runtime_lease.py",
+      "sha256": "a021fcb8b6da10fa5b443a14edea59280fd4041b3df4020fe07a44aee88bb6ad",
+      "size_bytes": 15669
+    },
+    {
+      "path": "train.py",
+      "sha256": "a34b6755435cdd753acb8d9717aaf4ae6287ef93e1ced41a233a32a6667b31eb",
+      "size_bytes": 134346
+    },
+    {
+      "path": "validate.py",
+      "sha256": "e4aa9f697e02336ea162def4434c448d0cd37b84a1bcef18cc6a9a24e8b22016",
+      "size_bytes": 27966
+    }
+  ],
+  "formula_version": "aptus-memory-v2",
+  "plan_id": "plan_ed1d3fc5ecef48acf6af",
+  "plan_sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+  "policy_snapshot_path": "policy/model-policy-snapshot.v1.json",
+  "policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+  "schema_version": "aptus.bundle.v3",
+  "stack_versions": {
+    "accelerate": "1.14.0",
+    "bitsandbytes": "0.49.2",
+    "mlx": "0.31.2",
+    "mlx-lm": "0.31.3",
+    "peft": "0.19.1",
+    "safetensors": "0.8.0",
+    "torch": "2.13.0",
+    "transformers": "5.14.1"
+  },
+  "validation": {
+    "levels": [
+      "contract",
+      "static",
+      "dependency",
+      "model-data",
+      "measured-preflight",
+      "pilot"
+    ],
+    "required_before_full_training": "pilot-pass"
+  }
+}

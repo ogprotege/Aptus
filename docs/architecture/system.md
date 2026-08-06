@@ -1,6 +1,6 @@
 # System Architecture
 
-> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-05 | **Review by:** 2027-01-27 or when a system boundary changes
+> **Status:** Active | **Authority:** Normative architecture overview | **Applies to:** Aptus 0.2 | **Audience:** Contributors, operators, and integrators | **Last reviewed:** 2026-08-06 | **Review by:** 2027-01-27 or when a system boundary changes
 
 Aptus separates facts, planning, compilation, validation, execution, and
 completion evidence. Each boundary has a distinct contract.
@@ -186,7 +186,10 @@ conditional on its own runtime evidence. Phase 5 did not change the portable
 policy contract, and the Phase 6 addition keeps its schema version while
 changing the canonical snapshot digest. The record establishes neither model
 quality, safety, performance, production throughput, production readiness, nor
-release readiness, and CUDA target-runtime acceptance remains open. The
+release readiness, and it does not qualify CUDA. A separate [2026-08-06 CUDA
+LoRA single-device record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact SmolLM2 workflow only; repeatability and every other CUDA
+method, placement, artifact, host, and environment remain open. The
 [original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 

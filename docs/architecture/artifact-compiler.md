@@ -1,6 +1,6 @@
 # Artifact Compiler
 
-> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-05 | **Review by:** 2027-01-27 or when bundle generation changes
+> **Status:** Active | **Authority:** Normative architecture | **Applies to:** Aptus 0.2 | **Audience:** Contributors and operators | **Last reviewed:** 2026-08-06 | **Review by:** 2027-01-27 or when bundle generation changes
 
 The compiler turns one identity-bound plan and selected candidate into a portable
 directory and deterministic ZIP. It does not train a model.
@@ -110,9 +110,11 @@ export, parent-owned promotion, and `measured-run-pass`. This closes the Phase 6
 runtime gate only for the exact recorded artifact, revision, host, runtime,
 dataset, snapshot, plan, and bundle. Compiler eligibility remains a
 configuration-footprint decision, so another matching artifact must establish
-its own runtime evidence. CUDA target-runtime acceptance remains open, and the
-record establishes neither safety, model quality, performance, production
-throughput, production readiness, nor release readiness. The
+its own runtime evidence. A separate [2026-08-06 CUDA LoRA single-device
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact SmolLM2 five-job workflow; repeatability and every other
+CUDA path remain open. Neither record establishes safety, model quality,
+performance, production throughput, production readiness, or release readiness. The
 [original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 

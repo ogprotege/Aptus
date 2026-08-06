@@ -1,6 +1,6 @@
 # Security Policy
 
-> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Supported status
 
@@ -17,9 +17,10 @@ remains an unchanged historical baseline. Ten of 10 clean local desktop engineer
 implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
-exact workflow commit. Pull requests use GitHub's synthetic merge commit. CUDA
-target-host evidence and public Developer ID signing and notarization remain
-open. Report vulnerabilities privately to
+exact workflow commit. Pull requests use GitHub's synthetic merge commit. One
+[exact SmolLM2 CUDA LoRA single-device workflow](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+has separate target-host evidence; repeatability, every other CUDA scope, and
+public Developer ID signing and notarization remain open. Report vulnerabilities privately to
 [aptus-security@proton.me](mailto:aptus-security@proton.me) before sharing
 technical details. Do not include credentials, private datasets, model tokens,
 exploit details, or unredacted logs in a public issue.

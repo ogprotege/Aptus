@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after the Phase 6 exact-source evidence refresh
+> **Applies to:** Current Aptus 0.2 documentation after the exact-source MLX and CUDA evidence refreshes
 >
-> **Last reviewed:** 2026-08-05
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,27 +14,28 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository contains 104 governed tracked Markdown documents. This count
+The repository contains 105 governed tracked Markdown documents. This count
 includes the dedicated model-policy-snapshot reference added by the Phase 4
-documentation synchronization and three Markdown records across the Phase 6
-runtime-acceptance surfaces: one current exact-source record, the original
-acceptance baseline, and one archived nonqualifying diagnostic. It excludes 13
-tracked working or implementation documents outside the governed
+documentation synchronization and four Markdown records across the Phase 6
+runtime-acceptance surfaces: one exact CUDA record, one current MLX
+exact-source record, the original acceptance baseline, and one archived
+nonqualifying diagnostic. It excludes 14 tracked working or implementation
+documents outside the governed
 product-documentation scope.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 87 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 88 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 15 | Historical research intake, legacy-audit evidence, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 104 | Excludes ignored local, generated, and tracked implementation-working artifacts |
+| Total | 105 | Excludes ignored local, generated, and tracked implementation-working artifacts |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains 95 Markdown files. It
+The automated `maintained_documentation()` set contains 96 Markdown files. It
 deliberately retains the legacy-audit README while excluding its nine
-subordinate historical pages. The 104-file governed inventory includes all ten
+subordinate historical pages. The 105-file governed inventory includes all ten
 legacy-audit Markdown records, so these two counts measure different scopes.
 
 ## Active root documents
@@ -123,6 +124,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-06 SmolLM2 CUDA LoRA single-device target-host acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md), one exact five-job `measured-run-pass` workflow at `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed` for the recorded host, runtime, model revision, synthetic dataset, plan, policy, and bundle
 - [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source target-host acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md), two fresh current v5/v3 repetitions at `719255153e3fc7e38e83b5ff826d587e5e58bf80` for the exact recorded artifact, source tree, M5 Pro host, Python/MLX runtime, dataset, plan, policy snapshot, and bundle fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), the unchanged historical baseline at `14ed44b52a76bb84d8d9db4f2303951aa641339b`
 - [2026-07-27 MLX-LM target-host acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
@@ -275,7 +277,7 @@ not a second hand-edited copy source.
 
 ## Tracked Markdown outside the lifecycle count
 
-Fourteen tracked implementation or workflow files sit outside the 104-file
+Fourteen tracked implementation or workflow files sit outside the 105-file
 product-documentation lifecycle count:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
@@ -284,7 +286,7 @@ product-documentation lifecycle count:
 
 They remain tracked and may govern their narrow implementation workflows. They
 are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 118 tracked Markdown
+This distinction explains the repository-wide total of 119 tracked Markdown
 files.
 
 ## Excluded local and generated material

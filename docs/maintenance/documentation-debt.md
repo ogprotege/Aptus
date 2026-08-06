@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-05
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -171,11 +171,20 @@ when its evidence, owner, or resolution changes.
   acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
   July MLX-LM record, and desktop record remain historical at their tested
   commits.
-- **Required result:** Add equivalent evidence for every claimed CUDA method and
-  placement, and add Developer ID signed and notarized desktop evidence for the
-  exact public release commit.
-- **Blocker:** Access to approved CUDA target hosts and public notarization
-  credentials for a public Mac artifact
+  The [2026-08-06 SmolLM2 CUDA LoRA single-device
+  acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+  adds one fresh five-job `measured-run-pass` workflow at exact source
+  `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`, with checkpoint-continuation
+  pilot, full training, structural PEFT export, and parent promotion bound to
+  its recorded Ubuntu/RTX 3050 environment. It is one execution, not
+  repeatability or general CUDA acceptance.
+- **Required result:** Add equivalent evidence for every remaining claimed CUDA
+  method and placement, establish whatever repeatability the release claims,
+  and add Developer ID signed and notarized desktop evidence for the exact
+  public release commit.
+- **Blocker:** Access to the additional approved CUDA configurations required
+  by the final support claim and public notarization credentials for a public
+  Mac artifact
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
@@ -510,6 +519,29 @@ when its evidence, owner, or resolution changes.
   response properties stay forward-compatible, while missing required fields,
   malformed values, and unknown closed statuses fail closed.
 - **Owner:** Web, native host, API-contract, and documentation maintainers
+
+### DOC-027: Record first exact CUDA LoRA single-device acceptance
+
+- **Priority:** P1
+- **Status:** Resolved
+- **Resolution:** The [2026-08-06 SmolLM2 CUDA LoRA single-device
+  packet](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+  records one fresh qualifying five-job workflow through
+  `measured-run-pass` at source
+  `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It binds the exact Ubuntu/RTX
+  3050 host, Python/CUDA runtime closure, immutable model revision, four-row
+  synthetic dataset, v5 plan, v3 bundle, policy snapshot, pilot metrics, full
+  metrics, structural PEFT export, and parent-promotion receipt.
+- **Verification:** Two independent compilations were byte-identical. The
+  qualifying state contains exactly dependency, model-data, preflight, pilot,
+  and train records, all completed with return code zero. Independent checks
+  rehashed the final tree and parent evidence, and `SHA256SUMS` covers every
+  committed packet projection.
+- **Boundary:** This is one exact LoRA single-device execution. It does not
+  establish repeatability, other CUDA methods or placements, semantic adapter
+  reload, quality, safety, benchmark performance, production readiness, or
+  release readiness. DOC-011 therefore remains in progress.
+- **Owner:** CUDA runtime, release-evidence, and documentation maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

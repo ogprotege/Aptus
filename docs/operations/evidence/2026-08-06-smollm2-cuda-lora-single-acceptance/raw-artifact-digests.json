@@ -1,0 +1,97 @@
+{
+  "schema_version": "aptus.raw-artifact-digests.v1",
+  "hash_algorithm": "sha256",
+  "source_and_compilation": {
+    "exact_source_bundle": "340d15c6b92def8ea9087dd6b9fda232949f7e80207aef31bf83ad86750eff37",
+    "aptus_wheel": "9fdc9887650fbceb158b4f3895b854ea619a005481c73fcadbbefc696bc82c9d",
+    "root_plan": "d381aeeacd1a96960bd441a16fc415c6ab264c62e76ed41ce61281ff330d721e",
+    "embedded_plan": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+    "bundle_manifest": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+    "bundle_archive": "6e79b01f5b723ef9b30f7bc5f886fa5e93e2884ba504733b9d8194ef5c5a04c1",
+    "policy_snapshot": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "requirements": "710ddba146959711f422a1ad700fe68cf88dbfdbc58c80daa9984cdfec258a49",
+    "hardware_profile": "21590a9ec99af04747e767b380b19442dd85486b79481c423e9ab63790093dab",
+    "model_profile": "8b0bbaf0779aa30a9fa5d1c399e57b69ef1075cb9744d347a62a7d52d15eadbf",
+    "dataset_profile": "6ced614e7556de3bb88646790fad070a1a132e8c9f45ad7eb08413cc80498ad5",
+    "provider_model_inspection": "ce820810ad065538a67b4bf50138dccbcc99282d0ee0fda7a6290977d76ba567",
+    "raw_model_file_manifest": "0e2a8df272426dd2fc804c6aa4886abf26b060b9dea7ed03aa068266eb58a2c6"
+  },
+  "qualifying_runtime": {
+    "preflight_metrics": "d3be111e956c862f287e1e246314eea6fe35a9e05c8e7a2f53a9f80d6fdb4196",
+    "pilot_metrics": "a31ecccd12263eef802132309b368ede2a3078dcd2f68daa99b8b49cc3e7463b",
+    "pilot_phase_one_metrics": "341ce7b73dfcf65d2e3eec13bc3b554390932b06937ade2dce4dc3483b9a095d",
+    "pilot_phase_two_metrics": "be4a95d02e6ce4988ddbfb3b85c29c800e7fa0e6981e889b46e3c21fb72e1cc0",
+    "full_metrics": "6c595f2771847fcd16d624e9bd5a6b768d2f3cebc1c4dfa45887e5f68f45b6c9",
+    "final_export_manifest": "374439efafd542576178e1843ae433e0c7a05f2042fb4da030712dccec7aca02",
+    "terminal_validation_report": "2dcd12747b5fa179ac0a0e375b7b225e53770572a806eba61e6eb56a8b8622d4",
+    "adapter_model_safetensors": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5"
+  },
+  "qualifying_job_records": [
+    {
+      "action": "dependency",
+      "job_id": "job_ee931456c78c4137b71935c97aaea7a4",
+      "record_sha256": "03d33490e54b1ccc70a9052747c70e3580655bb4a8cb0ee6c6b40a41f371e78d",
+      "log_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f"
+    },
+    {
+      "action": "model-data",
+      "job_id": "job_d7539c1ec3864e31a472720dbbc097ad",
+      "record_sha256": "a8c23e5a8402e848c9866fbac5ce04ed8f8a719fd9a168de762b05a462ed6fff",
+      "log_sha256": "0ebc79a695db9e51a780b1f6f46c5eb8b6c1f0a41a9748980ea4d668bf757f02"
+    },
+    {
+      "action": "preflight",
+      "job_id": "job_5225b4a20dd045fb85398e94f2d478b8",
+      "record_sha256": "ff8566a60722e1474f5bade95095a4d32605c80da2904b1419241bbbd488a041",
+      "log_sha256": "3dc6ca6efe1c38876988cabe23d03a2476f6326653b8cb8fafa322d6df6d4f6f"
+    },
+    {
+      "action": "pilot",
+      "job_id": "job_aca00b60df374907b8cec25a519866a5",
+      "record_sha256": "040dd4163995deb701733360e192a02b63d75e2d56f9a1771e10c3baf8f5441d",
+      "log_sha256": "5a2c7f986a2b089a5d6ef7b11f22790869016b17d49b2256721c5b093a343422"
+    },
+    {
+      "action": "train",
+      "job_id": "job_dad3b56e4f6d4ae1964f19839cc72b99",
+      "record_sha256": "713ad23b0d450cfade8eb276b7f865aac221d6e6adb90d4a32c904e666d4d5df",
+      "log_sha256": "c0f9bbd2f7b5966761f093533f4b6a08e519abee5e162a695cacc84f2059fb57"
+    }
+  ],
+  "nonqualifying_rehearsal": {
+    "validation_report_sha256": "616746c26528ec6fde4110478133987654d8d8017636dd23d0edbf06e7ae7993",
+    "job_records": [
+      {
+        "action": "dependency",
+        "job_id": "job_815be614fb8b4f729eb27160202e7155",
+        "record_sha256": "984965ac47d037dca8056131b64904b76abb383f6b5dbcc94ab5bc1cd58c6a73",
+        "log_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f"
+      },
+      {
+        "action": "model-data",
+        "job_id": "job_d8983c311ecf4c959fafcc0e0a3a67ce",
+        "record_sha256": "26cf0d41e83310a737a1e0338e3374cbbd558e633909d5be51c7c215373c706c",
+        "log_sha256": "9cd4ba6a30ed3ffde7c2576b1ff50e25091cd7760f07169d420bf4561ccadb05"
+      },
+      {
+        "action": "preflight",
+        "job_id": "job_9e58de931d294fd98dd8261c47a898af",
+        "record_sha256": "655068dea9c3b32c77b1d6e1e0e6dfde30eb652d3e1d9f9b16e470d7a572d312",
+        "log_sha256": "dd0a66eb23d50c0bba749ac44604868780495d35d159ede4f74484145e461bdb"
+      },
+      {
+        "action": "pilot",
+        "job_id": "job_9cfb953c26604b689a139e3876a5f6df",
+        "record_sha256": "499113f89bf2f7ac73800c756cb6cdc60c878a658e637e4a1ffa996a246438fe",
+        "log_sha256": "26c7cdba5b1f700f4401820b4a8326d76e012b9672764fc6134581bee147f0c7"
+      }
+    ],
+    "full_train_job_record": null
+  },
+  "retention": {
+    "raw_artifacts_committed": false,
+    "raw_artifacts_retained_outside_repository": true,
+    "absolute_paths_and_process_metadata_excluded": true,
+    "logs_and_binaries_excluded": true
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "schema_version": "aptus.cuda-lora-single-acceptance.v1",
+  "state": "measured-run-pass",
+  "acceptance_status": "runtime-evidence-complete-for-exact-scope",
+  "repetition": {
+    "qualifying_execution_count": 1,
+    "repeatability_claimed": false
+  },
+  "source": {
+    "acceptance_commit": "c12c4d8db0037a2c278a2ad95a0a2cbda4387eed",
+    "acceptance_tree": "ad482883cfb6ad2b8ac72f7b7d1009c918e5c345",
+    "exact_source_bundle_sha256": "340d15c6b92def8ea9087dd6b9fda232949f7e80207aef31bf83ad86750eff37",
+    "checkout_before": "clean",
+    "checkout_after": "clean",
+    "python_tests_passed": 550,
+    "python_test_duration_seconds": 37.712
+  },
+  "host": {
+    "record": "host-hardware.json",
+    "operating_system": "Ubuntu 24.04.4 LTS",
+    "gpu": "NVIDIA GeForce RTX 3050",
+    "torch_visible_vram_bytes": 8220573696,
+    "driver_version": "595.84",
+    "compute_capability": "8.6",
+    "measured_hardware_sha256": "e63d5d25c98dbcd40c8c26a32d1cd160849d552ebb1e6c1a552b7e57996034f6"
+  },
+  "runtime": {
+    "record": "runtime-environment.json",
+    "environment_binding_sha256": "e047104e4bcf157ea7fb5ee54ecab1c41e31ff27008184629363a69a44daa106",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130",
+    "transformers": "5.14.1",
+    "accelerate": "1.14.0",
+    "safetensors": "0.8.0",
+    "peft": "0.19.1",
+    "bitsandbytes_installed": false,
+    "aptus_wheel_sha256": "9fdc9887650fbceb158b4f3895b854ea619a005481c73fcadbbefc696bc82c9d"
+  },
+  "model": {
+    "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+    "architecture": "LlamaForCausalLM",
+    "parameter_count": 134515008,
+    "model_file_count": 25,
+    "model_file_manifest_sha256": "e29e172f6610933cf0bcd07011aca4cbc475a41c603dae2442b1e6d05d0651c8",
+    "raw_model_file_manifest_sha256": "0e2a8df272426dd2fc804c6aa4886abf26b060b9dea7ed03aa068266eb58a2c6",
+    "upstream_generated_paths_sanitized": true,
+    "provider_inspection_sha256": "ce820810ad065538a67b4bf50138dccbcc99282d0ee0fda7a6290977d76ba567"
+  },
+  "dataset": {
+    "logical_path": "examples/support-sft.jsonl",
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "rows": 4,
+    "classification": "synthetic-contract-fixture"
+  },
+  "compiled_input": {
+    "plan_schema_version": "aptus.training-plan.v5",
+    "bundle_schema_version": "aptus.bundle.v3",
+    "plan_id": "plan_ed1d3fc5ecef48acf6af",
+    "candidate_id": "cand_e0f49f5d708a27ff96ca",
+    "method": "lora",
+    "precision": "bf16",
+    "distribution": "single",
+    "world_size": 1,
+    "device_indices": [
+      0
+    ],
+    "compiler_id": "transformers.peft-lora.v2",
+    "training_runtime": "transformers-peft-cuda",
+    "export_kind": "peft-adapter-safetensors",
+    "root_plan_sha256": "d381aeeacd1a96960bd441a16fc415c6ab264c62e76ed41ce61281ff330d721e",
+    "embedded_plan_sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+    "policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "bundle_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+    "bundle_zip_sha256": "6e79b01f5b723ef9b30f7bc5f886fa5e93e2884ba504733b9d8194ef5c5a04c1",
+    "bundle_zip_size_bytes": 103696,
+    "two_manifests_byte_identical": true,
+    "two_zip_archives_byte_identical": true
+  },
+  "qualifying_workflow": {
+    "fresh_job_state": true,
+    "completed_jobs": 5,
+    "actions": [
+      "dependency",
+      "model-data",
+      "preflight",
+      "pilot",
+      "train"
+    ],
+    "job_ids": [
+      "job_ee931456c78c4137b71935c97aaea7a4",
+      "job_d7539c1ec3864e31a472720dbbc097ad",
+      "job_5225b4a20dd045fb85398e94f2d478b8",
+      "job_aca00b60df374907b8cec25a519866a5",
+      "job_dad3b56e4f6d4ae1964f19839cc72b99"
+    ],
+    "run_id": "run_dad3b56e4f6d4ae1964f19839cc72b99",
+    "run_summary": "runs/run-1/run-summary.json"
+  },
+  "result": {
+    "global_step": 3,
+    "train_loss": 4.159115632375081,
+    "eval_loss": 3.0737040042877197,
+    "measured_peak_cuda_bytes": 384180224,
+    "measured_reserved_cuda_bytes": 440401920,
+    "trainable_parameter_count": 4884480,
+    "adapter_target_instance_count": 210,
+    "full_metrics_sha256": "6c595f2771847fcd16d624e9bd5a6b768d2f3cebc1c4dfa45887e5f68f45b6c9",
+    "final_export_manifest_sha256": "374439efafd542576178e1843ae433e0c7a05f2042fb4da030712dccec7aca02",
+    "adapter_weights_sha256": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+    "parent_promotion_evidence_sha256": "59562af2c758df7b985bb6d1cc5b8e3eca7f4fbdf06f86e86f45891a19244f66",
+    "artifact_integrity_status": "verified-at-completion"
+  },
+  "nonqualifying_attempts": [
+    {
+      "classification": "preliminary-rehearsal",
+      "qualification": "non-qualifying",
+      "completed_gate_jobs": 4,
+      "actions": [
+        "dependency",
+        "model-data",
+        "preflight",
+        "pilot"
+      ],
+      "terminal_state": "pilot-pass",
+      "train_job_created": false,
+      "full_train_launched": false,
+      "environment_binding_sha256": "99e1946f6bf1f374f98b650aa064e66cf26835e9e69a871c91a0a717d39f61ae",
+      "exclusion_reason": "The accepted runtime distribution closure changed afterward, so this pilot binding was stale and no evidence was carried into the fresh qualifying sequence.",
+      "runtime_evidence_carried_forward": false,
+      "job_state_carried_forward": false
+    }
+  ],
+  "handoff": {
+    "recorded_acceptance_process_active": false,
+    "host_global_lease_active": false,
+    "raw_job_state_committed": false,
+    "logs_committed": false,
+    "model_or_adapter_binaries_committed": false
+  },
+  "claim_boundary": {
+    "qualifies": "one exact SmolLM2 CUDA LoRA single-device workflow under all recorded bindings",
+    "does_not_qualify": [
+      "repeatability",
+      "general SmolLM2, Llama, RTX 3050, or CUDA compatibility",
+      "other methods, placements, devices, models, datasets, or environments",
+      "full-run checkpoint resume",
+      "semantic adapter reload or deployment validity",
+      "model quality, safety, convergence, or legal conclusions",
+      "performance, throughput, cost, or guaranteed memory fit",
+      "production readiness",
+      "release readiness"
+    ]
+  }
+}

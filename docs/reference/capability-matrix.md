@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-08-06 |
 | Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -37,14 +37,23 @@ remains the unchanged historical baseline, and the
 [2026-07-27 record](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact.
 
+One exact SmolLM2 CUDA LoRA single-device workflow separately reached
+`measured-run-pass` in the [2026-08-06 CUDA acceptance
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+at source `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It binds dependency,
+model-data, measured preflight, two-phase checkpoint-continuation pilot, full
+training, structural PEFT export, and parent promotion to the exact recorded
+host/runtime/model/dataset/plan/policy/bundle scope. It does not establish
+repeatability or qualify any other CUDA matrix cell or environment.
+
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the
-exact GitHub-tested merge commit and records it in `COMMIT`. No real CUDA
-target-host pilot has been recorded, and no Developer ID signed and notarized
-public Mac artifact has passed its gate. The MLX-LM acceptance does not
-establish model quality or production throughput. Aptus v0.2 remains
-unreleased.
+exact GitHub-tested merge commit and records it in `COMMIT`. No Developer ID
+signed and notarized public Mac artifact has passed its gate. Neither the one
+exact CUDA acceptance nor the MLX-LM acceptance establishes model quality,
+production throughput, broad runtime support, or release readiness. Aptus
+v0.2 remains unreleased.
 
 ## CUDA method and placement matrix
 
@@ -136,7 +145,7 @@ MPS or MLX.
 
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
-| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | `measured-run-pass` is reachable, but no qualifying target-host run is recorded |
+| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | One exact SmolLM2 LoRA single-device workflow reached `measured-run-pass`; every other method, placement, artifact, host, and environment remains unqualified |
 | `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the conditional Qwen3 MoE row and reviewed 24-layer dense Qwen2 footprint | Two current v5/v3 dense QLoRA workflows reached `measured-run-pass` for the exact accepted Qwen2.5 artifact; every different Qwen2 artifact and the Qwen3 MoE row remain conditional and pilot-required |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
@@ -151,7 +160,7 @@ services for model listing and text generation.
 | Pull-request packaging | Workflow builds GitHub's synthetic merge commit and uploads app ZIP, DMG, checksums, and source marker | Passed only after that exact workflow commit's GitHub Actions job succeeds |
 | Default signature | Ad-hoc signing is built and verified | Local review integrity, not public distribution approval |
 | Public Mac distribution | Developer ID signing, notarization, stapling, and Gatekeeper assessment are implemented as required gates | Open until real credentials produce accepted artifacts bound to the exact release commit |
-| CUDA target-host execution | Compiler and runtime path exist | Open until qualifying target-host pilots and full runs are recorded |
+| CUDA target-host execution | One exact LoRA single-device workflow reached `measured-run-pass` | Partial; repeatability and every other claimed method, placement, artifact, host, and environment remain open |
 
 ## Distribution behavior
 

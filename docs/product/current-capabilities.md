@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
 [2026-08-05 Qwen2 MLX-LM exact-source acceptance
@@ -15,15 +15,20 @@ current-source Phase 6 runtime gate only for the exact recorded Qwen2.5
 artifact, immutable revision, Apple M5 Pro host, Python and MLX-LM runtime,
 four-row synthetic dataset, plan, bundle, and policy snapshot. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
-artifact remains conditional on its own runtime gates. No CUDA target-runtime
-pilot has completed. The [original Phase 6 acceptance
+artifact remains conditional on its own runtime gates. One separate exact
+SmolLM2 CUDA LoRA single-device workflow reached `measured-run-pass` in the
+[2026-08-06 CUDA acceptance
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md).
+It qualifies only its recorded source, Ubuntu/RTX 3050 host, runtime, immutable
+model revision, synthetic dataset, plan, policy, bundle, and five-job sequence;
+repeatability and all other CUDA paths remain open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
-packages GitHub's exact tested merge commit and records it in `COMMIT`. CUDA
-target-host and public Developer ID signed and notarized desktop-distribution
-gates remain open.
+packages GitHub's exact tested merge commit and records it in `COMMIT`.
+Remaining CUDA target-host coverage and public Developer ID signed and
+notarized desktop-distribution gates remain open.
 The exact Qwen3 30B-A3B MoE attempt passed dependency validation but stopped
 before model loading because live unified memory was 18.932 GiB below the
 required envelope. Full MoE model-data, preflight, pilot, reload, and training
@@ -337,9 +342,10 @@ scoped to its older plan and bundle contract. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. No real CUDA pilot has run on a CUDA target for this release.
-The default Mac artifact is ad-hoc signed, not a Developer ID signed and
-notarized public distribution.
+that identity. One exact CUDA LoRA single-device workflow has run on its
+recorded target; it does not transfer to other CUDA configurations. The
+default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
+public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory
 admission behavior. It does not prove 30B model loading or training speed.

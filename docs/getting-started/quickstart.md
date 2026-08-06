@@ -1,6 +1,6 @@
 # CUDA Target-Host Quickstart
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when the runtime sequence changes
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** CUDA operators | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-22 or when the runtime sequence changes
 
 This guide is a target-host template. It creates a plan, compiles it, and
 follows the supported CUDA runtime order. Every uppercase model value and every
@@ -206,8 +206,11 @@ sizes, and trainable-parameter census. Large indivisible groups can make the
 realized evaluation fraction differ from the requested fraction, so read the
 recorded error rather than assuming an exact ratio.
 
-No real CUDA pilot has been completed on the current development Mac. Complete
-the release gates before treating this path as release-ready.
+CUDA cannot execute on the current development Mac. One separate [exact
+SmolLM2 LoRA single-device workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+has completed on its recorded external host; it does not establish
+repeatability or qualify another target-host path. Complete the remaining
+release gates before treating this path as release-ready.
 
 ## Related documentation
 

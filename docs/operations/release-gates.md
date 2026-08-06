@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-05 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-06 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -366,6 +366,15 @@ It does not transfer to another artifact matching
 performance, promise production throughput, or establish production or release
 readiness.
 
+The [2026-08-06 CUDA LoRA single-device
+record](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+separately binds one fresh five-job SmolLM2 workflow through
+`measured-run-pass` to source
+`c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`, the recorded Ubuntu/RTX 3050
+host, runtime closure, immutable model revision, synthetic dataset, v5 plan,
+v3 bundle, and policy snapshot. It does not establish repeatability or qualify
+another CUDA method, placement, host, model, dataset, or environment.
+
 The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact. The
 [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -381,14 +390,16 @@ verification. That historical record does not bind a later source head. The
 submitted pull request must pass the repeated local gate after its documentation
 commit and the GitHub packaging workflow for the exact synthetic merge commit.
 
-No real CUDA pilot or full training evidence has completed on an external CUDA
-host. The local Mac packages are ad-hoc signed, not Developer ID signed and
-notarized public artifacts. Aptus v0.2 remains unreleased until every claimed
-release gate passes.
+One exact CUDA LoRA single-device pilot and full training sequence has
+completed on the recorded external host. Remaining CUDA method/placement
+coverage and repeatability are open. The local Mac packages are ad-hoc signed,
+not Developer ID signed and notarized public artifacts. Aptus v0.2 remains
+unreleased until every claimed release gate passes.
 
 ## Related documentation
 
 - [Release evidence template](release-evidence-template.md)
+- [SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Current Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [Original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)

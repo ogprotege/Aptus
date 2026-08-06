@@ -914,7 +914,7 @@ class DocumentationTests(unittest.TestCase):
             release_gates,
         )
         self.assertIn(
-            "No real CUDA pilot or full training evidence has completed",
+            "One exact CUDA LoRA single-device pilot and full training sequence has",
             release_gates,
         )
 
@@ -925,7 +925,7 @@ class DocumentationTests(unittest.TestCase):
         for evidence_boundary in (
             "2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md",
             "Two fresh, clean Apple Silicon MLX-LM workflows reached `measured-run-pass`",
-            "No real CUDA target-host pilot has been recorded",
+            "One exact SmolLM2 CUDA LoRA single-device workflow separately reached",
         ):
             self.assertIn(evidence_boundary, normalized_capability_matrix)
 
@@ -943,7 +943,10 @@ class DocumentationTests(unittest.TestCase):
             "It closes the current-source Phase 6 runtime gate only for the exact recorded Qwen2.5",
             opening_boundary,
         )
-        self.assertIn("No CUDA target-runtime pilot has completed", opening_boundary)
+        self.assertIn(
+            "One separate exact SmolLM2 CUDA LoRA single-device workflow reached",
+            opening_boundary,
+        )
 
         install = (REPOSITORY / "docs/getting-started/install.md").read_text(
             encoding="utf-8"
@@ -969,11 +972,11 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "Access to approved CUDA target hosts",
+            "Access to the additional approved CUDA configurations",
             documentation_debt,
         )
         self.assertIn(
-            "No qualifying CUDA target-runtime acceptance has been collected",
+            "One qualifying exact CUDA LoRA single-device acceptance has been collected",
             " ".join(documentation_health.split()),
         )
 
@@ -1004,21 +1007,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 118)
+        self.assertEqual(len(repository_documents), 119)
         self.assertEqual(len(excluded_documents), 14)
-        self.assertEqual(len(governed_documents), 104)
-        self.assertEqual(len(active_documents), 87)
+        self.assertEqual(len(governed_documents), 105)
+        self.assertEqual(len(active_documents), 88)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 15)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 95)
-        self.assertIn("104 governed tracked Markdown documents", inventory)
-        self.assertIn("95 Markdown files", inventory)
-        self.assertIn("118 tracked Markdown files", " ".join(inventory.split()))
-        self.assertIn("| Active | 87 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 96)
+        self.assertIn("105 governed tracked Markdown documents", inventory)
+        self.assertIn("96 Markdown files", inventory)
+        self.assertIn("119 tracked Markdown files", " ".join(inventory.split()))
+        self.assertIn("| Active | 88 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 15 |", inventory)
 
@@ -1127,7 +1130,7 @@ class DocumentationTests(unittest.TestCase):
                 "unused flattened compatibility normalizer was removed",
             ),
             "docs/maintenance/documentation-inventory.md": (
-                "after the Phase 6 exact-source evidence refresh",
+                "after the exact-source MLX and CUDA evidence refreshes",
                 "`web/src/lib/modelPolicy.ts`",
             ),
             "docs/reference/api.md": (
@@ -1411,7 +1414,7 @@ class DocumentationTests(unittest.TestCase):
             "docs/maintenance/documentation-health.md": (
                 "That exact-source refresh closes the current-source Phase 6 MLX-LM runtime gate for its exact scope",
                 "A different matching artifact remains conditional",
-                "No qualifying CUDA target-runtime acceptance has been collected",
+                "One qualifying exact CUDA LoRA single-device acceptance has been collected",
             ),
         }
         for relative_path, claims in required_claims.items():
@@ -1646,6 +1649,397 @@ class DocumentationTests(unittest.TestCase):
             hashlib.sha256((baseline / "SHA256SUMS").read_bytes()).hexdigest(),
             summary["baseline"]["packet_sha256s_sha256"],
         )
+
+    def test_cuda_lora_single_acceptance_packet_is_bound_and_sanitized(
+        self,
+    ) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "acceptance-procedure.json",
+            "acceptance-summary.json",
+            "bundle-manifest.json",
+            "clean-plan.json",
+            "host-hardware.json",
+            "inspection-receipt.json",
+            "model-files.sha256",
+            "model-policy-snapshot.v1.json",
+            "provider-inspection.json",
+            "python-packages.txt",
+            "raw-artifact-digests.json",
+            "runtime-environment.json",
+            "runs/run-1/run-summary.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        checksum_lines = (
+            (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+        )
+        parsed_checksums: list[tuple[str, str]] = []
+        for line in checksum_lines:
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed_checksums.append((match.group(1), match.group(2)))
+        checksum_paths = [relative for _digest, relative in parsed_checksums]
+        self.assertEqual(checksum_paths, sorted(checksum_paths))
+        self.assertEqual(len(checksum_paths), len(set(checksum_paths)))
+        self.assertEqual(
+            set(checksum_paths),
+            {f"./{relative}" for relative in expected_files - {"SHA256SUMS"}},
+        )
+        for expected_digest, relative in parsed_checksums:
+            target = packet / relative.removeprefix("./")
+            self.assertEqual(
+                hashlib.sha256(target.read_bytes()).hexdigest(),
+                expected_digest,
+                relative,
+            )
+
+        summary = json.loads(
+            (packet / "acceptance-summary.json").read_text(encoding="utf-8")
+        )
+        procedure = json.loads(
+            (packet / "acceptance-procedure.json").read_text(encoding="utf-8")
+        )
+        manifest_path = packet / "bundle-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        plan_path = packet / "clean-plan.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        policy_path = packet / "model-policy-snapshot.v1.json"
+        provider_path = packet / "provider-inspection.json"
+        provider = json.loads(provider_path.read_text(encoding="utf-8"))
+        receipt = json.loads(
+            (packet / "inspection-receipt.json").read_text(encoding="utf-8")
+        )
+        host = json.loads((packet / "host-hardware.json").read_text(encoding="utf-8"))
+        runtime = json.loads(
+            (packet / "runtime-environment.json").read_text(encoding="utf-8")
+        )
+        run = json.loads(
+            (packet / "runs/run-1/run-summary.json").read_text(encoding="utf-8")
+        )
+        raw_digests = json.loads(
+            (packet / "raw-artifact-digests.json").read_text(encoding="utf-8")
+        )
+
+        source_commit = "c12c4d8db0037a2c278a2ad95a0a2cbda4387eed"
+        source_tree = "ad482883cfb6ad2b8ac72f7b7d1009c918e5c345"
+        bundle_fingerprint = (
+            "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b"
+        )
+        embedded_plan_sha256 = (
+            "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4"
+        )
+        policy_sha256 = (
+            "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8"
+        )
+        model_revision = "12fd25f77366fa6b3b4b768ec3050bf629380bac"
+        dataset_sha256 = (
+            "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44"
+        )
+
+        self.assertEqual(summary["state"], "measured-run-pass")
+        self.assertEqual(summary["source"]["acceptance_commit"], source_commit)
+        self.assertEqual(summary["source"]["acceptance_tree"], source_tree)
+        self.assertEqual(summary["source"]["python_tests_passed"], 550)
+        self.assertEqual(summary["repetition"]["qualifying_execution_count"], 1)
+        self.assertFalse(summary["repetition"]["repeatability_claimed"])
+        self.assertEqual(summary["model"]["revision"], model_revision)
+        self.assertEqual(summary["dataset"]["sha256"], dataset_sha256)
+        self.assertEqual(summary["dataset"]["rows"], 4)
+
+        self.assertEqual(
+            hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+            bundle_fingerprint,
+        )
+        self.assertEqual(
+            hashlib.sha256(plan_path.read_bytes()).hexdigest(),
+            embedded_plan_sha256,
+        )
+        self.assertEqual(
+            hashlib.sha256(policy_path.read_bytes()).hexdigest(), policy_sha256
+        )
+        self.assertEqual(
+            hashlib.sha256(provider_path.read_bytes()).hexdigest(),
+            summary["model"]["provider_inspection_sha256"],
+        )
+        self.assertEqual(manifest["schema_version"], "aptus.bundle.v3")
+        self.assertEqual(manifest["plan_sha256"], embedded_plan_sha256)
+        self.assertEqual(manifest["policy_snapshot_sha256"], policy_sha256)
+        self.assertEqual(manifest["plan_id"], summary["compiled_input"]["plan_id"])
+        self.assertEqual(
+            manifest["candidate_id"], summary["compiled_input"]["candidate_id"]
+        )
+        self.assertEqual(plan["schema_version"], "aptus.training-plan.v5")
+        self.assertEqual(plan["plan_id"], manifest["plan_id"])
+        self.assertEqual(plan["dataset"]["source_path"], "data/dataset.jsonl")
+        self.assertEqual(plan["model"]["revision"], model_revision)
+        self.assertEqual(plan["recommended"]["method"], "lora")
+        self.assertEqual(plan["recommended"]["distribution"], "single")
+        self.assertEqual(plan["recommended"]["world_size"], 1)
+        self.assertEqual(plan["recommended"]["device_indices"], [0])
+        self.assertEqual(provider["inspection_receipt"], receipt)
+        self.assertEqual(receipt["resolved_revision"], model_revision)
+
+        self.assertEqual(host["host"]["operating_system"], "Ubuntu 24.04.4 LTS")
+        self.assertEqual(host["gpu"]["name"], "NVIDIA GeForce RTX 3050")
+        self.assertEqual(host["gpu"]["compute_capability"], "8.6")
+        self.assertEqual(host["gpu"]["torch_visible_total_memory_bytes"], 8220573696)
+        self.assertEqual(host["handoff"]["active_cuda_compute_process_count"], 0)
+        self.assertFalse(host["handoff"]["aptus_gpu_lease_present"])
+        self.assertFalse(host["privacy"]["hostname_included"])
+        self.assertFalse(host["privacy"]["network_identifiers_included"])
+        self.assertFalse(host["privacy"]["gpu_uuid_included"])
+        self.assertFalse(host["privacy"]["process_identifiers_included"])
+        self.assertEqual(
+            runtime["environment_binding_sha256"],
+            summary["runtime"]["environment_binding_sha256"],
+        )
+        self.assertEqual(runtime["imports"]["torch"], "2.13.0+cu130")
+        self.assertEqual(runtime["cuda"]["torch_cuda_runtime"], "13.0")
+        self.assertTrue(runtime["checks"]["pip_check_passed"])
+        self.assertTrue(runtime["checks"]["real_cuda_tensor_probe_passed"])
+        self.assertFalse(runtime["inventories"]["bitsandbytes_installed"])
+
+        packages_path = packet / "python-packages.txt"
+        packages = packages_path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(packages), 62)
+        for direct_pin in (
+            "torch==2.13.0",
+            "transformers==5.14.1",
+            "accelerate==1.14.0",
+            "safetensors==0.8.0",
+            "peft==0.19.1",
+            "aptus==0.2.0",
+        ):
+            self.assertIn(direct_pin, packages)
+        self.assertFalse(any(line.startswith("bitsandbytes==") for line in packages))
+        self.assertEqual(
+            hashlib.sha256(packages_path.read_bytes()).hexdigest(),
+            runtime["inventories"]["python_packages_sha256"],
+        )
+
+        model_manifest_path = packet / "model-files.sha256"
+        model_manifest = model_manifest_path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(model_manifest), 25)
+        self.assertTrue(
+            all(re.fullmatch(r"[a-f0-9]{64}  [^\n]+", line) for line in model_manifest)
+        )
+        self.assertEqual(
+            hashlib.sha256(model_manifest_path.read_bytes()).hexdigest(),
+            summary["model"]["model_file_manifest_sha256"],
+        )
+        self.assertTrue(summary["model"]["upstream_generated_paths_sanitized"])
+        self.assertEqual(
+            summary["model"]["raw_model_file_manifest_sha256"],
+            raw_digests["source_and_compilation"]["raw_model_file_manifest"],
+        )
+        self.assertEqual(
+            [line.split("  ", 1)[1] for line in model_manifest if "runs/" in line],
+            [
+                "runs/upstream-tensorboard-event-01",
+                "runs/upstream-tensorboard-event-02",
+            ],
+        )
+
+        expected_actions = ["dependency", "model-data", "preflight", "pilot", "train"]
+        self.assertEqual([job["action"] for job in run["jobs"]], expected_actions)
+        self.assertTrue(
+            all(
+                job["state"] == "completed"
+                and job["return_code"] == 0
+                and job["error"] is None
+                for job in run["jobs"]
+            )
+        )
+        self.assertEqual(
+            [job["job_id"] for job in run["jobs"]],
+            summary["qualifying_workflow"]["job_ids"],
+        )
+        self.assertEqual(run["bindings"]["bundle_fingerprint"], bundle_fingerprint)
+        self.assertEqual(run["bindings"]["policy_snapshot_sha256"], policy_sha256)
+        self.assertEqual(run["bindings"]["plan_id"], manifest["plan_id"])
+        self.assertEqual(run["bindings"]["candidate_id"], manifest["candidate_id"])
+        self.assertEqual(run["bindings"]["model_revision"], model_revision)
+        self.assertEqual(run["bindings"]["dataset_sha256"], dataset_sha256)
+        self.assertEqual(
+            run["bindings"]["environment_sha256"],
+            runtime["environment_binding_sha256"],
+        )
+        for job in run["jobs"]:
+            self.assertEqual(job["artifact_fingerprint"], bundle_fingerprint)
+            self.assertEqual(
+                job["authorized_model_policy_snapshot_sha256"], policy_sha256
+            )
+            self.assertEqual(job["runtime_interpreter"], "accepted-runtime-python")
+        binding_verification = run["job_binding_verification"]
+        self.assertTrue(
+            binding_verification["all_job_records_share_bundle_fingerprint"]
+        )
+        self.assertTrue(
+            binding_verification["all_job_records_share_authorized_policy_snapshot"]
+        )
+        self.assertTrue(
+            binding_verification["all_job_commands_use_accepted_runtime_interpreter"]
+        )
+        accepted_environment = binding_verification["accepted_environment_binding"]
+        self.assertEqual(
+            accepted_environment["sha256"], run["bindings"]["environment_sha256"]
+        )
+        self.assertEqual(accepted_environment["source"], "terminal-validation-report")
+        self.assertFalse(accepted_environment["persisted_on_each_job_record"])
+        self.assertFalse(binding_verification["raw_commands_committed"])
+
+        capacity_checks = run["capacity_checks"]
+        validation_capacity = capacity_checks["validation_report_snapshot"]
+        parent_capacity = capacity_checks["train_job_parent_prelaunch"]
+        self.assertEqual(validation_capacity["source"], "terminal-validation-report")
+        self.assertEqual(parent_capacity["source"], "persisted-train-job-record")
+        for required_key in (
+            "required_free_cuda_bytes",
+            "required_host_ram_bytes",
+            "required_training_output_disk_bytes",
+            "required_checkpoint_disk_bytes",
+            "required_final_export_disk_bytes",
+        ):
+            self.assertEqual(
+                validation_capacity[required_key], parent_capacity[required_key]
+            )
+        self.assertNotEqual(
+            validation_capacity["free_cuda_bytes"], parent_capacity["free_cuda_bytes"]
+        )
+
+        self.assertTrue(run["pilot"]["phase_two_resumed"])
+        self.assertTrue(run["pilot"]["checkpoint_continuation_observed"])
+        self.assertEqual(run["pilot"]["phase_one"]["global_step"], 1)
+        self.assertEqual(run["pilot"]["phase_two"]["resumed_from_checkpoint_step"], 1)
+        self.assertEqual(run["pilot"]["phase_two"]["global_step"], 2)
+        self.assertTrue(run["pilot"]["census_equal_between_phases"])
+        self.assertEqual(
+            run["pilot"]["trainable_parameter_census"]["descriptor_sha256"],
+            run["full_training"]["trainable_parameter_census"]["descriptor_sha256"],
+        )
+        self.assertEqual(run["full_training"]["global_step"], 3)
+        self.assertEqual(run["full_training"]["training_row_count"], 3)
+        self.assertEqual(run["full_training"]["evaluation_row_count"], 1)
+        self.assertEqual(
+            run["full_training"]["trainable_parameter_census"][
+                "trainable_parameter_count"
+            ],
+            4884480,
+        )
+        self.assertEqual(
+            run["full_training"]["finite_guard_counts"]["non_skipped_optimizer_steps"],
+            3,
+        )
+
+        export = run["final_export"]
+        self.assertEqual(export["schema_version"], "aptus.final-export.v1")
+        self.assertEqual(export["verification_level"], "structural-file-tree")
+        self.assertEqual(export["method"], "lora")
+        self.assertEqual(export["weight_files"], ["adapter_model.safetensors"])
+        self.assertEqual(
+            export["total_bytes"], sum(entry["size_bytes"] for entry in export["files"])
+        )
+        adapter = next(
+            entry
+            for entry in export["files"]
+            if entry["path"] == "adapter_model.safetensors"
+        )
+        self.assertEqual(
+            adapter["sha256"],
+            "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+        )
+        terminal = run["terminal_validation"]
+        self.assertEqual(terminal["state"], "measured-run-pass")
+        self.assertEqual(
+            terminal["artifact_integrity_status"], "verified-at-completion"
+        )
+        self.assertFalse(terminal["pending_or_active_fields_present"])
+        self.assertTrue(terminal["parent_promotion"]["evidence_hash_recomputed"])
+        self.assertEqual(
+            terminal["parent_promotion"]["evidence_sha256"],
+            "59562af2c758df7b985bb6d1cc5b8e3eca7f4fbdf06f86e86f45891a19244f66",
+        )
+
+        rehearsal = summary["nonqualifying_attempts"][0]
+        self.assertEqual(rehearsal["qualification"], "non-qualifying")
+        self.assertEqual(rehearsal["completed_gate_jobs"], 4)
+        self.assertFalse(rehearsal["train_job_created"])
+        self.assertFalse(rehearsal["full_train_launched"])
+        self.assertFalse(rehearsal["runtime_evidence_carried_forward"])
+        self.assertNotEqual(
+            rehearsal["environment_binding_sha256"],
+            summary["runtime"]["environment_binding_sha256"],
+        )
+        self.assertIsNone(
+            raw_digests["nonqualifying_rehearsal"]["full_train_job_record"]
+        )
+        self.assertEqual(len(raw_digests["qualifying_job_records"]), 5)
+        self.assertFalse(raw_digests["retention"]["raw_artifacts_committed"])
+        self.assertEqual(procedure["qualifying_action_order"], expected_actions)
+
+        forbidden_patterns = (
+            "/Users/",
+            "/home/",
+            "/root/",
+            "/private/tmp",
+            "/tmp/",
+            "192.168.",
+            "owner_pid",
+            "process_pid",
+            "process_group_id",
+            "lease_token",
+            "private_key",
+        )
+        for relative in expected_files - {"SHA256SUMS"}:
+            text = (packet / relative).read_text(encoding="utf-8").lower()
+            for pattern in forbidden_patterns:
+                self.assertNotIn(pattern.lower(), text, (relative, pattern))
+            for pattern in (
+                r"\bip-\d{1,3}(?:-\d{1,3}){3}\b",
+                r"events\.out\.tfevents\.\d+\.[^.\s]+\.\d+\.\d+",
+            ):
+                self.assertIsNone(
+                    re.search(pattern, text, flags=re.IGNORECASE),
+                    (relative, pattern),
+                )
+
+        evidence_leaf = "2026-08-06-smollm2-cuda-lora-single-acceptance/README.md"
+        for relative in (
+            "README.md",
+            "SECURITY.md",
+            "docs/index.md",
+            "docs/getting-started/quickstart.md",
+            "docs/operations/apple-silicon-pilot.md",
+            "docs/operations/index.md",
+            "docs/operations/release-gates.md",
+            "docs/reference/capability-matrix.md",
+            "docs/product/current-capabilities.md",
+            "docs/product/claim-language.md",
+            "docs/product/ui-ux.md",
+            "docs/maintenance/documentation-debt.md",
+            "docs/maintenance/documentation-health.md",
+        ):
+            text = (REPOSITORY / relative).read_text(encoding="utf-8")
+            self.assertIn(evidence_leaf, text, relative)
+
+        packet_readme = " ".join(
+            (packet / "README.md").read_text(encoding="utf-8").split()
+        )
+        self.assertIn("one exact CUDA LoRA single-device workflow", packet_readme)
+        self.assertIn("does not establish repeatability", packet_readme)
 
     def test_private_security_reporting_route_is_concrete(self) -> None:
         address = "aptus-security@proton.me"

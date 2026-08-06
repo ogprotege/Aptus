@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-05 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -196,8 +196,18 @@ generation prove that the emitted adapter can be loaded. They do not prove
 training resume, safety, model quality, performance, production throughput,
 production readiness, or release readiness.
 
-That acceptance closes the current-source Phase 6 MLX-LM runtime gate only for
-the exact pinned Qwen2.5 artifact and revision, source and tree, host, runtime,
+One separate exact SmolLM2 CUDA LoRA single-device workflow reached
+`measured-run-pass` in the [2026-08-06 CUDA acceptance
+record](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+at source `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It completed the
+five-action ladder, including checkpoint-continuation pilot, full training,
+structural PEFT export, and parent promotion. That one execution does not
+establish repeatability, general CUDA compatibility, quality, performance,
+production readiness, or release readiness.
+
+The August 5 MLX-LM acceptance closes that current-source Phase 6 runtime gate
+only for the exact pinned Qwen2.5 artifact and revision, source and tree, host,
+runtime,
 dataset, policy snapshot, plan, bundle, and fingerprint. The 24-layer dense
 Qwen2 policy remains a
 configuration-footprint rule: every different matching artifact remains
@@ -205,4 +215,5 @@ conditional and must pass its own model-data, measured-preflight, and pilot
 gates. The exact `qwen3_moe` MLX-LM QLoRA row remains conditional and has only
 safe-refusal evidence; the recorded 30B attempt stopped before model loading
 when live unified-memory admission failed. CUDA training remains an
-external-host path on this Mac, with no qualifying target-host run recorded.
+external-host path on this Mac; only the exact separately recorded LoRA
+single-device target-host workflow is qualified.

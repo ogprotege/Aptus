@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after the exact-source MLX and CUDA evidence refreshes
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration
 >
-> **Last reviewed:** 2026-08-06
+> **Last reviewed:** 2026-08-07
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,25 +14,25 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The proposed repository tree contains 120 tracked Markdown documents. Of those,
-119 are governed: every tracked Markdown file except the pull-request template,
-whose submitted-body contract remains exempt from reader-page metadata. This
-reconciliation adds the historical engineering-review index, classifies the
-twelve completed reviews under `dev/archive/`, brings the native desktop build
-guide into the active set, and applies archived metadata to every legacy-audit
-report.
+The repository tree contains 121 tracked Markdown documents. Of those, 120 are
+governed: every tracked Markdown file except the pull-request template,
+whose submitted-body contract remains exempt from reader-page metadata. PR #41
+added the historical engineering-review index, classified the twelve completed
+reviews under `dev/archive/`, brought the native desktop build guide into the
+active set, and applied archived metadata to every legacy-audit report. This
+integration adds one active canonical CUDA campaign plan.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 90 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 91 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 119 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 120 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the same 119 governed
+The automated `maintained_documentation()` set contains the same 120 governed
 Markdown files. Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -121,6 +121,7 @@ selectability come from `src/aptus/methods/registry.py`.
 ### Operations and reference
 
 - [Operations documentation](../operations/index.md)
+- [RTX 3050 CUDA empirical evidence campaign](../operations/cuda-empirical-campaign.md)
 - [Apple Silicon pilot matrix](../operations/apple-silicon-pilot.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
@@ -239,8 +240,8 @@ twelve preserved records at their subject-relative paths under `dev/archive/`:
 
 Each record carries an archived and superseded warning before its unchanged
 historical body. The index maps every record to current architecture, product,
-contract, or evidence guidance. No file remains under `dev/active/` in this
-proposal.
+contract, or evidence guidance. No file remains under `dev/active/` in the
+merged tree.
 
 ## Archived documentation audits and diagnostics
 
@@ -297,12 +298,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 119-file lifecycle count is
+The single tracked Markdown file outside the 120-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 120 tracked Markdown files.
+of 121 tracked Markdown files.
 
 ## Excluded local and generated material
 
@@ -315,11 +316,12 @@ The following paths are not maintained repository documentation:
 - `.venv/` and `web/node_modules/`, installed dependencies
 - `WIP.md`, an ignored local resume note rather than current authority or
   release evidence
-- `TempDoc-ForUserReview/`, review-only replacement candidates awaiting an
-  explicit apply decision
+- `TempDoc-ForUserReview/`, ignored local review provenance that is not current
+  repository authority
 
-Do not index or publish these as current Aptus guidance. Review material under
-`TempDoc-ForUserReview/` only as a proposed replacement set.
+Do not index or publish these as current Aptus guidance. Material under
+`TempDoc-ForUserReview/` is local review provenance after PR #41 and has no
+authority over the merged documentation.
 
 ## Related documentation
 

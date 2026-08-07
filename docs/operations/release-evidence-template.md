@@ -10,6 +10,11 @@ field with links, digests, commands, and results. Mark a gate `Not run`,
 Passing repository tests is not evidence that a training path works on its
 target runtime and hardware.
 
+A dated nonrelease campaign packet may instantiate the applicable fields in
+this template, mark release-only gates `Not run` or `N/A`, and set the overall
+decision to `Not ready`. Experimental measurements never become release
+approval merely by using this shape.
+
 ## Record identity
 
 | Field | Value |
@@ -21,6 +26,8 @@ target runtime and hardware.
 | Independent reviewer | `[fill: name or role]` |
 | Source checkout status | `[fill: clean or explain differences]` |
 | CI run | `[fill: immutable URL and result]` |
+| Campaign ID | `[fill or N/A]` |
+| Comparison cohort/cell set and digest | `[fill or N/A]` |
 | Scope | `[fill: methods, placements, platforms, and exclusions]` |
 | Overall decision | `[fill: Pass, Fail, Blocked, or Not ready]` |
 
@@ -63,11 +70,24 @@ A test row may be marked `Pass` only when `Command or evidence` gives the exact
 command and interpreter or tool versions, `Result` gives the exit code,
 passed/failed/skipped counts, and duration, and `Evidence location` gives the
 captured transcript SHA-256, byte size, protected non-Git artifact ID or
-immutable CI URL, and ISO retention-until date. Record both bindings when
-stdout and stderr are retained separately. Commit only the bounded sanitized
-result and digests; never commit raw transcripts, raw job state, or per-job
-logs. If any required binding or retention field is absent, record
-`Evidence incomplete` and leave the gate unpassed.
+immutable CI URL, retention-policy ID, and append-only effective retention
+receipt and date. Record both bindings when stdout and stderr are retained
+separately. Commit only the bounded sanitized result and digests; never commit
+raw transcripts, raw job state, or per-job logs. If any required binding or
+retention field is absent, record `Evidence incomplete` and leave the gate
+unpassed.
+
+For repository gates captured locally on a campaign target host, bind the suite
+as a retained evidence object in addition to completing the rows above:
+
+| Target-host gate-capture field | Value |
+|---|---|
+| Opaque host and environment IDs | `[fill]` |
+| Suite transcript index digest, byte size, and row count | `[fill]` |
+| Canonical raw-manifest SHA-256 and byte size | `[fill]` |
+| Protected locators and off-host access/encryption boundary | `[fill]` |
+| Retention-policy ID, effective retention receipt, and date | `[fill]` |
+| Two-copy verification and retrieval date/result | `[fill]` |
 
 Record built artifacts:
 
@@ -271,7 +291,13 @@ uninterrupted pilot and, when claimed, a parent-verified full-duration run.
 
 ## Per-path evidence packet
 
-Repeat this section for each runtime row marked passed.
+For a non-repeated release claim, complete this section for each runtime row
+marked passed. For a repeated empirical claim, instantiate the detailed block
+from Identity through Publication check once for every started experiment run,
+including non-passing and capture-invalid runs, or place an equivalent complete
+sanitized attempt record at the immutable location linked from its ledger row.
+Use `N/A` with a reason for checks an attempt never reached. A
+planned-not-started slot appears only in the ledger because it has no run record.
 
 ### Path `[fill: method, placement, host, model fixture]`
 
@@ -279,6 +305,13 @@ Repeat this section for each runtime row marked passed.
 
 | Field | Value |
 |---|---|
+| Campaign ID | `[fill or N/A]` |
+| Comparison-cohort ID | `[fill or N/A]` |
+| Comparison-cell ID | `[fill or N/A]` |
+| Attempt-slot ID | `[fill or N/A]` |
+| Execution-configuration ID | `[fill or N/A]` |
+| Experiment-run ID | `[fill or N/A]` |
+| Repetition ordinal and role | `[fill: warm-up, exploratory, measured, or N/A]` |
 | Plan ID | `[fill]` |
 | Model-policy snapshot SHA-256 | `[fill]` |
 | Policy ID and version | `[fill]` |
@@ -298,13 +331,13 @@ Repeat this section for each runtime row marked passed.
 
 #### Ordered actions
 
-| Action | Job ID | Start and finish | Report state | Log SHA-256 | Result |
-|---|---|---|---|---|---|
-| Dependency | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
-| Model-data | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
-| Measured preflight | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
-| Pilot | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
-| Full training | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Action | Job ID | Start and finish | Report state | Log SHA-256 and bytes | Protected locator and retention receipt | Result |
+|---|---|---|---|---|---|---|
+| Dependency | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Model-data | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Measured preflight | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Pilot | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+| Full training | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
 
 #### Trainable state
 
@@ -336,6 +369,28 @@ For CUDA, record the two checkpoint-continuation phases:
 - [ ] Checkpoint paths, sizes, hashes, optimizer, scheduler, RNG, scaler where
       applicable, and distributed state passed.
 - [ ] `checkpoint_continuation_observed` is true.
+
+When publishing CUDA time, resource, observed completion, or performance facts, bind
+the external capture record:
+
+| Capture field | Value |
+|---|---|
+| Capture tool and schema | `[fill]` |
+| Combined stdout/stderr or separate stream digests and byte sizes | `[fill]` |
+| Monotonic event-ledger digest, byte size, UTC mapping, and segmented-action summary | `[fill]` |
+| Setup/install/download record digests and sizes | `[fill or excluded from performance aggregates]` |
+| Raw canonical manifest digest and byte size | `[fill]` |
+| Raw telemetry digest and byte size | `[fill]` |
+| Sample interval, count, expected count, and coverage | `[fill]` |
+| GPU memory, utilization, temperature, power, clocks, pstate, and throttle summaries | `[fill maximum, median, p95, and unsupported fields]` |
+| Host RAM, swap, load, free disk, process RSS/CPU/I/O, disk growth, and supported CPU/NVMe temperature summaries | `[fill]` |
+| NVIDIA Xid or applicable kernel/journal evidence | `[fill]` |
+| Runtime allocated and reserved CUDA peaks | `[fill; keep separate from device telemetry]` |
+| Child, managed-job, action, and end-to-end durations | `[fill]` |
+| Estimated GPU energy and numerical method | `[fill or N/A; label estimated and exclude CPU and other host consumption]` |
+| Protected raw locators, two-copy verification, custodian, retention-policy ID, and effective receipt | `[fill]` |
+| Sanitization mapping and retrieval-verification digest | `[fill]` |
+| Retrieval date, source copy, and result | `[fill]` |
 
 For MLX-LM, record the uninterrupted pilot separately:
 
@@ -386,6 +441,81 @@ For MLX-LM, record the uninterrupted pilot separately:
 - [ ] Safetensors and index checks passed.
 - [ ] Recursive file-manifest coverage passed.
 - [ ] Parent promotion was idempotent.
+
+## Repeated empirical results
+
+Complete this section only when the record makes a repeatability, time,
+resource, observed-completion, or comparison claim. Include every predeclared
+slot; do not remove refusals, failures, capture-invalid records, not-started
+slots, or statistical outliers.
+
+### Complete attempt ledger
+
+Create one row before execution for every planned slot. Preserve it even when a
+prior stop rule prevents the attempt from starting.
+
+| Cohort ID | Cell ID | Attempt-slot ID | Execution-config ID | Experiment-run ID | Block, ordinal, and role | Last action | Slot status | Native outcome | Stable reason code and bounded sanitized reason | Evidence status | Raw manifest or capture-failure receipt SHA-256 and bytes | Protected locator and retention receipt | Copy/retrieval date and result | Individual sanitized evidence record |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `[fill]` | `[fill]` | `[fill]` | `[fill or N/A if not started]` | `[fill or N/A if not started]` | `[fill]` | `[fill or Not started]` | `[fill: started or planned-not-started]` | `[fill: passed, refused, failed, cancelled, timed-out, guard-blocked, unknown, or N/A]` | `[fill allowlisted code and sanitized reason]` | `[fill: protocol-valid, capture-invalid, or not-started]` | `[fill, or N/A only if not started]` | `[fill; N/A for not-started, or for capture failure only when its receipt explains why]` | `[fill; N/A for not-started, or for capture failure only when its receipt explains why]` | `[fill or N/A if not started]` |
+
+Keep byte-exact exception text only in the protected raw record and bind it by
+digest. The public reason is an allowlisted stable code plus a bounded sanitized
+explanation; it must not copy paths, usernames, hostnames, tokens, or arbitrary
+exception text.
+
+Every started slot binds either a sealed canonical raw manifest or an immutable
+capture-failure receipt containing the stable failure code, available-artifact
+inventory, missing-field list, SHA-256, byte size, and recoverable locator. If
+neither can be sealed, the cohort cannot publish a qualifying result.
+
+### Predeclared aggregate results
+
+Slot accounting:
+
+| Cell ID | Role | Planned | Started | Planned-not-started |
+|---|---|---:|---:|---:|
+| `[fill]` | `[fill: warm-up, exploratory, or measured]` | `[fill]` | `[fill]` | `[fill]` |
+
+Native execution outcomes for started slots:
+
+| Cell ID | Role | Started | Passed | Refused | Failed | Cancelled | Timed out | Guard-blocked | Unknown |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `[fill]` | `[fill: warm-up, exploratory, or measured]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+
+Independent evidence status and result:
+
+| Cell ID | Role | Started | Protocol-valid | Capture-invalid | Qualifying passes | Individual-record index | Frozen aggregate rule and result |
+|---|---|---:|---:|---:|---:|---|---|
+| `[fill]` | `[fill: warm-up, exploratory, or measured]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` | `[fill]` |
+
+- [ ] Warm-ups and exploratory attempts are labeled and excluded from
+      confirmatory aggregates.
+- [ ] Attempt-slot IDs are unique, and exactly one ledger row exists for every
+      slot in the frozen cohort plan.
+- [ ] `Planned = Started + Planned-not-started` for every cell and role.
+- [ ] `Started = Passed + Refused + Failed + Cancelled + Timed out +
+      Guard-blocked + Unknown` for every cell and role.
+- [ ] Independently, `Started = Protocol-valid + Capture-invalid` for every
+      cell and role.
+- [ ] Only the intersection of native `passed` and evidence `protocol-valid`
+      contributes a qualifying pass.
+- [ ] Comparison-cell and execution-configuration identities prove which runs
+      are repetitions and which are different configurations.
+- [ ] Cohort, cell, attempt-slot, exact execution-configuration, and run
+      identities preserve paired seeds while keeping fresh paths out of the
+      cell identity.
+- [ ] Every started slot links a complete individual sanitized evidence record,
+      including non-passing and capture-invalid runs.
+- [ ] Run ordering, cache policy, cooldown, stop rules, and any method-specific
+      confound were frozen before measured results.
+- [ ] Exact attempt counts, promotion rule, no-replacement rule, all three
+      status/outcome axes, pass threshold, and missing-block treatment were
+      frozen before measured results.
+- [ ] Small-sample summaries publish individual values, attempt counts, and
+      the predeclared uncertainty treatment rather than implying population
+      calibration.
+- [ ] Telemetry p95 is described as a within-run sample statistic, not
+      confidence across repetitions.
 
 ## Required negative evidence
 
@@ -517,6 +647,7 @@ Remaining unsupported or unproven paths:
 
 ## Related documentation
 
+- [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
 - [Release gates](release-gates.md)
 - [Operator checklist](operator-checklist.md)
 - [Current capabilities](../product/current-capabilities.md)

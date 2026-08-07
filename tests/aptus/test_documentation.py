@@ -970,8 +970,8 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "Access to the additional approved CUDA configurations",
-            documentation_debt,
+            "Capture and candidate-selection contracts are not yet implemented",
+            " ".join(documentation_debt.split()),
         )
         self.assertIn(
             "One qualifying exact CUDA LoRA single-device acceptance has been collected",
@@ -981,6 +981,7 @@ class DocumentationTests(unittest.TestCase):
         inventory = (
             REPOSITORY / "docs/maintenance/documentation-inventory.md"
         ).read_text(encoding="utf-8")
+        normalized_inventory = " ".join(inventory.split())
         repository_documents = set(repository_markdown_documents())
         excluded_documents = {REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md"}
         deprecated_documents = {
@@ -1006,23 +1007,78 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 120)
+        self.assertEqual(len(repository_documents), 121)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 119)
-        self.assertEqual(len(active_documents), 90)
+        self.assertEqual(len(governed_documents), 120)
+        self.assertEqual(len(active_documents), 91)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 119)
-        self.assertIn("119 are governed", inventory)
-        self.assertIn("119 governed", inventory)
-        self.assertIn("120 tracked Markdown", " ".join(inventory.split()))
-        self.assertIn("| Active | 90 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 120)
+        self.assertIn("120 are governed", normalized_inventory)
+        self.assertIn("120 governed", normalized_inventory)
+        self.assertIn("121 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 91 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
+
+    def test_cuda_empirical_campaign_is_canonical_and_bounded(self) -> None:
+        campaign_path = REPOSITORY / "docs/operations/cuda-empirical-campaign.md"
+        campaign = campaign_path.read_text(encoding="utf-8")
+        normalized_campaign = " ".join(campaign.split())
+        for required in (
+            "Canonical operational plan for bounded CUDA evidence",
+            "Phase 0 — forensic recovery before host changes",
+            "Phase 3 — explicit method selection and measurement contracts",
+            "exactly five predeclared measured attempts",
+            "It cannot execute DDP or LoRA FSDP",
+            "Protected raw vault",
+            "Attempt-slot ID",
+            "Only a native `passed` outcome with `protocol-valid` evidence",
+            "Started = Protocol-valid + Capture-invalid",
+            "Never report tokens per second until exact padded and supervised token",
+        ):
+            self.assertIn(required, normalized_campaign)
+
+        phase_6 = campaign.partition("### Phase 6")[2].partition("### Phase 7")[0]
+        documented_cuda_single_methods = set(
+            re.findall(r"^\| `([^`]+)` \|", phase_6, flags=re.MULTILINE)
+        )
+        registered_cuda_single_methods = {
+            descriptor.method_id
+            for descriptor in method_descriptors()
+            if descriptor.selectable
+            and any(
+                binding.training_runtime == TrainingRuntime.TRANSFORMERS_PEFT_CUDA.value
+                and binding.compute_backend == Backend.CUDA.value
+                and Distribution.SINGLE.value in binding.supported_distributions
+                for binding in descriptor.runtime_bindings
+            )
+        }
+        self.assertEqual(
+            documented_cuda_single_methods,
+            registered_cuda_single_methods,
+        )
+
+        linked_documents = (
+            REPOSITORY / "ROADMAP.md",
+            REPOSITORY / "docs/index.md",
+            REPOSITORY / "docs/operations/index.md",
+            REPOSITORY / "docs/operations/release-gates.md",
+            REPOSITORY / "docs/operations/release-evidence-template.md",
+            REPOSITORY / "docs/operations/state-storage-retention.md",
+            REPOSITORY / "docs/operations/operator-checklist.md",
+            REPOSITORY / "docs/maintenance/documentation-debt.md",
+        )
+        for document in linked_documents:
+            self.assertIn(
+                "cuda-empirical-campaign.md",
+                document.read_text(encoding="utf-8"),
+                document.relative_to(REPOSITORY),
+            )
 
     def test_post_phase6_documentation_lifecycle_is_governed(self) -> None:
         self.assertEqual(list((REPOSITORY / "dev/active").rglob("*.md")), [])
@@ -1199,7 +1255,7 @@ class DocumentationTests(unittest.TestCase):
                 "unused flattened compatibility normalizer was removed",
             ),
             "docs/maintenance/documentation-inventory.md": (
-                "after the exact-source MLX and CUDA evidence refreshes",
+                "after PR #41 and the canonical CUDA campaign integration",
                 "`web/src/lib/modelPolicy.ts`",
             ),
             "docs/reference/api.md": (

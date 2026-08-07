@@ -66,9 +66,16 @@ described as a publication of the complete raw console output.
 
 ## Experimental host work
 
+- [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
 
-That Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
+The CUDA campaign is the canonical ordered plan for recovering the existing raw
+Ubuntu records, implementing complete capture and explicit candidate selection,
+then measuring single-device repeatability, method behavior, scale, guarded
+capacity frontiers, and endurance. It does not itself assert a result, and one
+RTX 3050 cannot supply DDP or FSDP evidence.
+
+The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6
 baseline, historical v2/v2 evidence, and proposed larger-model work. The
 separate record above covers one exact 2026-08-06 CUDA LoRA single-device
@@ -82,5 +89,6 @@ before treating a row as passed.
 ## Related documentation
 
 - [Documentation home](../index.md)
+- [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
 - [Run states](../reference/run-states.md)
 - [Troubleshooting](../guides/troubleshooting.md)

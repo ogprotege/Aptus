@@ -2,10 +2,10 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through merged main `170fd0e`, plus
-> the proposed 2026-08-06 post-Phase 6 documentation reconciliation
+> **Applies to:** Repository documentation through merged PR #41, plus the
+> canonical RTX 3050 CUDA campaign integration
 >
-> **Last reviewed:** 2026-08-06
+> **Last reviewed:** 2026-08-07
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -21,8 +21,8 @@ maintained decoders therefore need explicit parity checks.
 Overall documentation health is **strong after a bounded reconciliation, with
 release-evidence gaps still explicit**. The 2026-08-06 repository-wide audit
 found one high-impact documentation omission, several medium-impact consistency
-and lifecycle gaps, and low-impact freshness defects. The proposed tree corrects
-those documentation surfaces and adds regression coverage without changing
+and lifecycle gaps, and low-impact freshness defects. PR #41 corrected
+those documentation surfaces and added regression coverage without changing
 runtime behavior or broadening measured evidence. The earlier
 2026-07-28 drift audit identified 32 confirmed locations across 12 root causes.
 PR #14 corrected the implementation defect and the core documentation, while a
@@ -148,16 +148,16 @@ derive every default, status, and response field from one source.
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 119
+The [documentation inventory](documentation-inventory.md) classifies 120
 governed tracked Markdown documents:
 
-- 90 active;
+- 91 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 120 tracked Markdown files in total. The pull-request
+The repository contains 121 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 119 files, including the
+`maintained_documentation()` set covers all other 120 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,
@@ -175,7 +175,7 @@ not become a one-time cleanup.
 
 The audit found that the API and configuration references named a 2 GiB user
 reserve without explaining the effective 8 GiB Apple MPS/unified-memory floor
-enforced at the CLI and HTTP planning boundaries. The proposed reference copy
+enforced at the CLI and HTTP planning boundaries. The merged reference copy
 now distinguishes the supplied value from the effective floor and pins that
 claim in documentation tests. No implementation default changes.
 
@@ -186,9 +186,9 @@ quality-gate inconsistencies; incomplete CUDA dependency, API inference-default,
 first-plan artifact, and workbench command guidance; twelve completed reviews
 still under `dev/active/`; incomplete governance for the desktop build guide and
 nine legacy reports; aging `current-source` language for exact-source MLX
-evidence; and stale review and merge metadata. The proposed copy corrects those
-surfaces, moves only the proposed review records, preserves every historical
-body and immutable evidence packet, and expands lifecycle regression checks.
+evidence; and stale review and merge metadata. PR #41 corrected those
+surfaces, moved only the reviewed records, preserved every historical
+body and immutable evidence packet, and expanded lifecycle regression checks.
 DOC-028 records the resolution and its non-runtime boundary.
 
 The [documentation debt log](documentation-debt.md) records owners, acceptance
@@ -223,15 +223,29 @@ links or audit reproduction paths.
 
 ## Validation result
 
-For the proposed 2026-08-06 reconciliation:
+For this 2026-08-07 canonical campaign integration:
 
-- the baseline is merged main `170fd0e`;
+- all 32 documentation tests and all 554 Python tests passed; the full Python
+  suite completed in 22.560 seconds on the development host;
+- Ruff lint passed, all 54 checked Python files were already formatted, and
+  Python compilation passed;
+- all 130 React tests across 20 files passed, TypeScript checking passed, and
+  the tracked Vite production build completed successfully;
+- server OpenAPI, generated TypeScript OpenAPI, maintained Swift client,
+  version-parity, and whitespace checks passed; and
+- these are development-worktree gates for a documentation change, not Ubuntu
+  target-host, CUDA runtime, performance, resource, or empirical campaign
+  evidence. No native desktop build or CUDA run was required.
+
+For the merged 2026-08-06 reconciliation in PR #41:
+
+- the baseline was merged main `170fd0e`;
 - immutable runtime evidence packet bodies remain unchanged;
-- twelve completed review records move from `dev/active/` to the same relative
+- twelve completed review records moved from `dev/active/` to the same relative
   subpaths under `dev/archive/` and gain only leading lifecycle warnings;
 - all ten legacy-audit reports carry archived metadata and remain one evidence
   bundle;
-- the native desktop build guide becomes active governed documentation; and
+- the native desktop build guide became active governed documentation; and
 - focused tests cover the 120/119 repository and governed counts, the
   90/2/27 lifecycle split, metadata, navigation, archive placement, and the
   corrected reserve and generated-MLX inventory claims;
@@ -241,7 +255,7 @@ For the proposed 2026-08-06 reconciliation:
   server and generated-client freshness, maintained Swift client parity,
   version parity, Ruff lint and formatting, Python compilation, and whitespace
   validation passed; and
-- no native desktop build was required because the proposal changes Markdown
+- no native desktop build was required because the change affected Markdown
   and documentation regression coverage, not the host, bridge, packaged
   workbench, or desktop runtime.
 
@@ -412,10 +426,11 @@ target-host coverage or public notarization.
 
 ## Recommended actions by impact
 
-1. Review and separately approve application of this proposed documentation
-   reconciliation.
-2. Complete the remaining claimed CUDA target-host coverage, repeatability
-   evidence, and public desktop distribution evidence.
+1. Execute the [canonical RTX 3050 CUDA empirical evidence
+   campaign](../operations/cuda-empirical-campaign.md), beginning with raw
+   evidence recovery before any Ubuntu-host mutation.
+2. Complete the remaining distributed CUDA target-host coverage and public
+   desktop distribution evidence that the single-GPU campaign cannot supply.
 3. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 
@@ -435,4 +450,5 @@ Refresh this report when any of these occurs:
 - [Documentation inventory](documentation-inventory.md)
 - [Documentation debt log](documentation-debt.md)
 - [Documentation index](../index.md)
+- [RTX 3050 CUDA empirical evidence campaign](../operations/cuda-empirical-campaign.md)
 - [Release gates](../operations/release-gates.md)

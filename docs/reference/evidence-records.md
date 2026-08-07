@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-08-06 |
 | Next review | 2026-11-01, or sooner when domain, evidence, validation, or execution contracts change |
 
 Aptus separates seven concepts that answer different questions:
@@ -183,16 +183,25 @@ record supports only the exact July 27 artifact, host, dataset, runtime, v2
 plan, and v2 bundle named by its scope. The
 [original 2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 is the unchanged historical Phase 6 baseline. The separate
-[exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-records two fresh, clean current-source `aptus.training-plan.v5` and
+[current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+records two fresh, clean `aptus.training-plan.v5` and
 `aptus.bundle.v3` `measured-run-pass` repetitions at source
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
-It closes the Phase 6 MLX-LM runtime gate only for its exact pinned artifact and
-revision, source and tree, Apple M5 Pro host, Python/MLX runtime, dataset, policy
-snapshot, plan, bundle, and fingerprint. It does not broaden or relabel either
-canonical evidence record.
+It supplies current-contract Phase 6 MLX-LM runtime evidence at that exact
+source only for its pinned artifact and revision, source and tree, Apple M5 Pro
+host, Python/MLX runtime, dataset, policy snapshot, plan, bundle, and
+fingerprint. It does not broaden or relabel either canonical evidence record.
+
+The separate [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance
+packet](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+is operational runtime-attestation evidence for one exact five-job execution.
+It establishes neither repeatability nor another CUDA method, placement,
+artifact, device, host, environment, or release claim. The packet is not a
+code-owned `EvidenceRecord` entry and this document does not assign it a
+canonical plan-level evidence ID. Do not insert a fabricated CUDA evidence ID
+into `evidence_records`.
 
 ## Candidate evidence mapping
 
@@ -346,3 +355,5 @@ data.
 - [Dataset schemas](dataset-schemas.md)
 - [Facts and provenance methodology](../methodology/facts-and-provenance.md)
 - [Memory estimation methodology](../methodology/memory-estimation.md)
+- [SmolLM2 CUDA LoRA single-device acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+- [Qwen2 MLX-LM current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)

@@ -14,29 +14,28 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository contains 105 governed tracked Markdown documents. This count
-includes the dedicated model-policy-snapshot reference added by the Phase 4
-documentation synchronization and four Markdown records across the Phase 6
-runtime-acceptance surfaces: one exact CUDA record, one current MLX
-exact-source record, the original acceptance baseline, and one archived
-nonqualifying diagnostic. It excludes 14 tracked working or implementation
-documents outside the governed
-product-documentation scope.
+The proposed repository tree contains 120 tracked Markdown documents. Of those,
+119 are governed: every tracked Markdown file except the pull-request template,
+whose submitted-body contract remains exempt from reader-page metadata. This
+reconciliation adds the historical engineering-review index, classifies the
+twelve completed reviews under `dev/archive/`, brings the native desktop build
+guide into the active set, and applies archived metadata to every legacy-audit
+report.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 88 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
+| Active | 90 | Current guidance, governance, navigation, evidence, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
-| Archived | 15 | Historical research intake, legacy-audit evidence, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 105 | Excludes ignored local, generated, and tracked implementation-working artifacts |
+| Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
+| Total | 119 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog and
 12 archived machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains 96 Markdown files. It
-deliberately retains the legacy-audit README while excluding its nine
-subordinate historical pages. The 105-file governed inventory includes all ten
-legacy-audit Markdown records, so these two counts measure different scopes.
+The automated `maintained_documentation()` set contains the same 119 governed
+Markdown files. Metadata, link, anchor, and primary-index reachability checks
+therefore cover the native build guide, all ten legacy-audit reports, the
+engineering-review index, and all twelve archived engineering reviews.
 
 ## Active root documents
 
@@ -67,6 +66,7 @@ legacy-audit Markdown records, so these two counts measure different scopes.
 - [Documentation health report](documentation-health.md)
 - [Archive index](../archive/index.md)
 - [Research index](../research/index.md)
+- [Historical engineering-review index](../../dev/archive/README.md)
 
 ### Getting started and guides
 
@@ -101,6 +101,7 @@ legacy-audit Markdown records, so these two counts measure different scopes.
 - [Execution orchestrator](../architecture/execution-orchestrator.md)
 - [Security boundaries](../architecture/security-boundaries.md)
 - [System architecture](../architecture/system.md)
+- [Desktop implementation and build guide](../../desktop/macos/README.md)
 
 ### Methodology
 
@@ -125,7 +126,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device target-host acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md), one exact five-job `measured-run-pass` workflow at `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed` for the recorded host, runtime, model revision, synthetic dataset, plan, policy, and bundle
-- [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source target-host acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md), two fresh current v5/v3 repetitions at `719255153e3fc7e38e83b5ff826d587e5e58bf80` for the exact recorded artifact, source tree, M5 Pro host, Python/MLX runtime, dataset, plan, policy snapshot, and bundle fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
+- [2026-08-05 Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md), two fresh v5/v3 repetitions at `719255153e3fc7e38e83b5ff826d587e5e58bf80` for the exact recorded artifact, source tree, M5 Pro host, Python/MLX runtime, dataset, plan, policy snapshot, and bundle fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), the unchanged historical baseline at `14ed44b52a76bb84d8d9db4f2303951aa641339b`
 - [2026-07-27 MLX-LM target-host acceptance](../operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](../operations/evidence/2026-07-27-desktop-release/README.md)
@@ -224,6 +225,23 @@ Machine-readable records:
 These records must stay together. Their generator and reproduction commands use
 the current `docs/audits/aptus-legacy/` path.
 
+## Archived engineering reviews
+
+The [historical engineering-review index](../../dev/archive/README.md) governs
+twelve preserved records at their subject-relative paths under `dev/archive/`:
+
+- one macOS host review;
+- two product and codebase reviews;
+- one maintained-client parity closeout;
+- six model-compatibility policy reviews spanning the initial concept and
+  Phases 2 through 6; and
+- two MoE compatibility review and design records.
+
+Each record carries an archived and superseded warning before its unchanged
+historical body. The index maps every record to current architecture, product,
+contract, or evidence guidance. No file remains under `dev/active/` in this
+proposal.
+
 ## Archived documentation audits and diagnostics
 
 The
@@ -251,9 +269,11 @@ compiled bundle:
 | `runbook.md` | Ordered dependency, model-data, preflight, pilot, and full-run procedure |
 
 It also generates command help in `train.py`, `run.py`, `preflight.py`, and
-`validate.py`. A registry-derived test matrix must equal every executable
-runtime, backend, method, and placement row, then compile each row and verify
-the three operator documents before a template change can pass.
+`validate.py`. MLX bundles additionally generate `reload.py`, whose fresh-child
+adapter reload is inference evidence rather than task-quality evidence. A
+registry-derived test matrix must equal every executable runtime, backend,
+method, and placement row, then compile each row and verify the three operator
+documents before a template change can pass.
 
 ## Package, API, CLI, and workbench surfaces
 
@@ -275,19 +295,14 @@ the three operator documents before a template change can pass.
 The packaged web build is generated from `web/`. It is a distribution artifact,
 not a second hand-edited copy source.
 
-## Tracked Markdown outside the lifecycle count
+## Workflow-template metadata exemption
 
-Fourteen tracked implementation or workflow files sit outside the 105-file
-product-documentation lifecycle count:
-
-- `.github/PULL_REQUEST_TEMPLATE.md`;
-- `desktop/macos/README.md`; and
-- the twelve active review and design notes under `dev/active/`.
-
-They remain tracked and may govern their narrow implementation workflows. They
-are not classified as active, deprecated, or archived product documentation.
-This distinction explains the repository-wide total of 119 tracked Markdown
-files.
+The single tracked Markdown file outside the 119-file lifecycle count is
+`.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
+but reader-page metadata would leak into every submitted pull-request body.
+Its fields and review path are instead named by the maintenance policy and
+contributor documentation. This exemption explains the repository-wide total
+of 120 tracked Markdown files.
 
 ## Excluded local and generated material
 

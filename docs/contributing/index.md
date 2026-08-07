@@ -1,6 +1,6 @@
 # Contributor Guide
 
-> **Status:** Active | **Audience:** Contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Maintainers | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Maintainers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-22
 
 Aptus changes must keep product behavior, generated artifacts, evidence claims,
 interfaces, tests, and documentation aligned. Begin with the smallest contract
@@ -27,29 +27,19 @@ setup, required checks, design rules, claim rules, and pull-request content.
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[server,test]'
-cd web
-npm ci
+npm --prefix web ci
 ```
 
-Use Python 3.11 or newer. Node.js is required only for web development and for
-rebuilding the workbench package assets.
+Package metadata accepts Python 3.11 or newer; CI currently tests Python 3.11
+and 3.12. Node.js is required only for web development and for rebuilding the
+workbench package assets.
 
 ## Repository-wide quality gate
 
-From the repository root:
-
-```bash
-.venv/bin/ruff format --check src/aptus tests/aptus
-.venv/bin/ruff check src tests tools
-PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
-  .venv/bin/python -m unittest discover -s tests -t . -v
-PYTHONPATH=src .venv/bin/python -m compileall -q src tests tools
-git diff --check
-cd web
-npm test
-npm run typecheck
-npm run build
-```
+The root [contribution policy](../../CONTRIBUTING.md#required-repository-wide-checks)
+contains the one canonical full gate. Run it from the repository root before a
+pull request. Component guides may provide explicitly partial commands for
+faster iteration; those do not replace the repository-wide gate.
 
 Run the wheel build and installed-wheel workbench smoke test when source
 packaging, package data, imports, CLI entrypoints, API serving, or web assets can

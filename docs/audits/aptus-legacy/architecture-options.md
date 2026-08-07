@@ -1,5 +1,17 @@
 # Aptus Architecture Options After the Legacy Audit
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not current architecture guidance. Start with the [audit index](README.md) or
+> [current capabilities](../../product/current-capabilities.md).
+
 This document does not authorize implementation. It frames the next design
 decision using evidence recovered from the legacy `HyperTune/` folder.
 

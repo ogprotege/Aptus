@@ -15,7 +15,7 @@
   <a href="https://github.com/ogprotege/Aptus/actions/workflows/ci.yml"><img src="https://github.com/ogprotege/Aptus/actions/workflows/ci.yml/badge.svg" alt="Quality gate"></a>
   <a href="https://github.com/ogprotege/Aptus/actions/workflows/desktop-artifacts.yml"><img src="https://github.com/ogprotege/Aptus/actions/workflows/desktop-artifacts.yml/badge.svg" alt="Desktop artifacts"></a>
   <img src="https://img.shields.io/badge/version-0.2.0-0C6E77" alt="Version 0.2.0">
-  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12-0C6E77" alt="Python 3.11 and 3.12">
+  <img src="https://img.shields.io/badge/python-%3E%3D3.11-0C6E77" alt="Python 3.11 or newer">
   <img src="https://img.shields.io/badge/license-MIT-20343B" alt="MIT license">
 </p>
 
@@ -26,7 +26,7 @@
   <a href="docs/index.md">Documentation</a>
 </p>
 
-> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-04 · **Review by:** 2026-11-01 or when the support contract changes
+> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-06 · **Review by:** 2026-11-01 or when the support contract changes
 
 ---
 
@@ -115,7 +115,11 @@ The build runs the Python, React, and native test gates before producing
 public distribution still requires a Developer ID identity and notarization.
 
 Every pull request and push to `main` also runs this native build on GitHub's
-arm64 macOS 26 runner and uploads the same artifacts.
+arm64 macOS 26 runner. The workflow repackages the app as
+`Aptus-macOS-arm64.zip`, regenerates `SHA256SUMS` for that ZIP, the DMG, and
+`COMMIT`, and uploads those four files as the
+`aptus-macos-arm64-<commit-sha>` GitHub Actions artifact. The local
+`Aptus.app.zip` name is not the CI upload name.
 
 ### Use the browser workbench
 
@@ -226,7 +230,7 @@ old revision creates a *new* revision and never restores training authorization.
 
 | Native Mac product | MLX-LM runtime on Apple Silicon | CUDA runtime |
 | --- | --- | --- |
-| Inspect the machine, models, data, plans, and runs | Verify exact MLX and MLX-LM versions | Verify Torch, Transformers, PEFT, and CUDA |
+| Inspect the machine, models, data, plans, and runs | Verify exact MLX and MLX-LM versions | Verify CUDA plus the pinned Torch, Transformers, Accelerate, safetensors, and method-specific PEFT or bitsandbytes dependencies |
 | Profile data and inspect pinned model facts | Load the pinned revision and tokenize all bound rows | Load the pinned revision and tokenizer |
 | Compare runtime-specific estimates | Run a bounded adapter smoke with MLX memory telemetry | Run synthetic preflight, two-phase pilot, and admitted training |
 | Compile, validate, and reveal artifacts | Run an uninterrupted pilot, reload its adapter in a fresh process, then admit confirmed full-duration training | Produce and verify the selected export |
@@ -241,13 +245,19 @@ describe a CUDA host; they do not enable CUDA work on the Mac.
 
 ## What is supported
 
-| Area | Supported now | Not supported |
+This table describes implemented planner, policy, and compiler coverage. A
+planner-supported row is not automatically runtime-qualified: the exact bundle
+and target host must still pass the evidence ladder. Current runtime evidence is
+bounded to two exact Qwen2.5 MLX-LM QLoRA repetitions and one exact SmolLM2 CUDA
+LoRA single-device execution described under [Recorded evidence](#recorded-evidence).
+
+| Area | Implemented planner/compiler coverage | Outside current coverage |
 | --- | --- | --- |
-| **Methods** | Full, LoRA, int8-LoRA, QLoRA | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT and other research identities |
-| **CUDA** | Single-device and DDP; conditional LoRA FSDP | Full-parameter FSDP, quantized FSDP, ROCm, CPU training |
-| **Apple Silicon** | Conditional MLX-LM LoRA and QLoRA, single device only | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS |
-| **MoE** | Conditional, pilot-required exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed four-bit layout, single-device MLX-LM QLoRA with attention-only adapters | All other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, other MoE methods |
-| **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints; treating one matching configuration as artifact-wide runtime acceptance |
+| **Methods** | The planner enumerates Full, LoRA, int8-LoRA, and QLoRA; compiler availability remains runtime- and placement-specific | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT and other research identities |
+| **CUDA** | Compiler paths for single-device and DDP, plus conditional LoRA FSDP; only the exact SmolLM2 LoRA single-device record is runtime-qualified | Full-parameter FSDP, quantized FSDP, ROCm, CPU training, and any broader CUDA runtime claim |
+| **Apple Silicon** | Conditional single-device MLX-LM LoRA and QLoRA compiler paths; the exact recorded Qwen2.5 QLoRA scope is runtime-qualified | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS, and transferring the Qwen2.5 result to another artifact |
+| **MoE** | A conditional, pilot-required policy path for exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed layout, using single-device MLX-LM QLoRA with attention-only adapters; its recorded 30B attempt stopped at the memory gate | General MoE runtime acceptance, other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, and other MoE methods |
+| **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints and treating one matching configuration as artifact-wide runtime acceptance |
 | **Data** | JSON, JSONL, CSV and text with common SFT row shapes | Sequence packing; tasks other than SFT. Whole-text rows do not compile for `mlx-lm` |
 | **Recovery** | Named projects with immutable content-hashed revisions | Crash resume for MLX-LM or CUDA full runs |
 | **Distribution** | Source build and ad-hoc-signed CI artifacts | A notarized public download |
@@ -317,7 +327,7 @@ before committing compute time.
 | Exact CUDA LoRA single-device workflow at `c12c4d8` | One fresh five-job sequence reached `measured-run-pass` |
 | CUDA pilot checkpoint continuation | Step 1 resumed and reached step 2 with the same 4,884,480-parameter LoRA census |
 | CUDA full train and structural PEFT export | 3 optimizer updates, 384,180,224-byte allocated peak, 23,123,131-byte export |
-| Current Phase 6 MLX-LM v5/v3 workflow at `71925515` | Two fresh, clean repetitions reached `measured-run-pass` |
+| Phase 6 exact-source MLX-LM v5/v3 workflow at `71925515` | Two fresh, clean repetitions reached `measured-run-pass` |
 | Current confirmed full train, export, and fresh reload | 3 optimizer updates and 4 reload-generation tokens in each repetition |
 | Highest current full-run MLX peak | 582,146,010 bytes |
 | Historical MLX-LM five-action workflow (v2 plan/bundle) | 18.65 s and 17.47 s, 18.06 s mean |
@@ -333,10 +343,10 @@ throughput, scalability, repeatability, or model-quality measurements. The
 synthetic MoE forward is not autoregressive generation and does not project
 30B speed. The 30B checkpoint never loaded, so no 30B throughput claim exists.
 
-The two fresh 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime
-gate for the exact recorded Qwen2.5 artifact and immutable revision, Apple M5
-Pro host, Python and MLX-LM runtime, four-row synthetic dataset, v5 plan, v3
-bundle, policy snapshot, source commit
+The two fresh 2026-08-05 MLX-LM runs supply current-contract Phase 6 runtime
+evidence at their exact acceptance source for the recorded Qwen2.5 artifact
+and immutable revision, Apple M5 Pro host, Python and MLX-LM runtime, four-row
+synthetic dataset, v5 plan, v3 bundle, policy snapshot, source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -359,7 +369,7 @@ repeatability result or evidence for other CUDA methods, placements, devices,
 models, datasets, or environments.
 
 Full records: [SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) ·
-[Current exact-source Qwen2 MLX-LM acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
+[Qwen2 MLX-LM exact-source acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
 [Original Phase 6 acceptance baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
 [Historical MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
 [Desktop stability](docs/operations/evidence/2026-07-27-desktop-release/README.md) ·
@@ -408,10 +418,10 @@ table.
 
 | | Minimum |
 | --- | --- |
-| Python | 3.11 or 3.12 |
+| Python | Package metadata accepts 3.11 or newer; CI currently tests 3.11 and 3.12 |
 | Planning only | Any platform; no accelerator required |
 | Apple Silicon training | macOS 15 floor, macOS 26 primary; `mlx==0.31.2`, `mlx-lm==0.31.3` |
-| CUDA training | A CUDA host with the matching driver; Torch, Transformers, PEFT |
+| CUDA training | A CUDA host with the matching driver; pinned Torch, Transformers, Accelerate, and safetensors for every method; PEFT for adapters; bitsandbytes for int8-LoRA and QLoRA |
 | Mac app build | Xcode 26, XcodeGen, Node.js, `uv`, and Python 3.12 available to `uv` |
 
 See [installation details](docs/getting-started/install.md) for prerequisites,
@@ -453,23 +463,13 @@ The complete hub is [docs/index.md](docs/index.md).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 python -m pip install -e '.[server,test]'
-cd web && npm ci
+npm --prefix web ci
 ```
 
-Before opening a pull request:
-
-```bash
-.venv/bin/ruff format --check src/aptus tests/aptus
-.venv/bin/ruff check src tests tools
-PYTHONPATH=src:. python -m unittest discover -s tests -t .
-.venv/bin/python tools/generate_openapi.py --check
-.venv/bin/python tools/check_client_contracts.py
-.venv/bin/python tools/verify_versions.py
-cd web && npm run openapi:check && npm test && npm run typecheck && npm run build
-```
-
-Documentation must be updated in the same change as behavior. Read
-[CONTRIBUTING.md](CONTRIBUTING.md) and the
+Before opening a pull request, run the canonical
+[repository-wide quality gate](CONTRIBUTING.md#required-repository-wide-checks)
+from the repository root. Documentation must be updated in the same change as
+behavior. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [contract-change guide](docs/contributing/changing-contracts.md) first.
 
 ---
@@ -480,7 +480,7 @@ Documentation must be updated in the same change as behavior. Read
 <summary>Engineering preview — what is and is not proven</summary>
 
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
-**Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when the support contract changes
+**Last reviewed:** 2026-08-06 | **Review by:** 2026-11-01 or when the support contract changes
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
@@ -532,8 +532,9 @@ unified-memory shortfall. See the
 Phase 6 implemented a second registry-driven path for the reviewed 24-layer
 dense Qwen2 configuration footprint. It permits only single-device MLX-LM QLoRA
 with the exact uniform four-bit group-64 layout and seven declared attention/MLP
-projection targets. Its current-source runtime gate is closed for the exact
-Qwen2.5 fixture recorded above. The row remains conditional and pilot-required:
+projection targets. Its current-contract runtime evidence applies only to the
+exact acceptance source and Qwen2.5 fixture recorded above. The row remains
+conditional and pilot-required:
 a different matching artifact must complete its own model-data, measured
 preflight, and pilot gates before Aptus can make an artifact-scoped runtime
 claim.

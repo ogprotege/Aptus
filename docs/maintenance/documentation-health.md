@@ -2,11 +2,8 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through merge `c12c4d8`, plus the
-> Phase 5 maintained-guidance closeout, Phase 6 policy implementation,
-> original runtime acceptance, 2026-08-05 exact-source MLX evidence refresh,
-> 2026-08-06 exact CUDA LoRA single-device acceptance, and the dedicated
-> private-security intake and maintained-client contract-parity closeouts
+> **Applies to:** Repository documentation through merged main `170fd0e`, plus
+> the proposed 2026-08-06 post-Phase 6 documentation reconciliation
 >
 > **Last reviewed:** 2026-08-06
 >
@@ -21,7 +18,12 @@ is maintenance scale. The same contracts appear in prose, code, generated
 artifacts, API shapes, CLI help, and workbench copy; generated surfaces and
 maintained decoders therefore need explicit parity checks.
 
-Overall documentation health is **strong with named maintenance gaps**. The
+Overall documentation health is **strong after a bounded reconciliation, with
+release-evidence gaps still explicit**. The 2026-08-06 repository-wide audit
+found one high-impact documentation omission, several medium-impact consistency
+and lifecycle gaps, and low-impact freshness defects. The proposed tree corrects
+those documentation surfaces and adds regression coverage without changing
+runtime behavior or broadening measured evidence. The earlier
 2026-07-28 drift audit identified 32 confirmed locations across 12 root causes.
 PR #14 corrected the implementation defect and the core documentation, while a
 strict closeout found six partially completed locations across root causes B, D,
@@ -64,7 +66,7 @@ are implemented without a new top-level contract version. The policy describes
 a reviewed configuration footprint rather than an artifact allowlist. The
 [2026-08-05 Qwen2 MLX-LM exact-source
 refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-records two fresh, clean, independent current-source
+records two fresh, clean, independent current-contract
 `aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions
 for the exact pinned artifact and revision, source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
@@ -98,8 +100,8 @@ compatibility normalizer was removed. The MoE rail owns topology and
 resident-versus-active memory only. The second Phase 6 policy reaches that same
 generic browser boundary without family-specific reconstruction.
 
-That exact-source refresh closes the current-source Phase 6 MLX-LM runtime gate for its
-exact scope. A different matching artifact remains conditional and must pass
+That refresh supplies current-contract Phase 6 MLX-LM runtime evidence at its
+exact acceptance source. A different matching artifact remains conditional and must pass
 its own model-data, measured-preflight, and pilot gates. The record does not
 qualify CUDA, establish safety or model quality, establish general Qwen2
 compatibility, support performance or production-throughput claims, or
@@ -122,8 +124,8 @@ itself remains blocked until the remaining CUDA target-host evidence and a
 Developer ID signed and notarized public desktop distribution exist for the
 capabilities being claimed. The July MLX-LM acceptance and local 10-build
 desktop engineering gate and original Phase 6 acceptance remain historical at
-their recorded commits; the August 5 exact-source refresh is the bounded
-current-source MLX-LM result. One qualifying exact CUDA LoRA single-device
+their recorded commits; the August 5 refresh is bounded current-contract
+MLX-LM evidence at its exact acceptance source. One qualifying exact CUDA LoRA single-device
 acceptance has been collected; other CUDA methods, placements, artifacts,
 hosts, and environments remain unqualified. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
@@ -138,29 +140,30 @@ derive every default, status, and response field from one source.
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, choices, defaults, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries |
 | Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, and workbench presentation no longer reconstructs policy from topology |
-| Historical separation | Good | Reference intake, superseded v0.1 pages, the legacy audit, and the indexed immutable drift audit display explicit status boundaries |
-| Discoverability | Good | The central index exposes reader journeys, and every current non-legacy page has contextual outgoing navigation |
-| Freshness metadata | Good | Current pages and historical entry points identify status, authority, review date, and a review trigger |
+| Historical separation | Good | Reference intake, superseded v0.1 pages, all ten legacy-audit reports, twelve archived engineering reviews, the immutable drift audit, and the failed Phase 6 diagnostic display explicit status boundaries |
+| Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
+| Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 exact-source refresh records two fresh current-source MLX-LM repetitions for its exact scope, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 105
+The [documentation inventory](documentation-inventory.md) classifies 119
 governed tracked Markdown documents:
 
-- 88 active;
+- 90 active;
 - 2 deprecated;
-- 15 archived.
+- 27 archived.
 
-The automated `maintained_documentation()` set contains 96 files because it
-retains the legacy-audit README but excludes nine subordinate historical audit
-pages. That automation scope is intentionally narrower than the governed
-inventory.
+The repository contains 120 tracked Markdown files in total. The pull-request
+template is the only metadata-exempt workflow interface. The automated
+`maintained_documentation()` set covers all other 119 files, including the
+desktop build guide, all legacy reports, and the archived engineering reviews.
 
-The deprecated pages point to current successors. Archived research and legacy
-records have visible warnings at their entry points. The active research source
-is labeled non-normative and cannot be read as a support matrix.
+The deprecated pages point to current successors. Archived research, legacy,
+diagnostic, and engineering-review records carry visible warnings before their
+historical bodies. The active research source is labeled non-normative and
+cannot be read as a support matrix.
 
 Review metadata now covers current pages and historical entry points. Future
 pages must follow [the maintenance policy](documentation-policy.md) so this does
@@ -170,21 +173,23 @@ not become a one-time cleanup.
 
 ### High impact
 
-No unresolved high-impact documentation drift remains at the maintained client
-boundaries. Generated OpenAPI JSON and TypeScript schema and path types retain
-stale-file checks. React semantic tests now cover the remaining job, profile,
-live-versus-restored compile, and method-catalog normalizers. Native tests cover
-health, runtime configuration, six-field runtime inventory, and supported or
-unsupported platform responses; the Swift/OpenAPI checker binds those four
-routes, their required top-level fields, and closed response values.
+The audit found that the API and configuration references named a 2 GiB user
+reserve without explaining the effective 8 GiB Apple MPS/unified-memory floor
+enforced at the CLI and HTTP planning boundaries. The proposed reference copy
+now distinguishes the supplied value from the effective floor and pins that
+claim in documentation tests. No implementation default changes.
 
 ### Medium impact
 
-No unresolved medium-impact documentation drift remains from the prior security
-intake finding. The repository owner confirmed `aptus-security@proton.me` is
-active, and both the normative security policy and GitHub issue routing now
-publish that dedicated private mailbox. DOC-006 records the resolved acceptance
-criteria.
+The audit also found overbroad README support wording; setup-directory and
+quality-gate inconsistencies; incomplete CUDA dependency, API inference-default,
+first-plan artifact, and workbench command guidance; twelve completed reviews
+still under `dev/active/`; incomplete governance for the desktop build guide and
+nine legacy reports; aging `current-source` language for exact-source MLX
+evidence; and stale review and merge metadata. The proposed copy corrects those
+surfaces, moves only the proposed review records, preserves every historical
+body and immutable evidence packet, and expands lifecycle regression checks.
+DOC-028 records the resolution and its non-runtime boundary.
 
 The [documentation debt log](documentation-debt.md) records owners, acceptance
 criteria, and status for each finding.
@@ -204,6 +209,8 @@ The current organization is broadly sound:
 - `docs/research/` records intake and reconciliation;
 - `docs/archive/` separates historical navigation from current guidance;
 - `docs/audits/aptus-legacy/` preserves one historical evidence bundle.
+- `dev/archive/` preserves and indexes superseded engineering reviews; and
+- `desktop/macos/README.md` is active build guidance linked from architecture.
 
 The capitalized `Reference/` packet predates that structure and could be
 confused with `docs/reference/`. This batch retains its paths to preserve source
@@ -215,6 +222,28 @@ signposts. [The archive index](../archive/index.md) groups them without changing
 links or audit reproduction paths.
 
 ## Validation result
+
+For the proposed 2026-08-06 reconciliation:
+
+- the baseline is merged main `170fd0e`;
+- immutable runtime evidence packet bodies remain unchanged;
+- twelve completed review records move from `dev/active/` to the same relative
+  subpaths under `dev/archive/` and gain only leading lifecycle warnings;
+- all ten legacy-audit reports carry archived metadata and remain one evidence
+  bundle;
+- the native desktop build guide becomes active governed documentation; and
+- focused tests cover the 120/119 repository and governed counts, the
+  90/2/27 lifecycle split, metadata, navigation, archive placement, and the
+  corrected reserve and generated-MLX inventory claims;
+- all 31 documentation tests and all 553 Python tests passed in an isolated
+  overlay of merged `main`;
+- all 130 React tests, TypeScript checking, the Vite production build, OpenAPI
+  server and generated-client freshness, maintained Swift client parity,
+  version parity, Ruff lint and formatting, Python compilation, and whitespace
+  validation passed; and
+- no native desktop build was required because the proposal changes Markdown
+  and documentation regression coverage, not the host, bridge, packaged
+  workbench, or desktop runtime.
 
 For the merged compatibility-contract correction in PR #21:
 
@@ -383,9 +412,11 @@ target-host coverage or public notarization.
 
 ## Recommended actions by impact
 
-1. Complete the remaining claimed CUDA target-host coverage, repeatability
+1. Review and separately approve application of this proposed documentation
+   reconciliation.
+2. Complete the remaining claimed CUDA target-host coverage, repeatability
    evidence, and public desktop distribution evidence.
-2. Revisit the repository-Markdown delivery decision only when versioning,
+3. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 
 ## Next health review

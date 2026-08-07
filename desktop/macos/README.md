@@ -1,5 +1,16 @@
 # Aptus for Mac
 
+> **Documentation status:** Active implementation and build guide
+>
+> **Applies to:** Aptus 0.2 native host on macOS 15 or newer, Apple Silicon only
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** Every desktop packaging or deployment-target change, and before 2026-11-06
+>
+> **Authority:** `desktop/macos/build.sh`, the Xcode project sources and tests,
+> and the desktop artifact workflow define the executable boundary.
+
 Aptus for Mac is a native Apple Silicon application shell. AppKit owns the
 application lifecycle, private backend session, shutdown, native file dialogs,
 and Finder integration. SwiftUI owns Home, Workbench, Machine, and Models. The
@@ -149,6 +160,11 @@ desktop/macos/build.sh --skip-backend --skip-dmg --skip-web --debug
 
 The Debug application resolves `.venv/bin/python` from the development
 repository root and runs the current `src/aptus/desktop.py` in isolated mode.
+
+For architecture and operator context, see the
+[macOS desktop architecture](../../docs/architecture/macos-desktop.md),
+[installation guide](../../docs/getting-started/install.md), and
+[release gates](../../docs/operations/release-gates.md).
 
 ## Runtime boundary
 

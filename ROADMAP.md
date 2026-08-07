@@ -10,8 +10,10 @@ target-host evidence all agree.
 
 Completed evidence:
 
-- One exact SmolLM2 CUDA LoRA single-device workflow reached
-  `measured-run-pass` at source `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`
+- One [exact SmolLM2 CUDA LoRA single-device
+  workflow](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+  reached `measured-run-pass` at source
+  `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`
   after dependency, model-data, measured-preflight, two-phase
   checkpoint-continuation pilot, full training, structural PEFT export, and
   parent promotion. It is not repeatability or broad CUDA acceptance.
@@ -34,8 +36,8 @@ Completed evidence:
   target-runtime acceptance: at that Phase 4 closeout, the July MLX-LM record
   predated the current v5 plan, v3 bundle, and Phase 6 registry expansion, and
   no current-head MLX or CUDA target-runtime pilot had been collected. The
-  later August 5 MLX and August 6 CUDA records now supply their separately
-  bounded exact-source evidence.
+  later August 5 MLX and August 6 CUDA records now supply separately bounded
+  current-contract evidence at their exact acceptance sources.
 
 Remaining release work:
 
@@ -198,15 +200,21 @@ Relative to the unchanged [original Phase 6 acceptance
 baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md),
 only manifested `README.md` and `runbook.md` prose changed; runtime programs and
 requirements remained byte-identical. The fresh runs qualify the new bundle
-fingerprint. That record closes the current-source Phase 6 MLX-LM runtime gate only for its
-exact scope. A different matching artifact remains conditional and must pass
-its own model-data, measured-preflight, and pilot gates. The result does not
+fingerprint. That record supplies current-contract Phase 6 MLX-LM runtime
+evidence at its exact acceptance source only for that scope. A different
+matching artifact remains conditional and must pass its own model-data,
+measured-preflight, and pilot gates. The result does not
 qualify CUDA, establish general Qwen2 compatibility, model quality or safety,
 or promise performance, production throughput, production readiness, or
 release readiness. Phase 5's browser-authority history remains unchanged.
 `aptus.api.v1`, `aptus.facts.v3`, `aptus.model-policy-snapshot.v1`, and
 `aptus.runtime-contract.v1` remain unchanged, while the added registry row
 changes the canonical snapshot digest and requires older v5 plans to replan.
+The separate [August 6 CUDA
+packet](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+qualifies one exact SmolLM2 LoRA single-device execution; it does not make the
+MLX result CUDA evidence or broaden planner and compiler eligibility into
+repeatable runtime support.
 
 ## Planner depth
 
@@ -284,4 +292,6 @@ quality, or automatic permission to train a model or dataset.
 
 - [Current capabilities](docs/product/current-capabilities.md)
 - [Method selection guide](docs/guides/choose-a-method.md)
+- [SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+- [Qwen2 MLX-LM current-contract evidence at exact source](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [Documentation debt](docs/maintenance/documentation-debt.md)

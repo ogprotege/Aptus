@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-06 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-07 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -42,6 +42,15 @@ applicable gate. Passing repository tests is not target-runtime evidence.
 - `npm audit --omit=dev` has no production advisory. Any development-tool
   advisory is recorded with its transitive path, exposure, available fix, and
   release disposition rather than hidden by the production result.
+- Every test-suite result used to pass a release gate records the exact command,
+  source commit and tree, interpreter or tool version, exit code,
+  passed/failed/skipped counts, duration, and captured-output binding. Record
+  the SHA-256 and byte size of one byte-exact combined stdout/stderr transcript,
+  or of each stream separately, together with a protected non-Git artifact
+  identifier or immutable CI URL and an ISO retention-until date. Raw
+  transcripts, raw job state, and per-job logs remain outside Git; commit only
+  a bounded sanitized summary and its digests. Missing transcript capture,
+  digest, or retention record leaves the gate unpassed.
 
 Run the repeated desktop gate only from a clean checkout:
 
@@ -131,12 +140,16 @@ do not prove public notarization.
 - `policy.qwen2-24l.mlx-qlora.v1` records implementation review of that
   configuration-to-path rule.
   `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` records only the exact pinned July
-  27 artifact under training-plan v2 and bundle v2. The current August 5
-  exact-source refresh records two fresh v5/v3 `measured-run-pass` repetitions
+  27 artifact under training-plan v2 and bundle v2. The August 5
+  current-contract evidence at exact source records two fresh v5/v3
+  `measured-run-pass` repetitions
   for the same exact pinned artifact at
   `719255153e3fc7e38e83b5ff826d587e5e58bf80`; the original August 5 packet
   remains its historical Phase 6 baseline. None of these records supplies runtime
   evidence for every artifact that matches the configuration footprint.
+- Registry-path and compiler eligibility satisfy an implementation boundary,
+  not a target-runtime gate. Only an exact bound runtime record can qualify the
+  execution it observed.
 - The plan and portable validator recompute sparse-layer count and active
   parameters. Base-weight, metadata, staging, and disk terms use the total
   resident parameter count.
@@ -328,7 +341,7 @@ For each claimed MLX-LM LoRA or QLoRA path:
   package-free frozen-snapshot integrity from installed-host registry currency.
 - Current documents distinguish the reviewed Qwen2 configuration-footprint
   policy, the July historical runtime record, the original August Phase 6
-  baseline, and the August exact-source current acceptance. They do not
+  baseline, and the August current-contract evidence at exact source. They do not
   transfer the current v5/v3 result to a different matching artifact.
 - No page describes `requirements.txt` as a transitive lock.
 - No page offers full-training resume.
@@ -346,9 +359,10 @@ For each claimed MLX-LM LoRA or QLoRA path:
 ## Current result
 
 Partially passed. The
-[2026-08-05 Apple Silicon exact-source record](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-closes the current-source Phase 6 MLX-LM runtime gate for the exact pinned
-Qwen2.5 0.5B artifact at acceptance source
+[2026-08-05 Apple Silicon current-contract record at exact
+source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+supplies Phase 6 MLX-LM runtime evidence for the exact pinned Qwen2.5 0.5B
+artifact at acceptance source
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -375,6 +389,13 @@ host, runtime closure, immutable model revision, synthetic dataset, v5 plan,
 v3 bundle, and policy snapshot. It does not establish repeatability or qualify
 another CUDA method, placement, host, model, dataset, or environment.
 
+That packet records the source-suite count and duration but no Python
+test-transcript digest or retained location. The summary does not satisfy the
+transcript-retention requirement above and cannot independently close a
+source-test gate; this limitation does not alter the packet's separately bound
+one-execution runtime result. See the [complete committed packet and retention
+boundary](index.md#complete-ubuntu-cuda-acceptance-packet).
+
 The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact. The
 [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -400,7 +421,7 @@ unreleased until every claimed release gate passes.
 
 - [Release evidence template](release-evidence-template.md)
 - [SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-- [Current Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [Original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)

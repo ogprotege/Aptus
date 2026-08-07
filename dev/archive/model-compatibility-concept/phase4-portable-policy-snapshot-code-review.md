@@ -1,5 +1,18 @@
 # Phase 4 pre-commit review: portable policy snapshot
 
+> **Documentation status:** Archived and superseded review evidence
+>
+> **Applies to:** Point-in-time Phase 4 portable-policy review recorded below
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or a named successor changes
+>
+> **Historical warning:** This review is preserved without rewriting its body.
+> Statements below that say a condition is current, open, or complete describe
+> the reviewed snapshot, not the present repository. Use the
+> [historical-review index](../README.md) to find current successors.
+
 - **Date:** 2026-08-02
 - **Branch:** `feat/portable-policy-snapshot` (uncommitted working tree on `246e15c`, the merged PR #24 / Phase 3 commit)
 - **Scope:** the full uncommitted Phase 4 change packet — 49 modified tracked files (+922 / −161), two new source files (`src/aptus/policy_snapshot.py`, `tests/aptus/test_policy_snapshot.py`), one regenerated packaged web asset

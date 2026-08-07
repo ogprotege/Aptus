@@ -1,6 +1,6 @@
 # First Planning-Only Run
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when CLI defaults change
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-22 or when CLI defaults change
 
 This tutorial proves the local planning, compilation, and static-validation
 path. It works without CUDA. It uses bundled synthetic data and synthetic model
@@ -12,6 +12,7 @@ You will create:
 
 ```text
 aptus-work/
+  dataset-profile.json
   plan.json
   bundle.zip
   bundle/

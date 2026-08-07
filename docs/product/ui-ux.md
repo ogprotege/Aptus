@@ -197,10 +197,12 @@ three-record presentation must render it; the client must not add a Qwen2
 predicate or infer the seven-module binding from family or display text.
 
 The UI describes this row as a reviewed 24-layer dense Qwen2 configuration
-footprint, not as acceptance of every matching artifact. The
-[2026-08-05 exact-source acceptance
+footprint, not as acceptance of every matching artifact. It must keep
+planner/compiler eligibility separate from exact runtime proof. The
+[2026-08-05 current-contract evidence at exact source
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-binds two fresh, clean current-source v5-plan and v3-bundle repetitions through
+binds two fresh, clean current-contract v5-plan and v3-bundle repetitions at
+that acceptance source through
 `measured-run-pass` at source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`

@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -20,6 +20,49 @@
 - [2026-07-27 MLX-LM target-host acceptance](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Changelog](../../CHANGELOG.md)
+
+### Complete Ubuntu CUDA acceptance packet
+
+The repository retains a checksum-covered, sanitized 15-file record for the
+2026-08-06 Ubuntu 24.04.4 and NVIDIA RTX 3050 acceptance. Start with the
+immutable narrative in this order:
+
+1. [Result](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#result)
+2. [Bound inputs](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#bound-inputs)
+3. [Source, runtime, and compilation](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#source-runtime-and-compilation)
+4. [Measured runtime evidence](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#measured-runtime-evidence)
+5. [Preliminary nonqualifying rehearsal](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#preliminary-nonqualifying-rehearsal)
+6. [Records and retention](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#records-and-retention)
+7. [Evidence boundary](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md#evidence-boundary)
+
+Every committed packet file is indexed below. Together, these are the entire
+repository-retained result set for that execution.
+
+| Evidence layer | Complete committed records |
+| --- | --- |
+| Narrative and semantic result | [`README.md`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md), [`acceptance-summary.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/acceptance-summary.json) |
+| Procedure and five-job projection | [`acceptance-procedure.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/acceptance-procedure.json), [`runs/run-1/run-summary.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/runs/run-1/run-summary.json) |
+| Compiler input and policy | [`bundle-manifest.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/bundle-manifest.json), [`clean-plan.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/clean-plan.json), [`model-policy-snapshot.v1.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/model-policy-snapshot.v1.json) |
+| Model provenance | [`provider-inspection.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/provider-inspection.json), [`inspection-receipt.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/inspection-receipt.json), [`model-files.sha256`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/model-files.sha256) |
+| Host and runtime | [`host-hardware.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/host-hardware.json), [`runtime-environment.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/runtime-environment.json), [`python-packages.txt`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/python-packages.txt) |
+| Excluded-raw bindings and packet integrity | [`raw-artifact-digests.json`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/raw-artifact-digests.json), [`SHA256SUMS`](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/SHA256SUMS) |
+
+The exact source summary records that 550 Python tests passed in 37.712
+seconds. The detailed sanitized runtime results are in `run-summary.json`,
+including all five jobs, timestamps, return codes, bindings, preflight and
+pilot metrics, full-training metrics, export manifest, parent promotion, and
+handoff state.
+
+Critical retention boundary: the repository does **not** contain the original
+verbose Python test stdout/stderr, raw job records, raw per-job logs, model or
+adapter binaries, or bundle archives. The packet deliberately marks those
+items as uncommitted, and `raw-artifact-digests.json` binds each excluded job
+record and job log by SHA-256. It does not record a digest or durable external
+location for the Python test transcript itself. The raw artifacts were marked
+as retained outside the repository when the packet was produced, but their
+external location is not part of the committed record. Consequently, the
+packet proves the recorded summary and structured results; it must not be
+described as a publication of the complete raw console output.
 
 ## Experimental host work
 

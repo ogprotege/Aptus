@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-08-06 |
 | Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -258,10 +258,28 @@ bounds, and never scans local ports.
 optional `timeout_seconds`, then returns the service's OpenAI-compatible model
 list.
 
+| Field | Type | Required | Default or constraint |
+| --- | --- | ---: | --- |
+| `service` | `lm-studio` or `omlx` | Yes | Selects the adapter and its default loopback origin |
+| `endpoint` | string or null | No | Service default; otherwise an explicit HTTP loopback origin with a port |
+| `timeout_seconds` | number | No | `5.0`, greater than 0 and at most 30 |
+
 `POST /api/v1/inference/generate` adds `model`, `messages`, `max_tokens`, and
 `temperature`. It performs one non-streaming chat-completions request. A local
 service error uses a nested structured error with service, operation, code,
 message, and upstream status.
+
+It accepts the same `service`, `endpoint`, and `timeout_seconds` fields plus:
+
+| Field | Type | Required | Default or constraint |
+| --- | --- | ---: | --- |
+| `model` | string | Yes | 1 through 256 characters |
+| `messages` | message array | Yes | 1 through 256 messages |
+| `max_tokens` | integer | No | `256`, from 1 through 32,768 |
+| `temperature` | number | No | `0.0`, from 0 through 2 |
+
+Each message requires a non-empty `content` string of at most 131,072
+characters and a `role` of `system`, `user`, `assistant`, or `tool`.
 
 ### `POST /api/v1/models/inspect`
 
@@ -388,13 +406,23 @@ records two fresh, clean `measured-run-pass` repetitions under
 source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
 Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
 fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
-It closes Phase 6's current-source runtime gate only for that scope;
-the Qwen2 policy remains a configuration footprint rather than an artifact
-allowlist, and another matching artifact must pass its own gates. The result
-does not qualify CUDA or establish safety, model quality, performance,
-production throughput, production readiness, or release readiness. The
+It supplies current-contract Phase 6 runtime evidence at that exact acceptance
+source only for that scope. The Qwen2 policy remains a configuration footprint
+rather than an artifact allowlist, and another matching artifact must pass its
+own gates. The result does not qualify CUDA or establish safety, model quality,
+performance, production throughput, production readiness, or release
+readiness. The
 [original Phase 6 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
+
+A separate [2026-08-06 CUDA LoRA single-device
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+binds one SmolLM2 workflow through `measured-run-pass` to its exact source,
+Ubuntu/RTX 3050 host, runtime, immutable model revision, synthetic dataset,
+plan, policy snapshot, bundle, and five-job sequence. One qualifying execution
+does not establish repeatability or qualify any other CUDA method, placement,
+device, artifact, dataset, host, or environment.
+
 Prefix matching never admits MoE or multimodal variants. Sparse model-type and
 architecture markers remain unsupported when provider topology is absent, even
 if their normalized family has a dense policy.
@@ -492,13 +520,20 @@ modified receipt fails. It never falls back to the user-attested path.
 | `supports_8bit` | boolean | No | False |
 | `host_ram_gib` | number | Yes | Greater than 0 |
 | `host_ram_free_gib` | number or null | No | `null`; greater than 0 when present |
-| `reserve_gib` | number | No | `2.0`; non-negative |
+| `reserve_gib` | number | No | `2.0` schema default; non-negative; effective 8 GiB floor for unified-memory requests |
 | `disk_free_gib` | number or null | No | `null`; greater than 0 when present |
 
 The strict request schema still requires `gpu_count`, `vram_gib`, and
 `host_ram_gib` for `local-scan`. The planner ignores those submitted values and
-re-probes the host, retaining only the submitted reserve. Local scan is blocked
+re-probes the host, retaining only the effective reserve. Local scan is blocked
 during an active managed job. Manual mode performs no probe.
+
+The schema's `2.0` GiB reserve is not the effective Apple default. Before
+constructing manual hardware or starting a local probe, the API raises the
+reserve to `max(reserve_gib, 8.0)` when `backend` is `mps`, the target runtime
+is `mlx-lm` or `pytorch-mps`, or `local-scan` runs on Darwin. This floor applies
+even when the caller explicitly submits a smaller non-negative value. CUDA
+requests outside those conditions retain the submitted value.
 
 For CUDA, `supports_4bit` is a device and kernel eligibility fact. MLX-LM
 QLoRA does not reuse that CUDA-shaped flag. It remains conditional until the

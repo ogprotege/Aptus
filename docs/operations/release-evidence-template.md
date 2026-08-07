@@ -1,6 +1,6 @@
 # Release Evidence Template
 
-> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active template | **Audience:** Maintainers and release reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Release engineering | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27
 
 Copy this template into a new, dated evidence record for each release candidate.
 Do not edit the template into a claim that work passed. Fill every applicable
@@ -58,6 +58,16 @@ State what it does not support:
 | Package-free snapshot/evaluator smoke | `[fill: copied plan_contract.py and policy_snapshot.py with no installed Aptus import]` | `[fill]` | `[fill]` |
 | Documentation checks | `[fill]` | `[fill]` | `[fill]` |
 | Patch whitespace | `[fill]` | `[fill]` | `[fill]` |
+
+A test row may be marked `Pass` only when `Command or evidence` gives the exact
+command and interpreter or tool versions, `Result` gives the exit code,
+passed/failed/skipped counts, and duration, and `Evidence location` gives the
+captured transcript SHA-256, byte size, protected non-Git artifact ID or
+immutable CI URL, and ISO retention-until date. Record both bindings when
+stdout and stderr are retained separately. Commit only the bounded sanitized
+result and digests; never commit raw transcripts, raw job state, or per-job
+logs. If any required binding or retention field is absent, record
+`Evidence incomplete` and leave the gate unpassed.
 
 Record built artifacts:
 

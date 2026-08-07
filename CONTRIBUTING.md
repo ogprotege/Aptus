@@ -1,6 +1,6 @@
 # Contributing
 
-> **Status:** Active | **Authority:** Normative contribution policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors | **Last reviewed:** 2026-07-27 | **Review by:** 2026-10-27 or when the quality gate changes
+> **Status:** Active | **Authority:** Normative contribution policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when the quality gate changes
 
 ## Scope
 
@@ -14,27 +14,38 @@ evidence. Neither establishes model quality without an evaluation contract.
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[server,test]'
-cd web && npm ci
+npm --prefix web ci
 ```
+
+Package metadata accepts Python 3.11 or newer. The required CI matrix currently
+tests Python 3.11 and 3.12; a newer interpreter allowed by metadata is not part
+of that current test matrix.
 
 The test extra pins Ruff exactly. The explicit `[tool.ruff.lint]` selection in
 `pyproject.toml` defines Aptus's lint policy, so a Ruff release cannot silently
 expand the required rule set. Upgrade the pin, lock, policy, and formatting in
 one reviewed change.
 
-## Required checks
+## Required repository-wide checks
+
+This is the canonical full repository quality gate. Run every command from the
+repository root; component guides may show smaller, explicitly partial gates
+for faster iteration.
 
 ```bash
-.venv/bin/ruff format --check src/aptus tests/aptus
-.venv/bin/ruff check src tests tools
 PYTHONPATH=src:. PYTHONDONTWRITEBYTECODE=1 \
   .venv/bin/python -m unittest discover -s tests -t . -v
+.venv/bin/ruff check src tests tools
+.venv/bin/ruff format --check src/aptus tests/aptus
 PYTHONPATH=src .venv/bin/python -m compileall -q src tests tools
 .venv/bin/python tools/generate_openapi.py --check
 .venv/bin/python tools/check_client_contracts.py
 .venv/bin/python tools/verify_versions.py
+npm --prefix web run openapi:check
+npm --prefix web test
+npm --prefix web run typecheck
+npm --prefix web run build
 git diff --check
-cd web && npm run openapi:check && npm test && npm run typecheck && npm run build
 ```
 
 When the HTTP contract changes, regenerate both derived contract artifacts from

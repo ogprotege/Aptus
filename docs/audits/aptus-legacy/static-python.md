@@ -1,5 +1,17 @@
 # Aptus legacy Python static forensic audit
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not current Python implementation guidance. Start with the
+> [audit index](README.md) or [current capabilities](../../product/current-capabilities.md).
+
 ## Scope and proof standard
 
 This report covers the Python code and tests under `HyperTune/` and the generated evidence under `docs/audits/aptus-legacy/`. It is the read-only static assessment track. That track did not import legacy modules or install packages. Later disposable checks, recorded in `sandbox-summary.md`, corroborate the optimizer/test/generator failures and run narrowly bounded salvage probes; no generated training script or model training ran.

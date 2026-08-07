@@ -221,7 +221,8 @@ remains non-compilable. Phase 6 has since implemented the second registry-driven
 `model.qwen2-24l.mlx-qlora` configuration-footprint policy and
 `mlx-lm.qlora.single.dense-causal-lm.v1` path. The
 [2026-08-05 Qwen2 MLX-LM exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-closes its current-source v5/v3 runtime gate with two fresh, clean
+supplies current-contract v5/v3 runtime evidence at its exact acceptance source
+with two fresh, clean
 `measured-run-pass` repetitions for the exact pinned artifact, source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree, Apple M5 Pro host,
 Python/MLX runtime, dataset, policy snapshot, and bundle fingerprint
@@ -237,6 +238,11 @@ production readiness, or release readiness. `aptus.api.v1`,
 `aptus.facts.v3`,
 `aptus.model-policy-snapshot.v1`, and `aptus.runtime-contract.v1` remain
 unchanged; the acceptance closeout does not change the already-bound snapshot.
+The registry row, emitted path, and compiler make the reviewed configuration
+eligible for that conditional execution path. They do not transfer either the
+MLX acceptance or the separate [exact CUDA
+acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+to another artifact, bundle, host, or runtime.
 
 ## API and workbench changes
 

@@ -1,5 +1,17 @@
 # Aptus Legacy Failure and Risk Register
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not a current Aptus risk register. Start with the [audit index](README.md) or
+> [current capabilities](../../product/current-capabilities.md).
+
 ## Decision
 
 **Required disposition: quarantine the legacy `HyperTune/` folder as reference-only evidence. Do not build, deploy, publish, license, sell, or import it into Aptus until every Critical and High item below has an owner, authoritative source evidence, and a verified replacement or explicit rejection decision.**

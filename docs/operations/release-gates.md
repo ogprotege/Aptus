@@ -47,10 +47,11 @@ applicable gate. Passing repository tests is not target-runtime evidence.
   passed/failed/skipped counts, duration, and captured-output binding. Record
   the SHA-256 and byte size of one byte-exact combined stdout/stderr transcript,
   or of each stream separately, together with a protected non-Git artifact
-  identifier or immutable CI URL and an ISO retention-until date. Raw
-  transcripts, raw job state, and per-job logs remain outside Git; commit only
-  a bounded sanitized summary and its digests. Missing transcript capture,
-  digest, or retention record leaves the gate unpassed.
+  identifier or immutable CI URL, retention-policy ID, and append-only effective
+  retention receipt and date. Raw transcripts, raw job state, and per-job logs
+  remain outside Git; commit only a bounded sanitized summary and its digests.
+  Missing transcript capture, digest, or retention record leaves the gate
+  unpassed.
 
 Run the repeated desktop gate only from a clean checkout:
 
@@ -156,6 +157,37 @@ do not prove public notarization.
 - PyTorch MPS has no compiler and produces no executable candidate.
 
 ## 3. Runtime sequence by training runtime
+
+When a release claim uses repeated CUDA time, resource, observed completion, or
+performance results, every planned slot records a campaign, comparison-cohort,
+comparison-cell, and attempt-slot ID plus its role, block, and ordinal. A
+started slot additionally records its execution-configuration and
+experiment-run IDs and every exact Aptus ID created inside it; a
+planned-not-started slot has none of those execution identities. Each started
+slot binds either a sealed canonical raw manifest covering complete job state
+and logs, stdout/stderr, monotonic event ledger, and telemetry, or an immutable
+capture-failure receipt that records its stable failure code, available-file
+inventory, missing fields, digest, byte size, and recoverable locator. A missing
+normal locator or retrieval result is permitted only when that failure receipt
+records why. If neither record can be sealed, the cohort cannot support a
+qualifying result.
+
+The public packet keeps three independent axes: slot status (`started` or
+`planned-not-started`), native outcome for a started slot (`passed`, `refused`,
+`failed`, `cancelled`, `timed-out`, `guard-blocked`, or `unknown`), and evidence
+status (`protocol-valid`, `capture-invalid`, or `not-started`). Each row carries
+the last action, an allowlisted stable reason code and bounded sanitized reason,
+raw-manifest and retrieval bindings when started, and an individual sanitized
+evidence-record location. Byte-exact exception text remains protected and is
+bound only by digest. Slot IDs are unique, every frozen slot appears exactly
+once, and the packet proves `Planned = Started + Planned-not-started`, `Started`
+equals the sum of native outcomes, and independently proves
+`Started = Protocol-valid + Capture-invalid`. Only native `passed` plus
+`protocol-valid` evidence may support a pass. It also reports sanitization
+mapping, sampling interval and coverage, and the predeclared aggregation rule.
+The [RTX 3050 CUDA empirical
+campaign](cuda-empirical-campaign.md) schedules the first such cohort but does
+not change these gates or establish a pass by itself.
 
 For each claimed CUDA method and placement:
 
@@ -419,6 +451,7 @@ unreleased until every claimed release gate passes.
 
 ## Related documentation
 
+- [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
 - [Release evidence template](release-evidence-template.md)
 - [SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)

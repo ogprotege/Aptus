@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-06
+> **Last reviewed:** 2026-08-07
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -178,13 +178,22 @@ when its evidence, owner, or resolution changes.
   pilot, full training, structural PEFT export, and parent promotion bound to
   its recorded Ubuntu/RTX 3050 environment. It is one execution, not
   repeatability or general CUDA acceptance.
-- **Required result:** Add equivalent evidence for every remaining claimed CUDA
-  method and placement, establish whatever repeatability the release claims,
-  and add Developer ID signed and notarized desktop evidence for the exact
-  public release commit.
-- **Blocker:** Access to the additional approved CUDA configurations required
-  by the final support claim and public notarization credentials for a public
-  Mac artifact
+- **Required result:** Execute the [canonical RTX 3050 CUDA empirical evidence
+  campaign](../operations/cuda-empirical-campaign.md) to preserve prior raw
+  records, establish complete capture and retrieval, measure repeatability, and
+  characterize all admitted single-device methods, model scale, guarded
+  configuration frontiers, endurance, and Ubuntu job control. Add a later
+  multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
+  and notarized desktop evidence for the exact public release commit.
+- **Milestones:** The single-device sequence is Phase 0 raw recovery, capture
+  infrastructure, explicit candidate selection, rehearsal and freeze, five-run
+  LoRA anchor, four-method matrix, size and configuration staircases, endurance,
+  and independently reviewed dated packets. Capability claims change only
+  after those packets merge.
+- **Blocker:** Capture and candidate-selection contracts are not yet
+  implemented. The intended RTX 3050 host has one GPU and cannot close DDP or
+  FSDP; those rows require approved multi-GPU access. Public notarization also
+  requires the corresponding Apple credentials.
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
@@ -546,7 +555,7 @@ when its evidence, owner, or resolution changes.
 ### DOC-028: Reconcile post-Phase 6 documentation and lifecycle drift
 
 - **Priority:** P1
-- **Status:** Resolved in the proposed reconciliation tree
+- **Status:** Resolved by PR #41
 - **Finding:** The 2026-08-06 repository-wide audit found one operationally
   important reserve-default omission and several maintenance gaps: the README
   had conflicting review dates and overbroad support wording; setup blocks could
@@ -555,7 +564,7 @@ when its evidence, owner, or resolution changes.
   remained under `dev/active/`; the native build guide and nine subordinate
   legacy reports were outside metadata and navigation checks; and active MLX
   guidance used aging `current-source` language for exact-source evidence.
-- **Resolution:** The proposed tree aligns reserve, dependency, API-default,
+- **Resolution:** The merged tree aligns reserve, dependency, API-default,
   setup, gate, artifact, capability, and exact-source wording with code and
   evidence. It moves the twelve completed reviews to an indexed `dev/archive/`
   tree without rewriting their bodies, adds archived warnings to every legacy
@@ -567,9 +576,9 @@ when its evidence, owner, or resolution changes.
   the review archive to be empty under `dev/active/`, and pin the corrected
   reserve and lifecycle claims. Local links, anchors, and code fences remain
   part of the same gate.
-- **Boundary:** This is a review package until separately approved and applied.
-  It changes documentation and documentation regression tests only; it does not
-  broaden MLX, CUDA, quality, performance, notarization, or release evidence.
+- **Boundary:** PR #41 changed documentation and documentation regression tests
+  only; it did not broaden MLX, CUDA, quality, performance, notarization, or
+  release evidence.
 - **Owner:** Documentation, runtime, desktop, API, and contributor-workflow maintainers
 
 ## Resolved in the 2026-07-22 governance batch

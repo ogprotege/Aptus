@@ -1,10 +1,15 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
 exact bundle runbook or release gates.
+
+For repeated RTX 3050 characterization, follow the [canonical CUDA empirical
+campaign](cuda-empirical-campaign.md) in addition to this per-bundle checklist.
+That campaign owns run ordering, repetitions, telemetry, stop rules, protected
+raw capture, and aggregation. Do not improvise those fields between runs.
 
 ## Current operating boundary
 

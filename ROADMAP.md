@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-06 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-07 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -41,8 +41,13 @@ Completed evidence:
 
 Remaining release work:
 
-- Complete real CUDA runs for every claimed executable method and placement
-  beyond the one exact LoRA single-device acceptance already recorded.
+- Execute the canonical [RTX 3050 CUDA empirical evidence
+  campaign](docs/operations/cuda-empirical-campaign.md) for repeatability,
+  clean-environment dependencies, all four registered single-device method
+  cells where exact candidates pass their gates,
+  model scale, guarded configuration frontiers, endurance, and raw-evidence
+  retention. That one-GPU campaign cannot close DDP or conditional LoRA FSDP;
+  those placements require a later multi-GPU campaign.
 - Extend MLX-LM acceptance beyond the exact recorded M5 Pro, Qwen QLoRA, and
   synthetic-dataset configuration before making broader Apple Silicon claims.
 - Record clean-environment dependency installation on every claimed CUDA path.
@@ -292,6 +297,7 @@ quality, or automatic permission to train a model or dataset.
 
 - [Current capabilities](docs/product/current-capabilities.md)
 - [Method selection guide](docs/guides/choose-a-method.md)
+- [RTX 3050 CUDA empirical evidence campaign](docs/operations/cuda-empirical-campaign.md)
 - [SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Qwen2 MLX-LM current-contract evidence at exact source](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [Documentation debt](docs/maintenance/documentation-debt.md)

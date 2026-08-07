@@ -1,5 +1,18 @@
 # Phase 6 code review: second model policy
 
+> **Documentation status:** Archived and superseded review evidence
+>
+> **Applies to:** Point-in-time Phase 6 second-policy code review recorded below
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or a named successor changes
+>
+> **Historical warning:** This review is preserved without rewriting its body.
+> Its statement that runtime acceptance remains open predates the later exact
+> MLX-LM acceptance packet. Use the [historical-review index](../README.md) for
+> the current successor and evidence boundary.
+
 > **Last Updated:** 2026-08-04
 
 ## Executive Summary

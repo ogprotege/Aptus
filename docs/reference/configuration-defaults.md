@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Operators, API clients, automation authors, and compiler maintainers |
 | Authority | Normative v0.2 reference for declared defaults, planner priors, and emitted runtime settings |
-| Last reviewed | 2026-07-27 |
+| Last reviewed | 2026-08-06 |
 | Next review | 2026-10-27, or sooner when CLI, API, planning, catalog, or generation code changes |
 
 Aptus has three kinds of configuration value:
@@ -72,6 +72,12 @@ Model identity, model shape, dataset path, device count and memory, total host
 RAM, and sequence length have no CLI defaults. Training permission must be
 confirmed explicitly.
 
+The `2.0` GiB reserve is the CLI's syntactic default, not the effective Apple
+unified-memory default. When the resolved backend is `mps`, the CLI raises the
+effective reserve to `max(--reserve-gib, 8.0)` before it constructs hardware
+facts. Supplying `--reserve-gib 0` or `2` therefore cannot reduce the MPS
+reserve below 8 GiB. CUDA retains the submitted non-negative value.
+
 ### Validation, jobs, inspection, and serving
 
 | Command or option | Default | Meaning |
@@ -137,8 +143,15 @@ the interface. They do not bypass runtime inventory, planning, or validation.
 `discovery` is `local-scan`, because the current request schema validates them
 before the server replaces manual hardware facts with a local probe. During a
 local scan, only `reserve_gib` is carried into the probe. The other manual
-hardware values are ignored. When the target explicitly selects `mlx-lm` or
-`pytorch-mps`, the local-scan reserve is raised to at least `8.0` GiB.
+hardware values are ignored.
+
+The `2.0` GiB request default is also syntactic. Before either manual hardware
+construction or a local probe, the API raises the effective reserve to at least
+`8.0` GiB when the request uses backend `mps`, selects training runtime
+`mlx-lm` or `pytorch-mps`, or requests local discovery from a Darwin server.
+Consequently, a caller cannot use a lower submitted reserve to bypass the
+unified-memory floor. CUDA requests outside those conditions retain the
+submitted non-negative value.
 
 ### Target, profile, and plan requests
 
@@ -158,7 +171,7 @@ hardware values are ignored. When the target explicitly selects `mlx-lm` or
 The plan target still requires `objective` and `sequence_length`. The plan
 request requires model, dataset, hardware, and target facts.
 
-### Validation, job, and inspection requests
+### Validation, job, inspection, and inference requests
 
 | Field | Default |
 | --- | --- |
@@ -167,6 +180,10 @@ request requires model, dataset, hardware, and target facts.
 | Job `action` | `preflight` |
 | Job `confirm_full_train` | False |
 | Model inspection `timeout_seconds` | `10.0`, allowed range greater than 0 through 30 |
+| Inference model-list `timeout_seconds` | `5.0`, allowed range greater than 0 through 30 |
+| Inference generation `timeout_seconds` | `5.0`, allowed range greater than 0 through 30 |
+| Inference generation `max_tokens` | `256`, allowed range 1 through 32,768 |
+| Inference generation `temperature` | `0.0`, allowed range 0 through 2 |
 
 ## Planner-derived candidate settings
 

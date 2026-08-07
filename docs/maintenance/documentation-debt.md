@@ -163,7 +163,7 @@ when its evidence, owner, or resolution changes.
   performance, or quality evidence. The
   [2026-08-05 Qwen2 MLX-LM exact-source
   refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-  now records two fresh, clean current-source v5/v3 `measured-run-pass`
+  now records two fresh, clean current-contract v5/v3 `measured-run-pass`
   repetitions for its exact pinned artifact and revision, source commit and
   tree, Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, plan,
   bundle, and new fingerprint. It closes the Phase 6 MLX-LM runtime gate only
@@ -447,8 +447,8 @@ when its evidence, owner, or resolution changes.
   The packet binds the exact pinned Qwen2.5 0.5B artifact and revision, source,
   Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, plan, bundle,
   metrics, and artifacts.
-- **Evidence boundary:** This closes the current-source Phase 6 MLX-LM runtime
-  gate only for that exact scope. The policy remains a reviewed configuration
+- **Evidence boundary:** This supplies Phase 6 MLX-LM runtime evidence at its
+  exact acceptance source only for that scope. The policy remains a reviewed configuration
   footprint, not an artifact allowlist; a different matching artifact must
   complete its own model-data, measured-preflight, and pilot gates. The result
   does not qualify CUDA, establish model quality, or promise production-scale
@@ -459,7 +459,7 @@ when its evidence, owner, or resolution changes.
   immutable exports, reload evidence, and parent-promotion receipts.
 - **Owner:** Policy, MLX runtime, release-evidence, and documentation maintainers
 
-### DOC-025: Refresh Phase 6 evidence at the exact current source
+### DOC-025: Refresh Phase 6 evidence at the exact acceptance source
 
 - **Priority:** P1
 - **Status:** Resolved
@@ -542,6 +542,35 @@ when its evidence, owner, or resolution changes.
   reload, quality, safety, benchmark performance, production readiness, or
   release readiness. DOC-011 therefore remains in progress.
 - **Owner:** CUDA runtime, release-evidence, and documentation maintainers
+
+### DOC-028: Reconcile post-Phase 6 documentation and lifecycle drift
+
+- **Priority:** P1
+- **Status:** Resolved in the proposed reconciliation tree
+- **Finding:** The 2026-08-06 repository-wide audit found one operationally
+  important reserve-default omission and several maintenance gaps: the README
+  had conflicting review dates and overbroad support wording; setup blocks could
+  leave contributors in `web/`; quality-gate lists, CUDA dependencies, inference
+  defaults, and artifact descriptions had drifted; twelve completed reviews
+  remained under `dev/active/`; the native build guide and nine subordinate
+  legacy reports were outside metadata and navigation checks; and active MLX
+  guidance used aging `current-source` language for exact-source evidence.
+- **Resolution:** The proposed tree aligns reserve, dependency, API-default,
+  setup, gate, artifact, capability, and exact-source wording with code and
+  evidence. It moves the twelve completed reviews to an indexed `dev/archive/`
+  tree without rewriting their bodies, adds archived warnings to every legacy
+  report, governs the active desktop build guide, updates README review metadata,
+  and inventories the generated MLX `reload.py` surface.
+- **Verification:** Documentation tests enumerate all 120 tracked Markdown
+  files, classify 119 governed pages as 90 active, 2 deprecated, and 27
+  archived, require metadata and primary-index reachability for all 119, require
+  the review archive to be empty under `dev/active/`, and pin the corrected
+  reserve and lifecycle claims. Local links, anchors, and code fences remain
+  part of the same gate.
+- **Boundary:** This is a review package until separately approved and applied.
+  It changes documentation and documentation regression tests only; it does not
+  broaden MLX, CUDA, quality, performance, notarization, or release evidence.
+- **Owner:** Documentation, runtime, desktop, API, and contributor-workflow maintainers
 
 ## Resolved in the 2026-07-22 governance batch
 

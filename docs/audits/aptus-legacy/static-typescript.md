@@ -1,5 +1,17 @@
 # Aptus legacy static TypeScript/JavaScript forensic report
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not current web implementation guidance. Start with the [audit index](README.md)
+> or [current capabilities](../../product/current-capabilities.md).
+
 ## Scope and confidence
 
 This report statically inspects the legacy `HyperTune/` source folder and the generated inventory, duplicate, version-family, and reference-map evidence. This static track did not install a package or execute legacy commands. Later disposable checks are reported separately in `sandbox-summary.md`; they confirm that `server.js` parses but the TypeScript project and dependency lock do not.

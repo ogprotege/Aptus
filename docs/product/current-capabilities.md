@@ -3,15 +3,15 @@
 > **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
-[2026-08-05 Qwen2 MLX-LM exact-source acceptance
+[2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 binds two fresh, clean v5-plan and v3-bundle repetitions through
 `measured-run-pass` to source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
-It closes the
-current-source Phase 6 runtime gate only for the exact recorded Qwen2.5
+It supplies current-contract Phase 6 runtime evidence at the exact acceptance
+source only for the recorded Qwen2.5
 artifact, immutable revision, Apple M5 Pro host, Python and MLX-LM runtime,
 four-row synthetic dataset, plan, bundle, and policy snapshot. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
@@ -62,8 +62,9 @@ acceptance remain open.
   uniform group-size-64 layout with no module overrides. Its only eligible tuple
   is single-device MLX-LM QLoRA with adapter profile
   `dense-causal-lm.v1` and all seven `q_proj`, `k_proj`, `v_proj`, `o_proj`,
-  `gate_proj`, `up_proj`, and `down_proj` targets. This is a reviewed runtime
-  footprint, not acceptance of every artifact with those structural facts;
+  `gate_proj`, `up_proj`, and `down_proj` targets. This is a reviewed
+  configuration footprint, not acceptance of every artifact with those
+  structural facts;
   sparse Qwen near-matches remain blocked by the sparse-policy boundary.
 - Persisted `aptus.training-plan.v5` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
@@ -319,11 +320,13 @@ acceptance remain open.
 
 ## Evidence status
 
-Static and local tests confirm contracts and platform-independent behavior. The
-[2026-08-05 Qwen2 MLX-LM exact-source acceptance
+Static and local tests confirm contracts and platform-independent behavior;
+planner and compiler eligibility still do not constitute target-runtime proof.
+The [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-binds two fresh, clean current-contract runs through dependency, model-data, measured
-preflight, uninterrupted pilot, fresh-process adapter reload, confirmed full
+binds two fresh, clean current-contract runs at that source through dependency,
+model-data, measured preflight, uninterrupted pilot, fresh-process adapter
+reload, confirmed full
 training, final export, parent-owned promotion, and `measured-run-pass` to
 source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -342,8 +345,10 @@ scoped to its older plan and bundle contract. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. One exact CUDA LoRA single-device workflow has run on its
-recorded target; it does not transfer to other CUDA configurations. The
+that identity. One [exact CUDA LoRA single-device
+workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+has run on its recorded target; it does not transfer to other CUDA
+configurations. The
 default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
 public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)

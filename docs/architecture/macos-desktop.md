@@ -167,6 +167,7 @@ clean-machine verification.
 
 ## Related documentation
 
+- [Desktop implementation and build guide](../../desktop/macos/README.md)
 - [System architecture](system.md)
 - [Security boundaries](security-boundaries.md)
 - [Workbench development](../contributing/workbench.md)

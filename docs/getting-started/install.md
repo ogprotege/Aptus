@@ -1,10 +1,11 @@
 # Install Aptus
 
-> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when packaging changes
+> **Status:** Active | **Authority:** Operational installation guide | **Applies to:** Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when packaging changes
 
 ## Requirements
 
-- Python 3.11 or newer.
+- Python 3.11 or newer. Package metadata accepts newer interpreters; CI
+  currently tests Python 3.11 and 3.12.
 - Node.js only when rebuilding the React application.
 - An Apple Silicon Mac for MLX-LM dependency, model-data, and measured-preflight
   actions, or a CUDA host for the complete CUDA evidence ladder.
@@ -49,6 +50,11 @@ distribution. The app uses an ephemeral loopback port and a random private
 session cookie. It does not expose the desktop API to the ordinary browser.
 Application state lives under `~/Library/Application Support/Aptus`, and the
 backend log lives under `~/Library/Logs/Aptus`.
+
+GitHub Actions uses a different ZIP name from the local build. It uploads
+`Aptus-macOS-arm64.dmg`, `Aptus-macOS-arm64.zip`, `COMMIT`, and
+`SHA256SUMS` in an artifact collection named
+`aptus-macos-arm64-<commit-sha>`.
 
 For public signing and notarization, configure a Developer ID Application
 identity and a stored `notarytool` keychain profile:
@@ -116,18 +122,28 @@ aptus diagnostics --help
 
 ## Rebuild the web application
 
-The Python package includes a built workbench in `src/aptus/_web`. To change it:
+The Python package includes a built workbench in `src/aptus/_web`. From the
+repository root, run this web-only iteration gate:
 
 ```bash
-cd web
-npm ci
-npm test
-npm run typecheck
-npm run build
+npm --prefix web ci
+npm --prefix web test
+npm --prefix web run typecheck
+npm --prefix web run build
 ```
 
-`npm run build` writes directly to `src/aptus/_web` and clears the previous
-packaged assets. Then build a clean wheel and run the installed-wheel smoke test.
+`npm --prefix web run build` writes directly to `src/aptus/_web` and clears the
+previous packaged assets. Then build a clean wheel and run the installed-wheel
+smoke test. This component gate does not replace the canonical
+[repository-wide quality gate](../../CONTRIBUTING.md#required-repository-wide-checks).
+
+For interactive Vite development or a focused Vitest watcher, use separate
+terminals:
+
+```bash
+npm --prefix web run dev
+npm --prefix web run test:watch
+```
 
 ## Serve locally
 

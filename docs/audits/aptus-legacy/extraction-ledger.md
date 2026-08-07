@@ -1,5 +1,17 @@
 # Aptus Legacy Extraction Ledger
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not a current implementation ledger. Start with the [audit index](README.md)
+> or [current capabilities](../../product/current-capabilities.md).
+
 Date: 2026-07-21
 
 This ledger closes the 35 ADAPT decisions in `classification.jsonl` before the

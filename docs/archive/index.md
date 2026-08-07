@@ -4,7 +4,7 @@
 >
 > **Applies to:** Preserved Aptus and pre-Aptus documentation
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** 2027-07-22, or when a listed path or successor changes
 
@@ -54,6 +54,25 @@ JSONL files form one evidence bundle.
 Do not rewrite those reports to match current Aptus. Add new findings as new
 dated records. The audit generator and reproduction instructions use the current
 `docs/audits/aptus-legacy/` path, so a move requires an explicit migration plan.
+
+## Archived engineering reviews
+
+The [historical engineering-review index](../../dev/archive/README.md) lists
+twelve completed code, architecture, product, compatibility-policy, client,
+macOS, and MoE reviews. Each review stays at a stable subject-relative path
+under `dev/archive/`, carries an archived warning, and links to its current
+successor. Their unchecked tasks and point-in-time status statements are not
+current backlog or release evidence.
+
+## Archived documentation audits and failed diagnostics
+
+- [2026-07-29 documentation-drift audit](../operations/evidence/2026-07-29-documentation-drift-audit/README.md)
+  is an immutable point-in-time audit. Later remediation is recorded in the
+  [documentation debt log](../maintenance/documentation-debt.md#doc-017-complete-the-2026-07-28-documentation-drift-remediation).
+- [Phase 6 failed parent-promotion diagnostic](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/diagnostics/attempt-01-unreceipted-parent-promotion/README.md)
+  preserves one nonqualifying attempt. It is not passing runtime evidence; use
+  the [exact-source acceptance record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+  for the bounded qualifying MLX-LM result.
 
 ## Preservation rules
 

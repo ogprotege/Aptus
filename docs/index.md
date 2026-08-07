@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -25,8 +25,9 @@ The current portable contract uses `aptus.training-plan.v5`,
 | Change the code | [Contributor index](contributing/index.md) | [Code map](architecture/code-map.md) |
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
-| Inspect the current MLX acceptance | [2026-08-05 Phase 6 exact-source MLX-LM evidence](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
-| Inspect the original Phase 6 MLX baseline | [2026-08-05 original acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Current exact-source refresh](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) |
+| Inspect the exact CUDA acceptance | [2026-08-06 SmolLM2 CUDA LoRA single-device evidence](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) | [Complete packet and detailed results](operations/index.md#complete-ubuntu-cuda-acceptance-packet) |
+| Inspect the current-contract MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
+| Inspect the original Phase 6 MLX baseline | [2026-08-05 original acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Current-contract evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) |
 | Inspect the historical MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Apple Silicon pilot matrix](operations/apple-silicon-pilot.md) |
 | Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect the Qwen3 MoE admission attempt | [2026-07-28 Qwen3 MoE evidence](operations/evidence/2026-07-28-qwen3-moe-admission/README.md) | [Capability matrix](reference/capability-matrix.md) |
@@ -121,7 +122,9 @@ Authority labels have a separate meaning:
 - [State, storage, and retention](operations/state-storage-retention.md)
 - [Release gates](operations/release-gates.md)
 - [Release evidence template](operations/release-evidence-template.md)
-- [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source target-host acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-06 SmolLM2 CUDA LoRA single-device target-host acceptance](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+- [Complete Ubuntu CUDA packet, detailed-result map, and raw-log retention boundary](operations/index.md#complete-ubuntu-cuda-acceptance-packet)
+- [2026-08-05 Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM target-host acceptance](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [2026-07-27 desktop engineering acceptance](operations/evidence/2026-07-27-desktop-release/README.md)
@@ -184,7 +187,7 @@ measured-preflight checks, an uninterrupted exact-model pilot, and confirmed
 full-duration adapter training from the pinned base model. Two fresh, clean,
 independent workflows
 reached `measured-run-pass` in the
-[2026-08-05 exact-source record](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+[2026-08-05 current-contract record at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 under a v5 plan and v3 bundle at
 `719255153e3fc7e38e83b5ff826d587e5e58bf80` with bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -205,8 +208,9 @@ structural PEFT export, and parent promotion. That one execution does not
 establish repeatability, general CUDA compatibility, quality, performance,
 production readiness, or release readiness.
 
-The August 5 MLX-LM acceptance closes that current-source Phase 6 runtime gate
-only for the exact pinned Qwen2.5 artifact and revision, source and tree, host,
+The August 5 MLX-LM acceptance supplies current-contract Phase 6 runtime
+evidence at its exact acceptance source only for the pinned Qwen2.5 artifact
+and revision, source and tree, host,
 runtime,
 dataset, policy snapshot, plan, bundle, and fingerprint. The 24-layer dense
 Qwen2 policy remains a

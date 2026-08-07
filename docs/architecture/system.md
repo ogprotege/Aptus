@@ -86,6 +86,10 @@ MLX-LM uses a separate unified-memory estimator and supports only
 single-device LoRA and QLoRA. PyTorch MPS is a known runtime without a compiler.
 For `mps` planning, device free VRAM remains unknown. The MLX estimator uses
 current free host RAM as the live unified-memory headroom cap when available.
+Candidate selectability and a compiler binding establish implementation
+eligibility; they are not target-runtime proof. Runtime evidence remains bound
+to an exact accepted plan, bundle, artifact, host, environment, and action
+sequence.
 
 The planner evaluates the model policy once per plan and intersects every
 candidate with the emitted paths. Policy matching does not decide hardware fit,
@@ -175,7 +179,8 @@ planner, compiler, host and portable evaluators, receipt provenance, and
 mutation tests. The policy describes a reviewed configuration footprint rather
 than an artifact allowlist. The [2026-08-05 Qwen2 MLX-LM exact-source refresh
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-binds two fresh, clean current-source v5-plan and v3-bundle ladders through
+binds two fresh, clean current-contract v5-plan and v3-bundle ladders at their
+exact acceptance source through
 `measured-run-pass` at source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.

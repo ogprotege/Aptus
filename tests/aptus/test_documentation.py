@@ -40,13 +40,11 @@ STALE_CONTRACTS = (
 
 def maintained_documentation() -> list[Path]:
     documents = [REPOSITORY / name for name in ROOT_DOCUMENTS]
-    documents.extend(
-        path
-        for path in sorted((REPOSITORY / "docs").rglob("*.md"))
-        if "audits/aptus-legacy" not in path.as_posix() or path.name == "README.md"
-    )
+    documents.extend(sorted((REPOSITORY / "docs").rglob("*.md")))
     documents.extend(sorted((REPOSITORY / "examples").glob("*.md")))
     documents.extend(sorted((REPOSITORY / "Reference").glob("*.md")))
+    documents.append(REPOSITORY / "desktop/macos/README.md")
+    documents.extend(sorted((REPOSITORY / "dev/archive").rglob("*.md")))
     return documents
 
 
@@ -940,7 +938,7 @@ class DocumentationTests(unittest.TestCase):
             opening_boundary,
         )
         self.assertIn(
-            "It closes the current-source Phase 6 runtime gate only for the exact recorded Qwen2.5",
+            "It supplies current-contract Phase 6 runtime evidence at the exact acceptance source only for the recorded Qwen2.5",
             opening_boundary,
         )
         self.assertIn(
@@ -984,11 +982,7 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY / "docs/maintenance/documentation-inventory.md"
         ).read_text(encoding="utf-8")
         repository_documents = set(repository_markdown_documents())
-        excluded_documents = {
-            REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md",
-            REPOSITORY / "desktop/macos/README.md",
-            *(REPOSITORY / "dev/active").rglob("*.md"),
-        }
+        excluded_documents = {REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md"}
         deprecated_documents = {
             REPOSITORY / "docs/design/aptus-core-vertical-slice.md",
             REPOSITORY / "docs/validation/aptus-core-smoke.md",
@@ -1002,28 +996,103 @@ class DocumentationTests(unittest.TestCase):
             REPOSITORY
             / "docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/diagnostics/attempt-01-unreceipted-parent-promotion/README.md",
             *(REPOSITORY / "docs/audits/aptus-legacy").glob("*.md"),
+            *(
+                path
+                for path in (REPOSITORY / "dev/archive").rglob("*.md")
+                if path.name != "README.md"
+            ),
         }
         governed_documents = repository_documents - excluded_documents
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 119)
-        self.assertEqual(len(excluded_documents), 14)
-        self.assertEqual(len(governed_documents), 105)
-        self.assertEqual(len(active_documents), 88)
+        self.assertEqual(len(repository_documents), 120)
+        self.assertEqual(len(excluded_documents), 1)
+        self.assertEqual(len(governed_documents), 119)
+        self.assertEqual(len(active_documents), 90)
         self.assertEqual(len(deprecated_documents), 2)
-        self.assertEqual(len(archived_documents), 15)
+        self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 96)
-        self.assertIn("105 governed tracked Markdown documents", inventory)
-        self.assertIn("96 Markdown files", inventory)
-        self.assertIn("119 tracked Markdown files", " ".join(inventory.split()))
-        self.assertIn("| Active | 88 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 119)
+        self.assertIn("119 are governed", inventory)
+        self.assertIn("119 governed", inventory)
+        self.assertIn("120 tracked Markdown", " ".join(inventory.split()))
+        self.assertIn("| Active | 90 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
-        self.assertIn("| Archived | 15 |", inventory)
+        self.assertIn("| Archived | 27 |", inventory)
+
+    def test_post_phase6_documentation_lifecycle_is_governed(self) -> None:
+        self.assertEqual(list((REPOSITORY / "dev/active").rglob("*.md")), [])
+
+        archive_index = REPOSITORY / "dev/archive/README.md"
+        archived_reviews = sorted(
+            path
+            for path in (REPOSITORY / "dev/archive").rglob("*.md")
+            if path != archive_index
+        )
+        self.assertEqual(len(archived_reviews), 12)
+        for document in archived_reviews:
+            metadata = document.read_text(encoding="utf-8")[:1600]
+            self.assertIn(
+                "**Documentation status:** Archived and superseded review evidence",
+                metadata,
+                document,
+            )
+            self.assertIn("**Historical warning:**", metadata, document)
+
+        legacy_directory = REPOSITORY / "docs/audits/aptus-legacy"
+        subordinate_legacy_reports = sorted(
+            path for path in legacy_directory.glob("*.md") if path.name != "README.md"
+        )
+        self.assertEqual(len(subordinate_legacy_reports), 9)
+        for document in subordinate_legacy_reports:
+            metadata = document.read_text(encoding="utf-8")[:1600]
+            self.assertIn("**Documentation status:** Archived evidence", metadata)
+            self.assertIn("**Historical warning:**", metadata)
+
+        desktop_readme = (REPOSITORY / "desktop/macos/README.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "**Documentation status:** Active implementation and build guide",
+            desktop_readme,
+        )
+        desktop_architecture = (
+            REPOSITORY / "docs/architecture/macos-desktop.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("../../desktop/macos/README.md", desktop_architecture)
+
+        archive_navigation = (REPOSITORY / "docs/archive/index.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("../../dev/archive/README.md", archive_navigation)
+        self.assertIn(
+            "2026-07-29-documentation-drift-audit/README.md", archive_navigation
+        )
+        self.assertIn(
+            "attempt-01-unreceipted-parent-promotion/README.md",
+            archive_navigation,
+        )
+
+        inventory = (
+            REPOSITORY / "docs/maintenance/documentation-inventory.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("MLX bundles additionally generate `reload.py`", inventory)
+
+    def test_apple_reserve_floor_is_explicit_in_operator_references(self) -> None:
+        defaults = (REPOSITORY / "docs/reference/configuration-defaults.md").read_text(
+            encoding="utf-8"
+        )
+        api = (REPOSITORY / "docs/reference/api.md").read_text(encoding="utf-8")
+        self.assertIn("syntactic default, not the effective Apple", defaults)
+        self.assertIn("max(--reserve-gib, 8.0)", defaults)
+        self.assertIn(
+            "effective 8 GiB floor for unified-memory requests",
+            api,
+        )
 
     def test_phase5_workbench_policy_authority_is_documented(self) -> None:
         def normalized(relative_path: str) -> str:
@@ -1346,7 +1415,7 @@ class DocumentationTests(unittest.TestCase):
             "README.md": (
                 "`model.qwen2-24l.mlx-qlora`",
                 "reviewed dense configuration footprint rather than an artifact allowlist",
-                "The two fresh 2026-08-05 MLX-LM runs close the current-source Phase 6 runtime gate",
+                "The two fresh 2026-08-05 MLX-LM runs supply current-contract Phase 6 runtime evidence at their exact acceptance source",
                 "only manifested operator `README.md` and `runbook.md` changed",
             ),
             "ROADMAP.md": (
@@ -1359,7 +1428,7 @@ class DocumentationTests(unittest.TestCase):
                 "Two v5/v3 `measured-run-pass` repetitions for the exact 2026-08-05 accepted artifact",
             ),
             "docs/reference/plan-schema.md": (
-                "runtime configuration footprint, not an artifact allowlist",
+                "reviewed configuration footprint, not an artifact allowlist",
                 "two fresh, clean `measured-run-pass` repetitions",
                 "does not qualify CUDA or establish safety, model quality, performance",
             ),
@@ -1369,7 +1438,7 @@ class DocumentationTests(unittest.TestCase):
                 "Another matching artifact still has to pass its own model-data, measured-preflight, and pilot gates",
             ),
             "docs/reference/api.md": (
-                "the Qwen2 policy remains a configuration footprint rather than an artifact allowlist",
+                "The Qwen2 policy remains a configuration footprint rather than an artifact allowlist",
                 "another matching artifact must pass its own gates",
                 "does not qualify CUDA or establish safety, model quality, performance",
             ),
@@ -1389,11 +1458,11 @@ class DocumentationTests(unittest.TestCase):
             "docs/operations/release-gates.md": (
                 "`policy.qwen2-24l.mlx-qlora.v1`",
                 "`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`",
-                "closes the current-source Phase 6 MLX-LM runtime gate",
+                "current-contract evidence at exact source records two fresh v5/v3",
                 "only manifested operator `README.md` and `runbook.md` changed",
             ),
             "docs/contributing/changing-contracts.md": (
-                "closes its current-source v5/v3 runtime gate with two fresh, clean",
+                "supplies current-contract v5/v3 runtime evidence at its exact acceptance source with two fresh, clean",
                 "other matching artifacts still require their own gates",
                 "does not qualify CUDA or establish safety, model quality, performance",
             ),
@@ -1407,12 +1476,12 @@ class DocumentationTests(unittest.TestCase):
                 "**Status:** Resolved",
                 "`14ed44b52a76bb84d8d9db4f2303951aa641339b`",
                 "The policy remains a reviewed configuration footprint, not an artifact allowlist",
-                "### DOC-025: Refresh Phase 6 evidence at the exact current source",
+                "### DOC-025: Refresh Phase 6 evidence at the exact acceptance source",
                 "`719255153e3fc7e38e83b5ff826d587e5e58bf80`",
                 "`ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`",
             ),
             "docs/maintenance/documentation-health.md": (
-                "That exact-source refresh closes the current-source Phase 6 MLX-LM runtime gate for its exact scope",
+                "That refresh supplies current-contract Phase 6 MLX-LM runtime evidence at its exact acceptance source",
                 "A different matching artifact remains conditional",
                 "One qualifying exact CUDA LoRA single-device acceptance has been collected",
             ),
@@ -2016,6 +2085,22 @@ class DocumentationTests(unittest.TestCase):
                     (relative, pattern),
                 )
 
+        operations_index = (REPOSITORY / "docs/operations/index.md").read_text(
+            encoding="utf-8"
+        )
+        packet_prefix = "evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/"
+        for relative in expected_files:
+            self.assertIn(f"{packet_prefix}{relative}", operations_index, relative)
+        self.assertIn(
+            "does **not** contain the original\nverbose Python test stdout/stderr",
+            operations_index,
+        )
+        self.assertIn(
+            "It does not record a digest or durable external\n"
+            "location for the Python test transcript itself.",
+            operations_index,
+        )
+
         evidence_leaf = "2026-08-06-smollm2-cuda-lora-single-acceptance/README.md"
         for relative in (
             "README.md",
@@ -2142,6 +2227,8 @@ class DocumentationTests(unittest.TestCase):
     def test_current_docs_do_not_reference_v1_contracts(self) -> None:
         failures: list[str] = []
         for document in maintained_documentation():
+            if document.is_relative_to(REPOSITORY / "dev/archive"):
+                continue
             text = document.read_text(encoding="utf-8")
             for contract in STALE_CONTRACTS:
                 if contract in text:

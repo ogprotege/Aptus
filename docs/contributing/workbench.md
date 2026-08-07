@@ -1,6 +1,6 @@
 # Workbench Development
 
-> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Frontend and API contributors | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Workbench | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27
 
 The React workbench is the complete transitional workflow inside the native Mac
 product and a local browser interface over the same strict FastAPI contracts
@@ -206,19 +206,21 @@ structure.
 
 ## Build and test
 
-From `web/`:
+From the repository root, run this workbench-only iteration gate:
 
 ```bash
-npm ci
-npm run openapi:check
-npm test
-npm run typecheck
-npm run build
+npm --prefix web ci
+npm --prefix web run openapi:check
+npm --prefix web test
+npm --prefix web run typecheck
+npm --prefix web run build
 ```
 
-`npm run build` runs the type check, then writes directly to
+`npm --prefix web run build` runs the type check, then writes directly to
 `src/aptus/_web`. Vite clears the previous output. The Python package includes
-that directory as package data.
+that directory as package data. This component gate does not replace the
+canonical [repository-wide quality
+gate](../../CONTRIBUTING.md#required-repository-wide-checks).
 
 After the build:
 
@@ -247,6 +249,18 @@ Run the API on loopback:
 
 ```bash
 aptus serve --host 127.0.0.1 --port 8787
+```
+
+In a second terminal at the repository root, start Vite:
+
+```bash
+npm --prefix web run dev
+```
+
+For focused test-driven work, a third terminal can keep Vitest in watch mode:
+
+```bash
+npm --prefix web run test:watch
 ```
 
 The command prints a per-launch authenticated workbench URL and bearer token.

@@ -3,10 +3,11 @@
 > **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
-an ordinary development computer. Its CUDA compiler covers the complete
-evidence ladder. Its separate MLX-LM compiler on Apple Silicon covers
-uninterrupted LoRA and QLoRA pilot and full-duration adapter training. Choose a
-path based on the result you need and the host you actually have.
+an ordinary development computer. Its planner can emit runtime-specific CUDA
+and MLX-LM candidates, and its compilers generate the corresponding programs
+for their evidence ladders. Planner and compiler eligibility are not runtime
+proof: only a completed ladder on the bound target host qualifies that exact execution.
+Choose a path based on the result you need and the host you actually have.
 
 ## Choose by outcome
 
@@ -82,7 +83,8 @@ bitsandbytes.
 
 The [2026-08-05 MLX-LM exact-source acceptance
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-covers two fresh, clean current-source v5-plan and v3-bundle ladders for the
+covers two fresh, clean current-contract v5-plan and v3-bundle ladders at the
+exact acceptance source for the
 exact pinned Qwen2.5 artifact at source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.

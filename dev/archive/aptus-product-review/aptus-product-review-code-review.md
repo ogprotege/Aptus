@@ -1,5 +1,18 @@
 # Aptus Product, Architecture, Refactor, and Interface Review
 
+> **Documentation status:** Archived and superseded review evidence
+>
+> **Applies to:** Point-in-time product and architecture review recorded below
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or a named successor changes
+>
+> **Historical warning:** This review is preserved without rewriting its body.
+> Statements below that say a condition is current, open, or complete describe
+> the reviewed snapshot, not the present repository. Use the
+> [historical-review index](../README.md) to find current successors.
+
 > **Status:** Superseded implementation baseline, retained as decision evidence
 > **Superseded on:** 2026-07-27
 > **Current sources:** `docs/product/current-capabilities.md`,

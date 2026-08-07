@@ -4,7 +4,7 @@
 >
 > **Applies to:** Dated forensic snapshot of the removed legacy `HyperTune/` tree
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** 2027-07-22, or when provenance or reproduction paths change
 >
@@ -20,15 +20,22 @@ folder was removed after extraction, and the user retains a separate backup.
 
 ## Start here
 
-1. `executive-summary.md` — direct verdict and recommended next step.
-2. `hidden-gems.md` — ranked ideas and implementation seams worth recovering.
-3. `failure-and-risk-register.md` — correctness, security, provenance, and
-   overclaim findings.
-4. `architecture-options.md` — candidate Aptus architectures for a separate
-   design phase.
-5. `static-typescript.md` and `static-python.md` — language-specific evidence.
-6. `provenance-report.md` — third-party, dependency, and research-claim checks.
-7. `sandbox-summary.md` — bounded dynamic verification and blocked gates.
+1. [Executive summary](executive-summary.md) — direct verdict and recommended
+   next step.
+2. [Hidden gems](hidden-gems.md) — ranked ideas and implementation seams worth
+   recovering.
+3. [Failure and risk register](failure-and-risk-register.md) — correctness,
+   security, provenance, and overclaim findings.
+4. [Architecture options](architecture-options.md) — candidate Aptus
+   architectures for a separate design phase.
+5. [TypeScript static audit](static-typescript.md) and
+   [Python static audit](static-python.md) — language-specific evidence.
+6. [Provenance report](provenance-report.md) — third-party, dependency, and
+   research-claim checks.
+7. [Sandbox summary](sandbox-summary.md) — bounded dynamic verification and
+   blocked gates.
+8. [Extraction ledger](extraction-ledger.md) — disposition of the recovered
+   implementation ideas.
 
 ## Machine-readable evidence
 

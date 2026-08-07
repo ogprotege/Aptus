@@ -4,9 +4,10 @@
 
 This page records the completed small-model QLoRA acceptance and the proposed
 next experiments for the measured 64 GB M5 Pro host. The
-[2026-08-05 exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-closed the current-source Phase 6 MLX-LM runtime gate twice with fresh,
-independent workflows using an
+[2026-08-05 current-contract evidence at exact
+source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+supplies Phase 6 MLX-LM runtime evidence twice for the exact accepted scope,
+with fresh, independent workflows using an
 `aptus.training-plan.v5` plan and `aptus.bundle.v3` bundle at source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
@@ -89,9 +90,10 @@ The second records the July measurements only for
 `mlx-community/Qwen2.5-0.5B-Instruct-4bit` at revision
 `53a32aee5e9447773fd2b85988395066aef3700a`. The policy does not make those
 measurements transferable to another matching artifact. The August 5
-exact-source refresh separately proves two fresh current v5/v3 runs for that
-same exact artifact and its newly bound source, tree, environment, and bundle
-fingerprint; it also does not transfer to a different matching artifact.
+current-contract evidence at exact source separately proves two fresh v5/v3
+runs for that same exact artifact and its newly bound source, tree, environment,
+and bundle fingerprint; it also does not transfer to a different matching
+artifact.
 
 ## Current Phase 6 QLoRA acceptance
 
@@ -147,8 +149,8 @@ It also does not establish current `aptus.training-plan.v5` and
 `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` record remains bound to the exact
 artifact and contracts that produced it.
 
-With current-source Gate 0 complete for the exact accepted artifact, evidence
-should now progress in this order:
+With current-contract Gate 0 evidence complete at the exact acceptance source
+for the accepted artifact, evidence should now progress in this order:
 
 1. Unquantized LoRA on a 7B model.
 2. QLoRA on a 14B model after the 7B run establishes memory and throughput.
@@ -293,7 +295,8 @@ plan and bundle rather than modifying the historical artifact.
 ## Related documentation
 
 - [Current capabilities](../product/current-capabilities.md)
-- [2026-08-05 Phase 6 MLX-LM exact-source acceptance evidence](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-05 Phase 6 MLX-LM current-contract evidence at exact source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [2026-08-05 original Phase 6 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM acceptance evidence](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 - [Method selection guide](../guides/choose-a-method.md)

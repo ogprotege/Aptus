@@ -4,7 +4,7 @@
 >
 > **Applies to:** Aptus v0.2 and later documentation changes
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-08-06
 >
 > **Next scheduled review:** 2026-10-22, or before the next release candidate
 
@@ -55,7 +55,8 @@ by the documentation checks.
 | Authority note | Required when the document is research-only, generated, or non-normative |
 
 Historical evidence should retain its original date and content. Add the status
-block without rewriting the historical record.
+block to every human-readable archived record, not only its directory entry
+page, without rewriting the historical body.
 
 Repository-host workflow templates and generated bundle documents are
 operational interfaces, not reader pages. They are exempt from the banner so
@@ -121,6 +122,8 @@ Documentation changes follow this sequence:
   architecture page.
 - Keep [the documentation index](../index.md) as the main current-documents hub.
 - Keep historical navigation under [the archive index](../archive/index.md).
+- Keep completed implementation and code reviews under the indexed
+  `dev/archive/` tree; `dev/active/` is only for explicitly open work.
 - Keep research intake under [the research index](../research/index.md).
 - Do not link ignored local intake, private data, caches, model weights, or
   disposable audit sandboxes.
@@ -151,6 +154,11 @@ value is provenance, not operational authority.
 - Point readers to the current successor.
 - Keep machine-readable audit snapshots with their matching human reports.
 - Record a move before changing a path used by audit reproduction tooling.
+
+The native desktop build guide at `desktop/macos/README.md` is maintained
+documentation, not an implementation-working exemption. It must carry active
+metadata, remain reachable from the architecture tree, and be reviewed with
+every desktop packaging or deployment-target change.
 
 ## Documentation validation
 

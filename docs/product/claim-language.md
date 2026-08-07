@@ -31,7 +31,9 @@ policy is not an artifact allowlist: runtime evidence for one exact artifact and
 immutable revision does not transfer to another artifact merely because both
 match the policy subject. Eligibility also does not establish candidate
 feasibility, dependency readiness, model-data validation, available capacity,
-or pilot success.
+or pilot success. Likewise, a selectable candidate and compiler binding prove
+that Aptus can emit the reviewed execution path; they do not prove that path
+ran successfully on a target host.
 
 ## Runtime claims
 
@@ -135,8 +137,8 @@ Use:
 - “pull-request CI rebuilt and packaged GitHub's exact tested merge commit,” but
   only after that workflow has completed successfully;
 - “the default desktop artifact is ad-hoc signed for review and testing”;
-- “the exact Phase 6 Qwen2 fixture passed two current-source v5/v3 MLX-LM
-  ladders”;
+- “the exact Phase 6 Qwen2 fixture passed two current-contract v5/v3 MLX-LM
+  ladders at the recorded acceptance source”;
 - “one exact SmolLM2 CUDA LoRA single-device workflow completed the five-action
   ladder through `measured-run-pass`; repeatability and other CUDA paths remain
   open.”
@@ -166,5 +168,6 @@ are separate claims. State which one the evidence supports.
 - [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Validation states](../reference/validation-states.md)
 - [Release gates](../operations/release-gates.md)
-- [2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
+- [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

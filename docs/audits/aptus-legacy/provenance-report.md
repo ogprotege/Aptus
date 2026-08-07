@@ -1,5 +1,17 @@
 # Aptus Legacy Provenance Report
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not a current dependency or legal determination. Start with the
+> [audit index](README.md) or [current capabilities](../../product/current-capabilities.md).
+
 Date: 2026-07-21
 
 This report covers provenance-sensitive material recovered from the legacy

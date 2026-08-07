@@ -1,5 +1,17 @@
 # Aptus Legacy Hidden Gems
 
+> **Documentation status:** Archived evidence
+>
+> **Applies to:** Dated forensic review of the removed legacy `HyperTune/` tree
+>
+> **Last reviewed:** 2026-08-06
+>
+> **Next scheduled review:** 2027-08-06, or when provenance or reproduction paths change
+>
+> **Historical warning:** The body below is preserved point-in-time evidence,
+> not current product or implementation guidance. Start with the
+> [audit index](README.md) or [current capabilities](../../product/current-capabilities.md).
+
 ## Forensic recovery report
 
 This report identifies ideas and code seams worth recovering for Aptus from the legacy source tree. `HyperTune/` is used below only as the legacy source path, not as the product name.

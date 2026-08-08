@@ -10,6 +10,7 @@ import sys
 import tempfile
 import types
 import unittest
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
@@ -34,6 +35,14 @@ from aptus.plan_contract import (
 )
 from aptus.profiling import build_hardware_spec, profile_dataset
 from aptus.validation import validate_bundle
+from tools.generate_cuda_campaign_fixture import (
+    DEFAULT_OUTPUT as CUDA_CAMPAIGN_FIXTURE,
+    FIXTURE_ID as CUDA_CAMPAIGN_FIXTURE_ID,
+    FIXTURE_SEED as CUDA_CAMPAIGN_FIXTURE_SEED,
+    GENERATOR_VERSION as CUDA_CAMPAIGN_GENERATOR_VERSION,
+    _display_path as cuda_campaign_display_path,
+    render_fixture as render_cuda_campaign_fixture,
+)
 
 from tests.aptus.helpers import (
     make_plan,
@@ -2704,6 +2713,109 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertEqual([len(item["text"]) for item in selected], [49, 48, 47])
         self.assertEqual(trainer["pilot_row_limit"], 32)
         self.assertIn("eval_dataset = None", source)
+
+    def test_cuda_campaign_fixture_is_reproducible_and_group_split_exact(self) -> None:
+        fixture_bytes = CUDA_CAMPAIGN_FIXTURE.read_bytes()
+        self.assertEqual(fixture_bytes, render_cuda_campaign_fixture())
+        self.assertEqual(len(fixture_bytes), 1_635_765)
+        self.assertEqual(
+            hashlib.sha256(fixture_bytes).hexdigest(),
+            "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+        )
+        self.assertEqual(
+            CUDA_CAMPAIGN_GENERATOR_VERSION,
+            "aptus.cuda-campaign-fixture-generator.v1",
+        )
+        self.assertEqual(CUDA_CAMPAIGN_FIXTURE_ID, "aptus.cuda-campaign-sft.v1")
+        self.assertEqual(CUDA_CAMPAIGN_FIXTURE_SEED, 20260808)
+        self.assertEqual(
+            cuda_campaign_display_path(CUDA_CAMPAIGN_FIXTURE),
+            "examples/cuda-campaign-sft-v1.jsonl",
+        )
+        self.assertEqual(
+            cuda_campaign_display_path(
+                Path(tempfile.gettempdir()) / "aptus-sensitive-parent" / "fixture.jsonl"
+            ),
+            "fixture.jsonl",
+        )
+
+        rows = [json.loads(line) for line in fixture_bytes.splitlines()]
+        self.assertEqual(len(rows), 512)
+        self.assertEqual(
+            [row["row_id"] for row in rows],
+            [f"cuda-campaign-row-{index:04d}" for index in range(512)],
+        )
+        self.assertEqual(
+            Counter(row["target_content_words"] for row in rows),
+            Counter({128: 256, 256: 128, 512: 64, 1024: 32, 2048: 32}),
+        )
+        self.assertEqual(
+            set(Counter(row["split_group"] for row in rows).values()),
+            {4},
+        )
+        self.assertEqual(len({row["split_group"] for row in rows}), 128)
+        self.assertEqual(len({row["prompt"] for row in rows}), 512)
+        for row in rows:
+            prompt = row["prompt"].removesuffix(".\nAgent:")
+            completion = row["completion"].removesuffix(".")
+            self.assertEqual(
+                len(prompt.split()) + len(completion.split()),
+                row["target_content_words"],
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_campaign_split")
+            train_offsets, evaluation_offsets, evidence = (
+                module.split_jsonl_offsets_with_evidence(
+                    CUDA_CAMPAIGN_FIXTURE,
+                    evaluation_fraction=0.125,
+                    seed=424242,
+                )
+            )
+        self.assertEqual((len(train_offsets), len(evaluation_offsets)), (448, 64))
+        self.assertEqual(evidence["training_declared_group_count"], 112)
+        self.assertEqual(evidence["evaluation_declared_group_count"], 16)
+        self.assertEqual(evidence["evaluation_row_error"], 0)
+        self.assertEqual(
+            evidence["canonical_jsonl_sha256"],
+            "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+        )
+        self.assertEqual(
+            evidence["assignment_sha256"],
+            "7e9e747a6e69868d2d542137468cd1baf3d81d7aaac1de29ed14e4dd83b428ed",
+        )
+
+        def groups_at(offsets) -> set[str]:
+            groups: set[str] = set()
+            with CUDA_CAMPAIGN_FIXTURE.open("rb") as source:
+                for offset in offsets:
+                    source.seek(offset)
+                    groups.add(json.loads(source.readline())["split_group"])
+            return groups
+
+        train_groups = groups_at(train_offsets)
+        evaluation_groups = groups_at(evaluation_offsets)
+        self.assertEqual(len(train_groups), 112)
+        self.assertEqual(len(evaluation_groups), 16)
+        self.assertFalse(train_groups & evaluation_groups)
+
+        def target_counts_at(offsets) -> Counter[int]:
+            counts: Counter[int] = Counter()
+            with CUDA_CAMPAIGN_FIXTURE.open("rb") as source:
+                for offset in offsets:
+                    source.seek(offset)
+                    counts[json.loads(source.readline())["target_content_words"]] += 1
+            return counts
+
+        self.assertEqual(
+            target_counts_at(train_offsets),
+            Counter({128: 232, 256: 112, 512: 56, 1024: 24, 2048: 24}),
+        )
+        self.assertEqual(
+            target_counts_at(evaluation_offsets),
+            Counter({128: 24, 256: 16, 512: 8, 1024: 8, 2048: 8}),
+        )
 
     def test_generated_full_dataset_split_and_lazy_random_access(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import types
 import unittest
@@ -14,6 +15,7 @@ from unittest.mock import patch
 from aptus.execution import (
     JobPrerequisiteError,
     JobService,
+    JobSubmissionFailure,
     _actual_runtime_snapshot,
     _environment_binding,
     _json_hash,
@@ -2082,6 +2084,258 @@ class ExecutionJobTests(unittest.TestCase):
         )
         self.assertNotIn("authorization_status", persisted)
         self.assertNotIn("authorization_current", persisted)
+        self.assertIsNone(record["child_process_started_monotonic_ns"])
+        self.assertIsNone(record["child_process_finished_monotonic_ns"])
+        self.assertIsNone(record["queued_monotonic_ns"])
+        self.assertIsNone(record["terminal_monotonic_ns"])
+        self.assertIsNone(record["monotonic_clock_binding"])
+        self.assertIsNone(persisted["child_process_started_monotonic_ns"])
+        self.assertIsNone(persisted["child_process_finished_monotonic_ns"])
+
+    def test_child_process_monotonic_boundaries_are_persisted_for_success(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            submitted = service.submit(fake_bundle(root), action="preflight")
+            finished = wait_for(service, submitted["id"])
+            persisted = json.loads(
+                (root / "jobs" / f"{submitted['id']}.json").read_text(encoding="utf-8")
+            )
+
+        started = finished["child_process_started_monotonic_ns"]
+        stopped = finished["child_process_finished_monotonic_ns"]
+        queued = finished["queued_monotonic_ns"]
+        terminal = finished["terminal_monotonic_ns"]
+        self.assertEqual(finished["state"], "completed")
+        self.assertRegex(
+            finished["monotonic_clock_binding"],
+            r"^(?:linux-boot-sha256:[0-9a-f]{64}|process-monotonic:[0-9a-f]{32})$",
+        )
+        self.assertIsInstance(started, int)
+        self.assertNotIsInstance(started, bool)
+        self.assertIsInstance(stopped, int)
+        self.assertNotIsInstance(stopped, bool)
+        self.assertLessEqual(queued, started)
+        self.assertLessEqual(started, stopped)
+        self.assertLessEqual(stopped, terminal)
+        self.assertEqual(persisted["queued_monotonic_ns"], queued)
+        self.assertEqual(persisted["child_process_started_monotonic_ns"], started)
+        self.assertEqual(persisted["child_process_finished_monotonic_ns"], stopped)
+        self.assertEqual(persisted["terminal_monotonic_ns"], terminal)
+
+    def test_child_process_monotonic_boundaries_are_persisted_for_failure(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            validate_path = bundle / "validate.py"
+            validate_path.write_text("raise SystemExit(7)\n", encoding="utf-8")
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            validate_entry = next(
+                item for item in manifest["files"] if item["path"] == "validate.py"
+            )
+            validate_entry["sha256"] = sha256_file(validate_path)
+            validate_entry["size_bytes"] = validate_path.stat().st_size
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            service = JobService(root / "jobs")
+            submitted = service.submit(bundle, action="preflight")
+            finished = wait_for(service, submitted["id"])
+
+        self.assertEqual(finished["state"], "failed")
+        self.assertEqual(finished["return_code"], 7)
+        self.assertLessEqual(
+            finished["child_process_started_monotonic_ns"],
+            finished["child_process_finished_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            finished["queued_monotonic_ns"],
+            finished["child_process_started_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            finished["child_process_finished_monotonic_ns"],
+            finished["terminal_monotonic_ns"],
+        )
+
+    def test_child_finish_boundary_precedes_parent_completion_verification(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root, validation_state="pilot-pass")
+            service = JobService(root / "jobs")
+            verification_started = threading.Event()
+            verification_release = threading.Event()
+
+            def block_verification(_record: object) -> dict:
+                verification_started.set()
+                verification_release.wait(timeout=5)
+                return {}
+
+            try:
+                with (
+                    patch.object(
+                        service,
+                        "_require_current_pilot",
+                        return_value={"measured_peak_bytes": 1},
+                    ),
+                    patch(
+                        "aptus.execution._verify_train_artifacts",
+                        side_effect=block_verification,
+                    ),
+                    patch(
+                        "aptus.execution._promote_train_attestation", return_value={}
+                    ),
+                ):
+                    submitted = service.submit(
+                        bundle, action="train", confirm_full_train=True
+                    )
+                    self.assertTrue(verification_started.wait(timeout=5))
+                    verifying = service.get(submitted["id"])
+                    child_finished = verifying["child_process_finished_monotonic_ns"]
+
+                    self.assertEqual(verifying["phase"], "verifying")
+                    self.assertEqual(verifying["return_code"], 0)
+                    self.assertIsInstance(child_finished, int)
+                    self.assertIsNone(verifying["terminal_monotonic_ns"])
+                    self.assertIsNone(verifying["finished_at"])
+                    self.assertIsNotNone(
+                        verifying["completion_verification_started_at"]
+                    )
+
+                    verification_release.set()
+                    finished = wait_for(service, submitted["id"])
+            finally:
+                verification_release.set()
+
+        self.assertEqual(finished["state"], "completed")
+        self.assertEqual(
+            finished["child_process_finished_monotonic_ns"], child_finished
+        )
+        self.assertIsNotNone(finished["finished_at"])
+        self.assertGreaterEqual(
+            finished["terminal_monotonic_ns"],
+            finished["child_process_finished_monotonic_ns"],
+        )
+
+    def test_restart_preserves_child_process_monotonic_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            submitted = service.submit(fake_bundle(root), action="preflight")
+            finished = wait_for(service, submitted["id"])
+
+            reloaded = JobService(root / "jobs").get(submitted["id"])
+
+        self.assertEqual(
+            reloaded["child_process_started_monotonic_ns"],
+            finished["child_process_started_monotonic_ns"],
+        )
+        self.assertEqual(
+            reloaded["child_process_finished_monotonic_ns"],
+            finished["child_process_finished_monotonic_ns"],
+        )
+
+    def test_restart_fails_closed_without_exact_child_finish_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            jobs = Path(temporary) / "jobs"
+            jobs.mkdir()
+            job_id = "job_" + "c" * 32
+            (jobs / f"{job_id}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "aptus.job-record.v1",
+                        "id": job_id,
+                        "job_id": job_id,
+                        "state": "running",
+                        "created_at": "2026-01-01T00:00:00+00:00",
+                        "action": "train",
+                        "bundle_dir": str(Path(temporary) / "missing-bundle"),
+                        "owner_pid": 999_999_997,
+                        "process_pid": 999_999_998,
+                        "return_code": 0,
+                        "verified_pending_evidence": {},
+                        "child_process_started_monotonic_ns": 100,
+                        "child_process_finished_monotonic_ns": None,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            recovered = JobService(jobs).get(job_id)
+
+        self.assertEqual(recovered["state"], "failed")
+        self.assertIsNone(recovered["child_process_finished_monotonic_ns"])
+        self.assertIn("exact child-process finish boundary", recovered["error"])
+        self.assertNotIn("completion_attestation", recovered)
+
+    def test_malformed_child_process_monotonic_boundaries_are_quarantined(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            jobs = Path(temporary) / "jobs"
+            jobs.mkdir()
+            job_id = "job_" + "d" * 32
+            (jobs / f"{job_id}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "aptus.job-record.v1",
+                        "id": job_id,
+                        "job_id": job_id,
+                        "state": "completed",
+                        "created_at": "2026-01-01T00:00:00+00:00",
+                        "action": "preflight",
+                        "bundle_dir": "/tmp/bundle",
+                        "child_process_started_monotonic_ns": 200,
+                        "child_process_finished_monotonic_ns": 199,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            service = JobService(jobs)
+            listed = service.list()
+            quarantined = list((jobs / "quarantine").glob(f"*{job_id}.json"))
+
+        self.assertEqual(listed, [])
+        self.assertEqual(len(quarantined), 1)
+
+    def test_malformed_job_lifetime_monotonic_boundaries_are_quarantined(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            jobs = Path(temporary) / "jobs"
+            jobs.mkdir()
+            job_id = "job_" + "f" * 32
+            (jobs / f"{job_id}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "aptus.job-record.v1",
+                        "id": job_id,
+                        "job_id": job_id,
+                        "state": "completed",
+                        "created_at": "2026-01-01T00:00:00+00:00",
+                        "action": "preflight",
+                        "bundle_dir": "/tmp/bundle",
+                        "monotonic_clock_binding": ("linux-boot-sha256:" + "a" * 64),
+                        "queued_monotonic_ns": 100,
+                        "child_process_started_monotonic_ns": 110,
+                        "child_process_finished_monotonic_ns": 120,
+                        "terminal_monotonic_ns": 119,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            service = JobService(jobs)
+            listed = service.list()
+            quarantined = list((jobs / "quarantine").glob(f"*{job_id}.json"))
+
+        self.assertEqual(listed, [])
+        self.assertEqual(len(quarantined), 1)
 
     def test_job_record_and_log_are_persisted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -2110,7 +2364,7 @@ class ExecutionJobTests(unittest.TestCase):
             with (
                 patch.object(service, "_run") as run_worker,
                 patch("aptus.execution.threading.Thread.start") as start_worker,
-                self.assertRaisesRegex(RuntimeError, "project revision write failed"),
+                self.assertRaises(JobSubmissionFailure) as raised,
             ):
                 service.submit(
                     fake_bundle(root),
@@ -2118,6 +2372,11 @@ class ExecutionJobTests(unittest.TestCase):
                     before_start=fail_persistence,
                 )
 
+            self.assertEqual(
+                raised.exception.failure_code, "PRE_START_PERSISTENCE_FAILED"
+            )
+            self.assertEqual(raised.exception.terminal_record["state"], "failed")
+            self.assertRegex(raised.exception.job_id, r"^job_[0-9a-f]{32}$")
             records = service.list()
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0]["state"], "failed")
@@ -2147,6 +2406,261 @@ class ExecutionJobTests(unittest.TestCase):
             self.assertEqual(service.list(), [])
             self.assertFalse(service._lease_path.exists())
             start_worker.assert_not_called()
+
+    def test_post_persist_setup_failure_returns_typed_terminal_record(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            with (
+                patch.object(
+                    service,
+                    "_create_global_lease",
+                    side_effect=OSError("private host detail"),
+                ),
+                self.assertRaises(JobSubmissionFailure) as raised,
+            ):
+                service.submit(fake_bundle(root), action="preflight")
+
+            failure = raised.exception
+            records = service.list()
+            self.assertEqual(failure.failure_code, "SUBMISSION_SETUP_FAILED")
+            self.assertEqual(failure.terminal_record["state"], "failed")
+            self.assertNotIn("private host detail", str(failure))
+            self.assertEqual(records[0]["id"], failure.job_id)
+            self.assertEqual(records[0]["state"], "failed")
+            self.assertFalse(service._lease_path.exists())
+
+    def test_post_start_handoff_failure_cancels_and_returns_typed_terminal(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            with (
+                patch.object(
+                    service,
+                    "get",
+                    side_effect=RuntimeError("private handoff detail"),
+                ),
+                self.assertRaises(JobSubmissionFailure) as raised,
+            ):
+                service.submit(fake_bundle(root), action="preflight")
+
+            failure = raised.exception
+            persisted = service._read(failure.job_id)
+            self.assertEqual(failure.failure_code, "SUBMISSION_HANDOFF_FAILED")
+            self.assertIn(failure.terminal_record["state"], {"failed", "cancelled"})
+            self.assertIn(persisted["state"], {"failed", "cancelled"})
+            self.assertNotIn("private handoff detail", str(failure))
+            self.assertFalse(service._lease_path.exists())
+
+    def test_opt_in_campaign_event_sink_is_private_and_record_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            experiment_run_id = "xrun_" + "a" * 32
+            bundle = fake_bundle(root)
+            observed_path = bundle / "campaign-environment.json"
+            (bundle / "validate.py").write_text(
+                "import json\n"
+                "import os\n"
+                "from pathlib import Path\n"
+                "Path('campaign-environment.json').write_text(json.dumps({"
+                "'sink': os.environ.get('APTUS_CUDA_CAMPAIGN_EVENT_SINK'), "
+                "'identity': os.environ.get('APTUS_CUDA_CAMPAIGN_EVENT_SINK_IDENTITY'), "
+                "'xrun': os.environ.get('APTUS_CUDA_CAMPAIGN_EXPERIMENT_RUN_ID'), "
+                "'job': os.environ.get('APTUS_CUDA_CAMPAIGN_JOB_ID')}), encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            validate_entry = next(
+                item for item in manifest["files"] if item["path"] == "validate.py"
+            )
+            validate_entry["sha256"] = sha256_file(bundle / "validate.py")
+            validate_entry["size_bytes"] = (bundle / "validate.py").stat().st_size
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            submitted = service.submit(
+                bundle,
+                action="preflight",
+                campaign_event_capture=True,
+                campaign_experiment_run_id=experiment_run_id,
+            )
+            finished = wait_for(service, submitted["id"])
+            sink = Path(finished["campaign_event_sink"])
+            observed = json.loads(observed_path.read_text(encoding="utf-8"))
+            self.assertTrue(finished["campaign_event_capture"])
+            self.assertEqual(finished["campaign_experiment_run_id"], experiment_run_id)
+            self.assertEqual(sink.name, f"{finished['id']}.jsonl")
+            self.assertEqual(sink.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(
+                finished["campaign_event_sink_identity"],
+                f"{sink.stat().st_dev}:{sink.stat().st_ino}",
+            )
+            self.assertEqual(
+                observed,
+                {
+                    "sink": str(sink),
+                    "identity": finished["campaign_event_sink_identity"],
+                    "xrun": experiment_run_id,
+                    "job": finished["id"],
+                },
+            )
+
+    def test_ordinary_job_scrubs_inherited_campaign_event_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            bundle = fake_bundle(root)
+            observed_path = bundle / "campaign-environment.json"
+            (bundle / "validate.py").write_text(
+                "import json\n"
+                "import os\n"
+                "from pathlib import Path\n"
+                "names = ("
+                "'APTUS_CUDA_CAMPAIGN_EVENT_SINK', "
+                "'APTUS_CUDA_CAMPAIGN_EVENT_SINK_IDENTITY', "
+                "'APTUS_CUDA_CAMPAIGN_EXPERIMENT_RUN_ID', "
+                "'APTUS_CUDA_CAMPAIGN_JOB_ID')\n"
+                "Path('campaign-environment.json').write_text("
+                "json.dumps({name: os.environ.get(name) for name in names}), "
+                "encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            validate_entry = next(
+                item for item in manifest["files"] if item["path"] == "validate.py"
+            )
+            validate_entry["sha256"] = sha256_file(bundle / "validate.py")
+            validate_entry["size_bytes"] = (bundle / "validate.py").stat().st_size
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            poisoned = {
+                "APTUS_CUDA_CAMPAIGN_EVENT_SINK": str(root / "foreign.jsonl"),
+                "APTUS_CUDA_CAMPAIGN_EVENT_SINK_IDENTITY": "1:1",
+                "APTUS_CUDA_CAMPAIGN_EXPERIMENT_RUN_ID": "xrun_" + "a" * 32,
+                "APTUS_CUDA_CAMPAIGN_JOB_ID": "job_" + "b" * 32,
+            }
+            with patch.dict(os.environ, poisoned, clear=False):
+                submitted = service.submit(bundle, action="preflight")
+                finished = wait_for(service, submitted["id"])
+
+            observed = json.loads(observed_path.read_text(encoding="utf-8"))
+            self.assertEqual(finished["state"], "completed")
+            self.assertEqual(observed, {name: None for name in poisoned})
+
+    def test_campaign_event_sink_arguments_are_fail_closed_pre_persist(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            bundle = fake_bundle(root)
+            with self.assertRaisesRegex(ValueError, "requires an exact"):
+                service.submit(bundle, campaign_event_capture=True)
+            with self.assertRaisesRegex(ValueError, "requires campaign_event_capture"):
+                service.submit(
+                    bundle,
+                    campaign_experiment_run_id="xrun_" + "a" * 32,
+                )
+            self.assertEqual(service.list(), [])
+
+    def test_parent_verification_boundaries_use_the_pinned_campaign_sink(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            sink = service.root / ".campaign-events" / ("job_" + "b" * 32 + ".jsonl")
+            identity = service._create_campaign_event_sink(sink)
+            record = {
+                "id": "job_" + "b" * 32,
+                "job_id": "job_" + "b" * 32,
+                "action": "train",
+                "campaign_event_capture": True,
+                "campaign_experiment_run_id": "xrun_" + "a" * 32,
+                "campaign_event_sink": str(sink),
+                "campaign_event_sink_identity": identity,
+            }
+            service._append_campaign_verification_boundary(
+                record, event_type="verification.started"
+            )
+            service._append_campaign_verification_boundary(
+                record,
+                event_type="verification.finished",
+                native_outcome="passed",
+            )
+            boundaries = [
+                json.loads(line)
+                for line in sink.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(
+                [item["event_type"] for item in boundaries],
+                ["verification.started", "verification.finished"],
+            )
+            self.assertEqual(
+                {item["phase"] for item in boundaries}, {"parent-verification"}
+            )
+            self.assertEqual(boundaries[-1]["native_outcome"], "passed")
+            self.assertEqual(boundaries[-1]["reason_code"], "NONE")
+
+    def test_parent_verification_rechecks_sink_metadata_after_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            sink = service.root / ".campaign-events" / ("job_" + "b" * 32 + ".jsonl")
+            identity = service._create_campaign_event_sink(sink)
+            record = {
+                "id": "job_" + "b" * 32,
+                "job_id": "job_" + "b" * 32,
+                "action": "train",
+                "campaign_event_capture": True,
+                "campaign_experiment_run_id": "xrun_" + "a" * 32,
+                "campaign_event_sink": str(sink),
+                "campaign_event_sink_identity": identity,
+            }
+            lock_calls = 0
+
+            def mutate_after_lock(*_arguments: object) -> None:
+                nonlocal lock_calls
+                lock_calls += 1
+                if lock_calls == 1:
+                    sink.chmod(0o644)
+
+            with (
+                patch("aptus.execution.fcntl.flock", side_effect=mutate_after_lock),
+                self.assertRaisesRegex(RuntimeError, "changed before append"),
+            ):
+                service._append_campaign_verification_boundary(
+                    record, event_type="verification.started"
+                )
+            self.assertEqual(sink.read_bytes(), b"")
+
+    def test_parent_verification_rechecks_sink_metadata_after_fsync(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = JobService(root / "jobs")
+            sink = service.root / ".campaign-events" / ("job_" + "b" * 32 + ".jsonl")
+            identity = service._create_campaign_event_sink(sink)
+            record = {
+                "id": "job_" + "b" * 32,
+                "job_id": "job_" + "b" * 32,
+                "action": "train",
+                "campaign_event_capture": True,
+                "campaign_experiment_run_id": "xrun_" + "a" * 32,
+                "campaign_event_sink": str(sink),
+                "campaign_event_sink_identity": identity,
+            }
+            real_fsync = os.fsync
+
+            def mutate_after_fsync(descriptor: int) -> None:
+                real_fsync(descriptor)
+                sink.chmod(0o644)
+
+            with (
+                patch("aptus.execution.os.fsync", side_effect=mutate_after_fsync),
+                self.assertRaisesRegex(RuntimeError, "changed during append"),
+            ):
+                service._append_campaign_verification_boundary(
+                    record, event_type="verification.started"
+                )
+            self.assertTrue(sink.read_bytes())
 
     def test_worker_rechecks_project_fingerprint_immediately_before_launch(
         self,
@@ -2579,8 +3093,165 @@ class ExecutionJobTests(unittest.TestCase):
             while current["state"] == "queued" and time.monotonic() < deadline:
                 time.sleep(0.01)
                 current = service.get(submitted["id"])
-            cancelled = service.cancel(submitted["id"])
+            detected = time.monotonic_ns()
+            cancelled = service.cancel(
+                submitted["id"],
+                reason_code="WATCHDOG_HEARTBEAT_LOST",
+                trigger_detected_monotonic_ns=detected,
+            )
+            persisted = json.loads(
+                (root / "jobs" / f"{submitted['id']}.json").read_text(encoding="utf-8")
+            )
         self.assertEqual(cancelled["state"], "cancelled")
+        self.assertEqual(cancelled["cancel_reason_code"], "WATCHDOG_HEARTBEAT_LOST")
+        self.assertEqual(cancelled["cancel_trigger_detected_monotonic_ns"], detected)
+        self.assertGreaterEqual(cancelled["cancel_requested_monotonic_ns"], detected)
+        self.assertGreaterEqual(
+            cancelled["process_group_terminated_monotonic_ns"],
+            cancelled["cancel_requested_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            cancelled["child_process_started_monotonic_ns"],
+            cancelled["child_process_finished_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            cancelled["child_process_finished_monotonic_ns"],
+            cancelled["process_group_terminated_monotonic_ns"],
+        )
+        self.assertGreaterEqual(
+            cancelled["lease_reconciled_monotonic_ns"],
+            cancelled["process_group_terminated_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            cancelled["queued_monotonic_ns"],
+            cancelled["child_process_started_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            cancelled["child_process_finished_monotonic_ns"],
+            cancelled["terminal_monotonic_ns"],
+        )
+        self.assertEqual(
+            persisted["lease_reconciled_monotonic_ns"],
+            cancelled["lease_reconciled_monotonic_ns"],
+        )
+
+    def test_cancel_rejects_invalid_campaign_milestone_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            make_slow(bundle)
+            service = JobService(root / "jobs")
+            submitted = service.submit(bundle, action="preflight")
+            with self.assertRaisesRegex(ValueError, "reason_code"):
+                service.cancel(submitted["id"], reason_code="")
+            with self.assertRaisesRegex(ValueError, "monotonic"):
+                service.cancel(submitted["id"], trigger_detected_monotonic_ns=True)
+            with self.assertRaisesRegex(ValueError, "future"):
+                service.cancel(
+                    submitted["id"],
+                    trigger_detected_monotonic_ns=time.monotonic_ns() + 1_000_000_000,
+                )
+            service.cancel(submitted["id"])
+
+    def test_completion_verification_is_noncancellable_and_cannot_contradict_pass(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root, validation_state="pilot-pass")
+            service = JobService(root / "jobs")
+            verification_started = threading.Event()
+            verification_release = threading.Event()
+
+            def block_verification(_record: object) -> dict:
+                verification_started.set()
+                verification_release.wait(timeout=5)
+                return {}
+
+            def promote(record: dict, _pending: object, **_kwargs: object) -> dict:
+                report_path = Path(record["bundle_dir"]) / "validation-report.json"
+                report = json.loads(report_path.read_text(encoding="utf-8"))
+                report["state"] = "measured-run-pass"
+                report_path.write_text(json.dumps(report), encoding="utf-8")
+                return {}
+
+            with (
+                patch.object(
+                    service,
+                    "_require_current_pilot",
+                    return_value={"measured_peak_bytes": 1},
+                ),
+                patch(
+                    "aptus.execution._verify_train_artifacts",
+                    side_effect=block_verification,
+                ),
+                patch(
+                    "aptus.execution._promote_train_attestation",
+                    side_effect=promote,
+                ),
+            ):
+                submitted = service.submit(
+                    bundle,
+                    action="train",
+                    confirm_full_train=True,
+                    campaign_event_capture=True,
+                    campaign_experiment_run_id="xrun_" + "a" * 32,
+                )
+                self.assertTrue(verification_started.wait(timeout=5))
+                verifying = service.get(submitted["id"])
+                self.assertEqual(verifying["phase"], "verifying")
+                self.assertFalse(verifying["cancellable"])
+                with self.assertRaisesRegex(ValueError, "noncancellable"):
+                    service.cancel(
+                        submitted["id"],
+                        reason_code="WATCHDOG_HEARTBEAT_LOST",
+                        trigger_detected_monotonic_ns=time.monotonic_ns(),
+                    )
+                self.assertTrue(service.campaign_lease_active())
+                verification_release.set()
+                finished = wait_for(service, submitted["id"])
+
+            self.assertEqual(finished["state"], "completed")
+            self.assertNotIn("cancel_requested_at", finished)
+            report = json.loads(
+                (bundle / "validation-report.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(report["state"], "measured-run-pass")
+            boundaries = [
+                json.loads(line)
+                for line in Path(finished["campaign_event_sink"])
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertEqual(
+                [item["event_type"] for item in boundaries],
+                ["verification.started", "verification.finished"],
+            )
+            self.assertEqual(boundaries[-1]["native_outcome"], "passed")
+            self.assertFalse(service.campaign_lease_active())
+
+    def test_cancel_does_not_claim_a_mismatched_lease_was_reconciled(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            make_slow(bundle)
+            service = JobService(root / "jobs")
+            submitted = service.submit(bundle, action="preflight")
+            deadline = time.monotonic() + 5
+            current = service.get(submitted["id"])
+            while current["state"] == "queued" and time.monotonic() < deadline:
+                time.sleep(0.01)
+                current = service.get(submitted["id"])
+            original_clear = service._clear_global_lease
+            with patch.object(service, "_clear_global_lease", return_value=False):
+                cancelled = service.cancel(
+                    submitted["id"],
+                    reason_code="LEASE_RECONCILIATION_FAILURE",
+                    trigger_detected_monotonic_ns=time.monotonic_ns(),
+                )
+            self.assertNotIn("lease_reconciled_monotonic_ns", cancelled)
+            self.assertIn("lease_reconciliation_error", cancelled)
+            original_clear(submitted["id"])
 
     def test_same_bundle_cannot_launch_overlapping_jobs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -2643,6 +3314,18 @@ class ExecutionJobTests(unittest.TestCase):
                 competitor.submit(second, action="preflight")
             owner.cancel(submitted["id"])
 
+    def test_campaign_lease_state_is_read_only_and_tracks_live_job(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            make_slow(bundle)
+            service = JobService(root / "jobs")
+            self.assertFalse(service.campaign_lease_active())
+            submitted = service.submit(bundle, action="preflight")
+            self.assertTrue(service.campaign_lease_active())
+            service.cancel(submitted["id"])
+            self.assertFalse(service.campaign_lease_active())
+
     def test_worker_start_failure_releases_global_lease(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -2654,9 +3337,11 @@ class ExecutionJobTests(unittest.TestCase):
                     "aptus.execution.threading.Thread.start",
                     side_effect=RuntimeError("injected thread failure"),
                 ),
-                self.assertRaisesRegex(RuntimeError, "injected thread failure"),
+                self.assertRaises(JobSubmissionFailure) as raised,
             ):
                 service.submit(bundle, action="preflight")
+            self.assertEqual(raised.exception.failure_code, "WORKER_START_FAILED")
+            self.assertEqual(raised.exception.terminal_record["state"], "failed")
             replacement = JobService(root / "replacement-jobs")
             submitted = replacement.submit(bundle, action="preflight")
             finished = wait_for(replacement, submitted["id"])

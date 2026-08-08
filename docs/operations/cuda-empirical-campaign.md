@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phase 0 privately complete; Phase 1 protocol frozen; implementation pending | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-08 | **Review by:** Before the first qualifying run, after any capture or selection contract changes, or by 2026-09-07
+> **Status:** Active experiment plan; Phase 0 privately complete; Phase 1 protocol frozen; Phase 2A source tooling implemented, independently reviewed, and source-gated; Phase 2B and Phase 3 pending | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-08 | **Review by:** Before Phase 2B, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-07
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -17,11 +17,14 @@ As of 2026-08-08, Phase 0 recovery is complete in the protected private layer:
 the expected prior evidence has a private disposition, two verified copies
 exist in separate failure domains, and off-host retrieval passed. No private
 path, machine identity, job identity, or raw record is published by this status
-note. The sanitized recovery supplement remains a Phase 2 deliverable. The
+note. The sanitized recovery supplement remains the pending Phase 2B
+deliverable. The
 [Phase 1 CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and its
 [machine-readable companion](../reference/cuda-campaign-protocol.v1.json) are
-the frozen design authority; they do not implement runtime capture, selection,
-telemetry, or watchdog behavior.
+the frozen design authority. The [Phase 2A tooling
+contract](cuda-campaign-phase2-tooling.md) records the implemented source
+interfaces, closed review findings, and Phase 2B preconditions; it does not
+authorize operator mutation and records no new Ubuntu or GPU result.
 
 ## What this plan reconciles
 
@@ -38,6 +41,7 @@ telemetry, or watchdog behavior.
 | [Method registry](../reference/method-registry.md) | Executable method, runtime, backend, and placement matrix | Defines which CUDA cells may be attempted |
 | [Model-policy snapshot](../reference/model-policy-snapshot.md) | Canonical model-policy decision contract | Defines whether an inspected artifact can produce the intended CUDA candidate |
 | [CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and [machine companion](../reference/cuda-campaign-protocol.v1.json) | Frozen Phase 1 experiment contract | Defines canonical identities, fixtures, thresholds, schedules, aggregation, retention, sanitization, and stopping semantics; it does not implement them |
+| [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md) | Implemented source and review contract | Freezes the opt-in capture, Phase 4 authority, admission/activation, outcome, custody, sanitizer, eligibility, and publication interfaces and states the Phase 2B preconditions without asserting target-runtime evidence |
 | [Apple Silicon pilot matrix](apple-silicon-pilot.md) | Apple/MLX experiment plan | Remains a sibling plan and supplies no CUDA evidence |
 | [Capability matrix](../reference/capability-matrix.md) | Current executable and evidence status | Changes only after reviewed campaign packets exist |
 | Ignored `WIP.md`, `TempDoc-ForUserReview/`, and `dev/archive/` | Local notes or historical review evidence | Useful historical lessons were incorporated here; these paths are not current authority |
@@ -73,6 +77,11 @@ memory, utilization, temperature, power sampling, artifact size, and bounded
 fit. It cannot by itself establish safety, model quality, production
 throughput, universal fit, universal method ranking, cost, or statistical
 estimator calibration.
+
+Every boundary from this campaign is an exact-host local observation, not an
+Aptus-wide ceiling. Cloud single-GPU, larger-accelerator, and multi-GPU claims
+require their own evidence cohorts. A workload refused on this RTX 3050 means
+only that it was not safely admitted on this exact host and configuration.
 
 ## Evidence vocabulary
 
@@ -114,7 +123,7 @@ estimator calibration.
    repetition receives fresh state, bundle, run, and capture locations.
 3. Never install, update, clean, or start Aptus on the Ubuntu host until Phase 0
    has produced two checksum-verified recovery copies of the August 6 raw
-   records in separate failure domains, including one off-host, Phase 2 has
+   records in separate failure domains, including one off-host, Phase 2B has
    published the reviewed sanitized recovery supplement, and retrieval has
    passed.
 4. Never overclock the GPU, raise its power limit, bypass Aptus admission, or
@@ -364,22 +373,26 @@ before the next timed run.
 ## Ordered implementation and execution plan
 
 The phases below are the only supported order. Phase 0 must precede host
-mutation. Phases 2 and 3 are separate reviewable code changes, and both must
-merge before a qualifying GPU run.
+mutation. Phase 2A is a reviewable tooling change, Phase 2B is the independently
+reviewed sanitized-recovery publication, and Phase 3 is a separate selection
+and measurement-control change. All applicable gates must merge before a
+qualifying GPU run.
 
 Current status is intentionally narrower than the phase descriptions: Phase 0
-completed privately on 2026-08-08, and Phase 1 is frozen as design authority.
-Phase 2 capture, sanitizer, telemetry, watchdog, and recovery-supplement work
-and Phase 3 explicit selection and measurement-control work are not
-implemented.
+completed privately on 2026-08-08, Phase 1 is frozen as design authority, and
+the Phase 2A source interfaces are implemented, independently reviewed, and
+source-gated on the development Mac. Phase 2B has not produced or
+merged the sanitized recovery supplement, Phase 3 remains pending, host
+mutation remains forbidden, and no new Ubuntu or empirical run occurred.
 
 | Phase | Outcome | May start when | Exit evidence |
 | ---:| --- | --- | --- |
 | 0 | Recover and protect prior Ubuntu raw evidence without publishing it yet | This plan is approved | Complete private inventory, digest comparison, two verified copies, and off-host retrieval |
 | 1 | Freeze protocol, record fields, retention, fixtures, and claim boundary | Phase 0 recovery may proceed in parallel, but no host mutation occurs | Reviewed plan, recovery-supplement schema, and sanitizer decisions |
-| 2 | Implement and test capture, sanitizer, telemetry, and watchdog tooling, then publish the recovered-evidence supplement | Phase 1 fields are frozen and Phase 0 inventory is complete | Full repository gates, fake-command evidence, and independently reviewed recovery supplement |
+| 2A | Implement and test Phase 4 authority, admission/activation, outcomes, capture, telemetry, watchdog, custody, sanitizer, eligibility, and publication tooling | Phase 1 fields are frozen and Phase 0 inventory is complete | Source-branch campaign gates and adversarial fake/short-command evidence; no target-runtime result |
+| 2B | Publish the recovered-evidence supplement through the reviewed sanitizer and custody gates | Phase 2A is reviewed and the protected Phase 0 inputs remain immutable | Dated sanitized supplement, sealed independent review, and passing publication eligibility |
 | 3 | Implement explicit candidate selection and exact measurement contracts | Phase 1 selection semantics are approved | Full gates and candidate-identity mutation tests |
-| 4 | Rehearse the harness and freeze the campaign source, host, environments, models, data, and run order | Phases 0, 2, and 3 pass | Nonqualifying rehearsal, captured Ubuntu repository gates, and successful retrieval |
+| 4 | Rehearse the harness and freeze the campaign source, host, environments, models, data, and run order | Phases 0, 2A, 2B, and 3 pass | Nonqualifying rehearsal, captured Ubuntu repository gates, and successful retrieval |
 | 5 | Establish the LoRA 135M repeatability anchor | Phase 4 passes without protocol changes | Exactly five measured attempts and a predeclared batch decision |
 | 6 | Compare all four single-device methods on the same anchor | Phase 5 is reviewed | Exploratory and predeclared measured blocks |
 | 7 | Characterize model-size and then architecture breadth | Stable cells exist in Phase 6 | Staircase ledger with passes, refusals, and failures |
@@ -409,7 +422,7 @@ implemented.
    record that fact and the search scope; do not recreate it from a summary.
 7. Assign every expected raw item one result: recovered and matching, recovered
    but mismatched, or not found. Preserve the recovery inventory in the vault.
-8. Preserve the private recovery inventory and its digest as Phase 2 input. Do
+8. Preserve the private recovery inventory and its digest as Phase 2B input. Do
    not publish it with an improvised schema or sanitizer before Phase 1 review.
 
 Phase 0 is complete only when every existing digest has a disposition, two
@@ -418,7 +431,8 @@ retrieval, and the host can remain unchanged without risking the only raw copy.
 Phase 0 completion alone does not authorize host mutation.
 
 Phase 0 met this private completion boundary on 2026-08-08. Its public
-sanitized supplement remains pending the reviewed Phase 2 sanitizer; the
+sanitized supplement remains pending Phase 2B through the reviewed sanitizer;
+the
 private inventory and locators remain outside Git.
 
 ### Phase 1 — protocol and schema decisions
@@ -427,8 +441,8 @@ The frozen decisions are versioned in the
 [human-readable protocol](../reference/cuda-campaign-protocol.md) and
 [canonical machine companion](../reference/cuda-campaign-protocol.v1.json).
 They define design contracts, not runtime behavior. Any discrepancy between
-this scheduling page and those frozen values must be reconciled before Phase 2
-implementation or any measured execution.
+this scheduling page and those frozen values must be reconciled before Phase 2B
+publication or any measured execution.
 
 Review and freeze:
 
@@ -470,45 +484,56 @@ Review and freeze:
   the affected attempt; and
 - which metrics are currently measurable and which require code changes.
 
-### Phase 2 — evidence-capture infrastructure
+### Phase 2A — evidence-capture infrastructure
 
-Add an opt-in experiment harness under `tools/`; do not change ordinary Aptus
-execution semantics merely to satisfy the campaign. The implementation must:
+The implemented opt-in campaign tooling under `tools/` leaves ordinary Aptus
+execution available while adding fail-closed evidence authority. Its reviewed
+source contract:
 
-- launch an exact command while capturing complete output and timing;
-- emit one monotonic event ledger with UTC mapping for command, managed-job,
+- retains a separately sealed three-file Phase 4 authority: source-freeze
+  record, exactly 600 canonical 1 Hz idle samples, and seal, with clean source,
+  exact current-host, boot, journal, telemetry, and thermal bindings;
+- derives exact content-bound resource budgets, collects 120 consecutive 1 Hz
+  admission observations within 1,800 seconds, and creates no execution or run
+  identity until admission passes and a sealed activation is verified;
+- retains the planned-slot context and all seven activation files, binding
+  their paths, roles, digests, identities, and semantic chain into the raw
+  manifest for deep verification;
+- classifies all seven native outcomes independently of `protocol-valid`,
+  `capture-invalid`, or `not-started` evidence status and accepts only exact
+  stopping prefixes and cancellation chains;
+- launches an exact command while capturing complete output and timing;
+- emits one monotonic event ledger with UTC mapping for command, managed-job,
   pilot-phase, training, export, verification, telemetry, sealing, and cooldown
-  boundaries, then derive segmented summaries from those markers;
-- capture each environment-provisioning or model-download command as its own
+  boundaries, then derives segmented summaries from those markers;
+- captures each environment-provisioning or model-download command as its own
   setup record when setup timing will be published;
-- copy and seal terminal Aptus job records, complete logs, reports, metrics,
+- copies and seals terminal Aptus job records, complete logs, reports, metrics,
   manifests, and selected artifacts;
-- run a low-overhead NVIDIA and host telemetry sidecar;
-- enforce every live safety trigger and the frozen deadline through the owning
+- runs a low-overhead NVIDIA and host telemetry sidecar;
+- enforces every live safety trigger and the frozen deadline through the owning
   `JobService`: record detection, cancellation-request, confirmed process-group
   termination, and lease-reconciliation timestamps by exact job ID, then seal
   the exact terminal disposition; never signal a stale numeric PID directly,
   and block further submissions when ownership or termination is uncertain;
-- create no-clobber raw manifests, sanitization projections, aggregates, and
+- requires all seven passing output roles: plan, bundle manifest, validation
+  report, pilot metrics, training metrics, final-export manifest, and the
+  deterministic bundle archive;
+- creates no-clobber raw manifests, sanitization projections, aggregates, and
   `SHA256SUMS`;
-- when normal capture or sealing cannot complete, write an immutable
+- when normal capture or sealing cannot complete, writes an immutable
   capture-failure receipt through a protected fallback path with the
   attempt-slot and run IDs, stable failure code, available-file inventory,
   missing-field list, SHA-256, byte size, and any recoverable locator; if neither
   a canonical raw manifest nor that receipt can be sealed, block publication of
   qualifying cohort results and all further submissions;
-- verify permissions, raw-to-public traceability, and retrieval from the
-  protected locator; and
-- fail the qualifying-run decision when capture, sealing, sanitization, or
-  retrieval is incomplete.
-
-After those tools and their allowlist pass review, create a new dated sanitized
-recovery-supplement packet from the Phase 0 inventory. Give every expected item
-its disposition, recovered byte size when available, manifest binding, opaque
-vault locator, retention-policy and receipt bindings, copy-verification result,
-and retrieval date/result. Keep the original August 6 packet immutable. The
-supplement must pass independent sanitization and raw-traceability review before
-any Ubuntu-host mutation.
+- verifies permissions, raw-to-public traceability, and retrieval from the
+  protected locator;
+- keeps publication eligibility read-only, then performs two fresh live
+  eligibility passes before creating an eligible decision anchor; and
+- pins staging-directory identity across atomic no-replace publication, verifies
+  after rename, and rolls the public destination back to absence if post-commit
+  verification or parent-directory durability fails.
 
 Test success, nonzero exit, timeout, cancellation, partial output, missing
 telemetry fields, telemetry death, malformed records, symlinks, path escape,
@@ -517,6 +542,29 @@ or short commands before any model download. Test watchdog loss explicitly: it
 must request owned cancellation, stop further submissions when ownership cannot
 be proven, and retain the incomplete attempt or its capture-failure receipt
 rather than reporting a pass.
+
+The [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md) records the
+implemented interfaces and closed adversarial-review findings. Implementing
+the Phase 4 source authority does not mean campaign Phase 4 ran: no production
+Phase 4 artifact was collected. Development results are not an Ubuntu run,
+CUDA measurement, or authorization to mutate the intended host.
+
+### Phase 2B — sanitized recovery supplement
+
+After Phase 2A merges, pin that exact merged source and use only its reviewed
+sanitizer, custody, and publication paths against protected Phase 0 copies to
+create the dated supplement. Follow the
+[Phase 2B preconditions](cuda-campaign-phase2-tooling.md#phase-2b-remains-pending).
+Give every expected Phase 0 item its disposition, recovered byte size when
+available, manifest binding, opaque vault locator, retention-policy and receipt
+bindings, copy-verification result, and retrieval date/result. Keep the
+original August 6 packet immutable.
+
+The supplement must pass independent sanitization, finalized-byte
+reverification, raw-traceability review, custody and retention checks, and
+fail-closed publication eligibility before merge. Until it merges, Ubuntu-host
+mutation remains forbidden. Phase 2B supplies a sanitized recovery supplement,
+not a new target-runtime result.
 
 ### Phase 3 — explicit method selection and measurement contracts
 
@@ -536,7 +584,7 @@ and accumulation rather than accepting them as independent inputs, exposes no
 optimizer-step target, rejects enforced wall time, and forbids a full-run
 `--max-steps` override. Phase 8 needs reviewed micro-batch/accumulation controls
 before sweeping them. Phase 9 needs a reviewed optimizer-step or graceful
-deadline contract before claiming an enforced endurance duration. The Phase 2
+deadline contract before claiming an enforced endurance duration. The Phase 2A
 safety watchdog is an emergency ceiling and cancellation mechanism, not a
 training-duration controller.
 
@@ -733,17 +781,20 @@ still required for DDP and conditional LoRA FSDP.
 
 1. Preserve the frozen Phase 1 protocol and its machine-readable companion as
    design authority. They authorize no runtime execution.
-2. Implement, review, and merge Phase 2 capture, sanitizer, telemetry, and
-   watchdog infrastructure. Use only that reviewed sanitizer to publish and
-   independently verify the Phase 0 recovery supplement.
-3. Implement, review, and merge Phase 3 explicit candidate selection and exact
+2. Merge the reviewed, source-gated Phase 2A contract and pin that exact merged
+   identity. This source work records no new Ubuntu result.
+3. Generate the checked Phase 2B procedure from its
+   [frozen preconditions](cuda-campaign-phase2-tooling.md#phase-2b-remains-pending),
+   execute it only against protected Phase 0 copies without mutating the Ubuntu
+   host, and publish and independently verify the recovery supplement.
+4. Implement, review, and merge Phase 3 explicit candidate selection and exact
    seed, progress, duration, and measurement-control contracts.
-4. After both implementation phases merge, run the complete repository gates with
+5. After Phase 2B and Phase 3 merge, run the complete repository gates with
    retained transcripts, and perform the Phase 4 nonqualifying rehearsal.
-5. Freeze the exact source, host, environments, datasets, models, and run order.
-6. Execute Phases 5 through 9 in order, sealing and reviewing each batch before
+6. Freeze the exact source, host, environments, datasets, models, and run order.
+7. Execute Phases 5 through 9 in order, sealing and reviewing each batch before
    expanding the matrix.
-7. Publish Phase 10 packets and update claims only to the exact evidence boundary.
+8. Publish Phase 10 packets and update claims only to the exact evidence boundary.
 
 ## Related documentation
 
@@ -752,6 +803,7 @@ still required for DDP and conditional LoRA FSDP.
 - [Release evidence template](release-evidence-template.md)
 - [Operator checklist](operator-checklist.md)
 - [State, storage, and retention](state-storage-retention.md)
+- [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md)
 - [CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json)
 - [Preflight and calibration](../methodology/preflight-calibration.md)

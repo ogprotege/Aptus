@@ -181,8 +181,13 @@ when its evidence, owner, or resolution changes.
   Phase 0 recovery completed privately on 2026-08-08 with a complete private
   disposition, two verified copies in separate failure domains, and verified
   off-host retrieval. This status publishes no protected paths, machine or job
-  identities, or raw content. The sanitized recovery supplement remains
-  pending Phase 2. The [CUDA campaign
+  identities, or raw content. Phase 2A implements and independently reviews
+  opt-in Phase 4 authority, admission/activation, all seven native outcomes,
+  capture, telemetry, watchdog, semantic sealing, custody, sanitization,
+  eligibility, and two-pass rollback-safe publication. Its [source-tooling
+  contract](../operations/cuda-campaign-phase2-tooling.md) is not operator
+  authorization and reports no new Ubuntu or empirical run. The sanitized
+  recovery supplement remains pending Phase 2B. The [CUDA campaign
   protocol](../reference/cuda-campaign-protocol.md) and
   [machine-readable companion](../reference/cuda-campaign-protocol.v1.json)
   freeze the Phase 1 decisions; they do not implement runtime behavior.
@@ -194,20 +199,25 @@ when its evidence, owner, or resolution changes.
   configuration frontiers, endurance, and Ubuntu job control. Add a later
   multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
   and notarized desktop evidence for the exact public release commit.
-- **Milestones:** Phase 0 raw recovery is privately complete, and Phase 1 is
-  frozen. Next, implement and merge Phase 2 capture, sanitizer, telemetry,
-  watchdog, and the public sanitized recovery supplement; then implement and
-  merge Phase 3 explicit candidate selection and measurement controls. Only
-  after those phases may the campaign rehearse and freeze, run the five-attempt
-  LoRA anchor, four-method matrix, size and configuration staircases, endurance,
-  and independently reviewed dated packets. Capability claims change only
-  after the applicable packets merge.
-- **Blocker:** Capture and candidate-selection contracts are not yet
-  implemented. Phase 2 capture and sanitization and Phase 3 selection and
-  measurement-control contracts remain future implementation. The intended
-  RTX 3050 host has one GPU and cannot close DDP or FSDP; those rows require
-  approved multi-GPU access. Public notarization also requires the corresponding
-  Apple credentials.
+- **Milestones:** Phase 0 raw recovery is privately complete, Phase 1 is frozen,
+  and Phase 2A source tooling is implemented, independently reviewed, and
+  source-gated. After Phase 2A merges, generate
+  the checked [Phase 2B
+  procedure](../operations/cuda-campaign-phase2-tooling.md#phase-2b-remains-pending)
+  from that pinned source, publish and independently review the sanitized
+  recovery supplement, and implement and merge Phase 3 explicit candidate
+  selection and measurement controls. Only after those phases may the campaign
+  rehearse and freeze, run
+  the five-attempt LoRA anchor, four-method matrix, size and configuration
+  staircases, endurance, and independently reviewed dated packets. Capability
+  claims change only after the applicable packets merge.
+- **Blocker:** Phase 2B has not produced or merged the sanitized recovery
+  supplement, and Phase 3 selection and measurement-control contracts remain
+  future implementation. Host mutation is still forbidden. The intended RTX
+  3050 host has one GPU and cannot close DDP or FSDP; its local boundaries are
+  not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
+  access. Public notarization also requires the corresponding Apple
+  credentials.
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract

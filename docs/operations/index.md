@@ -67,11 +67,14 @@ described as a publication of the complete raw console output.
 Private Phase 0 recovery completed on 2026-08-08 without changing that public
 packet or publishing protected locations, host identities, job identities, or
 raw content. The public sanitized recovery supplement remains pending the
-reviewed Phase 2 sanitizer and independent review.
+Phase 2B sanitizer, finalized-byte verification, publication-eligibility gate,
+and independent review. Phase 2A source tooling is implemented, independently
+reviewed, and source-gated on the development Mac; no new Ubuntu run occurred.
 
 ## Experimental host work
 
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
+- [Phase 2A tooling contract and Phase 2B preconditions](cuda-campaign-phase2-tooling.md)
 - [Frozen Phase 1 CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json)
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
@@ -82,11 +85,15 @@ then measuring single-device repeatability, method behavior, scale, guarded
 capacity frontiers, and endurance. It does not itself assert a result, and one
 RTX 3050 cannot supply DDP or FSDP evidence.
 
-Phase 0 is privately complete. The Phase 1 protocol is frozen and implements no
-runtime behavior. The required sequence is to implement and merge Phase 2
-capture, sanitizer, telemetry, watchdog, and the sanitized recovery supplement;
-then implement and merge Phase 3 explicit selection and measurement controls
-before measured execution.
+Phase 0 is privately complete. The Phase 1 protocol is frozen design authority.
+Phase 2A implements and independently reviews the opt-in Phase 4 authority,
+admission/activation, outcomes, capture, telemetry, watchdog, custody,
+sanitizer, eligibility, and publication source interfaces, with its integrated
+source gates complete. It is not operator authorization
+or target-runtime evidence. Phase 2B must still publish and independently
+review the sanitized recovery supplement without mutating the Ubuntu host.
+Phase 3 explicit selection and measurement controls remain pending before any
+measured execution.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6
@@ -103,6 +110,7 @@ before treating a row as passed.
 
 - [Documentation home](../index.md)
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
+- [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md)
 - [CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [Run states](../reference/run-states.md)
 - [Troubleshooting](../guides/troubleshooting.md)

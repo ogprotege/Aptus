@@ -1383,6 +1383,18 @@ def validate_bundle(
                             path="reload.py",
                         )
                     )
+            else:
+                campaign_events_path = bundle_dir / "campaign_events.py"
+                if campaign_events_path.is_file():
+                    checked.add("campaign_events.py")
+                else:
+                    findings.append(
+                        _finding(
+                            "MISSING_FILE",
+                            "Required CUDA bundle file is missing: campaign_events.py",
+                            path="campaign_events.py",
+                        )
+                    )
             try:
                 restored = training_plan_from_primitive(plan)
                 replanned = plan_training(
@@ -1516,6 +1528,7 @@ def validate_bundle(
 
     if LEVELS.index(level) >= LEVELS.index("static"):
         python_sources = [
+            *([] if is_mlx_bundle else ["campaign_events.py"]),
             "plan_contract.py",
             "policy_snapshot.py",
             "preflight.py",
@@ -1541,6 +1554,7 @@ def validate_bundle(
                     )
                 )
         template_sources = [
+            *([] if is_mlx_bundle else ["campaign_events.py"]),
             "README.md",
             "decision-report.md",
             "runbook.md",

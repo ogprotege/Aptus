@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-06 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-08 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -62,6 +62,18 @@ All notable changes are recorded here.
   optimizer updates with finite losses, changed adapter weights, positive peak
   and delta measurements, live unified-memory headroom, immutable artifacts,
   and a fresh-process adapter reload that generates one to four tokens.
+- Opt-in CUDA campaign Phase 2A source tooling for canonical evidence records,
+  separately sealed Phase 4 authority, exact admission and post-gate identity
+  activation, all seven native outcomes, exact-argv and managed-sequence
+  capture, Linux/NVIDIA telemetry, watchdog-owned cancellation, runtime
+  journals, retained activation provenance, semantic no-clobber sealing,
+  custody receipts, allowlisted recovery sanitization, read-only eligibility,
+  and two-pass inode-pinned publication with verified rollback. The [Phase 2A
+  tooling contract](docs/operations/cuda-campaign-phase2-tooling.md) records the
+  closed adversarial findings and Phase 2B preconditions. This is source and
+  contract evidence, not operator authorization, a product-capability claim,
+  or a target-runtime result; Phase 2B recovery publication and Phase 3
+  measurement controls remain pending.
 - Uninterrupted full-duration MLX LoRA and QLoRA execution from the pinned base
   model after `pilot-pass`, with duration derived from compiled training rows,
   batch size, accumulation, and maximum epochs.
@@ -234,6 +246,18 @@ repeatability or qualify other CUDA methods, placements, devices, artifacts,
 or environments. The default Mac artifacts are
 ad-hoc signed, not a Developer ID signed and notarized public distribution.
 Version 0.2.0 remains unreleased.
+
+The integrated Phase 2A CUDA campaign source gates passed on the stable
+development tree: all 302 campaign tests passed in 22.833 seconds, with Ruff
+lint, formatting, Python compilation, and diff-integrity checks also passing.
+The encompassing closeout passed all 888 Python tests in 45.777 seconds, all
+130 React tests, generated-contract and version checks, the installed-wheel
+smoke, and the native app and DMG build.
+All Phase 2A implementation and review work
+occurred on the development Mac without connecting to or mutating the intended
+Ubuntu host. It produced no new CUDA timing, resource, thermal, model, or
+empirical result. Any future RTX 3050 campaign boundary is exact-host local
+evidence, not an Aptus-wide cloud or multi-GPU ceiling.
 
 ## Related documentation
 

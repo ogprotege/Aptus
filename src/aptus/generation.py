@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import math
 import os
 import shutil
+import stat
 import tempfile
 import zipfile
 from dataclasses import replace
@@ -26,11 +28,18 @@ from .model_compatibility import (
     current_model_policy_snapshot_bytes,
     current_model_policy_snapshot_sha256,
 )
+from .plan_contract import validate_bundle_manifest
 from .profiling import canonical_training_rows, pilot_sample_rows
 
 
 _BUNDLE_PROGRAMS = {
-    "cuda": ("train.py", "run.py", "preflight.py", "validate.py"),
+    "cuda": (
+        "campaign_events.py",
+        "train.py",
+        "run.py",
+        "preflight.py",
+        "validate.py",
+    ),
     "mlx": ("train.py", "run.py", "reload.py", "preflight.py", "validate.py"),
 }
 
@@ -921,6 +930,363 @@ def generate_bundle(plan: TrainingPlan, output_dir: Path) -> ValidationReport:
         raise
 
 
+_ARCHIVE_EXCLUDED_NAMES = frozenset(
+    {
+        ".validation-report.lock",
+        "model-data-evidence.json",
+        "preflight-metrics.json",
+        "validation-report.json",
+    }
+)
+
+
+def _archive_source_fingerprint(metadata: os.stat_result) -> tuple[int, ...]:
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_nlink,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def _bundle_archive_sources(
+    bundle_dir: Path,
+) -> list[tuple[Path, str, tuple[int, ...]]]:
+    sources: list[tuple[Path, str, tuple[int, ...]]] = []
+    for path in sorted(bundle_dir.rglob("*")):
+        relative_path = path.relative_to(bundle_dir)
+        relative = relative_path.as_posix()
+        try:
+            metadata = path.lstat()
+        except OSError as error:
+            raise ValueError("Bundle archive source inventory is unstable.") from error
+        if stat.S_ISLNK(metadata.st_mode):
+            raise ValueError("Bundle archives cannot contain or traverse symlinks.")
+        if stat.S_ISDIR(metadata.st_mode):
+            continue
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            raise ValueError(
+                "Bundle archive sources must be regular non-hardlinked files."
+            )
+        if (
+            path.name in _ARCHIVE_EXCLUDED_NAMES
+            or "pilot-output" in relative_path.parts
+            or "runs" in relative_path.parts
+        ):
+            continue
+        sources.append((path, relative, _archive_source_fingerprint(metadata)))
+    return sources
+
+
+def _write_pinned_archive_member(
+    archive: zipfile.ZipFile,
+    path: Path,
+    relative: str,
+    expected: tuple[int, ...],
+) -> None:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        if _archive_source_fingerprint(os.fstat(descriptor)) != expected:
+            raise ValueError("Bundle archive source changed while opening.")
+        info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o644 << 16
+        with archive.open(info, "w") as destination:
+            while True:
+                block = os.read(descriptor, 1024 * 1024)
+                if not block:
+                    break
+                destination.write(block)
+        if _archive_source_fingerprint(os.fstat(descriptor)) != expected:
+            raise ValueError("Bundle archive source changed while reading.")
+    finally:
+        os.close(descriptor)
+    if _archive_source_fingerprint(path.lstat()) != expected:
+        raise ValueError("Bundle archive source path changed while reading.")
+
+
+def _write_bundle_archive(bundle_dir: Path, destination: Path | io.BytesIO) -> None:
+    sources = _bundle_archive_sources(bundle_dir)
+    with zipfile.ZipFile(
+        destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as archive:
+        for path, relative, fingerprint in sources:
+            _write_pinned_archive_member(archive, path, relative, fingerprint)
+    if _bundle_archive_sources(bundle_dir) != sources:
+        raise ValueError("Bundle archive source inventory changed during construction.")
+
+
+def _files_equal(left: Path, right: Path) -> bool:
+    left_metadata = left.lstat()
+    right_metadata = right.lstat()
+    if (
+        not stat.S_ISREG(left_metadata.st_mode)
+        or stat.S_ISLNK(left_metadata.st_mode)
+        or left_metadata.st_nlink != 1
+        or not stat.S_ISREG(right_metadata.st_mode)
+        or stat.S_ISLNK(right_metadata.st_mode)
+        or right_metadata.st_nlink != 1
+        or left_metadata.st_size != right_metadata.st_size
+    ):
+        return False
+    left_fingerprint = _archive_source_fingerprint(left_metadata)
+    right_fingerprint = _archive_source_fingerprint(right_metadata)
+    left_descriptor = os.open(left, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    right_descriptor = os.open(right, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    equal = True
+    try:
+        if (
+            _archive_source_fingerprint(os.fstat(left_descriptor)) != left_fingerprint
+            or _archive_source_fingerprint(os.fstat(right_descriptor))
+            != right_fingerprint
+        ):
+            return False
+        while True:
+            left_block = os.read(left_descriptor, 1024 * 1024)
+            right_block = os.read(right_descriptor, 1024 * 1024)
+            if left_block != right_block:
+                equal = False
+                break
+            if not left_block:
+                break
+        if (
+            _archive_source_fingerprint(os.fstat(left_descriptor)) != left_fingerprint
+            or _archive_source_fingerprint(os.fstat(right_descriptor))
+            != right_fingerprint
+        ):
+            equal = False
+    finally:
+        os.close(left_descriptor)
+        os.close(right_descriptor)
+    return bool(
+        equal
+        and _archive_source_fingerprint(left.lstat()) == left_fingerprint
+        and _archive_source_fingerprint(right.lstat()) == right_fingerprint
+    )
+
+
+def verify_bundle_archive(bundle_dir: Path, archive_path: Path) -> bool:
+    """Recompute and byte-compare the Aptus archive without loading it in memory."""
+
+    bundle = bundle_dir.resolve(strict=True)
+    archive = archive_path.absolute()
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".aptus-archive-verify-")
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        _write_bundle_archive(bundle, temporary)
+        return _files_equal(temporary, archive)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+_MAX_BUNDLE_ARCHIVE_BYTES = 256 * 1024**2
+_MAX_BUNDLE_ARCHIVE_MEMBERS = 4096
+_MAX_BUNDLE_ARCHIVE_MEMBER_BYTES = 128 * 1024**2
+_MAX_BUNDLE_ARCHIVE_TOTAL_BYTES = 512 * 1024**2
+
+
+def validate_bundle_archive_file(path: Path) -> dict[str, dict[str, Any]]:
+    """Stream-validate exact Aptus ZIP bytes and return the member inventory."""
+
+    archive_path = path.absolute()
+    try:
+        before = archive_path.lstat()
+    except OSError as error:
+        raise ValueError("Bundle archive is unavailable.") from error
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or stat.S_ISLNK(before.st_mode)
+        or before.st_nlink != 1
+        or before.st_size <= 0
+        or before.st_size > _MAX_BUNDLE_ARCHIVE_BYTES
+    ):
+        raise ValueError("Bundle archive file identity or size is invalid.")
+    fingerprint = _archive_source_fingerprint(before)
+    descriptor = os.open(archive_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    expected_descriptor, expected_name = tempfile.mkstemp(
+        prefix=".aptus-archive-canonical-"
+    )
+    os.close(expected_descriptor)
+    expected_path = Path(expected_name)
+    inventory: dict[str, dict[str, Any]] = {}
+    validation_succeeded = False
+    try:
+        if _archive_source_fingerprint(os.fstat(descriptor)) != fingerprint:
+            raise ValueError("Bundle archive changed during open.")
+        with os.fdopen(os.dup(descriptor), "rb") as source_file:
+            with zipfile.ZipFile(source_file, "r") as source:
+                infos = source.infolist()
+                names = [info.filename for info in infos]
+                if (
+                    not names
+                    or len(names) > _MAX_BUNDLE_ARCHIVE_MEMBERS
+                    or names != sorted(names)
+                    or len(names) != len(set(names))
+                    or source.comment
+                ):
+                    raise ValueError(
+                        "Bundle archive member inventory is not canonical."
+                    )
+                declared_total = 0
+                for info in infos:
+                    if (
+                        info.file_size < 0
+                        or info.file_size > _MAX_BUNDLE_ARCHIVE_MEMBER_BYTES
+                    ):
+                        raise ValueError("Bundle archive member is unbounded.")
+                    declared_total += info.file_size
+                    if declared_total > _MAX_BUNDLE_ARCHIVE_TOTAL_BYTES:
+                        raise ValueError("Bundle archive expansion is unbounded.")
+                with zipfile.ZipFile(
+                    expected_path,
+                    "w",
+                    compression=zipfile.ZIP_DEFLATED,
+                    compresslevel=9,
+                ) as expected:
+                    total_size = 0
+                    for info in infos:
+                        member_path = Path(info.filename)
+                        if (
+                            info.is_dir()
+                            or member_path.is_absolute()
+                            or ".." in member_path.parts
+                            or "\\" in info.filename
+                            or member_path.name in _ARCHIVE_EXCLUDED_NAMES
+                            or "pilot-output" in member_path.parts
+                            or "runs" in member_path.parts
+                        ):
+                            raise ValueError("Bundle archive member path is invalid.")
+                        canonical_info = zipfile.ZipInfo(
+                            info.filename, date_time=(1980, 1, 1, 0, 0, 0)
+                        )
+                        canonical_info.compress_type = zipfile.ZIP_DEFLATED
+                        canonical_info.external_attr = 0o644 << 16
+                        digest = hashlib.sha256()
+                        size = 0
+                        with (
+                            source.open(info, "r") as member,
+                            expected.open(canonical_info, "w") as destination,
+                        ):
+                            while True:
+                                block = member.read(1024 * 1024)
+                                if not block:
+                                    break
+                                size += len(block)
+                                total_size += len(block)
+                                if (
+                                    size > _MAX_BUNDLE_ARCHIVE_MEMBER_BYTES
+                                    or total_size > _MAX_BUNDLE_ARCHIVE_TOTAL_BYTES
+                                ):
+                                    raise ValueError(
+                                        "Bundle archive expansion is unbounded."
+                                    )
+                                digest.update(block)
+                                destination.write(block)
+                        if size != info.file_size:
+                            raise ValueError(
+                                "Bundle archive member size is inconsistent."
+                            )
+                        inventory[info.filename] = {
+                            "sha256": digest.hexdigest(),
+                            "size_bytes": size,
+                        }
+                with tempfile.TemporaryDirectory(
+                    prefix=".aptus-archive-contract-"
+                ) as bundle_name:
+                    bundle_root = Path(bundle_name)
+                    for info in infos:
+                        destination = bundle_root / Path(info.filename)
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        with (
+                            source.open(info, "r") as member,
+                            destination.open("xb") as extracted,
+                        ):
+                            while True:
+                                block = member.read(1024 * 1024)
+                                if not block:
+                                    break
+                                extracted.write(block)
+                    contract_errors = validate_bundle_manifest(bundle_root)
+                    if contract_errors:
+                        raise ValueError(
+                            "Archive does not satisfy the canonical Aptus bundle contract: "
+                            + "; ".join(contract_errors[:3])
+                        )
+                    manifest = json.loads(
+                        (bundle_root / "bundle-manifest.json").read_text(
+                            encoding="utf-8"
+                        )
+                    )
+                    entries = manifest.get("files")
+                    if not isinstance(entries, list):
+                        raise ValueError(
+                            "Archive does not satisfy the canonical Aptus bundle contract."
+                        )
+                    manifested_names = {
+                        item.get("path") for item in entries if isinstance(item, dict)
+                    }
+                    if None in manifested_names or set(names) != manifested_names | {
+                        "bundle-manifest.json"
+                    }:
+                        raise ValueError(
+                            "Archive member inventory differs from the canonical Aptus bundle manifest."
+                        )
+                    from .validation import validate_bundle
+
+                    static_report = validate_bundle(
+                        bundle_root, level="static", run=False
+                    )
+                    if static_report.state.value != "static-pass":
+                        raise ValueError(
+                            "Archive does not satisfy the canonical Aptus static bundle contract."
+                        )
+        if _archive_source_fingerprint(os.fstat(descriptor)) != fingerprint:
+            raise ValueError("Bundle archive changed during validation.")
+        validation_succeeded = True
+    except (EOFError, OSError, RuntimeError, zipfile.BadZipFile) as error:
+        raise ValueError("Bundle archive is not a valid Aptus ZIP.") from error
+    finally:
+        os.close(descriptor)
+        if not validation_succeeded:
+            expected_path.unlink(missing_ok=True)
+    try:
+        if _archive_source_fingerprint(
+            archive_path.lstat()
+        ) != fingerprint or not _files_equal(expected_path, archive_path):
+            raise ValueError("Bundle archive bytes are not canonical Aptus output.")
+        return inventory
+    finally:
+        expected_path.unlink(missing_ok=True)
+
+
+def validate_bundle_archive_bytes(payload: bytes) -> dict[str, dict[str, Any]]:
+    """Compatibility wrapper over the bounded streaming file validator."""
+
+    if type(payload) is not bytes or not payload:
+        raise ValueError("Bundle archive payload must be nonempty bytes.")
+    descriptor, name = tempfile.mkstemp(prefix=".aptus-archive-bytes-")
+    path = Path(name)
+    try:
+        view = memoryview(payload)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError("Bundle archive temporary write made no progress.")
+            view = view[written:]
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = -1
+        return validate_bundle_archive_file(path)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        path.unlink(missing_ok=True)
+
+
 def create_bundle_archive(bundle_dir: Path, archive_path: Path | None = None) -> Path:
     """Create a byte-deterministic ZIP from a compiled bundle."""
 
@@ -939,27 +1305,7 @@ def create_bundle_archive(bundle_dir: Path, archive_path: Path | None = None) ->
     os.close(descriptor)
     temporary = Path(temporary_name)
     try:
-        with zipfile.ZipFile(
-            temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
-        ) as archive:
-            for path in sorted(
-                item
-                for item in bundle_dir.rglob("*")
-                if item.is_file()
-                and item.name
-                not in {
-                    ".validation-report.lock",
-                    "preflight-metrics.json",
-                    "validation-report.json",
-                }
-                and "pilot-output" not in item.relative_to(bundle_dir).parts
-                and "runs" not in item.relative_to(bundle_dir).parts
-            ):
-                relative = path.relative_to(bundle_dir).as_posix()
-                info = zipfile.ZipInfo(relative, date_time=(1980, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = 0o644 << 16
-                archive.writestr(info, path.read_bytes())
+        _write_bundle_archive(bundle_dir, temporary)
         try:
             os.link(temporary, archive_path)
         except FileExistsError as error:

@@ -5,8 +5,10 @@ import json
 import math
 import os
 import platform
+import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -53,6 +55,36 @@ JOB_ACTIONS = {"dependency", "model-data", "preflight", "pilot", "train"}
 JOB_RECORD_SCHEMA_VERSION = "aptus.job-record.v1"
 PARENT_PROMOTION_SCHEMA_VERSION = "aptus.parent-promotion.v1"
 _GLOBAL_LEASE_THREAD_LOCK = threading.RLock()
+_CAMPAIGN_EXPERIMENT_RUN_ID = re.compile(r"^xrun_[0-9a-f]{32}$")
+_CAMPAIGN_EVENT_JOURNAL_MAX_BYTES = 1024 * 1024
+_CAMPAIGN_ENVIRONMENT_NAMES = (
+    "APTUS_CUDA_CAMPAIGN_EVENT_SINK",
+    "APTUS_CUDA_CAMPAIGN_EVENT_SINK_IDENTITY",
+    "APTUS_CUDA_CAMPAIGN_EXPERIMENT_RUN_ID",
+    "APTUS_CUDA_CAMPAIGN_JOB_ID",
+)
+_PROCESS_MONOTONIC_BINDING = "process-monotonic:" + uuid.uuid4().hex
+_TERMINAL_JOB_STATES = {
+    RunState.COMPLETED.value,
+    RunState.FAILED.value,
+    RunState.CANCELLED.value,
+}
+
+
+def _current_monotonic_clock_binding() -> str:
+    """Identify the clock epoch that makes persisted monotonic values comparable."""
+
+    boot_id_path = Path("/proc/sys/kernel/random/boot_id")
+    if os.name == "posix" and boot_id_path.is_file() and not boot_id_path.is_symlink():
+        try:
+            boot_id = boot_id_path.read_text(encoding="ascii").strip().lower()
+        except (OSError, UnicodeError):
+            boot_id = ""
+        normalized = boot_id.replace("-", "")
+        if re.fullmatch(r"[0-9a-f]{32}", normalized) is not None:
+            digest = hashlib.sha256(normalized.encode("ascii")).hexdigest()
+            return "linux-boot-sha256:" + digest
+    return _PROCESS_MONOTONIC_BINDING
 
 
 def decorate_validation_authorization(
@@ -110,6 +142,21 @@ class JobPrerequisiteError(ValueError):
             f"Cannot start {action}: validation-report.json has state {observed!r}; "
             f"the required prior state is {required_state!r} or later. "
             "Run each preceding validation stage in order, then retry."
+        )
+
+
+class JobSubmissionFailure(RuntimeError):
+    """A job record was persisted but submission could not safely complete."""
+
+    def __init__(
+        self, job_id: str, terminal_record: Mapping[str, Any], failure_code: str
+    ) -> None:
+        self.job_id = job_id
+        self.terminal_record = dict(terminal_record)
+        self.failure_code = failure_code
+        super().__init__(
+            f"Job submission failed after persistence ({failure_code}); "
+            "inspect the terminal job record."
         )
 
 
@@ -2478,8 +2525,73 @@ class JobService:
             record.setdefault("created_at", _now())
             record.setdefault("action", "unknown")
             record.setdefault("bundle_dir", "")
+            record.setdefault("monotonic_clock_binding", None)
+            record.setdefault("queued_monotonic_ns", None)
+            record.setdefault("child_process_started_monotonic_ns", None)
+            record.setdefault("child_process_finished_monotonic_ns", None)
+            record.setdefault("terminal_monotonic_ns", None)
+            if (
+                record.get("state") in _TERMINAL_JOB_STATES
+                and record["queued_monotonic_ns"] is not None
+                and record["terminal_monotonic_ns"] is None
+            ):
+                record["terminal_monotonic_ns"] = time.monotonic_ns()
+            self._validate_monotonic_timing(record)
             path = self._record_path(record["id"])
             atomic_write_json(path, record, mode=0o600)
+
+    @staticmethod
+    def _validate_monotonic_timing(record: Mapping[str, Any]) -> None:
+        """Validate queue, child-runtime, and terminal monotonic channels."""
+
+        queued = record.get("queued_monotonic_ns")
+        started = record.get("child_process_started_monotonic_ns")
+        finished = record.get("child_process_finished_monotonic_ns")
+        terminal = record.get("terminal_monotonic_ns")
+        for field, value in (
+            ("queued_monotonic_ns", queued),
+            ("child_process_started_monotonic_ns", started),
+            ("child_process_finished_monotonic_ns", finished),
+            ("terminal_monotonic_ns", terminal),
+        ):
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+            ):
+                raise ValueError(f"the persisted {field} field is invalid")
+        if finished is not None and started is None:
+            raise ValueError(
+                "child_process_finished_monotonic_ns requires a child start boundary"
+            )
+        if started is not None and finished is not None and finished < started:
+            raise ValueError(
+                "the persisted child process monotonic boundaries are unordered"
+            )
+        if queued is not None and started is not None and started < queued:
+            raise ValueError("the child process started before its queued boundary")
+        if terminal is not None and queued is None:
+            raise ValueError("terminal_monotonic_ns requires a queued boundary")
+        if terminal is not None and terminal < queued:
+            raise ValueError("the terminal boundary precedes the queued boundary")
+        if terminal is not None and finished is not None and terminal < finished:
+            raise ValueError("the terminal boundary precedes the child finish boundary")
+        state = record.get("state")
+        if state in _TERMINAL_JOB_STATES:
+            if queued is not None and terminal is None:
+                raise ValueError("a new terminal job lacks its monotonic boundary")
+        elif terminal is not None:
+            raise ValueError("an active job cannot contain a terminal boundary")
+        binding = record.get("monotonic_clock_binding")
+        if binding is not None and (
+            not isinstance(binding, str)
+            or re.fullmatch(
+                r"(?:linux-boot-sha256:[0-9a-f]{64}|process-monotonic:[0-9a-f]{32})",
+                binding,
+            )
+            is None
+        ):
+            raise ValueError("the persisted monotonic clock binding is invalid")
+        if queued is not None and binding is None:
+            raise ValueError("a queued monotonic boundary requires its clock binding")
 
     def _migrate_record(
         self, value: dict[str, Any], job_id: str
@@ -2514,6 +2626,17 @@ class JobService:
         for field in ("created_at", "action", "bundle_dir"):
             if not isinstance(migrated.get(field), str):
                 raise ValueError(f"the persisted {field} field is invalid")
+        for field in (
+            "monotonic_clock_binding",
+            "queued_monotonic_ns",
+            "child_process_started_monotonic_ns",
+            "child_process_finished_monotonic_ns",
+            "terminal_monotonic_ns",
+        ):
+            if field not in migrated:
+                migrated[field] = None
+                changed = True
+        self._validate_monotonic_timing(migrated)
         return migrated, changed
 
     def _quarantine_record(self, path: Path, reason: str) -> Path:
@@ -2674,6 +2797,40 @@ class JobService:
         state = value.get("state")
         return state if isinstance(state, str) else None
 
+    def campaign_lease_active(self) -> bool:
+        """Return the exact read-only host-global lease state for telemetry.
+
+        This mirrors stale-lease classification without unlinking or otherwise
+        reconciling state. Malformed lease evidence raises instead of being
+        projected as an optimistic inactive result.
+        """
+
+        with self._lock, self._global_lease_lock(), self._records_lock():
+            lease = self._read_global_lease()
+            if lease is None:
+                return False
+            owner_live = self._pid_alive(
+                lease.get("owner_pid"), lease.get("owner_process_identity")
+            )
+            child_live = self._pid_alive(
+                lease.get("process_pid"), lease.get("process_identity")
+            )
+            process_group_id = lease.get("process_group_id")
+            if os.name == "posix" and isinstance(process_group_id, int):
+                child_live = child_live or self._process_group_alive(process_group_id)
+            record_state = self._lease_record_state(lease)
+            terminal_record = record_state in {
+                RunState.COMPLETED.value,
+                RunState.FAILED.value,
+                RunState.CANCELLED.value,
+            }
+            stale = (
+                (terminal_record and not child_live)
+                or (record_state is None and not child_live)
+                or not (owner_live or child_live)
+            )
+            return not stale
+
     def _require_global_lease_available(self) -> None:
         lease = self._read_global_lease()
         if lease is None:
@@ -2744,12 +2901,21 @@ class JobService:
         )
         self._write_global_lease(lease)
 
-    def _clear_global_lease(self, job_id: str) -> None:
+    def _clear_global_lease(self, job_id: str) -> bool:
+        """Reconcile this exact job's host-global lease.
+
+        ``False`` means a different or otherwise inconsistent lease remained.
+        Callers that make safety claims must not record reconciliation merely
+        because cleanup was attempted.
+        """
+
         lease = self._read_global_lease()
         if lease is None:
-            return
+            return True
         if lease.get("job_id") == job_id and lease.get("state_root") == str(self.root):
             self._lease_path.unlink(missing_ok=True)
+            return not self._lease_path.exists()
+        return False
 
     def _reconcile_external_record(self, record: dict[str, Any]) -> dict[str, Any]:
         with self._records_lock():
@@ -2784,10 +2950,15 @@ class JobService:
                     self._write(record)
                 return record
             verified_evidence = record.get("verified_pending_evidence")
+            child_timing_incomplete = (
+                record.get("child_process_started_monotonic_ns") is not None
+                and record.get("child_process_finished_monotonic_ns") is None
+            )
             if (
                 record.get("action") == "train"
                 and record.get("return_code") == 0
                 and isinstance(verified_evidence, dict)
+                and not child_timing_incomplete
             ):
                 try:
                     attestation = _promote_train_attestation(record, verified_evidence)
@@ -2814,7 +2985,14 @@ class JobService:
             record.update(
                 state=RunState.FAILED.value,
                 finished_at=_now(),
-                error="The owning Aptus process and persisted child PID are no longer live; the exit code is unavailable.",
+                error=(
+                    "The owning Aptus process and persisted child PID are no longer live; "
+                    + (
+                        "the exact child-process finish boundary is unavailable."
+                        if child_timing_incomplete
+                        else "the exit code is unavailable."
+                    )
+                ),
             )
             self._write(record)
             return record
@@ -3237,6 +3415,183 @@ class JobService:
             return {"current": False, "error": str(error), "capacity": None}
         return {"current": True, "error": None, "capacity": capacity}
 
+    @staticmethod
+    def _create_campaign_event_sink(path: Path) -> str:
+        parent = private_directory(path.parent)
+        if path.parent != parent or path.exists() or path.is_symlink():
+            raise FileExistsError("Campaign event sink already exists.")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(path, flags, 0o600)
+        try:
+            os.fchmod(descriptor, 0o600)
+            metadata = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or metadata.st_nlink != 1
+                or stat.S_IMODE(metadata.st_mode) != 0o600
+                or (hasattr(os, "getuid") and metadata.st_uid != os.getuid())
+            ):
+                raise RuntimeError("Campaign event sink integrity check failed.")
+            os.fsync(descriptor)
+            identity = f"{metadata.st_dev}:{metadata.st_ino}"
+        finally:
+            os.close(descriptor)
+        return identity
+
+    @staticmethod
+    def _append_campaign_verification_boundary(
+        record: Mapping[str, Any],
+        *,
+        event_type: str,
+        native_outcome: str | None = None,
+        reason_code: str = "NONE",
+    ) -> None:
+        """Append one parent-owned verification boundary to the private sink."""
+
+        if record.get("campaign_event_capture") is not True:
+            return
+        if event_type not in {"verification.started", "verification.finished"}:
+            raise RuntimeError("Campaign verification event type is invalid.")
+        started = event_type.endswith("started")
+        if started and (native_outcome is not None or reason_code != "NONE"):
+            raise RuntimeError("Campaign verification start cannot be terminal.")
+        if not started and (
+            native_outcome not in {"passed", "failed", "cancelled"}
+            or (native_outcome == "passed") != (reason_code == "NONE")
+        ):
+            raise RuntimeError("Campaign verification finish is not terminal.")
+        run_id = record.get("campaign_experiment_run_id")
+        job_id = record.get("job_id", record.get("id"))
+        sink_value = record.get("campaign_event_sink")
+        expected_identity = record.get("campaign_event_sink_identity")
+        if (
+            record.get("action") != "train"
+            or not isinstance(run_id, str)
+            or _CAMPAIGN_EXPERIMENT_RUN_ID.fullmatch(run_id) is None
+            or not isinstance(job_id, str)
+            or not job_id.startswith("job_")
+            or not isinstance(sink_value, str)
+            or not os.path.isabs(sink_value)
+            or not isinstance(expected_identity, str)
+            or re.fullmatch(r"[1-9][0-9]*:[1-9][0-9]*", expected_identity) is None
+        ):
+            raise RuntimeError("Campaign verification sink binding is invalid.")
+        sink = Path(sink_value)
+        if fcntl is None:
+            raise RuntimeError("Campaign verification sink locking is unavailable.")
+
+        def require_sink_metadata(metadata: os.stat_result, *, failure: str) -> None:
+            observed_identity = f"{metadata.st_dev}:{metadata.st_ino}"
+            if (
+                not stat.S_ISREG(metadata.st_mode)
+                or metadata.st_nlink != 1
+                or stat.S_IMODE(metadata.st_mode) != 0o600
+                or (hasattr(os, "getuid") and metadata.st_uid != os.getuid())
+                or observed_identity != expected_identity
+                or metadata.st_size > _CAMPAIGN_EVENT_JOURNAL_MAX_BYTES
+            ):
+                raise RuntimeError(failure)
+
+        flags = os.O_WRONLY | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(sink, flags)
+        try:
+            metadata = os.fstat(descriptor)
+            require_sink_metadata(
+                metadata,
+                failure="Campaign verification sink integrity check failed.",
+            )
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            try:
+                metadata = os.fstat(descriptor)
+                require_sink_metadata(
+                    metadata,
+                    failure="Campaign verification sink changed before append.",
+                )
+                boundary = {
+                    "schema_version": "aptus.cuda-campaign-runtime-boundary.v1",
+                    "experiment_run_id": run_id,
+                    "job_id": job_id,
+                    "monotonic_ns": time.monotonic_ns(),
+                    "wall_time_utc": _now(),
+                    "event_type": event_type,
+                    "phase": "parent-verification",
+                    "action": "train",
+                    "native_outcome": native_outcome,
+                    "reason_code": reason_code,
+                }
+                payload = (
+                    json.dumps(
+                        boundary,
+                        ensure_ascii=True,
+                        allow_nan=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                ).encode("utf-8")
+                if metadata.st_size + len(payload) > (
+                    _CAMPAIGN_EVENT_JOURNAL_MAX_BYTES
+                ):
+                    raise RuntimeError("Campaign verification journal is full.")
+                view = memoryview(payload)
+                while view:
+                    written = os.write(descriptor, view)
+                    if written <= 0:
+                        raise RuntimeError(
+                            "Campaign verification append made no progress."
+                        )
+                    view = view[written:]
+                os.fsync(descriptor)
+                require_sink_metadata(
+                    os.fstat(descriptor),
+                    failure="Campaign verification sink changed during append.",
+                )
+            finally:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
+
+    def _fail_persisted_submission(
+        self,
+        job_id: str,
+        record: Mapping[str, Any],
+        *,
+        failure_code: str,
+        public_error: str,
+    ) -> None:
+        """Persist a fail-closed terminal handoff and raise its typed receipt."""
+
+        terminal = dict(record)
+        terminal.update(
+            state=RunState.FAILED.value,
+            finished_at=_now(),
+            error=public_error,
+            submission_failure_code=failure_code,
+            terminal_record_persisted=True,
+        )
+        try:
+            reconciled = self._clear_global_lease(job_id)
+        except Exception:
+            reconciled = False
+        if reconciled:
+            terminal.update(
+                lease_reconciled_at=_now(),
+                lease_reconciled_monotonic_ns=time.monotonic_ns(),
+            )
+        else:
+            terminal["lease_reconciliation_error"] = (
+                "The host-global lease could not be proven reconciled."
+            )
+        try:
+            self._write(terminal)
+        except Exception:
+            # The typed exception still carries the complete terminal snapshot;
+            # callers must treat a persistence failure as nonqualifying.
+            terminal["terminal_record_persisted"] = False
+        raise JobSubmissionFailure(job_id, terminal, failure_code) from None
+
     def submit(
         self,
         bundle_dir: Path,
@@ -3249,6 +3604,8 @@ class JobService:
         ) = None,
         admission_check: Callable[[], Any] | None = None,
         expected_artifact_fingerprint: str | None = None,
+        campaign_event_capture: bool = False,
+        campaign_experiment_run_id: str | None = None,
     ) -> dict[str, Any]:
         if action not in JOB_ACTIONS:
             raise ValueError(f"Unsupported job action: {action}")
@@ -3259,6 +3616,21 @@ class JobService:
         if action == "train" and resume_from is not None:
             raise ValueError(
                 "Full-training resume is fail-closed in Aptus v0.2 until a checkpoint manifest binds complete optimizer, scheduler, RNG, model, environment, and plan state."
+            )
+        if not isinstance(campaign_event_capture, bool):
+            raise ValueError("campaign_event_capture must be boolean.")
+        if campaign_event_capture:
+            if (
+                not isinstance(campaign_experiment_run_id, str)
+                or _CAMPAIGN_EXPERIMENT_RUN_ID.fullmatch(campaign_experiment_run_id)
+                is None
+            ):
+                raise ValueError(
+                    "Campaign event capture requires an exact experiment run ID."
+                )
+        elif campaign_experiment_run_id is not None:
+            raise ValueError(
+                "campaign_experiment_run_id requires campaign_event_capture=true."
             )
         bundle = bundle_dir.resolve(strict=True)
         if not bundle.is_dir() or not (bundle / "plan.json").is_file():
@@ -3274,6 +3646,11 @@ class JobService:
                 raise ValueError("Full training requires confirm_full_train=true.")
         job_id = "job_" + uuid.uuid4().hex
         run_id = f"run_{job_id[4:]}" if action == "train" else None
+        campaign_event_sink = (
+            self.root / ".campaign-events" / f"{job_id}.jsonl"
+            if campaign_event_capture
+            else None
+        )
         command = self._command(
             bundle,
             action,
@@ -3302,11 +3679,25 @@ class JobService:
             "process_pid": None,
             "process_identity": None,
             "process_group_id": None,
+            "monotonic_clock_binding": None,
+            "queued_monotonic_ns": None,
+            "child_process_started_monotonic_ns": None,
+            "child_process_finished_monotonic_ns": None,
+            "terminal_monotonic_ns": None,
             "prelaunch_capacity_check": None,
             "artifact_fingerprint": observed_artifact_fingerprint,
+            "plan_id": admitted_plan["plan_id"],
+            "candidate_id": admitted_plan["recommended"]["candidate_id"],
+            "bundle_manifest_sha256": sha256_file(bundle / "bundle-manifest.json"),
             "authorized_model_policy_snapshot_sha256": admitted_plan[
                 "model_policy_snapshot_sha256"
             ],
+            "campaign_event_capture": campaign_event_capture,
+            "campaign_experiment_run_id": campaign_experiment_run_id,
+            "campaign_event_sink": (
+                str(campaign_event_sink) if campaign_event_sink is not None else None
+            ),
+            "campaign_event_sink_identity": None,
         }
         worker = threading.Thread(
             target=self._run, args=(job_id,), name=f"aptus-{job_id}", daemon=True
@@ -3334,17 +3725,28 @@ class JobService:
                             ) from error
                     if admission_check is not None:
                         admission_check()
+                    record["monotonic_clock_binding"] = (
+                        _current_monotonic_clock_binding()
+                    )
+                    record["queued_monotonic_ns"] = time.monotonic_ns()
                     self._write(record)
                     try:
+                        if campaign_event_sink is not None:
+                            record["campaign_event_sink_identity"] = (
+                                self._create_campaign_event_sink(campaign_event_sink)
+                            )
+                            self._write(record)
                         self._create_global_lease(record)
                     except Exception:
-                        record.update(
-                            state=RunState.FAILED.value,
-                            finished_at=_now(),
-                            error="The host-global execution lease could not be persisted.",
+                        self._fail_persisted_submission(
+                            job_id,
+                            record,
+                            failure_code="SUBMISSION_SETUP_FAILED",
+                            public_error=(
+                                "The persisted job submission could not establish "
+                                "its private event sink and host-global lease."
+                            ),
                         )
-                        self._write(record)
-                        raise
             if before_start is not None:
                 try:
                     metadata = before_start(dict(record))
@@ -3362,39 +3764,79 @@ class JobService:
                             current = self._read(job_id)
                             current.update(dict(metadata))
                             self._write(current)
-                except Exception as error:
+                except Exception:
                     with self._global_lease_lock(), self._records_lock():
-                        current = self._read(job_id)
-                        current.update(
-                            state=RunState.FAILED.value,
-                            finished_at=_now(),
-                            error=f"Job pre-start persistence failed: {error}",
+                        try:
+                            current = self._read(job_id)
+                        except Exception:
+                            current = record
+                        self._fail_persisted_submission(
+                            job_id,
+                            current,
+                            failure_code="PRE_START_PERSISTENCE_FAILED",
+                            public_error="Job pre-start persistence failed.",
                         )
-                        self._write(current)
-                        self._clear_global_lease(job_id)
-                    raise
             try:
                 self._threads[job_id] = worker
                 worker.start()
-            except Exception as error:
+            except Exception:
                 with self._global_lease_lock(), self._records_lock():
                     self._threads.pop(job_id, None)
-                    current = self._read(job_id)
-                    current.update(
-                        state=RunState.FAILED.value,
-                        finished_at=_now(),
-                        error=f"The Aptus job worker could not start: {error}",
+                    try:
+                        current = self._read(job_id)
+                    except Exception:
+                        current = record
+                    self._fail_persisted_submission(
+                        job_id,
+                        current,
+                        failure_code="WORKER_START_FAILED",
+                        public_error="The Aptus job worker could not start.",
                     )
-                    self._write(current)
-                    self._clear_global_lease(job_id)
-                raise
-        return self.get(job_id)
+        try:
+            return self.get(job_id)
+        except Exception:
+            detected_ns = time.monotonic_ns()
+            try:
+                terminal = self.cancel(
+                    job_id,
+                    reason_code="OWNERSHIP_UNCERTAIN",
+                    trigger_detected_monotonic_ns=detected_ns,
+                )
+            except Exception:
+                worker = self._threads.get(job_id)
+                if worker is not None and worker is not threading.current_thread():
+                    worker.join(timeout=6)
+                with self._records_lock():
+                    try:
+                        terminal = self._read(job_id)
+                    except Exception:
+                        terminal = record
+            if terminal.get("state") not in {
+                RunState.COMPLETED.value,
+                RunState.FAILED.value,
+                RunState.CANCELLED.value,
+            }:
+                with self._global_lease_lock(), self._records_lock():
+                    self._fail_persisted_submission(
+                        job_id,
+                        terminal,
+                        failure_code="SUBMISSION_HANDOFF_FAILED",
+                        public_error=(
+                            "The persisted job submission could not complete its "
+                            "caller handoff."
+                        ),
+                    )
+            raise JobSubmissionFailure(
+                job_id, terminal, "SUBMISSION_HANDOFF_FAILED"
+            ) from None
 
     def _run(self, job_id: str) -> None:
         log_path = self._log_path(job_id)
         launch_spec = self.root / f".{job_id}.launch-spec"
         launch_permit = self.root / f".{job_id}.permit"
         process: subprocess.Popen[str] | None = None
+        child_process_started_monotonic_ns: int | None = None
+        child_process_finished_monotonic_ns: int | None = None
         try:
             with self._lock, self._global_lease_lock(), self._records_lock():
                 record = self._read(job_id)
@@ -3402,12 +3844,29 @@ class JobService:
                     RunState.CANCELLED.value,
                     RunState.CANCELLING.value,
                 }:
+                    terminated_at = _now()
                     record.update(
                         state=RunState.CANCELLED.value,
-                        finished_at=_now(),
+                        finished_at=terminated_at,
+                        process_group_terminated_at=record.get(
+                            "process_group_terminated_at", terminated_at
+                        ),
+                        process_group_terminated_monotonic_ns=record.get(
+                            "process_group_terminated_monotonic_ns",
+                            time.monotonic_ns(),
+                        ),
                     )
                     self._write(record)
-                    self._clear_global_lease(job_id)
+                    if self._clear_global_lease(job_id):
+                        record.update(
+                            lease_reconciled_at=_now(),
+                            lease_reconciled_monotonic_ns=time.monotonic_ns(),
+                        )
+                    else:
+                        record["lease_reconciliation_error"] = (
+                            "The host-global lease did not match the cancelled job."
+                        )
+                    self._write(record)
                     return
             self._require_record_bundle_binding(record)
             _atomic_write_json(
@@ -3422,6 +3881,36 @@ class JobService:
             )
             launch_permit.unlink(missing_ok=True)
             with log_path.open("a", encoding="utf-8") as log:
+                campaign_environment: dict[str, str] = {}
+                if record.get("campaign_event_capture") is True:
+                    campaign_run_id = record.get("campaign_experiment_run_id")
+                    campaign_sink = record.get("campaign_event_sink")
+                    campaign_sink_identity = record.get("campaign_event_sink_identity")
+                    expected_sink = self.root / ".campaign-events" / f"{job_id}.jsonl"
+                    if (
+                        not isinstance(campaign_run_id, str)
+                        or _CAMPAIGN_EXPERIMENT_RUN_ID.fullmatch(campaign_run_id)
+                        is None
+                        or campaign_sink != str(expected_sink)
+                        or not isinstance(campaign_sink_identity, str)
+                        or re.fullmatch(
+                            r"[1-9][0-9]*:[1-9][0-9]*", campaign_sink_identity
+                        )
+                        is None
+                        or expected_sink.is_symlink()
+                        or not expected_sink.is_file()
+                    ):
+                        raise RuntimeError(
+                            "The opt-in campaign event sink binding is invalid."
+                        )
+                    campaign_environment = {
+                        "APTUS_CUDA_CAMPAIGN_EVENT_SINK": str(expected_sink),
+                        "APTUS_CUDA_CAMPAIGN_EVENT_SINK_IDENTITY": (
+                            campaign_sink_identity
+                        ),
+                        "APTUS_CUDA_CAMPAIGN_EXPERIMENT_RUN_ID": campaign_run_id,
+                        "APTUS_CUDA_CAMPAIGN_JOB_ID": job_id,
+                    }
                 process_options: dict[str, Any] = {}
                 if os.name == "posix":
                     process_options["start_new_session"] = True
@@ -3431,6 +3920,22 @@ class JobService:
                     process_options["creationflags"] = (
                         subprocess.CREATE_NEW_PROCESS_GROUP
                     )
+                child_environment = os.environ.copy()
+                for name in _CAMPAIGN_ENVIRONMENT_NAMES:
+                    child_environment.pop(name, None)
+                child_environment.update(
+                    {
+                        "PYTHONDONTWRITEBYTECODE": "1",
+                        "APTUS_GPU_LEASE_TOKEN": record["id"],
+                        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT": record[
+                            "artifact_fingerprint"
+                        ],
+                        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256": record[
+                            "authorized_model_policy_snapshot_sha256"
+                        ],
+                        **campaign_environment,
+                    }
+                )
                 process = subprocess.Popen(
                     [
                         sys.executable,
@@ -3443,19 +3948,10 @@ class JobService:
                     stdout=log,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    env={
-                        **os.environ,
-                        "PYTHONDONTWRITEBYTECODE": "1",
-                        "APTUS_GPU_LEASE_TOKEN": record["id"],
-                        "APTUS_EXPECTED_ARTIFACT_FINGERPRINT": record[
-                            "artifact_fingerprint"
-                        ],
-                        "APTUS_AUTHORIZED_MODEL_POLICY_SNAPSHOT_SHA256": record[
-                            "authorized_model_policy_snapshot_sha256"
-                        ],
-                    },
+                    env=child_environment,
                     **process_options,
                 )
+                child_process_started_monotonic_ns = time.monotonic_ns()
                 with self._lock, self._global_lease_lock(), self._records_lock():
                     self._processes[job_id] = process
                     current = self._read(job_id)
@@ -3469,6 +3965,9 @@ class JobService:
                         process_identity=process_identity,
                         process_group_id=process.pid if os.name == "posix" else None,
                         launch_protocol="permit-file-v1",
+                        child_process_started_monotonic_ns=(
+                            child_process_started_monotonic_ns
+                        ),
                     )
                     if not cancelled_before_registration:
                         current.update(state=RunState.RUNNING.value, started_at=_now())
@@ -3482,10 +3981,35 @@ class JobService:
                 if cancelled_before_registration and process.poll() is None:
                     self._terminate_process(process)
                 return_code = process.wait()
+                child_process_finished_monotonic_ns = time.monotonic_ns()
+                with self._lock, self._global_lease_lock(), self._records_lock():
+                    current = self._read(job_id)
+                    persisted_child_finish = current[
+                        "child_process_finished_monotonic_ns"
+                    ]
+                    if (
+                        persisted_child_finish is None
+                        or child_process_finished_monotonic_ns < persisted_child_finish
+                    ):
+                        current["child_process_finished_monotonic_ns"] = (
+                            child_process_finished_monotonic_ns
+                        )
+                    current["return_code"] = return_code
+                    if current.get("state") in {
+                        RunState.CANCELLED.value,
+                        RunState.CANCELLING.value,
+                    }:
+                        current.setdefault("process_group_terminated_at", _now())
+                        current.setdefault(
+                            "process_group_terminated_monotonic_ns",
+                            current["child_process_finished_monotonic_ns"],
+                        )
+                    self._write(current)
                 if self._process_tree_alive(process):
                     raise RuntimeError(
                         "The launcher exited while a descendant process remained in its execution tree."
                     )
+            completion_verification_authorized = False
             with self._lock, self._global_lease_lock(), self._records_lock():
                 current = self._read(job_id)
                 if current.get("state") not in {
@@ -3497,9 +4021,17 @@ class JobService:
                         completion_verification_started_at=_now(),
                     )
                     self._write(current)
+                    completion_verification_authorized = True
             completion_error: str | None = None
             completion_attestation: dict[str, Any] | None = None
-            if return_code == 0 and record.get("action") == "train":
+            if (
+                completion_verification_authorized
+                and return_code == 0
+                and record.get("action") == "train"
+            ):
+                self._append_campaign_verification_boundary(
+                    record, event_type="verification.started"
+                )
                 try:
                     pending_evidence = _verify_train_artifacts(record)
                     with self._lock, self._global_lease_lock(), self._records_lock():
@@ -3514,6 +4046,19 @@ class JobService:
                     )
                 except (KeyError, OSError, TypeError, ValueError) as error:
                     completion_error = str(error)
+                    self._append_campaign_verification_boundary(
+                        record,
+                        event_type="verification.finished",
+                        native_outcome="failed",
+                        reason_code="EXPORT_VERIFICATION_FAILURE",
+                    )
+                else:
+                    self._append_campaign_verification_boundary(
+                        record,
+                        event_type="verification.finished",
+                        native_outcome="passed",
+                        reason_code="NONE",
+                    )
             with self._lock, self._global_lease_lock(), self._records_lock():
                 current = self._read(job_id)
                 cancelled = current["state"] in {
@@ -3552,14 +4097,34 @@ class JobService:
                         current["artifact_integrity_status"] = "verified-at-completion"
                         current["artifact_verified_at"] = _now()
                     self._write(current)
-                self._clear_global_lease(job_id)
+                if self._clear_global_lease(job_id):
+                    current.update(
+                        lease_reconciled_at=_now(),
+                        lease_reconciled_monotonic_ns=time.monotonic_ns(),
+                    )
+                else:
+                    current["lease_reconciliation_error"] = (
+                        "The host-global lease did not match the terminal job."
+                    )
+                self._write(current)
         except Exception as error:
             termination_error: Exception | None = None
-            if process is not None and self._process_tree_alive(process):
-                try:
-                    self._terminate_process(process)
-                except Exception as stop_error:  # pragma: no cover - OS failure path.
-                    termination_error = stop_error
+            if process is not None:
+                if self._process_tree_alive(process):
+                    try:
+                        self._terminate_process(process)
+                    except (
+                        Exception
+                    ) as stop_error:  # pragma: no cover - OS failure path.
+                        termination_error = stop_error
+                    else:
+                        if child_process_finished_monotonic_ns is None:
+                            child_process_finished_monotonic_ns = time.monotonic_ns()
+                elif (
+                    process.poll() is not None
+                    and child_process_finished_monotonic_ns is None
+                ):
+                    child_process_finished_monotonic_ns = time.monotonic_ns()
             with self._lock, self._global_lease_lock(), self._records_lock():
                 try:
                     current = self._read(job_id)
@@ -3570,6 +4135,21 @@ class JobService:
                     RunState.FAILED.value,
                     RunState.CANCELLED.value,
                 }:
+                    if (
+                        current["child_process_started_monotonic_ns"] is None
+                        and child_process_started_monotonic_ns is not None
+                    ):
+                        current["child_process_started_monotonic_ns"] = (
+                            child_process_started_monotonic_ns
+                        )
+                    if child_process_finished_monotonic_ns is not None and (
+                        current["child_process_finished_monotonic_ns"] is None
+                        or child_process_finished_monotonic_ns
+                        < current["child_process_finished_monotonic_ns"]
+                    ):
+                        current["child_process_finished_monotonic_ns"] = (
+                            child_process_finished_monotonic_ns
+                        )
                     if termination_error is None:
                         current.update(
                             state=RunState.FAILED.value,
@@ -3832,12 +4412,59 @@ class JobService:
                 f"Windows process tree {process.pid} could not be confirmed stopped."
             )
 
-    def cancel(self, job_id: str) -> dict[str, Any]:
+    def cancel(
+        self,
+        job_id: str,
+        *,
+        reason_code: str | None = None,
+        trigger_detected_monotonic_ns: int | None = None,
+    ) -> dict[str, Any]:
+        """Cancel an exactly owned job and persist observable lifecycle milestones.
+
+        The optional fields are used by the opt-in experiment harness.  They do
+        not change cancellation authority: this exact ``JobService`` instance
+        must still own the worker, and cancellation still targets only its
+        verified process group.
+        """
+
+        if reason_code is not None and (
+            not isinstance(reason_code, str) or not reason_code
+        ):
+            raise ValueError("Cancellation reason_code must be a non-empty string.")
+        if trigger_detected_monotonic_ns is not None and (
+            isinstance(trigger_detected_monotonic_ns, bool)
+            or not isinstance(trigger_detected_monotonic_ns, int)
+            or trigger_detected_monotonic_ns < 0
+        ):
+            raise ValueError(
+                "Cancellation trigger_detected_monotonic_ns must be a non-negative integer."
+            )
+        if (
+            trigger_detected_monotonic_ns is not None
+            and trigger_detected_monotonic_ns > time.monotonic_ns()
+        ):
+            raise ValueError(
+                "Cancellation trigger_detected_monotonic_ns cannot be in the future."
+            )
         process: subprocess.Popen[str] | None = None
         worker: threading.Thread | None = None
         termination_error: Exception | None = None
         with self._lock, self._global_lease_lock(), self._records_lock():
             record = self._read(job_id)
+            verification_in_progress = bool(
+                record.get("state")
+                in {
+                    RunState.QUEUED.value,
+                    RunState.RUNNING.value,
+                    RunState.CANCELLING.value,
+                }
+                and record.get("completion_verification_started_at")
+                and record.get("return_code") is not None
+            )
+            if verification_in_progress:
+                raise ValueError(
+                    "Completion verification is noncancellable after the child process exits."
+                )
             if record["state"] in {
                 RunState.COMPLETED.value,
                 RunState.FAILED.value,
@@ -3856,22 +4483,70 @@ class JobService:
                 )
                 return_code = process.poll() if process is not None else None
                 if process is not None and not process_tree_live:
+                    cancel_requested_at = _now()
+                    cancel_requested_monotonic_ns = time.monotonic_ns()
+                    terminated_at = _now()
+                    terminated_monotonic_ns = time.monotonic_ns()
+                    record.update(
+                        state=RunState.CANCELLING.value,
+                        cancel_requested_at=cancel_requested_at,
+                        cancel_requested_monotonic_ns=cancel_requested_monotonic_ns,
+                        cancel_reason_code=reason_code,
+                        cancel_trigger_detected_monotonic_ns=(
+                            trigger_detected_monotonic_ns
+                        ),
+                        process_group_terminated_at=terminated_at,
+                        process_group_terminated_monotonic_ns=terminated_monotonic_ns,
+                        error=None,
+                    )
+                    if (
+                        record["child_process_started_monotonic_ns"] is not None
+                        and record["child_process_finished_monotonic_ns"] is None
+                    ):
+                        record["child_process_finished_monotonic_ns"] = (
+                            terminated_monotonic_ns
+                        )
+                    self._write(record)
                     if worker is None or not worker.is_alive():
+                        terminated_at = _now()
+                        terminated_monotonic_ns = time.monotonic_ns()
                         record.update(
                             state=RunState.FAILED.value,
                             return_code=return_code,
-                            finished_at=_now(),
+                            finished_at=terminated_at,
+                            process_group_terminated_at=terminated_at,
+                            process_group_terminated_monotonic_ns=terminated_monotonic_ns,
                             error=(
                                 "The process exited, but its owning verifier is unavailable. "
                                 "Aptus will not infer successful completion."
                             ),
                         )
                         self._write(record)
-                        self._clear_global_lease(job_id)
+                        if self._clear_global_lease(job_id):
+                            record.update(
+                                lease_reconciled_at=_now(),
+                                lease_reconciled_monotonic_ns=time.monotonic_ns(),
+                            )
+                        else:
+                            record["lease_reconciliation_error"] = (
+                                "The host-global lease did not match the cancelled job."
+                            )
+                        self._write(record)
+                    # A live owning worker still has terminal verification and
+                    # cleanup to perform.  It retains the lease until `_run`
+                    # persists the terminal record; releasing it here would
+                    # allow a second GPU job to overlap that ownership window.
                 else:
+                    cancel_requested_at = _now()
+                    cancel_requested_monotonic_ns = time.monotonic_ns()
                     record.update(
                         state=RunState.CANCELLING.value,
-                        cancel_requested_at=_now(),
+                        cancel_requested_at=cancel_requested_at,
+                        cancel_requested_monotonic_ns=cancel_requested_monotonic_ns,
+                        cancel_reason_code=reason_code,
+                        cancel_trigger_detected_monotonic_ns=(
+                            trigger_detected_monotonic_ns
+                        ),
                         error=None,
                     )
                     self._write(record)
@@ -3890,14 +4565,35 @@ class JobService:
                             self._write(record)
                         else:
                             record = self._read(job_id)
+                            terminated_at = _now()
+                            terminated_monotonic_ns = time.monotonic_ns()
                             record.update(
                                 state=RunState.CANCELLED.value,
                                 return_code=process.poll(),
-                                finished_at=_now(),
+                                finished_at=terminated_at,
+                                process_group_terminated_at=terminated_at,
+                                process_group_terminated_monotonic_ns=terminated_monotonic_ns,
                                 error=None,
                             )
+                            if (
+                                record["child_process_started_monotonic_ns"] is not None
+                                and record["child_process_finished_monotonic_ns"]
+                                is None
+                            ):
+                                record["child_process_finished_monotonic_ns"] = (
+                                    terminated_monotonic_ns
+                                )
                             self._write(record)
-                            self._clear_global_lease(job_id)
+                            if self._clear_global_lease(job_id):
+                                record.update(
+                                    lease_reconciled_at=_now(),
+                                    lease_reconciled_monotonic_ns=time.monotonic_ns(),
+                                )
+                            else:
+                                record["lease_reconciliation_error"] = (
+                                    "The host-global lease did not match the cancelled job."
+                                )
+                            self._write(record)
         if termination_error is not None:
             raise ValueError(str(termination_error)) from termination_error
         if (

@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-07
+> **Last reviewed:** 2026-08-08
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -178,22 +178,36 @@ when its evidence, owner, or resolution changes.
   pilot, full training, structural PEFT export, and parent promotion bound to
   its recorded Ubuntu/RTX 3050 environment. It is one execution, not
   repeatability or general CUDA acceptance.
+  Phase 0 recovery completed privately on 2026-08-08 with a complete private
+  disposition, two verified copies in separate failure domains, and verified
+  off-host retrieval. This status publishes no protected paths, machine or job
+  identities, or raw content. The sanitized recovery supplement remains
+  pending Phase 2. The [CUDA campaign
+  protocol](../reference/cuda-campaign-protocol.md) and
+  [machine-readable companion](../reference/cuda-campaign-protocol.v1.json)
+  freeze the Phase 1 decisions; they do not implement runtime behavior.
 - **Required result:** Execute the [canonical RTX 3050 CUDA empirical evidence
-  campaign](../operations/cuda-empirical-campaign.md) to preserve prior raw
-  records, establish complete capture and retrieval, measure repeatability, and
+  campaign](../operations/cuda-empirical-campaign.md) to publish the reviewed
+  sanitized projection of the privately protected prior records, establish
+  complete capture and retrieval for new attempts, measure repeatability, and
   characterize all admitted single-device methods, model scale, guarded
   configuration frontiers, endurance, and Ubuntu job control. Add a later
   multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
   and notarized desktop evidence for the exact public release commit.
-- **Milestones:** The single-device sequence is Phase 0 raw recovery, capture
-  infrastructure, explicit candidate selection, rehearsal and freeze, five-run
+- **Milestones:** Phase 0 raw recovery is privately complete, and Phase 1 is
+  frozen. Next, implement and merge Phase 2 capture, sanitizer, telemetry,
+  watchdog, and the public sanitized recovery supplement; then implement and
+  merge Phase 3 explicit candidate selection and measurement controls. Only
+  after those phases may the campaign rehearse and freeze, run the five-attempt
   LoRA anchor, four-method matrix, size and configuration staircases, endurance,
   and independently reviewed dated packets. Capability claims change only
-  after those packets merge.
+  after the applicable packets merge.
 - **Blocker:** Capture and candidate-selection contracts are not yet
-  implemented. The intended RTX 3050 host has one GPU and cannot close DDP or
-  FSDP; those rows require approved multi-GPU access. Public notarization also
-  requires the corresponding Apple credentials.
+  implemented. Phase 2 capture and sanitization and Phase 3 selection and
+  measurement-control contracts remain future implementation. The intended
+  RTX 3050 host has one GPU and cannot close DDP or FSDP; those rows require
+  approved multi-GPU access. Public notarization also requires the corresponding
+  Apple credentials.
 - **Owner:** Release maintainers
 
 ### DOC-012: Test generated operator documentation as a contract
@@ -615,4 +629,5 @@ when its evidence, owner, or resolution changes.
 - [Documentation maintenance policy](documentation-policy.md)
 - [Documentation inventory](documentation-inventory.md)
 - [Documentation health report](documentation-health.md)
+- [CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [Release gates](../operations/release-gates.md)

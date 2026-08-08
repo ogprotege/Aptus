@@ -1007,21 +1007,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 121)
+        self.assertEqual(len(repository_documents), 122)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 120)
-        self.assertEqual(len(active_documents), 91)
+        self.assertEqual(len(governed_documents), 121)
+        self.assertEqual(len(active_documents), 92)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 120)
-        self.assertIn("120 are governed", normalized_inventory)
-        self.assertIn("120 governed", normalized_inventory)
-        self.assertIn("121 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 91 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 121)
+        self.assertIn("121 are governed", normalized_inventory)
+        self.assertIn("121 governed", normalized_inventory)
+        self.assertIn("122 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 92 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -1079,6 +1079,392 @@ class DocumentationTests(unittest.TestCase):
                 document.read_text(encoding="utf-8"),
                 document.relative_to(REPOSITORY),
             )
+
+    def test_cuda_campaign_phase1_protocol_is_canonical_and_frozen(self) -> None:
+        protocol_path = REPOSITORY / "docs/reference/cuda-campaign-protocol.v1.json"
+        protocol_bytes = protocol_path.read_bytes()
+        protocol = json.loads(protocol_bytes)
+        self.assertEqual(
+            protocol_bytes,
+            (
+                json.dumps(
+                    protocol,
+                    indent=2,
+                    sort_keys=True,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8"),
+        )
+        self.assertEqual(protocol["schema_version"], "aptus.cuda-campaign-protocol.v1")
+        self.assertEqual(
+            set(protocol["record_schema_family"].values()),
+            {
+                "aptus.experiment-attempt-slot.v1",
+                "aptus.experiment-campaign.v1",
+                "aptus.experiment-capture-failure.v1",
+                "aptus.experiment-claim-boundary.v1",
+                "aptus.experiment-comparison-cell.v1",
+                "aptus.experiment-comparison-cohort.v1",
+                "aptus.experiment-event.v1",
+                "aptus.experiment-execution-configuration.v1",
+                "aptus.experiment-publication-review.v1",
+                "aptus.experiment-raw-manifest.v1",
+                "aptus.experiment-raw-seal.v1",
+                "aptus.experiment-recovery-supplement.v1",
+                "aptus.experiment-run.v1",
+                "aptus.experiment-evidence-receipt.v1",
+                "aptus.experiment-sanitization-map.v1",
+                "aptus.experiment-telemetry-sample.v1",
+            },
+        )
+        identity_prefixes = {
+            "campaign": "campaign_",
+            "comparison_cohort": "cohort_",
+            "comparison_cell": "cell_",
+            "attempt_slot": "slot_",
+            "execution_configuration": "exec_",
+            "experiment_run": "xrun_",
+        }
+        for identity, prefix in identity_prefixes.items():
+            self.assertEqual(protocol["identity_contracts"][identity]["prefix"], prefix)
+        self.assertEqual(
+            protocol["state_axes"]["slot_status"],
+            ["started", "planned-not-started"],
+        )
+        self.assertEqual(
+            protocol["state_axes"]["native_outcome"],
+            [
+                "passed",
+                "refused",
+                "failed",
+                "cancelled",
+                "timed-out",
+                "guard-blocked",
+                "unknown",
+            ],
+        )
+        self.assertEqual(
+            protocol["state_axes"]["evidence_status"],
+            ["protocol-valid", "capture-invalid", "not-started"],
+        )
+
+        fixture = protocol["fixtures"]["benchmark"]
+        fixture_path = REPOSITORY / fixture["path"]
+        self.assertEqual(fixture_path.stat().st_size, fixture["byte_size"])
+        self.assertEqual(
+            hashlib.sha256(fixture_path.read_bytes()).hexdigest(), fixture["sha256"]
+        )
+        generator = fixture["generator"]
+        generator_path = REPOSITORY / generator["path"]
+        self.assertEqual(
+            hashlib.sha256(generator_path.read_bytes()).hexdigest(),
+            generator["sha256"],
+        )
+        self.assertEqual(
+            (fixture["row_count"], fixture["group_count"], fixture["rows_per_group"]),
+            (512, 128, 4),
+        )
+        self.assertEqual(
+            fixture["canonical_split"],
+            {
+                "assignment_sha256": "7e9e747a6e69868d2d542137468cd1baf3d81d7aaac1de29ed14e4dd83b428ed",
+                "evaluation_band_rows": [
+                    {"rows": 24, "target_content_words": 128},
+                    {"rows": 16, "target_content_words": 256},
+                    {"rows": 8, "target_content_words": 512},
+                    {"rows": 8, "target_content_words": 1024},
+                    {"rows": 8, "target_content_words": 2048},
+                ],
+                "evaluation_groups": 16,
+                "evaluation_rows": 64,
+                "seed": 424242,
+                "train_band_rows": [
+                    {"rows": 232, "target_content_words": 128},
+                    {"rows": 112, "target_content_words": 256},
+                    {"rows": 56, "target_content_words": 512},
+                    {"rows": 24, "target_content_words": 1024},
+                    {"rows": 24, "target_content_words": 2048},
+                ],
+                "train_groups": 112,
+                "train_rows": 448,
+            },
+        )
+        tokenizer = fixture["tokenizer_verification"]
+        self.assertEqual(
+            tokenizer["recovered_final_file_inventory"],
+            [
+                {
+                    "byte_size": 3_522_871,
+                    "path": "tokenizer.json",
+                    "sha256": "bf346d64f6f0fbcefb4c1b6928a98241467dff36c6fbae5fe1785c4ff90667f4",
+                },
+                {
+                    "byte_size": 452,
+                    "path": "tokenizer_config.json",
+                    "sha256": "9b6f7008bcd69b60572d2e15b28caa540d605df1c08149553296574f66545e53",
+                },
+            ],
+        )
+        token_manifest = tokenizer["per_row_manifest"]
+        self.assertIsNone(token_manifest["path"])
+        self.assertEqual(
+            token_manifest["qualification_status"],
+            "nonqualifying-phase1-read-only-preview",
+        )
+        self.assertEqual(token_manifest["byte_size"], 63_234)
+        self.assertEqual(
+            token_manifest["sha256"],
+            "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6",
+        )
+
+        models = {
+            item["model_id"]: item["revision"]
+            for item in protocol["model_catalog"]["models"]
+        }
+        self.assertEqual(
+            models,
+            {
+                "HuggingFaceTB/SmolLM2-135M-Instruct": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+                "HuggingFaceTB/SmolLM2-360M-Instruct": "a10cc1512eabd3dde888204e902eca88bddb4951",
+                "HuggingFaceTB/SmolLM2-1.7B-Instruct": "31b70e2e869a7173562077fd711b654946d38674",
+            },
+        )
+        self.assertEqual(
+            [
+                item["model_id"]
+                for item in protocol["model_catalog"]["breadth_candidates"]
+            ],
+            [
+                "Qwen/Qwen3-0.6B",
+                "google/gemma-3-1b-it",
+                "mistralai/Mistral-7B-v0.3",
+            ],
+        )
+
+        matrix = protocol["matrix_contract"]
+        anchor = matrix["anchor_execution_configuration"]
+        self.assertEqual(
+            (
+                anchor["compute_precision"],
+                anchor["placement"],
+                anchor["world_size"],
+                anchor["sequence_length"],
+                anchor["effective_batch_size"],
+                anchor["micro_batch_size"],
+                anchor["gradient_accumulation_steps"],
+                anchor["optimizer_step_target"],
+                anchor["checkpoint_cadence_optimizer_steps"],
+            ),
+            ("bf16", "single", 1, 256, 8, 4, 2, 128, 64),
+        )
+        self.assertEqual(
+            anchor["adapter"]["target_modules"],
+            [
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        )
+        self.assertEqual(
+            matrix["seed_policy"]["data_order_seed_formula"],
+            "1000000 + scheduled_seed",
+        )
+        phase5 = matrix["phase5_repeatability_anchor"]
+        self.assertEqual(phase5["training_seeds"], [101, 211, 307, 401, 503])
+        self.assertEqual(phase5["measured_attempt_count"], 5)
+        self.assertEqual(phase5["emergency_deadline_seconds"], 1800)
+        phase6 = matrix["phase6_same_model_method_matrix"]
+        self.assertEqual(
+            [block["paired_training_seed"] for block in phase6["exploratory_blocks"]],
+            [601, 701, 809],
+        )
+        self.assertEqual(
+            [block["paired_training_seed"] for block in phase6["confirmatory_blocks"]],
+            [1009, 2003, 3001, 4001, 5003],
+        )
+        for block in phase6["exploratory_blocks"] + phase6["confirmatory_blocks"]:
+            self.assertEqual(
+                block["paired_data_order_seed"],
+                1_000_000 + block["paired_training_seed"],
+            )
+        self.assertEqual(
+            matrix["phase7_scale_staircase"]["per_cell_training_seeds"],
+            [6101, 6203, 6301],
+        )
+        phase8 = matrix["phase8_guarded_frontiers"]
+        self.assertEqual(
+            phase8["sequence_length"]["ladder"], [128, 256, 512, 1024, 2048]
+        )
+        self.assertEqual(
+            phase8["effective_batch_size"]["ladder"], [1, 2, 4, 8, 16, 32, 64]
+        )
+        self.assertEqual(
+            phase8["micro_batch_and_accumulation"]["ladder"],
+            [[1, 16], [2, 8], [4, 4], [8, 2], [16, 1]],
+        )
+        self.assertEqual(
+            (phase8["training_seed"], phase8["data_order_seed"]), (8009, 1008009)
+        )
+        phase9 = matrix["phase9_endurance"]
+        self.assertEqual(phase9["training_seeds"], [9101, 9203, 9301])
+        self.assertEqual(phase9["measured_attempt_count"], 3)
+        self.assertEqual(
+            phase9["pass_conditions"],
+            {
+                "capture_artifact_or_integrity_defect_allowed": False,
+                "complete_required_copy_verification": True,
+                "current_successful_off_host_retrieval": True,
+                "evidence_status_required": "protocol-valid",
+                "native_outcome_required": "passed",
+                "required_slot_count": 3,
+                "safety_warning_or_stop_allowed": False,
+            },
+        )
+        stability = matrix["common_stability_and_integrity_contract"]
+        self.assertEqual(stability["telemetry_coverage_minimum"], 0.99)
+        self.assertEqual(stability["telemetry_maximum_gap_seconds"], 2.5)
+        self.assertEqual(
+            stability[
+                "median_absolute_deviation_to_median_training_window_ratio_maximum"
+            ],
+            0.1,
+        )
+
+        safety = protocol["safety_contract"]
+        self.assertEqual(
+            (
+                safety["gpu_thermal"]["warning_temperature_c"],
+                safety["gpu_thermal"]["hard_stop_temperature_c"],
+                safety["gpu_thermal"]["hard_stop_once_temperature_c"],
+            ),
+            (78, 84, 89),
+        )
+        self.assertEqual(safety["vram"]["hard_stop_free_bytes_below"], 2 * 1024**3)
+        self.assertEqual(
+            safety["host_memory"]["hard_stop_mem_available_bytes_below"],
+            8 * 1024**3,
+        )
+        self.assertEqual(safety["disk"]["hard_stop_free_bytes_below"], 32 * 1024**3)
+        self.assertEqual(safety["cooldown"]["required_sample_count"], 120)
+        self.assertEqual(safety["cooldown"]["maximum_wait_seconds"], 1800)
+        self.assertIn(
+            "invalid trainable parameter census", safety["immediate_stop_events"]
+        )
+        reason_codes = safety["reason_codes"]
+        self.assertEqual(len(reason_codes), len(set(reason_codes)))
+        self.assertTrue(all(re.fullmatch(r"[A-Z0-9_]+", code) for code in reason_codes))
+
+        telemetry = protocol["telemetry_contract"]
+        self.assertEqual(telemetry["sample_interval_seconds"], 1)
+        self.assertEqual(telemetry["coverage"]["minimum_qualifying_coverage"], 0.99)
+        self.assertEqual(telemetry["gap_policy"]["maximum_qualifying_gap_seconds"], 2.5)
+        self.assertEqual(
+            telemetry["estimated_gpu_energy"][
+                "maximum_adjacent_sample_interval_seconds"
+            ],
+            2,
+        )
+        memory_integrity = telemetry["gpu_memory_integrity"]
+        self.assertEqual(memory_integrity["mismatch_tolerance_bytes"], 0)
+        self.assertIn(
+            "convert used, free, and total to integer bytes exactly",
+            memory_integrity["normalization_rule"],
+        )
+        phase3 = protocol["phase3_implementation_prerequisites"]
+        throughput = protocol["measurement_contract"]["throughput"]
+        self.assertTrue(
+            throughput[
+                "exact_padded_non_padding_and_supervised_token_counters_required_for_token_rate"
+            ]
+        )
+        self.assertTrue(throughput["training_and_evaluation_counters_separate"])
+        self.assertTrue(phase3["exact_token_counters"]["defer_allowed"])
+        self.assertEqual(
+            phase3["exact_token_counters"]["effect_if_deferred"],
+            "publish no token-throughput field or claim",
+        )
+        self.assertEqual(
+            phase3["exact_token_counters"]["requirements"],
+            [
+                "count exact padded input elements presented to the model",
+                "count exact non-padding tokens where the attention mask is active",
+                "count exact supervised tokens where the label is not -100",
+                "separate training and evaluation counters",
+                "bind counter semantics and marked monotonic duration to plan, runtime metrics, and sanitizer",
+            ],
+        )
+        self.assertEqual(
+            phase3["training_progress_counters"],
+            {
+                "required_before_phase": 5,
+                "requirements": [
+                    "separate training and evaluation counters",
+                    "count micro-iterations",
+                    "count completed non-skipped optimizer steps",
+                    "count examples consumed including repeated epoch traversal",
+                    "bind counter semantics to plan, runtime metrics, and sanitizer",
+                ],
+            },
+        )
+        retention = protocol["retention_contract"]
+        self.assertEqual(retention["copy_verification"]["cadence_days"], 90)
+        self.assertEqual(retention["full_off_host_retrieval"]["cadence_days"], 180)
+        self.assertEqual(
+            protocol["sanitizer_contract"]["public_reason"][
+                "maximum_unicode_code_points"
+            ],
+            240,
+        )
+        recovery = protocol["recovery_supplement_contract"]
+        self.assertEqual(
+            (
+                recovery["expected_digest_manifest"]["logical_digest_count"],
+                recovery["expected_digest_manifest"]["unique_digest_count"],
+            ),
+            (40, 39),
+        )
+        self.assertEqual(
+            protocol["event_ledger_contract"]["final_event"], "seal.started"
+        )
+        self.assertIn(
+            "Phase 3 implementation is merged",
+            protocol["phase_order_and_gates"]["host_mutation_gate"],
+        )
+
+        human = (REPOSITORY / "docs/reference/cuda-campaign-protocol.md").read_text(
+            encoding="utf-8"
+        )
+        normalized_human = " ".join(human.split())
+        for required in (
+            "Frozen Phase 1 protocol; implementation pending",
+            fixture["sha256"],
+            fixture["canonical_split"]["assignment_sha256"],
+            "data_order_seed=1000000+scheduled_seed",
+            "No frozen fixture row reaches 4,096 tokens",
+            "39 unique expected digests",
+            "The original August 6 packet remains immutable",
+            "Convert each reported used, free, and total value",
+            "Exact padded, non-padding, and supervised token counters may be deferred only",
+            "invalid trainable parameter census",
+            "applicable uncorrected hardware error",
+            "successful current off-host retrieval",
+        ):
+            self.assertIn(required, normalized_human)
+        for private_value in (
+            "/Users/",
+            "/home/",
+            "192.168.",
+            "private-hostname.example",
+            "aptus-security@proton.me",
+        ):
+            self.assertNotIn(private_value, human)
+            self.assertNotIn(private_value, protocol_bytes.decode("utf-8"))
 
     def test_post_phase6_documentation_lifecycle_is_governed(self) -> None:
         self.assertEqual(list((REPOSITORY / "dev/active").rglob("*.md")), [])
@@ -1624,7 +2010,6 @@ class DocumentationTests(unittest.TestCase):
             if path.is_file()
         }
         self.assertEqual(actual_files, expected_files)
-
         checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
         checksum_lines = (
             (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
@@ -1805,6 +2190,15 @@ class DocumentationTests(unittest.TestCase):
             if path.is_file()
         }
         self.assertEqual(actual_files, expected_files)
+        packet_snapshot = "".join(
+            f"{relative}:{(packet / relative).stat().st_size}:"
+            f"{hashlib.sha256((packet / relative).read_bytes()).hexdigest()}\n"
+            for relative in sorted(expected_files)
+        ).encode("ascii")
+        self.assertEqual(
+            hashlib.sha256(packet_snapshot).hexdigest(),
+            "f329226630a933c520beb818b398c73b69a944ce7cc8dca7c022c9add5646023",
+        )
 
         checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
         checksum_lines = (

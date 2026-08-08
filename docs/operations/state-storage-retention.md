@@ -1,6 +1,6 @@
 # State, Storage, and Retention
 
-> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27 or when a persistent path changes
+> **Status:** Active | **Authority:** Operational storage guide | **Applies to:** Aptus 0.2 | **Audience:** Operators and security reviewers | **Last reviewed:** 2026-08-08 | **Review by:** 2026-10-27 or when a persistent path changes
 
 Aptus writes plans, bundles, data copies, runtime evidence, logs, CUDA
 checkpoints, MLX adapter weight snapshots, and exports. It does not currently
@@ -100,6 +100,13 @@ and run directories and `0600` for raw files. Any copy leaving the trusted local
 filesystem requires equivalent access control, encryption in transit and at
 rest, and a recorded encryption-key custodian and recovery procedure.
 
+The CUDA campaign's Phase 0 private recovery met this two-copy and off-host
+retrieval boundary on 2026-08-08. That status publishes no protected path,
+machine identity, job identity, or raw content. Its public sanitized recovery
+supplement remains pending the Phase 2 sanitizer specified by the frozen
+[CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and
+[machine companion](../reference/cuda-campaign-protocol.v1.json).
+
 For each terminal attempt, copy and seal the exact command record, complete
 stdout/stderr, Aptus job JSON and log, reports, runtime metrics, manifests,
 telemetry, and required artifact bindings. The vault manifest records relative
@@ -194,6 +201,8 @@ admitted requirement, train submission must fail until capacity is restored.
 ## Related documentation
 
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
+- [CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
+- [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json)
 - [Operator checklist](operator-checklist.md)
 - [Security policy](../../SECURITY.md)
 - [Bundle manifest](../reference/bundle-manifest.md)

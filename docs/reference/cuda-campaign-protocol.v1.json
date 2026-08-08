@@ -1,0 +1,1792 @@
+{
+  "aggregation_contract": {
+    "cross_run_summary": {
+      "fields": [
+        "count",
+        "individual_values_in_slot_order",
+        "minimum",
+        "maximum",
+        "median",
+        "median_absolute_deviation"
+      ],
+      "median_absolute_deviation_formula": "median(abs(x_i - median(x)))",
+      "median_formula": "type-7 linear quantile at p=0.5"
+    },
+    "failure_handling": {
+      "capture_invalid_imputed": false,
+      "failures_removed": false,
+      "missing_values_imputed": false,
+      "outliers_excluded": false,
+      "planned_not_started_removed_from_denominator": false,
+      "replacement_runs_allowed": false
+    },
+    "paired_comparison": {
+      "complete_block_requirement": "all promoted methods passed with protocol-valid evidence in the same frozen block",
+      "consistent_exact_host_difference": {
+        "complete_pair_count_required": 5,
+        "descriptive_only": true,
+        "fallback_conclusion": "inconclusive under this protocol",
+        "median_ratio_must_be_outside_closed_interval": [
+          0.95,
+          1.05
+        ],
+        "minimum_pairs_with_same_direction": 4,
+        "statistical_significance_claimed": false,
+        "universal_ranking_claimed": false
+      },
+      "incomplete_block_treatment": "publish the block and mark the confirmatory comparison incomplete; do not calculate a confirmatory result from a post-hoc subset",
+      "ratio_rule": "publish a ratio only for a positive finite denominator",
+      "summaries": [
+        "individual paired deltas by block",
+        "individual paired ratios by block when defined",
+        "minimum paired delta",
+        "maximum paired delta",
+        "median paired delta",
+        "median absolute deviation of paired deltas",
+        "minimum paired ratio when defined",
+        "maximum paired ratio when defined",
+        "median paired ratio when defined",
+        "median absolute deviation of paired ratios when defined"
+      ]
+    },
+    "statistical_boundary": {
+      "confidence_interval_claimed": false,
+      "p_value_claimed": false,
+      "population_calibration_claimed": false,
+      "telemetry_p95_is_within_run_sample_statistic": true
+    }
+  },
+  "canonicalization": {
+    "content_identity": {
+      "encoding": "utf-8",
+      "ensure_ascii": false,
+      "json_allow_nan": false,
+      "json_separators": [
+        ",",
+        ":"
+      ],
+      "json_sort_keys": true,
+      "prefix_rule": "typed prefix followed by the first 20 lowercase hexadecimal characters of SHA-256 over the documented identity object",
+      "schema_version_in_identity": true
+    },
+    "file_digest": {
+      "algorithm": "sha256",
+      "case": "lowercase",
+      "covers": "exact file bytes including the final newline when present",
+      "length": 64
+    },
+    "json_file_rendering": {
+      "allow_nan": false,
+      "encoding": "utf-8",
+      "indent": 2,
+      "sort_keys": true,
+      "trailing_newline": true
+    },
+    "numeric_rules": {
+      "boolean_is_integer": false,
+      "durations": "integer nanoseconds in raw timing records and integer or finite decimal seconds only in sanitized summaries",
+      "nonfinite_numbers_allowed": false,
+      "sizes": "integer bytes",
+      "telemetry_rates": "finite decimal values with an explicit unit field"
+    },
+    "path_rules": {
+      "absolute_paths_allowed_in_protected_run_record_only": true,
+      "hardlinks_to_mutable_sources_allowed": false,
+      "manifest_paths": "unique normalized relative POSIX paths with no empty, dot, or parent segment",
+      "public_absolute_paths_allowed": false,
+      "symlinks_allowed": false
+    },
+    "timestamp_rules": {
+      "clock_for_duration": "monotonic_ns",
+      "normalized_wall_clock": "RFC 3339 UTC normalized to +00:00",
+      "wall_clock_for_duration": false
+    },
+    "validation_policy": {
+      "duplicate_ids_rejected": true,
+      "duplicate_manifest_paths_rejected": true,
+      "future_implementation_requirement": "every record validator enforces this policy before Phase 2 can pass",
+      "malformed_digest_rejected": true,
+      "non_object_top_level_rejected": true,
+      "primitive_type_coercion_allowed": false,
+      "unknown_fields_rejected": true,
+      "unsafe_path_rejected": true,
+      "wrong_schema_version_rejected": true
+    }
+  },
+  "claim_boundary_contract": {
+    "allowed_claim_types": [
+      "raw-recovery-integrity",
+      "exact-workflow-completion-rate",
+      "exact-host-time-and-resource-characterization",
+      "controlled-method-resource-comparison",
+      "bounded-model-or-configuration-fit-frontier",
+      "bounded-endurance-observation",
+      "managed-job-control-observation"
+    ],
+    "claim_qualification_dependencies": [
+      "complete predeclared slot ledger",
+      "native passed plus protocol-valid evidence for every contributing pass",
+      "sealed raw manifest or allowed capture-failure receipt for every started slot",
+      "two verified raw copies",
+      "current successful off-host retrieval",
+      "active retention receipt",
+      "constructive allowlist sanitization",
+      "complete raw-to-public traceability",
+      "independent review",
+      "merged dated public packet"
+    ],
+    "forbidden_claims": [
+      "safety",
+      "model quality",
+      "production throughput",
+      "universal fit",
+      "universal method ranking",
+      "whole-host energy or cost",
+      "statistical estimator calibration",
+      "multi-GPU behavior",
+      "DDP or FSDP acceptance",
+      "semantic deployment validity from structural export",
+      "release readiness from campaign evidence alone"
+    ],
+    "recovery_supplement": {
+      "does_not_support": [
+        "retroactive event timing or telemetry",
+        "performance or resource measurement",
+        "repeatability",
+        "another CUDA method, model, host, or environment",
+        "recreation of an absent Python test transcript",
+        "closure of the Ubuntu source-test gate without the original transcript",
+        "release readiness"
+      ],
+      "supports": "the listed August 6 raw artifacts received the recorded recovery dispositions and the recovered set was sealed, copied, verified, and retrieved under the recorded storage and retention policy"
+    },
+    "runtime_scope": "every claim is limited to the exact source, tree, host, driver, runtime closure, model revision, dataset and split, candidate, plan, policy snapshot, bundle, execution configuration, and predeclared cohort that produced it",
+    "separate_from_plan_evidence_registry": true
+  },
+  "event_ledger_contract": {
+    "event_types": [
+      "clock.mapping",
+      "harness.started",
+      "telemetry.started",
+      "telemetry.stopped",
+      "telemetry.failed",
+      "command.started",
+      "command.finished",
+      "job.state-observed",
+      "pilot.phase-started",
+      "pilot.phase-finished",
+      "training.started",
+      "training.finished",
+      "export.started",
+      "export.finished",
+      "verification.started",
+      "verification.finished",
+      "safety.triggered",
+      "cancellation.requested",
+      "process-group.terminated",
+      "lease.reconciled",
+      "cooldown.started",
+      "cooldown.finished",
+      "harness.finished",
+      "seal.started"
+    ],
+    "final_event": "seal.started",
+    "format": "JSON Lines with one canonical object and one LF per row",
+    "observation_kinds": [
+      "emitted",
+      "observed",
+      "derived"
+    ],
+    "required_row_fields": [
+      "schema_version",
+      "sequence",
+      "experiment_run_id",
+      "monotonic_ns",
+      "wall_time_utc",
+      "event_type",
+      "phase",
+      "action",
+      "subject_kind",
+      "subject_id",
+      "observation_kind",
+      "source_reported_at_utc",
+      "exit_code",
+      "native_outcome",
+      "reason_code"
+    ],
+    "sequence_rule": "zero-based contiguous integers with no duplicate or missing value",
+    "timing_rule": "derive every duration from monotonic_ns; wall time is an auditable UTC mapping only",
+    "transition_claim_rule": "a polled job-state change is observed rather than emitted and cannot establish an unobserved intermediate transition time",
+    "utc_mapping": "the ledger contains initial and final clock.mapping rows",
+    "validation": {
+      "backward_monotonic_time_rejected": true,
+      "missing_required_boundary_rejected": true,
+      "missing_utc_mapping_rejected": true,
+      "sequence_gap_rejected": true,
+      "unknown_event_type_rejected": true
+    }
+  },
+  "fixtures": {
+    "benchmark": {
+      "byte_size": 1635765,
+      "canonical_split": {
+        "assignment_sha256": "7e9e747a6e69868d2d542137468cd1baf3d81d7aaac1de29ed14e4dd83b428ed",
+        "evaluation_band_rows": [
+          {
+            "rows": 24,
+            "target_content_words": 128
+          },
+          {
+            "rows": 16,
+            "target_content_words": 256
+          },
+          {
+            "rows": 8,
+            "target_content_words": 512
+          },
+          {
+            "rows": 8,
+            "target_content_words": 1024
+          },
+          {
+            "rows": 8,
+            "target_content_words": 2048
+          }
+        ],
+        "evaluation_groups": 16,
+        "evaluation_rows": 64,
+        "seed": 424242,
+        "train_band_rows": [
+          {
+            "rows": 232,
+            "target_content_words": 128
+          },
+          {
+            "rows": 112,
+            "target_content_words": 256
+          },
+          {
+            "rows": 56,
+            "target_content_words": 512
+          },
+          {
+            "rows": 24,
+            "target_content_words": 1024
+          },
+          {
+            "rows": 24,
+            "target_content_words": 2048
+          }
+        ],
+        "train_groups": 112,
+        "train_rows": 448
+      },
+      "field_contract": {
+        "completion": "nonempty string",
+        "prompt": "nonempty string",
+        "row_id": "unique cuda-campaign-row-NNNN string",
+        "split_group": "cuda-campaign-group-NNN string with exactly four rows per group",
+        "target_content_words": "positive integer generation target for prompt plus completion content words; not a tokenizer count"
+      },
+      "generator": {
+        "path": "tools/generate_cuda_campaign_fixture.py",
+        "seed": 20260808,
+        "sha256": "e2ca1d29f3eeebb3d1c2d07916086748de1d698b383c858e16cdaf3ece09e230",
+        "version": "aptus.cuda-campaign-fixture-generator.v1"
+      },
+      "group_count": 128,
+      "id": "aptus.cuda-campaign-sft.v1",
+      "length_bands_target_content_words": [
+        {
+          "rows": 256,
+          "target_content_words": 128
+        },
+        {
+          "rows": 128,
+          "target_content_words": 256
+        },
+        {
+          "rows": 64,
+          "target_content_words": 512
+        },
+        {
+          "rows": 32,
+          "target_content_words": 1024
+        },
+        {
+          "rows": 32,
+          "target_content_words": 2048
+        }
+      ],
+      "path": "examples/cuda-campaign-sft-v1.jsonl",
+      "privacy": "repository-owned synthetic content with no private user or production data",
+      "row_count": 512,
+      "rows_per_group": 4,
+      "sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+      "tokenizer_verification": {
+        "behavior_preview": {
+          "bos_token": "<|im_start|>",
+          "clean_up_tokenization_spaces": false,
+          "eos_token": "<|im_end|>",
+          "model_max_length": 8192,
+          "pad_token": "<|im_end|>",
+          "tokenizer_class": "GPT2Tokenizer",
+          "unk_token": "<|endoftext|>"
+        },
+        "per_row_manifest": {
+          "algorithm": {
+            "completion_encoding": "tokenizer.encode(completion, add_special_tokens=false)",
+            "completion_tokens": "length of completion_ids after the conditional EOS append",
+            "eos_rule": "append tokenizer.eos_token_id when it is non-null and completion_ids does not already end with it",
+            "prompt_encoding": "tokenizer.encode(prompt, add_special_tokens=true)",
+            "total_tokens_before_truncation": "length(prompt_ids) + length(completion_ids)"
+          },
+          "byte_size": 63234,
+          "path": null,
+          "phase4_reproduction_rule": "reproduce a canonical per-row manifest from freshly verified model and tokenizer artifacts, seal that reproduced manifest, and require its exact bytes and SHA-256 to match this planning preview; any mismatch stops activation pending reconciliation",
+          "publication_status": "not-published-or-sealed",
+          "qualification_status": "nonqualifying-phase1-read-only-preview",
+          "rendering": {
+            "allow_nan": false,
+            "container": "JSON array",
+            "ensure_ascii": false,
+            "separators": [
+              ",",
+              ":"
+            ],
+            "sort_keys": true,
+            "trailing_lf_count": 1
+          },
+          "row_fields_exactly": [
+            "row_id",
+            "target_content_words",
+            "completion_tokens",
+            "total_tokens_before_truncation"
+          ],
+          "row_order": "exact fixture row order",
+          "sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6",
+          "use_boundary": "digest, byte size, and summary are Phase 1 planning inputs only; the Phase 4 reproduced and sealed manifest is authoritative"
+        },
+        "phase4_inventory_rule": "bind, hash, and seal the entire freshly resolved tokenizer file inventory; the two recovered Phase 1 files do not authorize assuming a fresh provider inventory contains only those files",
+        "pre_truncation_total_token_bands": [
+          {
+            "maximum": 152,
+            "median": 149,
+            "minimum": 148,
+            "target_content_words": 128
+          },
+          {
+            "maximum": 286,
+            "median": 279,
+            "minimum": 276,
+            "target_content_words": 256
+          },
+          {
+            "maximum": 546,
+            "median": 540,
+            "minimum": 534,
+            "target_content_words": 512
+          },
+          {
+            "maximum": 1071,
+            "median": 1060,
+            "minimum": 1052,
+            "target_content_words": 1024
+          },
+          {
+            "maximum": 2110,
+            "median": 2099,
+            "minimum": 2089,
+            "target_content_words": 2048
+          }
+        ],
+        "read_only_phase1_result": "passed",
+        "recovered_final_file_inventory": [
+          {
+            "byte_size": 3522871,
+            "path": "tokenizer.json",
+            "sha256": "bf346d64f6f0fbcefb4c1b6928a98241467dff36c6fbae5fe1785c4ff90667f4"
+          },
+          {
+            "byte_size": 452,
+            "path": "tokenizer_config.json",
+            "sha256": "9b6f7008bcd69b60572d2e15b28caa540d605df1c08149553296574f66545e53"
+          }
+        ],
+        "recovered_final_file_inventory_count": 2
+      }
+    },
+    "contract_smoke": {
+      "classification": "synthetic-contract-fixture",
+      "path": "examples/support-sft.jsonl",
+      "purpose": "short nonqualifying harness, parser, and runtime-contract rehearsal only",
+      "qualifying_campaign_measurement_allowed": false,
+      "rows": 4,
+      "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44"
+    }
+  },
+  "identity_contracts": {
+    "attempt_slot": {
+      "deterministic": true,
+      "exists_when_not_started": true,
+      "identity_fields": [
+        "schema_version",
+        "comparison_cohort_id",
+        "comparison_cell_id",
+        "block",
+        "ordinal",
+        "role",
+        "order_position",
+        "scheduled_seed"
+      ],
+      "prefix": "slot_",
+      "scheduled_seed_meaning": "the slot's training seed; data_order_seed is independently bound as 1000000 + scheduled_seed and split_seed is 424242"
+    },
+    "campaign": {
+      "deterministic": true,
+      "identity_fields": [
+        "schema_version",
+        "protocol_schema_version",
+        "program_key",
+        "phase_sequence",
+        "host_class",
+        "allowed_methods",
+        "allowed_placement",
+        "allowed_world_size"
+      ],
+      "prefix": "campaign_"
+    },
+    "comparison_cell": {
+      "deterministic": true,
+      "excluded_identity_fields": [
+        "split_seed",
+        "training_seed",
+        "data_order_seed",
+        "attempt_ordinal",
+        "fresh_paths",
+        "run_order_position",
+        "timestamps"
+      ],
+      "identity_fields": [
+        "schema_version",
+        "campaign_id",
+        "source_binding",
+        "host_binding",
+        "environment_binding",
+        "model_binding",
+        "dataset_and_split_binding",
+        "method",
+        "precision",
+        "quantization",
+        "placement",
+        "world_size",
+        "sequence_length",
+        "micro_batch_size",
+        "gradient_accumulation_steps",
+        "effective_batch_size",
+        "training_budget",
+        "checkpoint_rule",
+        "adapter_targets",
+        "seed_policy",
+        "cache_policy",
+        "cooldown_policy",
+        "safety_policy",
+        "capture_policy",
+        "retention_policy_id"
+      ],
+      "prefix": "cell_"
+    },
+    "comparison_cohort": {
+      "deterministic": true,
+      "identity_fields": [
+        "schema_version",
+        "campaign_id",
+        "question",
+        "held_controls",
+        "varied_dimensions",
+        "member_cell_ids",
+        "attempt_counts",
+        "seed_schedule",
+        "block_schedule",
+        "stopping_rule",
+        "promotion_rule",
+        "no_replacement_rule",
+        "aggregate_rule"
+      ],
+      "prefix": "cohort_"
+    },
+    "execution_configuration": {
+      "deterministic": true,
+      "identity_fields": [
+        "schema_version",
+        "comparison_cell_id",
+        "exact_behavior_values",
+        "split_seed",
+        "training_seed",
+        "data_order_seed",
+        "plan_id",
+        "candidate_id",
+        "bundle_fingerprint"
+      ],
+      "prefix": "exec_",
+      "required_only_for_started_slot": true
+    },
+    "experiment_run": {
+      "assigned_when": "attempt slot changes to started",
+      "binds": [
+        "attempt_slot_id",
+        "execution_configuration_id",
+        "exact_argv",
+        "working_directory",
+        "fresh_state_root",
+        "bundle_path",
+        "output_path",
+        "run_order",
+        "observed_host_state",
+        "plan_id",
+        "candidate_id",
+        "bundle_fingerprint",
+        "bundle_manifest_sha256",
+        "archive_sha256",
+        "aptus_job_ids",
+        "aptus_run_ids",
+        "terminal_evidence"
+      ],
+      "deterministic": false,
+      "generic_bundle_id_forbidden": true,
+      "prefix": "xrun_",
+      "random_hex_characters": 32
+    },
+    "opaque_random_identifiers": {
+      "copy": "copy_ plus 32 lowercase hexadecimal characters",
+      "failure_domain": "domain_ plus 32 lowercase hexadecimal characters",
+      "host": "host_ plus 32 lowercase hexadecimal characters",
+      "protected_artifact": "artifact_ plus 32 lowercase hexadecimal characters",
+      "public_rule": "never derive an opaque ID from a hostname, username, path, IP address, GPU UUID, serial number, or hash of one of those values"
+    }
+  },
+  "matrix_contract": {
+    "anchor_execution_configuration": {
+      "adapter": {
+        "alpha": 32,
+        "applies_to_methods": [
+          "lora",
+          "int8-lora",
+          "qlora"
+        ],
+        "rank": 16,
+        "target_modules": [
+          "q_proj",
+          "k_proj",
+          "v_proj",
+          "o_proj",
+          "gate_proj",
+          "up_proj",
+          "down_proj"
+        ],
+        "target_modules_phase4_gate": "the exact tuple must match the provider-inspected model and selected candidate and is frozen in the Phase 4 cohort plan; mismatch blocks activation"
+      },
+      "checkpoint_cadence_optimizer_steps": 64,
+      "compute_precision": "bf16",
+      "dataset_id": "aptus.cuda-campaign-sft.v1",
+      "effective_batch_size": 8,
+      "evaluation_fraction": 0.125,
+      "gradient_accumulation_steps": 2,
+      "gradient_checkpointing": true,
+      "learning_rate_decimal_by_method": {
+        "full": "0.00002",
+        "int8-lora": "0.0002",
+        "lora": "0.0002",
+        "qlora": "0.0002"
+      },
+      "maximum_gradient_norm_decimal": "1.0",
+      "method_parameter_scope": {
+        "full": "all admitted full-model trainable parameters; no adapter rank, alpha, or target modules",
+        "int8-lora": "adapter parameters only over the exact adapter target tuple",
+        "lora": "adapter parameters only over the exact adapter target tuple",
+        "qlora": "adapter parameters only over the exact adapter target tuple"
+      },
+      "micro_batch_size": 4,
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "optimizer": "adamw_torch",
+      "optimizer_label": "AdamW Torch",
+      "optimizer_step_target": 128,
+      "optimizer_warmup_steps": 0,
+      "packing": false,
+      "placement": "single",
+      "precision_admission_rule": "BF16 is used only when exact planning and live admission pass; otherwise the slot remains planned-not-started and no precision fallback is substituted",
+      "scheduler": "linear",
+      "sequence_length": 256,
+      "split_seed": 424242,
+      "training_and_data_order_seed_policy": "matrix_contract.seed_policy",
+      "weight_decay_decimal": "0.0",
+      "world_size": 1
+    },
+    "common_stability_and_integrity_contract": {
+      "artifact_and_integrity_rule": "every required capture, seal, copy verification, off-host retrieval, artifact validation, completion validation, and method-integrity contract passes",
+      "completed_non_skipped_optimizer_steps_exact": 128,
+      "maximum_to_minimum_training_window_ratio_maximum": 1.2,
+      "median_absolute_deviation_to_median_training_window_ratio_maximum": 0.1,
+      "native_outcome_required": "passed",
+      "no_integrity_discrepancy": true,
+      "no_safety_warning_or_stop": true,
+      "other_metrics_are_promotion_variables": false,
+      "peak_device_memory_is_separate_from_duration_ratios": true,
+      "peak_device_memory_range_bytes_maximum_formula": "max(134217728, 0.10 * median_peak_device_memory_bytes)",
+      "promotion_duration_metric": "externally observed monotonic duration of the exact training segment for the same exact 128-step configuration; trainer-reported runtime and steady-state rate are not substitutes",
+      "protocol_evidence_status_required": "protocol-valid",
+      "telemetry_coverage_minimum": 0.99,
+      "telemetry_maximum_gap_seconds": 2.5
+    },
+    "conditioning": {
+      "action_extent": "complete static validation, dependency validation, model-data validation, measured preflight, and bounded pilot only",
+      "aggregated": false,
+      "confirmed_full_training_allowed": false,
+      "count_per_new_model_method_environment_cell": 1,
+      "data_order_seed": 1000017,
+      "export_allowed": false,
+      "failure_effect": "any nonpassing or capture-invalid conditioning attempt blocks that cell pending diagnosis",
+      "fresh_resources": [
+        "worker process",
+        "CUDA context",
+        "state root",
+        "bundle",
+        "run directory",
+        "output directory",
+        "capture directory"
+      ],
+      "local_files_only": true,
+      "native_qualification": "nonqualifying",
+      "published_as": "rehearsal",
+      "replacement_allowed": false,
+      "same_model_data_and_configuration_as_cell": true,
+      "split_seed": 424242,
+      "subsequent_cooldown_required": true,
+      "training_seed": 17
+    },
+    "global_rules": {
+      "cache_policy": "capture installations and downloads separately; qualifying repetitions use the frozen post-conditioning cache state",
+      "cooldown_seconds": 120,
+      "historical_august_6_run_counts_toward_repetitions": false,
+      "no_replacement": true,
+      "run_paths": "fresh state, bundle, output, capture, and raw-vault locations for every started slot"
+    },
+    "phase5_repeatability_anchor": {
+      "cell": {
+        "method": "lora",
+        "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+        "placement": "single",
+        "precision": "bf16; planned-not-started if exact planning or live admission does not support it; no fallback"
+      },
+      "data_order_seeds": [
+        1000101,
+        1000211,
+        1000307,
+        1000401,
+        1000503
+      ],
+      "emergency_deadline_seconds": 1800,
+      "measured_attempt_count": 5,
+      "pass_contract": "matrix_contract.common_stability_and_integrity_contract",
+      "pass_rule": "all 5 of 5 slots must satisfy the common stability and integrity contract",
+      "training_seeds": [
+        101,
+        211,
+        307,
+        401,
+        503
+      ],
+      "warm_up_slots": 0
+    },
+    "phase6_same_model_method_matrix": {
+      "admission": "retain only methods with an exact selectable candidate and passing static, dependency, model-data, measured-preflight, and pilot gates",
+      "confirmatory_blocks": [
+        {
+          "block": 1,
+          "method_order": [
+            "full",
+            "lora",
+            "int8-lora",
+            "qlora"
+          ],
+          "paired_data_order_seed": 1001009,
+          "paired_training_seed": 1009
+        },
+        {
+          "block": 2,
+          "method_order": [
+            "lora",
+            "qlora",
+            "full",
+            "int8-lora"
+          ],
+          "paired_data_order_seed": 1002003,
+          "paired_training_seed": 2003
+        },
+        {
+          "block": 3,
+          "method_order": [
+            "int8-lora",
+            "full",
+            "qlora",
+            "lora"
+          ],
+          "paired_data_order_seed": 1003001,
+          "paired_training_seed": 3001
+        },
+        {
+          "block": 4,
+          "method_order": [
+            "qlora",
+            "int8-lora",
+            "lora",
+            "full"
+          ],
+          "paired_data_order_seed": 1004001,
+          "paired_training_seed": 4001
+        },
+        {
+          "block": 5,
+          "method_order": [
+            "int8-lora",
+            "qlora",
+            "lora",
+            "full"
+          ],
+          "paired_data_order_seed": 1005003,
+          "paired_training_seed": 5003
+        }
+      ],
+      "confirmatory_comparison_rule": "a confirmatory paired comparison requires every promoted method to have passed with protocol-valid evidence in all five complete blocks; do not analyze a post-hoc complete subset",
+      "emergency_deadline_seconds": 1800,
+      "exploratory_blocks": [
+        {
+          "block": 1,
+          "method_order": [
+            "full",
+            "lora",
+            "int8-lora",
+            "qlora"
+          ],
+          "paired_data_order_seed": 1000601,
+          "paired_training_seed": 601
+        },
+        {
+          "block": 2,
+          "method_order": [
+            "qlora",
+            "int8-lora",
+            "lora",
+            "full"
+          ],
+          "paired_data_order_seed": 1000701,
+          "paired_training_seed": 701
+        },
+        {
+          "block": 3,
+          "method_order": [
+            "lora",
+            "full",
+            "qlora",
+            "int8-lora"
+          ],
+          "paired_data_order_seed": 1000809,
+          "paired_training_seed": 809
+        }
+      ],
+      "method_order_filter": "remove nonadmitted or nonpromoted methods from each frozen order without reordering the remaining methods",
+      "methods": [
+        "full",
+        "lora",
+        "int8-lora",
+        "qlora"
+      ],
+      "promotion_contract": "matrix_contract.common_stability_and_integrity_contract",
+      "promotion_rule": "exactly 3 of 3 exploratory slots for a cell must satisfy the common stability and integrity contract",
+      "resource_results_are_quality_ranking": false
+    },
+    "phase7_scale_staircase": {
+      "emergency_deadline_seconds": {
+        "12fd25f77366fa6b3b4b768ec3050bf629380bac": 1800,
+        "31b70e2e869a7173562077fd711b654946d38674": 5400,
+        "a10cc1512eabd3dde888204e902eca88bddb4951": 2700,
+        "later_reviewed_breadth_artifact": 7200
+      },
+      "larger_size_progression_rule": "the LoRA cell must have all 3 slots satisfy the common stability and integrity contract before the next model size may activate",
+      "method_failure_rule": "a method with any refusal, failure, capture-invalid result, safety or integrity event, or common-threshold instability has planned-not-started slots at every larger size; no replacement is allowed",
+      "method_order": [
+        "lora",
+        "full",
+        "int8-lora",
+        "qlora"
+      ],
+      "model_order": [
+        "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+        "a10cc1512eabd3dde888204e902eca88bddb4951",
+        "31b70e2e869a7173562077fd711b654946d38674"
+      ],
+      "per_cell_data_order_seeds": [
+        1006101,
+        1006203,
+        1006301
+      ],
+      "per_cell_training_seeds": [
+        6101,
+        6203,
+        6301
+      ],
+      "schedule_rule": "at each size complete all three LoRA slots first, then each remaining retained Phase 6 method in frozen method order; every retained method uses the three frozen seeds",
+      "slots_per_admitted_cell": 3,
+      "stability_contract": "matrix_contract.common_stability_and_integrity_contract"
+    },
+    "phase8_guarded_frontiers": {
+      "axis_order": [
+        "sequence_length",
+        "effective_batch_size",
+        "micro_batch_and_accumulation"
+      ],
+      "data_order_seed": 1008009,
+      "effective_batch_size": {
+        "ladder": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64
+        ],
+        "sequence_length": "selected Phase 7 stable-cell value",
+        "strategy": "use the frozen valid micro-batch and accumulation realization selected before the axis starts"
+      },
+      "emergency_deadline_seconds": 1800,
+      "micro_batch_and_accumulation": {
+        "effective_batch_size": 16,
+        "ladder": [
+          [
+            1,
+            16
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            16,
+            1
+          ]
+        ],
+        "pair_order": [
+          "micro_batch_size",
+          "gradient_accumulation_steps"
+        ],
+        "sequence_length": "selected Phase 7 stable-cell value"
+      },
+      "per_point_slots": 1,
+      "phase7_base_selection": "use the largest exact Phase 7 cell that satisfies the common stability and integrity contract and whose every qualifying input run passes all Phase 9 headroom inputs; freeze its identity before the first frontier point",
+      "phase7_base_selection_method_tie_order": [
+        "lora",
+        "qlora",
+        "int8-lora",
+        "full"
+      ],
+      "right_censor_rule": "if every frozen point on an axis passes, report the largest tested rung as a right-censored endpoint and do not claim an unobserved failure boundary",
+      "sequence_length": {
+        "effective_batch_micro_and_accumulation": "selected Phase 7 stable-cell values",
+        "ladder": [
+          128,
+          256,
+          512,
+          1024,
+          2048
+        ],
+        "maximum_due_to_frozen_fixture": 2048
+      },
+      "stopping_rule": "each axis has its own passing baseline; increase one point at a time, do not replace a slot, stop that axis at the first admission refusal or bounded-pilot nonpass, and do not activate any larger point",
+      "training_extent": "bounded pilot only at a point needed to establish the first runtime nonpass; never confirmed full training to seek OOM",
+      "training_seed": 8009
+    },
+    "phase9_endurance": {
+      "cross_run_drift_rule": "drift is descriptive only and may be reported only when the Phase 3 progress-timing contract exists; it is not a Phase 9 pass condition",
+      "data_order_seeds": [
+        1009101,
+        1009203,
+        1009301
+      ],
+      "duration_contract": "after Phase 3, freeze either a reviewed graceful deadline from 1800 through 3600 seconds or a reviewed optimizer-step target of at least 300; without either, freeze dataset and epochs and report observed elapsed time without an enforced-duration or update-count claim",
+      "emergency_deadline_seconds": 5400,
+      "headroom_rule": "the exact selected cell must satisfy every phase9_selection_headroom threshold across all qualifying input runs with no safety warning",
+      "measured_attempt_count": 3,
+      "pass_conditions": {
+        "capture_artifact_or_integrity_defect_allowed": false,
+        "complete_required_copy_verification": true,
+        "current_successful_off_host_retrieval": true,
+        "evidence_status_required": "protocol-valid",
+        "native_outcome_required": "passed",
+        "required_slot_count": 3,
+        "safety_warning_or_stop_allowed": false
+      },
+      "pass_rule": "all 3 of 3 slots must be native passed and protocol-valid, with no safety warning or stop, no capture, artifact, or integrity defect, complete required copy verification, and successful current off-host retrieval",
+      "selection_contract": {
+        "axis_candidate_rule": "for each Phase 8 axis, start with the highest passing rung strictly below the observed endpoint: the predecessor of the first nonpass, or the predecessor of the right-censored top rung when every rung passes; walk downward until every Phase 9 headroom rule passes",
+        "freeze_rule": "freeze the selected execution configuration before the first Phase 9 slot",
+        "no_eligible_candidate_effect": "all Phase 9 slots remain planned-not-started",
+        "primary_rank": "maximum sequence_length * effective_batch_size",
+        "secondary_tie_break": "larger micro_batch_size",
+        "tertiary_axis_tie_order": [
+          "sequence_length",
+          "effective_batch_size",
+          "micro_batch_and_accumulation"
+        ]
+      },
+      "stability_ratio_boundary": "the Phase 5, Phase 6, and common duration-ratio stability thresholds do not apply to Phase 9 unless a separately reviewed pre-results protocol explicitly states otherwise",
+      "training_seeds": [
+        9101,
+        9203,
+        9301
+      ]
+    },
+    "seed_policy": {
+      "data_order_seed_formula": "1000000 + scheduled_seed",
+      "execution_identity_fields": [
+        "split_seed",
+        "training_seed",
+        "data_order_seed"
+      ],
+      "paired_block_rule": "every method in a paired block shares the same scheduled training seed and therefore the same derived data-order seed",
+      "rng_stream_rule": "training and data-order seeds initialize separate RNG objects and streams",
+      "split_seed": 424242,
+      "training_seed_rule": "training_seed equals attempt_slot.scheduled_seed"
+    }
+  },
+  "measurement_contract": {
+    "duration_segments": [
+      "dependency",
+      "model-data",
+      "measured-preflight",
+      "pilot-phase-1",
+      "pilot-phase-2",
+      "training",
+      "export",
+      "parent-verification",
+      "child-process",
+      "managed-job-queued-to-terminal",
+      "five-action-end-to-end",
+      "cooldown",
+      "environment-installation",
+      "model-download"
+    ],
+    "provenance_classes": [
+      "declared",
+      "inferred",
+      "estimated",
+      "measured"
+    ],
+    "setup_timing": "installation and download are separate setup records only when capture begins before their command; otherwise they are excluded from every performance aggregate",
+    "throughput": {
+      "exact_padded_non_padding_and_supervised_token_counters_required_for_token_rate": true,
+      "fallback_public_metrics": [
+        "exact completed optimizer steps",
+        "runtime-reported step rate",
+        "runtime-reported example rate",
+        "monotonic wall duration"
+      ],
+      "target_content_words_are_tokens": false,
+      "training_and_evaluation_counters_separate": true,
+      "training_window": {
+        "end_to_end_and_resource_scope": "includes model load, every optimizer step including steps 1 through 8, evaluation, export, and verification as separately labeled segments",
+        "steady_state_optimizer_steps_inclusive": [
+          9,
+          128
+        ],
+        "steady_state_scope": "separately labeled step-rate calculation only"
+      }
+    }
+  },
+  "model_catalog": {
+    "breadth_candidates": [
+      {
+        "license_gate": "provider inspection and recorded license review required",
+        "model_id": "Qwen/Qwen3-0.6B"
+      },
+      {
+        "license_gate": "operator acceptance plus provider inspection and recorded license review required",
+        "model_id": "google/gemma-3-1b-it"
+      },
+      {
+        "license_gate": "provider inspection and recorded license review required",
+        "model_id": "mistralai/Mistral-7B-v0.3"
+      }
+    ],
+    "breadth_gate": "Phase 4 may freeze at most one provider-inspected dense text artifact from each listed repository; its immutable revision, admitted methods, exact artifact digests, license decision, and inspection result require a reviewed protocol amendment before any breadth attempt ledger is sealed or any result is observed",
+    "immutable_revision_required": true,
+    "models": [
+      {
+        "approximate_parameters": 135000000,
+        "architecture_family": "llama",
+        "campaign_role": "Phase 5 anchor and Phase 6 same-model matrix",
+        "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+        "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac"
+      },
+      {
+        "approximate_parameters": 360000000,
+        "architecture_family": "llama",
+        "campaign_role": "Phase 7 size staircase",
+        "model_id": "HuggingFaceTB/SmolLM2-360M-Instruct",
+        "revision": "a10cc1512eabd3dde888204e902eca88bddb4951"
+      },
+      {
+        "approximate_parameters": 1700000000,
+        "architecture_family": "llama",
+        "campaign_role": "Phase 7 size staircase",
+        "model_id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "revision": "31b70e2e869a7173562077fd711b654946d38674"
+      }
+    ],
+    "phase4_requirements": [
+      "resolve each model and tokenizer revision without accepting a mutable alias",
+      "verify provider inspection, architecture, parameter count, context, license, and training permission",
+      "record every model-file digest and exact artifact byte count",
+      "reproduce the benchmark token-count manifest against freshly verified tokenizer bytes",
+      "materialize the storage budget formula before activating any slot"
+    ],
+    "post_1_7b_breadth_rule": "the three candidate repositories are predeclared but no breadth artifact or method is active until the breadth gate passes; an observed outcome may never drive artifact substitution"
+  },
+  "phase3_implementation_prerequisites": {
+    "anchor_optimizer_step_controller": {
+      "required_before_phase": 5,
+      "requirements": [
+        "normal training ends at exactly 128 completed non-skipped optimizer steps",
+        "the target is a planning input bound into plan, candidate, bundle, execution configuration, runtime completion evidence, checkpoint state, and sanitizer",
+        "the emergency watchdog deadline remains a safety ceiling and is not the normal training controller",
+        "an epochs-only substitution is forbidden for Phases 5, 6, and the common Phase 7 stability contract"
+      ]
+    },
+    "candidate_selection": {
+      "required_before_phase": 4,
+      "requirements": [
+        "select one complete viable candidate through an explicit API, domain, CLI, or equivalent contract",
+        "selection produces a new plan identity",
+        "reject stale, rejected, nonselectable, or mutated candidate identity",
+        "preserve model-policy, inspection, evidence, plan, and bundle bindings",
+        "never hand-edit generated plan or bundle configuration"
+      ]
+    },
+    "exact_token_counters": {
+      "defer_allowed": true,
+      "effect_if_deferred": "publish no token-throughput field or claim",
+      "requirements": [
+        "count exact padded input elements presented to the model",
+        "count exact non-padding tokens where the attention mask is active",
+        "count exact supervised tokens where the label is not -100",
+        "separate training and evaluation counters",
+        "bind counter semantics and marked monotonic duration to plan, runtime metrics, and sanitizer"
+      ]
+    },
+    "graceful_duration_or_optimizer_steps": {
+      "conditional_gate": "required before Phase 9 only for an enforced-duration or optimizer-update-count claim; otherwise Phase 9 may use frozen dataset and epochs and report observed elapsed time without either claim",
+      "requirements": [
+        "reviewed optimizer-step target or graceful deadline is part of planning and bundle identity",
+        "safety watchdog remains an emergency ceiling rather than a training-duration controller",
+        "full training cannot accept an unbound max-steps override"
+      ]
+    },
+    "micro_batch_and_accumulation": {
+      "required_before_phase": 8,
+      "requirements": [
+        "explicit planner inputs",
+        "validated effective-batch arithmetic",
+        "identity mutation coverage",
+        "runtime and validation binding"
+      ]
+    },
+    "progress_timing": {
+      "conditional_gate": "required before any Phase 9 step-time drift claim; aggregate-only Phase 9 remains allowed without this feature",
+      "requirements": [
+        "fixed-window or per-step monotonic progress timestamps",
+        "completed optimizer-step and rate binding",
+        "without this contract publish aggregate rates only and make no drift claim"
+      ]
+    },
+    "seed": {
+      "required_before_phase": 5,
+      "requirements": [
+        "planning input",
+        "plan and candidate identity",
+        "bundle configuration",
+        "pilot and full-run runtime",
+        "checkpoint state",
+        "validation and completion evidence",
+        "API and CLI contract",
+        "identity mutation and stale-selection tests"
+      ]
+    },
+    "training_progress_counters": {
+      "required_before_phase": 5,
+      "requirements": [
+        "separate training and evaluation counters",
+        "count micro-iterations",
+        "count completed non-skipped optimizer steps",
+        "count examples consumed including repeated epoch traversal",
+        "bind counter semantics to plan, runtime metrics, and sanitizer"
+      ]
+    }
+  },
+  "phase_order_and_gates": {
+    "host_mutation_gate": "no install, update, cleanup, pull, or Aptus execution on the Ubuntu host until Phase 0 has two verified copies and successful off-host retrieval, the independently reviewed Phase 2 sanitized recovery supplement is published and merged, and the Phase 3 implementation is merged; before that point Phase 0 writes are limited to protected recovery copies",
+    "phase_sequence": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "qualifying_execution_gate": "Phases 0, 2, 3, and 4 must pass without an unresolved protocol, capture, selection, fixture, source, environment, or safety change",
+    "source_freeze": "one clean full commit and tree are frozen in Phase 4 after Phase 2 and Phase 3 merge"
+  },
+  "protocol_metadata": {
+    "authority": "frozen machine-readable Phase 1 protocol for the RTX 3050 CUDA empirical campaign",
+    "frozen_on": "2026-08-08",
+    "status": "frozen-before-qualifying-execution",
+    "supersession_rule": "any semantic change requires a new schema version, a new campaign or cohort identity as applicable, and a repeated Phase 4 rehearsal"
+  },
+  "receipt_contract": {
+    "append_only": true,
+    "common_fields": [
+      "schema_version",
+      "receipt_id",
+      "kind",
+      "created_at_utc",
+      "issuer_role_id",
+      "protected_artifact_id",
+      "raw_manifest_sha256",
+      "raw_manifest_size_bytes",
+      "previous_receipt_id",
+      "result",
+      "details"
+    ],
+    "kinds": [
+      "copy-verification",
+      "retrieval",
+      "retention",
+      "renewal",
+      "claim-suspension",
+      "claim-restoration",
+      "claim-withdrawal"
+    ],
+    "public_binding": "publish the receipt SHA-256, byte size, safe date/result projection, and opaque IDs; keep exact private paths and custodian identity protected",
+    "retrieval": {
+      "in_place_hash_scan_is_retrieval": false,
+      "mode": "full restore from the off-host copy into a fresh destination followed by complete manifest verification",
+      "required_detail_fields": [
+        "source_copy_id",
+        "source_failure_domain_id",
+        "destination_restore_id",
+        "started_at_utc",
+        "finished_at_utc",
+        "duration_ns",
+        "restored_file_count",
+        "restored_total_bytes",
+        "expected_raw_manifest_sha256",
+        "observed_raw_manifest_sha256",
+        "mismatch_count",
+        "verification_result"
+      ]
+    }
+  },
+  "record_schema_family": {
+    "attempt_slot": "aptus.experiment-attempt-slot.v1",
+    "campaign": "aptus.experiment-campaign.v1",
+    "capture_failure": "aptus.experiment-capture-failure.v1",
+    "claim_boundary": "aptus.experiment-claim-boundary.v1",
+    "comparison_cell": "aptus.experiment-comparison-cell.v1",
+    "comparison_cohort": "aptus.experiment-comparison-cohort.v1",
+    "event_ledger_row": "aptus.experiment-event.v1",
+    "execution_configuration": "aptus.experiment-execution-configuration.v1",
+    "experiment_run": "aptus.experiment-run.v1",
+    "independent_review": "aptus.experiment-publication-review.v1",
+    "raw_manifest": "aptus.experiment-raw-manifest.v1",
+    "raw_seal": "aptus.experiment-raw-seal.v1",
+    "receipt": "aptus.experiment-evidence-receipt.v1",
+    "recovery_supplement": "aptus.experiment-recovery-supplement.v1",
+    "sanitization_map": "aptus.experiment-sanitization-map.v1",
+    "telemetry_sample": "aptus.experiment-telemetry-sample.v1"
+  },
+  "recovery_supplement_contract": {
+    "additional_search_items": [
+      {
+        "item_id": "python-test-transcript",
+        "rule": "search for the original byte-exact transcript; if it never existed as a file, record not-found and the bounded search-scope codes; never recreate it from the 550-test summary"
+      }
+    ],
+    "duplicate_digest_rule": "each logical expected item remains a separate row and multiple rows may reference one recovered physical artifact entry",
+    "expected_digest_manifest": {
+      "logical_digest_count": 40,
+      "path": "docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/raw-artifact-digests.json",
+      "schema_version": "aptus.raw-artifact-digests.v1",
+      "sha256": "db6c4845846dcc1bdd2cdb54992210d31b4eba489a514197f33a127ccb37da7a",
+      "unique_digest_count": 39
+    },
+    "item_dispositions": [
+      "recovered-matching",
+      "recovered-mismatched",
+      "not-found"
+    ],
+    "original_packet_mutation_allowed": false,
+    "required_item_fields": [
+      "logical_item_id",
+      "source_json_pointer",
+      "expected_sha256",
+      "disposition",
+      "recovered_artifact_entry_id",
+      "recovered_sha256",
+      "recovered_size_bytes",
+      "reason_code"
+    ],
+    "required_top_level_bindings": [
+      "original_packet",
+      "expected_digest_manifest",
+      "recovery_raw_manifest",
+      "copy_verification_receipts",
+      "retrieval_receipt",
+      "retention_policy",
+      "retention_receipt",
+      "sanitization_map",
+      "independent_review",
+      "claim_boundary",
+      "summary_counts"
+    ],
+    "summary_invariant": "logical_digest_count equals recovered-matching plus recovered-mismatched plus not-found"
+  },
+  "retention_contract": {
+    "calendar_month_rule": "add 24 calendar months in UTC and clamp the day only when the target month has fewer days",
+    "copy_verification": {
+      "cadence_days": 90,
+      "scope": "both required copies",
+      "triggers": [
+        "initial copy",
+        "before publication",
+        "every 90 days",
+        "after any storage, encryption-key, or custodian change",
+        "no later than 90 days before removal eligibility"
+      ]
+    },
+    "deletion_gate": "deletion is forbidden unless retain_not_before_utc has passed and every dependent claim has been withdrawn or superseded",
+    "early_controlling_deletion": "when consent, license, security, or another controlling requirement forces earlier deletion, publish claim withdrawal before deletion whenever permitted",
+    "effective_policy": {
+      "deadline_basis": "packet merge time plus 24 calendar months",
+      "issued_at_meaning": "receipt creation time",
+      "retain_not_before_meaning": "future minimum retention deadline distinct from issue and effective times"
+    },
+    "full_off_host_retrieval": {
+      "cadence_days": 180,
+      "destination": "fresh restore destination",
+      "triggers": [
+        "initial off-host copy",
+        "before publication",
+        "every 180 days",
+        "after any storage, encryption-key, or custodian change",
+        "no later than 90 days before removal eligibility"
+      ]
+    },
+    "policy_id": "cuda-v02-public-claim-evidence-24m-v1",
+    "provisional_policy": {
+      "deadline_basis": "seal or recovery time plus 24 calendar months",
+      "replaced_by_effective_receipt_at_publication": true
+    },
+    "required_private_fields": [
+      "vault path",
+      "custodian role and account",
+      "encryption-key custodian role",
+      "key recovery procedure ID",
+      "copy paths",
+      "failure-domain mapping",
+      "encryption-in-transit verification",
+      "encryption-at-rest verification"
+    ],
+    "temporary_failure_effect": "loss of redundancy or failed retrieval suspends every dependent claim until restoration, successful retrieval, and independent review are recorded"
+  },
+  "safety_contract": {
+    "cancellation_timing_seconds": {
+      "cancel_request_to_confirmed_process_group_termination_maximum": 10,
+      "detection_to_persisted_trigger_maximum": 2,
+      "end_to_end_incomplete_block_threshold": 15,
+      "termination_to_lease_reconciliation_maximum": 2
+    },
+    "cooldown": {
+      "continuous_seconds": 120,
+      "failure_effect": "if the complete cooldown window is not obtained within 1800 seconds, the next slot remains planned-not-started and the campaign stops for diagnosis",
+      "free_vram_absolute_difference_from_idle_median_bytes_maximum": 134217728,
+      "gpu_power_watts_above_idle_p95_maximum": 10,
+      "gpu_temperature_c_maximum": 50,
+      "gpu_temperature_relative_to_idle_p95_c_maximum": 3,
+      "gpu_temperature_relative_to_prerun_idle_median_c_maximum": 5,
+      "gpu_temperature_slope_c_per_minute_strictly_below": 0.1,
+      "gpu_temperature_slope_estimator": "ordinary least-squares slope over all 120 valid (monotonic_seconds, gpu_temperature_c) samples, converted to degrees Celsius per minute; compare without rounding, and fail cooldown when timestamp variance is zero or any required sample is invalid",
+      "gpu_utilization_zero_minimum_samples": 110,
+      "maximum_wait_seconds": 1800,
+      "required_sample_count": 120,
+      "requirements": [
+        "no unrelated CUDA process",
+        "at least 110 of 120 consecutive one-hertz samples report exactly zero GPU utilization",
+        "GPU temperature satisfies the absolute, idle-p95-relative, and idle-median-relative limits simultaneously",
+        "GPU temperature slope over the cooldown window is strictly below 0.1 degrees Celsius per minute",
+        "free VRAM remains within 134217728 bytes of the Phase 4 idle median",
+        "supported GPU power draw remains at or below the Phase 4 idle p95 plus 10 watts",
+        "no active thermal throttle",
+        "no new Xid, reset, lost-device, or applicable hardware error",
+        "VRAM, host memory, disk, and swap are on the safe side of warning thresholds",
+        "telemetry collector and watchdog heartbeat are healthy",
+        "no Aptus host-global lease remains from the prior run"
+      ],
+      "sample_interval_seconds": 1
+    },
+    "disk": {
+      "admission_rule": "free bytes must be at least the 32 GiB hard floor plus every remaining frozen download, output, and vault budget",
+      "budget_formulas": {
+        "download_bytes": "ceil(1.25 * exact_artifact_bytes) + 2147483648",
+        "output_bytes": "ceil(1.25 * max(plan_required_disk_bytes, (4 * largest_pilot_checkpoint_bytes) + final_export_bytes))",
+        "vault_bytes": "ceil(1.10 * expected_copied_outputs_logs_telemetry_bytes)"
+      },
+      "hard_stop_free_bytes_below": 34359738368,
+      "hard_stop_if_remaining_budget_insufficient": true,
+      "missing_budget_input_blocks_slot": true,
+      "warning_free_bytes_below": 51539607552,
+      "warning_sustained_seconds": 30
+    },
+    "gpu_thermal": {
+      "fallback_when_initial_limits_unavailable": {
+        "immediate_stop_temperature_c": 85,
+        "stop_sustained_seconds": 5,
+        "stop_temperature_c": 82,
+        "warning_sustained_seconds": 30,
+        "warning_temperature_c": 75
+      },
+      "hard_stop_once_temperature_c": 89,
+      "hard_stop_sustained_seconds": 5,
+      "hard_stop_temperature_c": 84,
+      "initial_reference_nonqualifying": {
+        "idle_temperature_c": 40,
+        "maximum_operating_temperature_c": 92,
+        "power_limit_watts": 130,
+        "shutdown_temperature_c": 97,
+        "slowdown_temperature_c": 94,
+        "target_temperature_c": 83
+      },
+      "limit_disappears_after_being_supported": "capture-invalid and stop the attempt",
+      "power_limit_may_be_raised": false,
+      "thermal_slowdown_or_throttle": "immediate stop",
+      "warning_sustained_seconds": 30,
+      "warning_temperature_c": 78
+    },
+    "host_memory": {
+      "admission_rule": "MemAvailable must be at least the plan-required host bytes plus 8589934592 bytes",
+      "hard_stop_mem_available_bytes_below": 8589934592,
+      "hard_stop_sustained_seconds": 5,
+      "warning_mem_available_bytes_below": 12884901888,
+      "warning_sustained_seconds": 30
+    },
+    "immediate_stop_events": [
+      "CUDA OOM",
+      "new NVIDIA Xid",
+      "GPU reset",
+      "lost CUDA device",
+      "applicable uncorrected hardware error",
+      "foreign or unrelated CUDA compute process",
+      "telemetry collector death",
+      "watchdog ownership uncertainty",
+      "non-finite training value",
+      "invalid trainable parameter census",
+      "invalid checkpoint, split, export, or completion evidence"
+    ],
+    "phase4_idle_baseline": {
+      "duration_seconds": 600,
+      "required_contiguous_samples": 600,
+      "sample_interval_seconds": 1,
+      "summary_bindings": [
+        "GPU temperature median and type-7 p95",
+        "free VRAM median",
+        "GPU power draw type-7 p95 when supported",
+        "GPU utilization",
+        "process inventory",
+        "thermal throttle, Xid, reset, lost-device, and hardware-error state"
+      ]
+    },
+    "phase9_selection_headroom": {
+      "disk_free_bytes_minimum": 51539607552,
+      "gpu_temperature_c_maximum": 78,
+      "host_mem_available_bytes_minimum": 12884901888,
+      "minimum_free_vram_bytes": 3221225472,
+      "no_warning_event_in_input_runs": true
+    },
+    "reason_codes": [
+      "NONE",
+      "PRIOR_STOP_RULE",
+      "CONDITIONING_ATTEMPT_NOT_QUALIFYING",
+      "APTUS_ADMISSION_REFUSAL",
+      "POLICY_REPLAN_REQUIRED",
+      "PROCESS_EXIT_NONZERO",
+      "CUDA_OOM",
+      "CUDA_XID",
+      "CUDA_DEVICE_RESET",
+      "CUDA_DEVICE_LOST",
+      "HARDWARE_ERROR",
+      "NONFINITE_VALUE",
+      "ARTIFACT_INTEGRITY_FAILURE",
+      "CHECKPOINT_CONTINUATION_FAILURE",
+      "EXPORT_VERIFICATION_FAILURE",
+      "THERMAL_WARNING_SUSTAINED",
+      "THERMAL_STOP_SUSTAINED",
+      "THERMAL_STOP_IMMEDIATE",
+      "THERMAL_THROTTLE",
+      "THERMAL_LIMIT_DISAPPEARED",
+      "FREE_VRAM_WARNING",
+      "FREE_VRAM_FLOOR",
+      "HOST_RAM_WARNING",
+      "HOST_RAM_FLOOR",
+      "DISK_WARNING",
+      "DISK_FLOOR",
+      "DISK_BUDGET_INSUFFICIENT",
+      "SWAP_RATE_WARNING",
+      "SWAP_RATE_LIMIT",
+      "UNRELATED_GPU_ACTIVITY",
+      "TELEMETRY_QUALIFYING_GAP",
+      "TELEMETRY_HARD_GAP",
+      "TELEMETRY_COLLECTOR_FAILURE",
+      "WATCHDOG_HEARTBEAT_WARNING",
+      "WATCHDOG_HEARTBEAT_LOST",
+      "OWNERSHIP_UNCERTAIN",
+      "CANCELLATION_DEADLINE_EXCEEDED",
+      "LEASE_RECONCILIATION_FAILURE",
+      "EMERGENCY_DEADLINE_EXCEEDED",
+      "STREAM_CAPTURE_FAILURE",
+      "MISSING_REQUIRED_EVIDENCE",
+      "SEAL_FAILURE",
+      "SANITIZATION_FAILURE",
+      "COPY_VERIFICATION_FAILURE",
+      "RETRIEVAL_FAILURE",
+      "UNKNOWN_TERMINAL_STATE",
+      "RECOVERED_MATCH",
+      "RECOVERED_MISMATCH",
+      "NOT_FOUND_AFTER_BOUNDED_SEARCH",
+      "ORIGINAL_TRANSCRIPT_NOT_FOUND"
+    ],
+    "swap_io": {
+      "hard_stop_bytes_per_second": 67108864,
+      "hard_stop_sustained_seconds": 10,
+      "secondary_hard_stop_bytes_per_second": 16777216,
+      "secondary_hard_stop_sustained_seconds": 60,
+      "warning_bytes_per_second": 16777216,
+      "warning_sustained_seconds": 10
+    },
+    "telemetry_and_watchdog": {
+      "collector_death": "immediate stop",
+      "hard_gap_seconds_greater_than": 5,
+      "heartbeat_cancel_by_seconds": 5,
+      "heartbeat_warning_missing_seconds": 3,
+      "warning_gap_seconds_greater_than": 3
+    },
+    "vram": {
+      "hard_stop_free_bytes_below": 2147483648,
+      "hard_stop_sustained_seconds": 5,
+      "oom": "immediate stop",
+      "warning_free_bytes_below": 2684354560,
+      "warning_sustained_seconds": 10
+    },
+    "wall_deadline": {
+      "future_execution_configuration_field": "emergency_deadline_seconds",
+      "phase1_default_seconds": null,
+      "rule": "every execution configuration must freeze a positive emergency deadline before slot activation and the Phase 4 rehearsal must validate deadline handling; no universal runtime deadline is invented by this protocol"
+    }
+  },
+  "sanitizer_contract": {
+    "construction": "construct a new public object from an exact field allowlist; never recursively redact or copy an arbitrary raw object",
+    "defense_in_depth_scans": [
+      "absolute paths",
+      "usernames",
+      "hostnames",
+      "IPv4 addresses",
+      "IPv6 addresses",
+      "email addresses",
+      "GPU UUIDs",
+      "hardware serials",
+      "environment values",
+      "tokens and credentials",
+      "process identifiers",
+      "byte-exact exception text",
+      "model weights, checkpoints, and adapters"
+    ],
+    "forbidden_public_fields": [
+      "raw argv containing private paths",
+      "raw working directory",
+      "raw state, bundle, output, cache, or vault path",
+      "username or hostname",
+      "IP or network identifier",
+      "GPU UUID or serial",
+      "PID, process group, or lease token",
+      "environment variable value",
+      "raw log or exception",
+      "source data",
+      "model weight, checkpoint, or adapter bytes"
+    ],
+    "public_reason": {
+      "arbitrary_exception_input_allowed": false,
+      "maximum_unicode_code_points": 240,
+      "template_arguments": "allowlisted enums, stable IDs, and bounded numeric values only"
+    },
+    "public_safe_fields": [
+      "versioned schema and protocol IDs",
+      "campaign, cohort, cell, slot, execution-configuration, and experiment-run IDs",
+      "opaque host, artifact, copy, and failure-domain IDs",
+      "source commit and tree",
+      "model repository and immutable revision",
+      "dataset, plan, candidate, policy, bundle, archive, manifest, and receipt digests",
+      "bounded hardware class and numeric summaries",
+      "slot, outcome, and evidence statuses",
+      "stable reason code and generated bounded reason",
+      "measured or estimated numeric summaries with explicit provenance",
+      "copy, retrieval, retention, and independent-review results"
+    ],
+    "review": {
+      "independent_reviewer_distinct_from_producer": true,
+      "required_checks": [
+        "strict public schema",
+        "complete raw-to-public traceability",
+        "private-value absence",
+        "numeric recomputation",
+        "claim-boundary correctness",
+        "complete sorted unique SHA256SUMS"
+      ]
+    },
+    "traceability_map": {
+      "evidence_classes": [
+        "declared",
+        "inferred",
+        "estimated",
+        "measured"
+      ],
+      "required_fields": [
+        "public_file",
+        "public_json_pointer",
+        "source_raw_manifest_sha256",
+        "source_artifact_entry_id",
+        "source_json_pointer",
+        "transform",
+        "evidence_class"
+      ],
+      "transforms": [
+        "copy",
+        "count",
+        "digest",
+        "opaque-id",
+        "aggregate",
+        "constant"
+      ]
+    }
+  },
+  "schema_version": "aptus.cuda-campaign-protocol.v1",
+  "state_axes": {
+    "accounting_invariants": [
+      "planned = started + planned-not-started",
+      "started = passed + refused + failed + cancelled + timed-out + guard-blocked + unknown",
+      "started = protocol-valid + capture-invalid",
+      "a qualifying pass is the intersection of native outcome passed and evidence status protocol-valid"
+    ],
+    "evidence_status": [
+      "protocol-valid",
+      "capture-invalid",
+      "not-started"
+    ],
+    "native_outcome": [
+      "passed",
+      "refused",
+      "failed",
+      "cancelled",
+      "timed-out",
+      "guard-blocked",
+      "unknown"
+    ],
+    "slot_status": [
+      "started",
+      "planned-not-started"
+    ],
+    "unstarted_identity_rule": "planned-not-started slots have an attempt-slot ID but no execution-configuration ID or experiment-run ID"
+  },
+  "storage_contract": {
+    "copies": {
+      "minimum_count": 2,
+      "minimum_failure_domain_count": 2,
+      "minimum_off_experiment_host_count": 1,
+      "same_site_limitation": "two machines at one site establish host and storage separation but not geographic redundancy"
+    },
+    "copy_equality": {
+      "content_definition": "identical normalized relative file set, exact payload bytes, exact raw-manifest bytes, and exact seal bytes",
+      "filesystem_metadata_is_separate": true,
+      "mtime_uid_gid_define_equality": false
+    },
+    "permissions": {
+      "directory_mode_octal": "0700",
+      "file_mode_octal": "0600",
+      "owner": "current evidence custodian account",
+      "wrong_owner_rejected": true
+    },
+    "raw_manifest": {
+      "completion_marker": "SEALED.json",
+      "file_entry_fields": [
+        "entry_id",
+        "role",
+        "relative_path",
+        "media_type",
+        "size_bytes",
+        "sha256",
+        "captured_at_utc"
+      ],
+      "files_excluded_from_inventory_to_avoid_recursion": [
+        "raw-manifest.json",
+        "SEALED.json"
+      ],
+      "record_kind_values": [
+        "experiment-run",
+        "legacy-recovery"
+      ],
+      "required_fields": [
+        "schema_version",
+        "protected_artifact_id",
+        "record_kind",
+        "identity_bindings",
+        "capture_tool",
+        "source_bindings",
+        "retention_policy_id",
+        "provisional_retain_not_before_utc",
+        "files",
+        "file_count",
+        "total_bytes",
+        "required_role_bindings",
+        "completion_marker"
+      ],
+      "sorted_by": "relative_path"
+    },
+    "seal": {
+      "atomic_no_clobber": true,
+      "creation_order": [
+        "close and flush every payload stream",
+        "fsync every payload file",
+        "write and fsync canonical raw-manifest.json",
+        "fsync the run directory",
+        "create SEALED.json with exclusive creation",
+        "fsync SEALED.json and the run directory",
+        "copy, verify, and anchor the raw-manifest digest off-host"
+      ],
+      "fields": [
+        "schema_version",
+        "protected_artifact_id",
+        "raw_manifest_sha256",
+        "raw_manifest_size_bytes",
+        "sealed_at_utc"
+      ],
+      "post_seal_mutation_allowed": false,
+      "reseal_same_run_id_allowed": false
+    }
+  },
+  "telemetry_contract": {
+    "coverage": {
+      "expected_sample_count_formula": "floor((telemetry_stop_monotonic_ns - telemetry_start_monotonic_ns) / 1000000000) + 1",
+      "formula": "min(1, valid_unique_sample_count / expected_sample_count)",
+      "minimum_qualifying_coverage": 0.99,
+      "scheduled_slot_contract": "slot k has scheduled_monotonic_ns = telemetry_start_monotonic_ns + k * 1000000000 for every integer k from zero through expected_sample_count minus one; every sample records that slot index and scheduled timestamp, no slot contributes more than one numerator count, and a missed slot is never filled by a catch-up sample",
+      "valid_sample": "one unique sequence and monotonic timestamp with every required common field parseable; unsupported optional sensor values remain explicit and do not invalidate the sample",
+      "window_boundary_gaps_included": true
+    },
+    "estimated_gpu_energy": {
+      "label": "estimated GPU energy",
+      "maximum_adjacent_sample_interval_seconds": 2,
+      "method": "trapezoidal integration of GPU power draw in watts over monotonic sample intervals, yielding joules",
+      "publish_if_coverage_below_minimum": false,
+      "publish_if_gap_exceeds_qualifying_maximum": false,
+      "publish_time_support": "publish integrated covered duration, scheduled-window duration, scheduled-slot coverage, and separately labeled clipped time-support coverage",
+      "scope_excludes": [
+        "CPU energy",
+        "storage energy",
+        "cooling energy",
+        "whole-host energy"
+      ],
+      "segment_rule": "integrate only adjacent valid power samples separated by no more than two scheduled one-second intervals; do not bridge a larger interval"
+    },
+    "gap_policy": {
+      "hard_stop_seconds_greater_than": 5,
+      "maximum_qualifying_gap_seconds": 2.5,
+      "warning_seconds_greater_than": 3
+    },
+    "gpu_memory_integrity": {
+      "cross_check": "derive total_bytes - used_bytes only as an integrity cross-check against directly reported free_bytes; it is never the safety input",
+      "mismatch_effect": "emit an integrity mismatch flag, mark the attempt capture-invalid, and block qualification pending diagnosis",
+      "mismatch_tolerance_bytes": 0,
+      "normalization_rule": "retain each directly reported source unit and convert used, free, and total to integer bytes exactly before comparison; an inexact or invalid conversion fails the integrity check",
+      "safety_free_vram_source": "the directly reported free-memory channel, never the derived cross-check value"
+    },
+    "optional_channels": {
+      "cpu_and_nvme_temperatures": "may be declared unsupported before a cohort; a supported or required channel becoming unreadable makes the attempt capture-invalid",
+      "unsupported_value_representation": "explicit unsupported status with null value and stable reason"
+    },
+    "required_gpu_channels": [
+      "GPU UUID in protected data only",
+      "memory used, free, and total as reported, with each value normalized to integer bytes and its source unit retained",
+      "utilization",
+      "temperature",
+      "power draw and limit",
+      "graphics and memory clocks",
+      "performance state",
+      "throttle reasons",
+      "NVIDIA Xid projection",
+      "unrelated compute processes"
+    ],
+    "required_host_channels": [
+      "MemAvailable",
+      "swap used and swap I/O",
+      "load",
+      "filesystem free bytes",
+      "managed-process RSS, CPU, and I/O counters",
+      "disk growth",
+      "collector health",
+      "watchdog heartbeat"
+    ],
+    "sample_interval_seconds": 1,
+    "sampling_policy": "monotonic fixed-rate schedule with no catch-up burst after a missed sample",
+    "summaries": {
+      "common_publish": [
+        "sample_count",
+        "expected_sample_count",
+        "coverage",
+        "maximum_gap_seconds",
+        "maximum",
+        "median"
+      ],
+      "free_resource_publish_additions": [
+        "minimum",
+        "p05"
+      ],
+      "median": "type-7 linear quantile at p=0.5",
+      "p05": "sort n values, h=(n-1)*0.05, j=floor(h), g=h-j, result=x[j]+g*(x[ceil(h)]-x[j])",
+      "p95": "sort n values, h=(n-1)*0.95, j=floor(h), g=h-j, result=x[j]+g*(x[ceil(h)]-x[j])",
+      "runtime_cuda_peaks_separate_from_device_telemetry": true,
+      "used_or_increasing_resource_publish_additions": [
+        "p95"
+      ]
+    }
+  }
+}

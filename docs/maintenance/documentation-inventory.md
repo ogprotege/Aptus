@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze and Phase 2A source-tooling contract
 >
 > **Last reviewed:** 2026-08-08
 >
@@ -14,27 +14,30 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 122 tracked Markdown documents. Of those, 121 are
+The repository tree contains 123 tracked Markdown documents. Of those, 122 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
 reviews under `dev/archive/`, brought the native desktop build guide into the
 active set, and applied archived metadata to every legacy-audit report. This
 canonical campaign integration added one active plan, and the Phase 1 protocol
-freeze adds one active human-readable protocol.
+freeze added one active human-readable protocol. The Phase 2A work adds one
+active source-tooling contract. It documents implemented and independently
+reviewed interfaces and Phase 2B preconditions, not operator authorization or
+a new Ubuntu or empirical campaign result.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 92 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 93 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 121 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 122 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the same 121 governed
+The automated `maintained_documentation()` set contains the same 122 governed
 Markdown files. Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -124,6 +127,7 @@ selectability come from `src/aptus/methods/registry.py`.
 
 - [Operations documentation](../operations/index.md)
 - [RTX 3050 CUDA empirical evidence campaign](../operations/cuda-empirical-campaign.md)
+- [CUDA campaign Phase 2A tooling contract](../operations/cuda-campaign-phase2-tooling.md), implemented source and review authority that supplies no new Ubuntu or empirical result
 - [CUDA campaign protocol](../reference/cuda-campaign-protocol.md), the frozen Phase 1 human contract; it implements no runtime behavior
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json), the canonical machine-readable projection of the same frozen decisions
 - [Apple Silicon pilot matrix](../operations/apple-silicon-pilot.md)
@@ -302,12 +306,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 121-file lifecycle count is
+The single tracked Markdown file outside the 122-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 122 tracked Markdown files.
+of 123 tracked Markdown files.
 
 ## Excluded local and generated material
 

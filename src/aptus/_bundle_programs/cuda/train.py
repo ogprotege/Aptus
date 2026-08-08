@@ -42,8 +42,13 @@ if (_BOOTSTRAP_ROOT / "__pycache__").exists():
     )
 
 sys.dont_write_bytecode = True
-from plan_contract import parse_json_object, validate_bundle_manifest, validate_plan_payload
-from runtime_lease import require_execution_lease
+from campaign_events import emit_boundary  # noqa: E402
+from plan_contract import (  # noqa: E402
+    parse_json_object,
+    validate_bundle_manifest,
+    validate_plan_payload,
+)
+from runtime_lease import require_execution_lease  # noqa: E402
 
 
 ROOT = _BOOTSTRAP_ROOT
@@ -115,11 +120,15 @@ def bind_visible_cuda_devices(plan: dict[str, Any]) -> None:
         )
         or len(set(device_indices)) != len(device_indices)
     ):
-        raise RuntimeError("Selected CUDA device indices do not match the planned world.")
+        raise RuntimeError(
+            "Selected CUDA device indices do not match the planned world."
+        )
     marker = os.environ.get("APTUS_BOUND_DEVICE_CANDIDATE")
     if marker is not None:
         if marker != candidate["candidate_id"]:
-            raise RuntimeError("Inherited Aptus CUDA visibility belongs to another candidate.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility belongs to another candidate."
+            )
         inherited = os.environ.get("CUDA_VISIBLE_DEVICES")
         inherited_tokens = (
             [token.strip() for token in inherited.split(",") if token.strip()]
@@ -127,21 +136,27 @@ def bind_visible_cuda_devices(plan: dict[str, Any]) -> None:
             else []
         )
         if len(inherited_tokens) != world_size or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in inherited_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in inherited_tokens
         ):
-            raise RuntimeError("Inherited Aptus CUDA visibility is missing or malformed.")
+            raise RuntimeError(
+                "Inherited Aptus CUDA visibility is missing or malformed."
+            )
         return
     existing = os.environ.get("CUDA_VISIBLE_DEVICES")
     if existing is not None:
-        visible_tokens = [token.strip() for token in existing.split(",") if token.strip()]
+        visible_tokens = [
+            token.strip() for token in existing.split(",") if token.strip()
+        ]
         if not visible_tokens or any(
-            token.lower() in {"-1", "nodevfiles", "none"}
-            for token in visible_tokens
+            token.lower() in {"-1", "nodevfiles", "none"} for token in visible_tokens
         ):
-            raise RuntimeError("CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices.")
+            raise RuntimeError(
+                "CUDA_VISIBLE_DEVICES exposes no selectable CUDA devices."
+            )
         if any(index >= len(visible_tokens) for index in device_indices):
-            raise RuntimeError("Selected CUDA device index is outside CUDA_VISIBLE_DEVICES.")
+            raise RuntimeError(
+                "Selected CUDA device index is outside CUDA_VISIBLE_DEVICES."
+            )
         selected_tokens = [visible_tokens[index] for index in device_indices]
     else:
         selected_tokens = [str(index) for index in device_indices]
@@ -184,7 +199,9 @@ def _sha256(path: Path) -> str:
 
 
 def _json_hash(value: object) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def verify_checkpoint_contract(checkpoint: Path, contract: dict[str, Any]) -> None:
@@ -221,8 +238,13 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
         "method": method,
         "parameter_scope": expected_scope,
     }
-    if any(value.get(name) != expected_value for name, expected_value in expected_identity.items()):
-        raise RuntimeError("Trainable-parameter census violates the selected method scope.")
+    if any(
+        value.get(name) != expected_value
+        for name, expected_value in expected_identity.items()
+    ):
+        raise RuntimeError(
+            "Trainable-parameter census violates the selected method scope."
+        )
     if value.get("all_values_finite") is not True:
         raise RuntimeError("Trainable-parameter census does not attest finite values.")
     for name in ("trainable_parameter_count", "trainable_tensor_count"):
@@ -240,10 +262,14 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
     for name in counter_names:
         count = value.get(name)
         if not isinstance(count, int) or isinstance(count, bool) or count < 0:
-            raise RuntimeError(f"Trainable-parameter census requires non-negative integer {name}.")
+            raise RuntimeError(
+                f"Trainable-parameter census requires non-negative integer {name}."
+            )
     if method == "full":
         if any(value[name] != 0 for name in counter_names):
-            raise RuntimeError("Full fine-tuning census contains frozen or adapter counters.")
+            raise RuntimeError(
+                "Full fine-tuning census contains frozen or adapter counters."
+            )
     else:
         for name in ("frozen_parameter_count", "frozen_tensor_count"):
             if value[name] <= 0:
@@ -251,20 +277,27 @@ def require_census(value: Any, *, method: str) -> dict[str, Any]:
                     f"Adapter census requires positive {name} for its frozen base."
                 )
         if value["unexpected_trainable_tensor_count"] != 0:
-            raise RuntimeError("Adapter census contains an unexpected trainable tensor.")
+            raise RuntimeError(
+                "Adapter census contains an unexpected trainable tensor."
+            )
         if (
             value["expected_adapter_target_match_count"] <= 0
-            or value["adapter_target_instance_count"] != value["expected_adapter_target_match_count"]
+            or value["adapter_target_instance_count"]
+            != value["expected_adapter_target_match_count"]
             or value["incomplete_adapter_target_instance_count"] != 0
         ):
-            raise RuntimeError("Adapter census does not bind one complete LoRA A/B pair to every target instance.")
+            raise RuntimeError(
+                "Adapter census does not bind one complete LoRA A/B pair to every target instance."
+            )
     digest = value.get("descriptor_sha256")
     if (
         not isinstance(digest, str)
         or len(digest) != 64
         or any(character not in "0123456789abcdef" for character in digest)
     ):
-        raise RuntimeError("Trainable-parameter census has an invalid descriptor digest.")
+        raise RuntimeError(
+            "Trainable-parameter census has an invalid descriptor digest."
+        )
     return value
 
 
@@ -290,7 +323,9 @@ def verify_pilot_artifacts(metrics: dict[str, Any]) -> tuple[int, int]:
     try:
         marker = json.loads(marker_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise RuntimeError("Pilot-run ownership contract is missing or unreadable.") from error
+        raise RuntimeError(
+            "Pilot-run ownership contract is missing or unreadable."
+        ) from error
     plan = load_plan()
     marker_expected = {
         "schema_version": "aptus.pilot-run.v1",
@@ -335,7 +370,10 @@ def verify_pilot_artifacts(metrics: dict[str, Any]) -> tuple[int, int]:
         )
     except (KeyError, TypeError, ValueError) as error:
         raise RuntimeError("Pilot final-export evidence is invalid.") from error
-    if checkpoint_bytes != expected_checkpoint_bytes or final_export_bytes != expected_final_export_bytes:
+    if (
+        checkpoint_bytes != expected_checkpoint_bytes
+        or final_export_bytes != expected_final_export_bytes
+    ):
         raise RuntimeError("Pilot capacity evidence is inconsistent.")
     if checkpoint_bytes <= 0 or final_export_bytes <= 0:
         raise RuntimeError("Pilot capacity evidence must be positive.")
@@ -353,12 +391,14 @@ def environment_binding() -> str:
         except PackageNotFoundError:
             direct_constraints[name] = "missing"
     runtime_distributions = runtime_distribution_closure(direct_constraints)
-    return _json_hash({
-        "python": platform.python_version(),
-        "platform": platform.platform(),
-        "direct_constraints": direct_constraints,
-        "runtime_distributions": runtime_distributions,
-    })
+    return _json_hash(
+        {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "direct_constraints": direct_constraints,
+            "runtime_distributions": runtime_distributions,
+        }
+    )
 
 
 def runtime_distribution_closure(names: dict[str, str]) -> dict[str, str]:
@@ -381,7 +421,11 @@ def runtime_distribution_closure(names: dict[str, str]) -> dict[str, str]:
         for requirement in package.requires or ():
             token = requirement.split(";", 1)[0].strip()
             boundary = min(
-                (token.find(character) for character in "[ (<>=!~" if character in token),
+                (
+                    token.find(character)
+                    for character in "[ (<>=!~"
+                    if character in token
+                ),
                 default=len(token),
             )
             dependency = token[:boundary].strip()
@@ -439,7 +483,11 @@ def local_runtime_snapshot(world_size: int) -> dict[str, Any]:
         if executable is not None:
             try:
                 completed = subprocess.run(
-                    [executable, "--query-gpu=driver_version", "--format=csv,noheader,nounits"],
+                    [
+                        executable,
+                        "--query-gpu=driver_version",
+                        "--format=csv,noheader,nounits",
+                    ],
                     check=False,
                     capture_output=True,
                     text=True,
@@ -448,7 +496,11 @@ def local_runtime_snapshot(world_size: int) -> dict[str, Any]:
             except (OSError, subprocess.TimeoutExpired):
                 completed = None
             if completed is not None and completed.returncode == 0:
-                versions = {line.strip() for line in completed.stdout.splitlines() if line.strip()}
+                versions = {
+                    line.strip()
+                    for line in completed.stdout.splitlines()
+                    if line.strip()
+                }
                 if len(versions) == 1:
                     driver_version = versions.pop()
     if driver_version is None:
@@ -459,7 +511,9 @@ def local_runtime_snapshot(world_size: int) -> dict[str, Any]:
         major, minor = torch.cuda.get_device_capability(index)
         device_uuid = str(getattr(properties, "uuid", "")).strip()
         if not device_uuid or device_uuid.lower() == "none":
-            raise RuntimeError(f"CUDA device {index} does not expose a stable UUID for pilot binding.")
+            raise RuntimeError(
+                f"CUDA device {index} does not expose a stable UUID for pilot binding."
+            )
         devices.append(
             {
                 "index": index,
@@ -507,7 +561,9 @@ def runtime_snapshot(world_size: int) -> dict[str, Any]:
     try:
         value = json.loads(completed.stdout)
     except json.JSONDecodeError as error:
-        raise RuntimeError("CUDA runtime authorization probe returned invalid JSON.") from error
+        raise RuntimeError(
+            "CUDA runtime authorization probe returned invalid JSON."
+        ) from error
     if (
         not isinstance(value, dict)
         or not isinstance(value.get("hardware_binding"), str)
@@ -516,7 +572,9 @@ def runtime_snapshot(world_size: int) -> dict[str, Any]:
         or not isinstance(value.get("host_ram_free_bytes"), int)
         or value["host_ram_free_bytes"] <= 0
     ):
-        raise RuntimeError("CUDA runtime authorization probe returned an invalid contract.")
+        raise RuntimeError(
+            "CUDA runtime authorization probe returned an invalid contract."
+        )
     return value
 
 
@@ -528,14 +586,22 @@ def require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) ->
 def _require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) -> None:
     manifest_errors = validate_bundle_manifest(ROOT)
     if manifest_errors:
-        raise RuntimeError("Bundle changed after compilation: " + " | ".join(manifest_errors))
+        raise RuntimeError(
+            "Bundle changed after compilation: " + " | ".join(manifest_errors)
+        )
     report_path = ROOT / "validation-report.json"
     if not report_path.is_file():
-        raise RuntimeError("Full training requires `python validate.py --level pilot` first.")
+        raise RuntimeError(
+            "Full training requires `python validate.py --level pilot` first."
+        )
     report = json.loads(report_path.read_text(encoding="utf-8"))
     if not isinstance(report, dict):
         raise RuntimeError("Pilot validation report must be a JSON object.")
-    if report.get("state") not in {"pilot-pass", "execution-approved", "measured-run-pass"}:
+    if report.get("state") not in {
+        "pilot-pass",
+        "execution-approved",
+        "measured-run-pass",
+    }:
         raise RuntimeError("Full training requires a passing real-model/data pilot.")
     bindings = report.get("bindings", {})
     if not isinstance(bindings, dict):
@@ -555,13 +621,19 @@ def _require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) -
         "hardware": current_runtime["hardware_binding"],
         "pilot_metrics": _sha256(metrics_path),
     }
-    mismatches = [name for name, value in expected.items() if bindings.get(name) != value]
+    mismatches = [
+        name for name, value in expected.items() if bindings.get(name) != value
+    ]
     if mismatches:
-        raise RuntimeError("Pilot attestation does not bind the current " + ", ".join(mismatches) + ".")
+        raise RuntimeError(
+            "Pilot attestation does not bind the current " + ", ".join(mismatches) + "."
+        )
     metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
     if not isinstance(metrics, dict):
         raise RuntimeError("Pilot metrics must be a JSON object.")
-    measured_checkpoint_bytes, measured_final_export_bytes = verify_pilot_artifacts(metrics)
+    measured_checkpoint_bytes, measured_final_export_bytes = verify_pilot_artifacts(
+        metrics
+    )
     peaks = []
     for phase_name in ("phase_one", "phase_two_resumed"):
         phase = metrics.get(phase_name)
@@ -605,7 +677,9 @@ def _require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) -
     reserve = int(plan.get("hardware", {}).get("reserve_per_device_bytes", 0))
     required_free = measured_peak + reserve
     free_by_device = current_runtime["free_cuda_bytes"]
-    insufficient = [index for index, free in enumerate(free_by_device) if free < required_free]
+    insufficient = [
+        index for index, free in enumerate(free_by_device) if free < required_free
+    ]
     if insufficient:
         raise RuntimeError(
             "Current free VRAM is below the pilot peak plus reserve on CUDA device(s): "
@@ -625,7 +699,9 @@ def _require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) -
         disk_probe = disk_probe.parent
     disk_free = shutil.disk_usage(disk_probe).free
     if required_output_disk > 0 and disk_free < required_output_disk:
-        raise RuntimeError("Current free disk is below the measured four-checkpoint transient and final-export requirement.")
+        raise RuntimeError(
+            "Current free disk is below the measured four-checkpoint transient and final-export requirement."
+        )
     if int(os.environ.get("LOCAL_RANK", "0")) == 0:
         for stale_name in (
             "measured_run_completed_at",
@@ -659,7 +735,9 @@ def _require_pilot_and_record_approval(plan: dict[str, Any], output_dir: Path) -
             "output_filesystem_probe": str(disk_probe),
         }
         temporary = report_path.with_name(".validation-report.json.tmp")
-        temporary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        temporary.write_text(
+            json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         os.replace(temporary, report_path)
 
 
@@ -668,7 +746,9 @@ def collectively_require_full_train_approval(
 ) -> None:
     import torch
 
-    distributed = torch.distributed.is_available() and torch.distributed.is_initialized()
+    distributed = (
+        torch.distributed.is_available() and torch.distributed.is_initialized()
+    )
     rank = torch.distributed.get_rank() if distributed else 0
     result: list[str | None] = [None]
     if rank == 0:
@@ -696,7 +776,9 @@ def _record_measured_run(output_dir: Path, plan: dict[str, Any]) -> None:
     report_path = ROOT / "validation-report.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
     if report.get("state") != "execution-approved":
-        raise RuntimeError("Measured run completion cannot follow an unapproved execution.")
+        raise RuntimeError(
+            "Measured run completion cannot follow an unapproved execution."
+        )
     active_run = report.get("active_run")
     expected_active_run = {
         "output_dir": str(output_dir.resolve()),
@@ -712,9 +794,7 @@ def _record_measured_run(output_dir: Path, plan: dict[str, Any]) -> None:
     if not export_path.is_file():
         raise RuntimeError("Measured run completion requires final-export.json.")
     expected_export = json.loads(export_path.read_text(encoding="utf-8"))
-    actual_export = verify_final_export(
-        output_dir / "final", candidate, plan["model"]
-    )
+    actual_export = verify_final_export(output_dir / "final", candidate, plan["model"])
     if expected_export != actual_export:
         raise RuntimeError("Final export changed before measured-run attestation.")
     metrics_path = output_dir / "metrics.json"
@@ -728,7 +808,9 @@ def _record_measured_run(output_dir: Path, plan: dict[str, Any]) -> None:
         raise RuntimeError("Measured run metrics must be a JSON object.")
     assert_measured_training_metrics(metrics, candidate=candidate, pilot=False)
     if metrics.get("final_export") != actual_export:
-        raise RuntimeError("Measured run metrics do not bind the verified final export.")
+        raise RuntimeError(
+            "Measured run metrics do not bind the verified final export."
+        )
     report["measured_run_pending_at"] = datetime.now(timezone.utc).isoformat()
     report["pending_final_export"] = {
         "path": str((output_dir / "final").resolve()),
@@ -750,16 +832,18 @@ def _record_measured_run(output_dir: Path, plan: dict[str, Any]) -> None:
         "per_rank_cuda_peaks": metrics["per_rank_cuda_peaks"],
     }
     temporary = report_path.with_name(".validation-report.json.tmp")
-    temporary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     os.replace(temporary, report_path)
 
 
-def collectively_record_measured_run(
-    output_dir: Path, plan: dict[str, Any]
-) -> None:
+def collectively_record_measured_run(output_dir: Path, plan: dict[str, Any]) -> None:
     import torch
 
-    distributed = torch.distributed.is_available() and torch.distributed.is_initialized()
+    distributed = (
+        torch.distributed.is_available() and torch.distributed.is_initialized()
+    )
     rank = torch.distributed.get_rank() if distributed else 0
     result: list[str | None] = [None]
     if rank == 0:
@@ -827,7 +911,9 @@ def promote_pending_run(output_dir: Path, plan: dict[str, Any]) -> None:
             or report.get("pending_final_export") != expected_final
             or report.get("pending_measured_run") != expected_measured
         ):
-            raise RuntimeError("Pending report evidence does not match the run artifacts.")
+            raise RuntimeError(
+                "Pending report evidence does not match the run artifacts."
+            )
         report["state"] = "measured-run-pass"
         report["measured_run_completed_at"] = datetime.now(timezone.utc).isoformat()
         report["final_export"] = expected_final
@@ -850,7 +936,11 @@ def promote_pending_run(output_dir: Path, plan: dict[str, Any]) -> None:
 def load_rows(path: Path) -> list[dict[str, Any]]:
     suffix = path.suffix.lower()
     if suffix == ".jsonl":
-        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        rows = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
     elif suffix == ".json":
         value = json.loads(path.read_text(encoding="utf-8"))
         rows = value if isinstance(value, list) else value.get("train", [value])
@@ -858,7 +948,10 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
         with path.open("r", encoding="utf-8", newline="") as source:
             rows = list(csv.DictReader(source))
     elif suffix == ".txt":
-        rows = [{"text": line.rstrip("\n")} for line in path.read_text(encoding="utf-8").splitlines()]
+        rows = [
+            {"text": line.rstrip("\n")}
+            for line in path.read_text(encoding="utf-8").splitlines()
+        ]
     else:
         raise ValueError(f"Unsupported dataset format: {suffix or '<none>'}")
     if not rows or any(not isinstance(row, dict) for row in rows):
@@ -883,9 +976,7 @@ def is_profiler_ignored_empty(record: dict[str, Any]) -> bool:
     instruction, output = record.get("instruction"), record.get("output")
     if isinstance(instruction, str) or isinstance(output, str):
         return not (
-            isinstance(instruction, str)
-            and isinstance(output, str)
-            and output.strip()
+            isinstance(instruction, str) and isinstance(output, str) and output.strip()
         )
     messages = record.get("messages")
     if isinstance(messages, list):
@@ -902,12 +993,20 @@ def record_to_parts(record: dict[str, Any], tokenizer: Any) -> tuple[str, str, b
         return "", record["text"], True
     prompt, completion = record.get("prompt"), record.get("completion")
     if isinstance(prompt, str) or isinstance(completion, str):
-        if not isinstance(prompt, str) or not isinstance(completion, str) or not completion.strip():
+        if (
+            not isinstance(prompt, str)
+            or not isinstance(completion, str)
+            or not completion.strip()
+        ):
             raise ValueError("Prompt/completion rows require a non-empty completion.")
         return prompt, completion, False
     instruction, output = record.get("instruction"), record.get("output")
     if isinstance(instruction, str) or isinstance(output, str):
-        if not isinstance(instruction, str) or not isinstance(output, str) or not output.strip():
+        if (
+            not isinstance(instruction, str)
+            or not isinstance(output, str)
+            or not output.strip()
+        ):
             raise ValueError("Instruction/output rows require a non-empty output.")
         prompt = "### Instruction:\n" + instruction.strip() + "\n"
         if isinstance(record.get("input"), str) and record["input"].strip():
@@ -924,15 +1023,23 @@ def record_to_parts(record: dict[str, Any], tokenizer: Any) -> tuple[str, str, b
             or not isinstance(messages[-1].get("content"), str)
             or not messages[-1]["content"].strip()
         ):
-            raise ValueError("A messages row must end with a non-empty assistant message.")
-        prompt = tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
+            raise ValueError(
+                "A messages row must end with a non-empty assistant message."
+            )
+        prompt = tokenizer.apply_chat_template(
+            messages[:-1], tokenize=False, add_generation_prompt=True
+        )
         return prompt, messages[-1]["content"], False
     if isinstance(record.get("content"), str) and record["content"].strip():
         return "", record["content"], True
-    raise ValueError("Row does not match text, prompt/completion, instruction/output, messages, or content schema.")
+    raise ValueError(
+        "Row does not match text, prompt/completion, instruction/output, messages, or content schema."
+    )
 
 
-def encode_record(record: dict[str, Any], tokenizer: Any, max_length: int) -> dict[str, list[int]]:
+def encode_record(
+    record: dict[str, Any], tokenizer: Any, max_length: int
+) -> dict[str, list[int]]:
     messages = record.get("messages")
     prompt_value, completion_value = record.get("prompt"), record.get("completion")
     instruction_value, output_value = record.get("instruction"), record.get("output")
@@ -945,18 +1052,28 @@ def encode_record(record: dict[str, Any], tokenizer: Any, max_length: int) -> di
     if uses_messages_schema and messages:
         # Validate the final assistant turn, then preserve the tokenizer's complete chat template.
         record_to_parts(record, tokenizer)
-        prompt_text = tokenizer.apply_chat_template(messages[:-1], tokenize=False, add_generation_prompt=True)
-        full_text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+        prompt_text = tokenizer.apply_chat_template(
+            messages[:-1], tokenize=False, add_generation_prompt=True
+        )
+        full_text = tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=False
+        )
         prompt_ids = tokenizer.encode(prompt_text, add_special_tokens=False)
         full_ids = tokenizer.encode(full_text, add_special_tokens=False)
-        if full_ids[: len(prompt_ids)] == prompt_ids and len(full_ids) > len(prompt_ids):
+        if full_ids[: len(prompt_ids)] == prompt_ids and len(full_ids) > len(
+            prompt_ids
+        ):
             completion_ids = full_ids[len(prompt_ids) :][:max_length]
             prompt_budget = max(0, max_length - len(completion_ids))
             prompt_ids = prompt_ids[-prompt_budget:] if prompt_budget else []
             input_ids = prompt_ids + completion_ids
             labels = [-100] * len(prompt_ids) + completion_ids
             if input_ids and any(label != -100 for label in labels):
-                return {"input_ids": input_ids, "attention_mask": [1] * len(input_ids), "labels": labels}
+                return {
+                    "input_ids": input_ids,
+                    "attention_mask": [1] * len(input_ids),
+                    "labels": labels,
+                }
         raise ValueError(
             "The pinned tokenizer chat template is not prefix-separable for assistant-only masking. Aptus refuses to alter its control-token format."
         )
@@ -977,7 +1094,11 @@ def encode_record(record: dict[str, Any], tokenizer: Any, max_length: int) -> di
         labels = [-100] * len(prompt_ids) + completion_ids
     if not input_ids or not any(label != -100 for label in labels):
         raise ValueError("Tokenized row contains no supervised tokens.")
-    return {"input_ids": input_ids, "attention_mask": [1] * len(input_ids), "labels": labels}
+    return {
+        "input_ids": input_ids,
+        "attention_mask": [1] * len(input_ids),
+        "labels": labels,
+    }
 
 
 def require_hardware_parity(plan: dict[str, Any]) -> None:
@@ -993,13 +1114,19 @@ def require_hardware_parity(plan: dict[str, Any]) -> None:
     physical_device_index = int(device_indices[local_rank])
     logical_device_index = local_rank
     if not torch.cuda.is_available():
-        raise RuntimeError("The selected execution candidate requires CUDA, but CUDA is unavailable.")
-    distributed = torch.distributed.is_available() and torch.distributed.is_initialized()
+        raise RuntimeError(
+            "The selected execution candidate requires CUDA, but CUDA is unavailable."
+        )
+    distributed = (
+        torch.distributed.is_available() and torch.distributed.is_initialized()
+    )
     actual_world_size = torch.distributed.get_world_size() if distributed else 1
     environment_world_size = int(os.environ.get("WORLD_SIZE", "1"))
     if candidate["distribution"] == "single":
         if actual_world_size != 1 or environment_world_size != 1:
-            raise RuntimeError("A single-device candidate cannot run inside a multi-process world.")
+            raise RuntimeError(
+                "A single-device candidate cannot run inside a multi-process world."
+            )
     elif not distributed:
         raise RuntimeError(
             f"The {candidate['distribution']} candidate requires an initialized distributed process group."
@@ -1185,7 +1312,9 @@ def trainable_parameter_census(
     adapter_components: dict[str, set[str]] = {}
     if method == "full":
         if target_modules or expected_adapter_target_match_count != 0:
-            raise RuntimeError("Full fine-tuning cannot declare adapter target matches.")
+            raise RuntimeError(
+                "Full fine-tuning cannot declare adapter target matches."
+            )
     elif not target_modules or expected_adapter_target_match_count <= 0:
         raise RuntimeError("Adapter census requires plan-bound target matches.")
     for name, parameter in model.named_parameters():
@@ -1245,8 +1374,7 @@ def trainable_parameter_census(
         )
     scope = "all-parameters" if method == "full" else "lora-adapter-only"
     incomplete_adapter_target_instance_count = sum(
-        components != {"lora_A", "lora_B"}
-        for components in adapter_components.values()
+        components != {"lora_A", "lora_B"} for components in adapter_components.values()
     )
     return {
         "schema_version": "aptus.trainable-parameter-census.v1",
@@ -1278,7 +1406,10 @@ def require_trainable_parameter_census(
         target_modules=target_modules,
         expected_adapter_target_match_count=expected_adapter_target_match_count,
     )
-    if census["trainable_parameter_count"] <= 0 or census["trainable_tensor_count"] <= 0:
+    if (
+        census["trainable_parameter_count"] <= 0
+        or census["trainable_tensor_count"] <= 0
+    ):
         raise RuntimeError(
             "Method preparation selected zero trainable parameters; training is refused."
         )
@@ -1379,9 +1510,7 @@ def model_data_preflight(
     verify_loaded_config_contract(config, plan)
     loaded_model = None
     try:
-        loaded_model = load_pinned_base_model(
-            plan, local_files_only=local_files_only
-        )
+        loaded_model = load_pinned_base_model(plan, local_files_only=local_files_only)
         actual_parameter_count, target_match_count = verify_loaded_model_contract(
             loaded_model, plan
         )
@@ -1398,13 +1527,17 @@ def model_data_preflight(
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     row_count = 0
-    with (ROOT / trainer_config["training_dataset_path"]).open("r", encoding="utf-8") as source:
+    with (ROOT / trainer_config["training_dataset_path"]).open(
+        "r", encoding="utf-8"
+    ) as source:
         for line_number, line in enumerate(source, start=1):
             if not line.strip():
                 continue
             row = json.loads(line)
             if not isinstance(row, dict):
-                raise ValueError(f"Canonical training row {line_number} must be an object.")
+                raise ValueError(
+                    f"Canonical training row {line_number} must be an object."
+                )
             encode_record(row, tokenizer, trainer_config["sequence_length"])
             row_count += 1
     if row_count == 0:
@@ -1433,9 +1566,6 @@ def synthetic_preflight(plan: dict[str, Any]) -> None:
     )
     torch.cuda.reset_peak_memory_stats()
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-    device_indices = candidate.get(
-        "device_indices", list(range(int(candidate["world_size"])))
-    )
     device = torch.device("cuda", local_rank)
     if candidate["method"] in {"int8-lora", "qlora"}:
         import bitsandbytes as bnb
@@ -1497,7 +1627,9 @@ def synthetic_preflight(plan: dict[str, Any]) -> None:
         target_modules=synthetic_target_modules,
         expected_adapter_target_match_count=synthetic_target_match_count,
     )
-    trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
+    trainable = [
+        parameter for parameter in model.parameters() if parameter.requires_grad
+    ]
     optimizer = torch.optim.AdamW(trainable, lr=1e-3)
     ids = torch.randint(0, 128, (2, 16), device=device)
     loss = model(input_ids=ids, labels=ids).loss
@@ -1611,7 +1743,9 @@ def verify_loaded_model_contract(
     target_modules = tuple(candidate.get("target_modules", ()))
     if candidate["method"] == "full":
         if target_modules:
-            raise RuntimeError("Full fine-tuning must not declare adapter target modules.")
+            raise RuntimeError(
+                "Full fine-tuning must not declare adapter target modules."
+            )
         return actual_parameter_count, 0
     if not target_modules:
         raise RuntimeError("The selected adapter method has no target modules.")
@@ -1742,9 +1876,7 @@ def require_owned_output_path(
     return resolved
 
 
-def claim_output_dir(
-    output_dir: Path, plan: dict[str, Any], *, pilot: bool
-) -> Path:
+def claim_output_dir(output_dir: Path, plan: dict[str, Any], *, pilot: bool) -> Path:
     output_dir = require_owned_output_path(output_dir, plan, pilot=pilot)
     marker = output_dir / ".aptus-run.json"
     local_rank = int(os.environ.get("LOCAL_RANK", "0"))
@@ -1774,11 +1906,15 @@ def claim_output_dir(
         while not marker.is_file() and time.monotonic() < deadline:
             time.sleep(0.05)
         if not marker.is_file():
-            raise RuntimeError("Rank zero did not publish the Aptus run-output contract.")
+            raise RuntimeError(
+                "Rank zero did not publish the Aptus run-output contract."
+            )
         observed = json.loads(marker.read_text(encoding="utf-8"))
         for key, value in contract.items():
             if observed.get(key) != value:
-                raise RuntimeError("The distributed run-output contract does not match this worker.")
+                raise RuntimeError(
+                    "The distributed run-output contract does not match this worker."
+                )
     return output_dir
 
 
@@ -1786,9 +1922,13 @@ def require_recorded_trainable_parameter_census(
     value: Any, *, expected_method: str
 ) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise RuntimeError("Training metrics do not contain a trainable-parameter census.")
+        raise RuntimeError(
+            "Training metrics do not contain a trainable-parameter census."
+        )
     if value.get("schema_version") != "aptus.trainable-parameter-census.v1":
-        raise RuntimeError("Training metrics carry an unknown trainable-parameter census.")
+        raise RuntimeError(
+            "Training metrics carry an unknown trainable-parameter census."
+        )
     if value.get("method") != expected_method:
         raise RuntimeError("Training metrics bind the wrong trainable method scope.")
     expected_scope = (
@@ -1803,7 +1943,9 @@ def require_recorded_trainable_parameter_census(
                 f"Training metrics require a positive {name.replace('_', ' ')}."
             )
     if value.get("all_values_finite") is not True:
-        raise RuntimeError("Training metrics do not attest finite trainable parameters.")
+        raise RuntimeError(
+            "Training metrics do not attest finite trainable parameters."
+        )
     for name in (
         "frozen_parameter_count",
         "frozen_tensor_count",
@@ -1829,7 +1971,9 @@ def require_recorded_trainable_parameter_census(
             raise RuntimeError("Full-training metrics attest adapter target instances.")
     else:
         if value["unexpected_trainable_tensor_count"]:
-            raise RuntimeError("Adapter metrics attest unexpected trainable parameters.")
+            raise RuntimeError(
+                "Adapter metrics attest unexpected trainable parameters."
+            )
         if value["frozen_parameter_count"] <= 0 or value["frozen_tensor_count"] <= 0:
             raise RuntimeError("Adapter metrics do not attest a non-empty frozen base.")
         if (
@@ -1847,7 +1991,9 @@ def require_recorded_trainable_parameter_census(
         or len(descriptor_digest) != 64
         or any(character not in "0123456789abcdef" for character in descriptor_digest)
     ):
-        raise RuntimeError("Training metrics carry an invalid trainable descriptor digest.")
+        raise RuntimeError(
+            "Training metrics carry an invalid trainable descriptor digest."
+        )
     return value
 
 
@@ -1855,9 +2001,13 @@ def require_recorded_dataset_split(
     value: Any, *, training_count: Any, evaluation_count: Any
 ) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise RuntimeError("Full training metrics do not contain dataset-split evidence.")
+        raise RuntimeError(
+            "Full training metrics do not contain dataset-split evidence."
+        )
     if value.get("schema_version") != "aptus.dataset-split.v1":
-        raise RuntimeError("Full training metrics carry unknown dataset-split evidence.")
+        raise RuntimeError(
+            "Full training metrics carry unknown dataset-split evidence."
+        )
     integer_fields = (
         "total_row_count",
         "training_row_count",
@@ -1890,8 +2040,7 @@ def require_recorded_dataset_split(
     ):
         raise RuntimeError("Dataset-split declared-group counts are inconsistent.")
     if value["split_unit_count"] != (
-        value["training_split_unit_count"]
-        + value["evaluation_split_unit_count"]
+        value["training_split_unit_count"] + value["evaluation_split_unit_count"]
     ):
         raise RuntimeError("Dataset-split unit counts are inconsistent.")
     if (
@@ -1902,7 +2051,9 @@ def require_recorded_dataset_split(
         or isinstance(evaluation_count, bool)
         or evaluation_count != value["evaluation_row_count"]
     ):
-        raise RuntimeError("Dataset-split evidence differs from the trainer dataset sizes.")
+        raise RuntimeError(
+            "Dataset-split evidence differs from the trainer dataset sizes."
+        )
     strategy = value.get("strategy")
     expected_strategy = (
         "deterministic-size-aware-group-sha256"
@@ -2020,7 +2171,9 @@ def assert_measured_training_metrics(
         ):
             raise RuntimeError(f"{phase} CUDA peaks must be non-negative integers.")
         if reserved < allocated:
-            raise RuntimeError(f"{phase} reserved CUDA memory is below allocated memory.")
+            raise RuntimeError(
+                f"{phase} reserved CUDA memory is below allocated memory."
+            )
         observed_ranks.append(rank)
         allocated_values.append(allocated)
         reserved_values.append(reserved)
@@ -2087,7 +2240,9 @@ def verify_final_export(
 
             loaded_adapter = PeftConfig.from_pretrained(str(final_dir))
         except Exception as error:
-            raise RuntimeError("Final adapter config cannot be loaded by pinned PEFT.") from error
+            raise RuntimeError(
+                "Final adapter config cannot be loaded by pinned PEFT."
+            ) from error
         if (
             loaded_adapter.base_model_name_or_path != expected_base
             or loaded_adapter.revision != expected_revision
@@ -2119,7 +2274,9 @@ def verify_final_export(
     except RuntimeError:
         raise
     except Exception as error:
-        raise RuntimeError("Final safetensors weights failed structural loading.") from error
+        raise RuntimeError(
+            "Final safetensors weights failed structural loading."
+        ) from error
     index_files = sorted(final_dir.glob("*.safetensors.index.json"))
     if len(index_files) > 1:
         raise RuntimeError("Final export contains multiple safetensors indexes.")
@@ -2142,7 +2299,9 @@ def verify_final_export(
         ):
             raise RuntimeError("Final safetensors index has an invalid weight map.")
         if set(weight_map) != set(tensor_shards):
-            raise RuntimeError("Final safetensors index keys do not match shard tensors.")
+            raise RuntimeError(
+                "Final safetensors index keys do not match shard tensors."
+            )
         mismatched_keys = [
             key for key, shard in weight_map.items() if tensor_shards[key] != shard
         ]
@@ -2164,7 +2323,9 @@ def verify_final_export(
         },
         "distribution": candidate["distribution"],
         "world_size": candidate["world_size"],
-        "device_indices": candidate.get("device_indices", list(range(candidate["world_size"]))),
+        "device_indices": candidate.get(
+            "device_indices", list(range(candidate["world_size"]))
+        ),
         "total_bytes": sum(path.stat().st_size for path in files),
         "files": [
             {
@@ -2193,7 +2354,9 @@ def export_final_artifact(
     plugin = getattr(accelerator.state, "fsdp_plugin", None)
     if candidate["distribution"] == "fsdp":
         if plugin is None:
-            raise RuntimeError("FSDP execution did not initialize the Accelerate FSDP plugin.")
+            raise RuntimeError(
+                "FSDP execution did not initialize the Accelerate FSDP plugin."
+            )
         plugin.set_state_dict_type("FULL_STATE_DICT")
     state_dict = accelerator.get_state_dict(trainer.model)
     unwrapped = accelerator.unwrap_model(trainer.model)
@@ -2214,8 +2377,7 @@ def export_final_artifact(
                 f".{export_path.name}.{uuid.uuid4().hex}.tmp"
             )
             temporary.write_text(
-                json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False)
-                + "\n",
+                json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False) + "\n",
                 encoding="utf-8",
             )
             os.replace(temporary, export_path)
@@ -2227,7 +2389,9 @@ def export_final_artifact(
     if result[0] is None:
         raise RuntimeError("Final export evidence was not published by rank zero.")
     if "error" in result[0]:
-        raise RuntimeError("Final export verification failed: " + str(result[0]["error"]))
+        raise RuntimeError(
+            "Final export verification failed: " + str(result[0]["error"])
+        )
     accelerator.wait_for_everyone()
     return result[0]
 
@@ -2253,7 +2417,9 @@ def _declared_split_group(row: dict[str, Any], *, line_number: int) -> str | Non
     missing = object()
     top_level = row.get("split_group", missing)
     metadata = row.get("metadata")
-    nested = metadata.get("split_group", missing) if isinstance(metadata, dict) else missing
+    nested = (
+        metadata.get("split_group", missing) if isinstance(metadata, dict) else missing
+    )
     declared = [value for value in (top_level, nested) if value is not missing]
     if not declared:
         return None
@@ -2268,9 +2434,7 @@ def _declared_split_group(row: dict[str, Any], *, line_number: int) -> str | Non
     return declared[0]
 
 
-def _split_unit_digest(
-    *, group: str | None, offset: int, line: bytes
-) -> str:
+def _split_unit_digest(*, group: str | None, offset: int, line: bytes) -> str:
     digest = hashlib.sha256()
     if group is None:
         digest.update(b"aptus.ungrouped-row.v1\0")
@@ -2313,7 +2477,9 @@ def _reconstruct_group_subset(
     if len(groups) == 1:
         group, count, _digest = groups[0]
         if count != target:
-            raise RuntimeError("Dataset split could not reconstruct its group assignment.")
+            raise RuntimeError(
+                "Dataset split could not reconstruct its group assignment."
+            )
         return {group}
 
     midpoint = len(groups) // 2
@@ -2384,9 +2550,7 @@ def split_jsonl_offsets_with_evidence(
         if evaluation_fraction > 0 and split_unit_count > 1
         else 0
     )
-    minimum_group_rows = max(
-        0, target_evaluation_row_count - ungrouped_row_count
-    )
+    minimum_group_rows = max(0, target_evaluation_row_count - ungrouped_row_count)
     maximum_group_rows = target_evaluation_row_count
 
     def group_distance(value: int) -> int:
@@ -2416,9 +2580,9 @@ def split_jsonl_offsets_with_evidence(
         tuple(item[1] for item in group_units), limit=maximum_group_selection
     )
     interval_width = maximum_group_rows - minimum_group_rows + 1
-    interval = (
-        reachable_group_rows >> minimum_group_rows
-    ) & ((1 << interval_width) - 1)
+    interval = (reachable_group_rows >> minimum_group_rows) & (
+        (1 << interval_width) - 1
+    )
     if interval:
         group_evaluation_rows = minimum_group_rows + interval.bit_length() - 1
     else:
@@ -2430,9 +2594,7 @@ def split_jsonl_offsets_with_evidence(
         upper = reachable_group_rows >> (maximum_group_rows + 1)
         if upper:
             candidates.append(
-                maximum_group_rows
-                + 1
-                + ((upper & -upper).bit_length() - 1)
+                maximum_group_rows + 1 + ((upper & -upper).bit_length() - 1)
             )
         if not candidates:
             raise RuntimeError("Dataset split has no valid group assignment.")
@@ -2508,16 +2670,12 @@ def split_jsonl_offsets_with_evidence(
             1 for side, _digest in group_assignments.values() if side == "train"
         ),
         "evaluation": sum(
-            1
-            for side, _digest in group_assignments.values()
-            if side == "evaluation"
-        )
+            1 for side, _digest in group_assignments.values() if side == "evaluation"
+        ),
     }
     row_counts = {
         "evaluation": group_evaluation_rows + ungrouped_evaluation_count,
-        "train": total_row_count
-        - group_evaluation_rows
-        - ungrouped_evaluation_count,
+        "train": total_row_count - group_evaluation_rows - ungrouped_evaluation_count,
     }
     unit_counts = {
         "evaluation": declared_group_side_counts["evaluation"]
@@ -2554,18 +2712,12 @@ def split_jsonl_offsets_with_evidence(
             if group is None:
                 unit_digest = _split_unit_digest(group=None, offset=offset, line=line)
                 selected = unit_digest in selected_ungrouped_digests
-                side = (
-                    "evaluation"
-                    if selected == select_evaluation_rows
-                    else "train"
-                )
+                side = "evaluation" if selected == select_evaluation_rows else "train"
             else:
                 side, unit_digest = group_assignments[group]
             target = eval_offsets if side == "evaluation" else train_offsets
             target.append(offset)
-            assignment_digest.update(
-                f"{offset}:{unit_digest}:{side}\n".encode("ascii")
-            )
+            assignment_digest.update(f"{offset}:{unit_digest}:{side}\n".encode("ascii"))
             observed_rows += 1
 
     if first_pass_digest.digest() != third_pass_digest.digest():
@@ -2587,9 +2739,7 @@ def split_jsonl_offsets_with_evidence(
         "seed": seed,
         "evaluation_fraction": evaluation_fraction,
         "target_evaluation_row_count": target_evaluation_row_count,
-        "evaluation_row_error": abs(
-            len(eval_offsets) - target_evaluation_row_count
-        ),
+        "evaluation_row_error": abs(len(eval_offsets) - target_evaluation_row_count),
         "realized_evaluation_fraction": len(eval_offsets) / observed_rows,
         "total_row_count": observed_rows,
         "training_row_count": len(train_offsets),
@@ -2688,7 +2838,9 @@ class LazyJsonlDataset:
             raise RuntimeError("Canonical training data changed while it was verified.")
         if digest.hexdigest() != self.expected_sha256:
             source.close()
-            raise RuntimeError("Canonical training data no longer matches split evidence.")
+            raise RuntimeError(
+                "Canonical training data no longer matches split evidence."
+            )
         source.seek(0)
         self._source = source
         self._source_stat = after
@@ -2750,7 +2902,9 @@ def run_training(
             if self.optimizer is None:
                 raise RuntimeError("Trainer did not create an optimizer.")
             expected_parameters = [
-                parameter for parameter in self.model.parameters() if parameter.requires_grad
+                parameter
+                for parameter in self.model.parameters()
+                if parameter.requires_grad
             ]
             observed_parameters = [
                 parameter
@@ -2775,9 +2929,7 @@ def run_training(
         def require_collective_condition(
             condition: bool, *, device: torch.device, message: str
         ) -> None:
-            flag = torch.tensor(
-                1 if condition else 0, dtype=torch.int32, device=device
-            )
+            flag = torch.tensor(1 if condition else 0, dtype=torch.int32, device=device)
             if torch.distributed.is_available() and torch.distributed.is_initialized():
                 torch.distributed.all_reduce(flag, op=torch.distributed.ReduceOp.MIN)
             if int(flag.item()) != 1:
@@ -2793,7 +2945,9 @@ def run_training(
                 message=f"{label} is non-finite on at least one rank.",
             )
 
-        def compute_loss(self, model: Any, inputs: Any, *args: Any, **kwargs: Any) -> Any:
+        def compute_loss(
+            self, model: Any, inputs: Any, *args: Any, **kwargs: Any
+        ) -> Any:
             result = super().compute_loss(model, inputs, *args, **kwargs)
             loss = result[0] if isinstance(result, tuple) else result
             self.require_collective_finite(loss, label="Raw training/evaluation loss")
@@ -2916,9 +3070,7 @@ def run_training(
         fp16=trainer_config["precision"] == "fp16",
         gradient_checkpointing=trainer_config["gradient_checkpointing"],
         gradient_checkpointing_kwargs={
-            "use_reentrant": trainer_config[
-                "gradient_checkpointing_use_reentrant"
-            ]
+            "use_reentrant": trainer_config["gradient_checkpointing_use_reentrant"]
         },
         ddp_find_unused_parameters=False,
         ddp_broadcast_buffers=False,
@@ -3023,7 +3175,27 @@ def run_training(
         metrics.update(trainer.evaluate())
     if not pilot:
         require_collective_dataset_split_binding(training_path, split_evidence)
-    export_evidence = export_final_artifact(trainer, tokenizer, output_dir, plan)
+    if not pilot:
+        emit_boundary("export.started", phase="final-export", action="train")
+    try:
+        export_evidence = export_final_artifact(trainer, tokenizer, output_dir, plan)
+    except BaseException as error:
+        if not pilot:
+            emit_boundary(
+                "export.finished",
+                phase="final-export",
+                action="train",
+                native_outcome="failed",
+                reason_code=campaign_runtime_failure_code(error),
+            )
+        raise
+    if not pilot:
+        emit_boundary(
+            "export.finished",
+            phase="final-export",
+            action="train",
+            native_outcome="passed",
+        )
     if torch.cuda.is_available():
         local_peaks = torch.tensor(
             [torch.cuda.max_memory_allocated(), torch.cuda.max_memory_reserved()],
@@ -3052,34 +3224,39 @@ def run_training(
         metrics["measured_reserved_cuda_bytes"] = max(
             item["measured_reserved_cuda_bytes"] for item in per_rank_peaks
         )
-    metrics.update({
-        "plan_id": plan["plan_id"],
-        "candidate_id": candidate["candidate_id"],
-        "pilot": pilot,
-        "pilot_row_count": len(train_dataset) if pilot else None,
-        "pilot_evaluation_enabled": False if pilot else eval_dataset is not None,
-        "training_example_count": len(train_dataset),
-        "evaluation_example_count": len(eval_dataset) if eval_dataset is not None else 0,
-        "dataset_split": split_evidence,
-        "global_step": trainer.state.global_step,
-        "finite_raw_loss_checks": trainer.finite_raw_loss_checks,
-        "finite_backward_loss_checks": trainer.finite_backward_loss_checks,
-        "finite_gradient_norm_checks": trainer.finite_gradient_norm_checks,
-        "finite_trainable_parameter_scans": trainer.finite_trainable_parameter_scans,
-        "optimizer_parameter_binding_checks": trainer.optimizer_parameter_binding_checks,
-        "non_skipped_optimizer_steps": trainer.non_skipped_optimizer_steps,
-        "resume_from": resume_from,
-        "distribution": candidate["distribution"],
-        "actual_world_size": (
-            torch.distributed.get_world_size()
-            if torch.distributed.is_available() and torch.distributed.is_initialized()
-            else 1
-        ),
-        "actual_parameter_count": actual_parameter_count,
-        "parameter_count_tolerance_fraction": 0.02,
-        "trainable_parameter_census": trainable_census,
-        "final_export": export_evidence,
-    })
+    metrics.update(
+        {
+            "plan_id": plan["plan_id"],
+            "candidate_id": candidate["candidate_id"],
+            "pilot": pilot,
+            "pilot_row_count": len(train_dataset) if pilot else None,
+            "pilot_evaluation_enabled": False if pilot else eval_dataset is not None,
+            "training_example_count": len(train_dataset),
+            "evaluation_example_count": len(eval_dataset)
+            if eval_dataset is not None
+            else 0,
+            "dataset_split": split_evidence,
+            "global_step": trainer.state.global_step,
+            "finite_raw_loss_checks": trainer.finite_raw_loss_checks,
+            "finite_backward_loss_checks": trainer.finite_backward_loss_checks,
+            "finite_gradient_norm_checks": trainer.finite_gradient_norm_checks,
+            "finite_trainable_parameter_scans": trainer.finite_trainable_parameter_scans,
+            "optimizer_parameter_binding_checks": trainer.optimizer_parameter_binding_checks,
+            "non_skipped_optimizer_steps": trainer.non_skipped_optimizer_steps,
+            "resume_from": resume_from,
+            "distribution": candidate["distribution"],
+            "actual_world_size": (
+                torch.distributed.get_world_size()
+                if torch.distributed.is_available()
+                and torch.distributed.is_initialized()
+                else 1
+            ),
+            "actual_parameter_count": actual_parameter_count,
+            "parameter_count_tolerance_fraction": 0.02,
+            "trainable_parameter_census": trainable_census,
+            "final_export": export_evidence,
+        }
+    )
     assert_measured_training_metrics(metrics, candidate=candidate, pilot=pilot)
     if trainer.is_world_process_zero():
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -3098,21 +3275,24 @@ def run_training(
         collectively_record_measured_run(output_dir, plan)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the selected Aptus training candidate.")
-    parser.add_argument("--preflight-model-data", action="store_true")
-    parser.add_argument("--synthetic-preflight", action="store_true")
-    parser.add_argument("--pilot", action="store_true")
-    parser.add_argument("--confirm-full-train", action="store_true")
-    parser.add_argument("--resume-from")
-    parser.add_argument("--max-steps", type=int)
-    parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--seed", type=int)
-    parser.add_argument("--local-files-only", action="store_true")
-    parser.add_argument("--runtime-probe", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--world-size", type=int, help=argparse.SUPPRESS)
-    parser.add_argument("--promote-pending", type=Path, help=argparse.SUPPRESS)
-    arguments = parser.parse_args()
+def campaign_runtime_failure_code(error: BaseException) -> str:
+    """Project private runtime exceptions onto the frozen stable reason set."""
+
+    message = str(error).lower()
+    if "cuda" in message and "out of memory" in message:
+        return "CUDA_OOM"
+    if "nonfinite" in message or "non-finite" in message:
+        return "NONFINITE_VALUE"
+    if "checkpoint" in message and ("continu" in message or "resume" in message):
+        return "CHECKPOINT_CONTINUATION_FAILURE"
+    if "final export" in message or "final-export" in message:
+        return "EXPORT_VERIFICATION_FAILURE"
+    if "artifact" in message and ("integrity" in message or "changed" in message):
+        return "ARTIFACT_INTEGRITY_FAILURE"
+    return "PROCESS_EXIT_NONZERO"
+
+
+def _execute(arguments: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     require_execution_lease()
     if arguments.runtime_probe:
         if arguments.world_size is None or arguments.world_size <= 0:
@@ -3128,7 +3308,9 @@ def main() -> int:
         print(f"Promoted measured-run evidence for {arguments.promote_pending}.")
         return 0
     if arguments.preflight_model_data:
-        model_data_preflight(plan, trainer_config, local_files_only=arguments.local_files_only)
+        model_data_preflight(
+            plan, trainer_config, local_files_only=arguments.local_files_only
+        )
         return 0
     if arguments.synthetic_preflight:
         synthetic_preflight(plan)
@@ -3136,25 +3318,89 @@ def main() -> int:
     if not arguments.pilot and not arguments.confirm_full_train:
         parser.error("Full training requires --confirm-full-train.")
     if not arguments.pilot and arguments.resume_from is not None:
-        parser.error("Full-training resume is fail-closed in Aptus v0.2 until checkpoint manifests bind complete optimizer, scheduler, RNG, model, and plan state.")
-    if not arguments.pilot and (arguments.max_steps is not None or arguments.seed is not None):
-        parser.error("--max-steps and --seed are pilot-only overrides; full training uses the compiled target contract.")
+        parser.error(
+            "Full-training resume is fail-closed in Aptus v0.2 until checkpoint manifests bind complete optimizer, scheduler, RNG, model, and plan state."
+        )
+    if not arguments.pilot and (
+        arguments.max_steps is not None or arguments.seed is not None
+    ):
+        parser.error(
+            "--max-steps and --seed are pilot-only overrides; full training uses the compiled target contract."
+        )
     output_dir = claim_output_dir(
         arguments.output_dir or default_output_dir(plan, pilot=arguments.pilot),
         plan,
         pilot=arguments.pilot,
     )
-    run_training(
-        plan,
-        trainer_config,
-        pilot=arguments.pilot,
-        max_steps=arguments.max_steps,
-        resume_from=arguments.resume_from,
-        output_dir=output_dir,
-        local_files_only=arguments.local_files_only,
-        seed=arguments.seed if arguments.seed is not None else trainer_config["seed"],
-    )
+    if not arguments.pilot:
+        emit_boundary("training.started", phase="training", action="train")
+    try:
+        run_training(
+            plan,
+            trainer_config,
+            pilot=arguments.pilot,
+            max_steps=arguments.max_steps,
+            resume_from=arguments.resume_from,
+            output_dir=output_dir,
+            local_files_only=arguments.local_files_only,
+            seed=(
+                arguments.seed if arguments.seed is not None else trainer_config["seed"]
+            ),
+        )
+    except BaseException as error:
+        if not arguments.pilot:
+            emit_boundary(
+                "training.finished",
+                phase="training",
+                action="train",
+                native_outcome="failed",
+                reason_code=campaign_runtime_failure_code(error),
+            )
+        raise
+    if not arguments.pilot:
+        emit_boundary(
+            "training.finished",
+            phase="training",
+            action="train",
+            native_outcome="passed",
+        )
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run the selected Aptus training candidate."
+    )
+    parser.add_argument("--preflight-model-data", action="store_true")
+    parser.add_argument("--synthetic-preflight", action="store_true")
+    parser.add_argument("--pilot", action="store_true")
+    parser.add_argument("--confirm-full-train", action="store_true")
+    parser.add_argument("--resume-from")
+    parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--seed", type=int)
+    parser.add_argument("--local-files-only", action="store_true")
+    parser.add_argument(
+        "--campaign-pilot-phase",
+        choices=("pilot-phase-1", "pilot-phase-2"),
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument("--runtime-probe", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--world-size", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--promote-pending", type=Path, help=argparse.SUPPRESS)
+    arguments = parser.parse_args()
+    try:
+        return _execute(arguments, parser)
+    except BaseException as error:
+        if arguments.pilot and arguments.campaign_pilot_phase is not None:
+            emit_boundary(
+                "pilot.phase-finished",
+                phase=arguments.campaign_pilot_phase,
+                action="pilot",
+                native_outcome="failed",
+                reason_code=campaign_runtime_failure_code(error),
+            )
+        raise
 
 
 if __name__ == "__main__":

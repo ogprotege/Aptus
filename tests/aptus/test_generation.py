@@ -10,6 +10,7 @@ import sys
 import tempfile
 import types
 import unittest
+import zipfile
 from collections import Counter
 from dataclasses import replace
 from pathlib import Path
@@ -22,6 +23,8 @@ from aptus.generation import (
     _bundle_program_bytes,
     create_bundle_archive,
     generate_bundle,
+    validate_bundle_archive_bytes,
+    verify_bundle_archive,
 )
 from aptus.model_compatibility import (
     current_model_policy_snapshot_bytes,
@@ -559,6 +562,7 @@ class BundleGenerationTests(unittest.TestCase):
             "requirements.txt",
             "config/accelerate.yaml",
             "config/trainer.json",
+            "campaign_events.py",
             "train.py",
             "preflight.py",
             "runtime_lease.py",
@@ -2577,6 +2581,173 @@ class BundleGenerationTests(unittest.TestCase):
             self.assertTrue(user_directory.is_dir())
             self.assertFalse(owned.exists())
 
+    def test_pilot_checkpoint_failure_cannot_emit_a_passing_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated_path(
+                output, "preflight.py", "aptus_generated_preflight_boundaries"
+            )
+            events: list[tuple[str, dict[str, object]]] = []
+
+            def record_event(event_type: str, **fields: object) -> None:
+                events.append((event_type, fields))
+
+            with (
+                patch.object(module, "require_contract", return_value={}),
+                patch.object(module, "require_static"),
+                patch.object(module, "require_dependencies"),
+                patch.object(module, "training_command", return_value=["train"]),
+                patch.object(
+                    module,
+                    "run_with_lease",
+                    return_value=types.SimpleNamespace(returncode=0),
+                ),
+                patch.object(module, "prune_pilot_runs"),
+                patch.object(module, "claim_pilot_root"),
+                patch.object(
+                    module,
+                    "checkpoint_contract",
+                    side_effect=RuntimeError(
+                        "Checkpoint continuation artifact changed."
+                    ),
+                ),
+                patch.object(module, "emit_boundary", side_effect=record_event),
+                self.assertRaisesRegex(RuntimeError, "Checkpoint continuation"),
+            ):
+                module.run_validation(
+                    types.SimpleNamespace(level="pilot", local_files_only=False)
+                )
+
+        self.assertEqual(
+            events,
+            [
+                (
+                    "pilot.phase-started",
+                    {"phase": "pilot-phase-1", "action": "pilot"},
+                ),
+                (
+                    "pilot.phase-finished",
+                    {
+                        "phase": "pilot-phase-1",
+                        "action": "pilot",
+                        "native_outcome": "failed",
+                        "reason_code": "CHECKPOINT_CONTINUATION_FAILURE",
+                    },
+                ),
+            ],
+        )
+
+    def test_pilot_child_projects_specific_terminal_failure_reasons(self) -> None:
+        cases = (
+            (RuntimeError("CUDA out of memory."), "CUDA_OOM"),
+            (RuntimeError("Training produced a nonfinite loss."), "NONFINITE_VALUE"),
+        )
+        for index, (failure, expected_reason) in enumerate(cases):
+            with (
+                self.subTest(expected_reason),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                output = self._bundle(Path(temporary))
+                module = self._load_generated(
+                    output, f"aptus_generated_pilot_reason_{index}"
+                )
+                events: list[tuple[str, dict[str, object]]] = []
+
+                def record_event(event_type: str, **fields: object) -> None:
+                    events.append((event_type, fields))
+
+                with (
+                    patch.object(
+                        sys,
+                        "argv",
+                        [
+                            "train.py",
+                            "--pilot",
+                            "--max-steps",
+                            "1",
+                            "--campaign-pilot-phase",
+                            "pilot-phase-1",
+                            "--output-dir",
+                            str(output / "pilot"),
+                        ],
+                    ),
+                    patch.object(module, "require_execution_lease"),
+                    patch.object(module, "load_plan", return_value={}),
+                    patch.object(module, "bind_visible_cuda_devices"),
+                    patch.object(
+                        module, "load_trainer_config", return_value={"seed": 17}
+                    ),
+                    patch.object(module, "require_compiler_contract"),
+                    patch.object(
+                        module, "claim_output_dir", return_value=output / "pilot"
+                    ),
+                    patch.object(module, "run_training", side_effect=failure),
+                    patch.object(module, "emit_boundary", side_effect=record_event),
+                    self.assertRaises(type(failure)),
+                ):
+                    module.main()
+
+                self.assertEqual(
+                    events,
+                    [
+                        (
+                            "pilot.phase-finished",
+                            {
+                                "phase": "pilot-phase-1",
+                                "action": "pilot",
+                                "native_outcome": "failed",
+                                "reason_code": expected_reason,
+                            },
+                        )
+                    ],
+                )
+
+    def test_pilot_child_emits_failure_when_setup_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_pilot_setup_failure")
+            events: list[tuple[str, dict[str, object]]] = []
+
+            def record_event(event_type: str, **fields: object) -> None:
+                events.append((event_type, fields))
+
+            with (
+                patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "train.py",
+                        "--pilot",
+                        "--campaign-pilot-phase",
+                        "pilot-phase-2",
+                    ],
+                ),
+                patch.object(module, "require_execution_lease"),
+                patch.object(
+                    module,
+                    "load_plan",
+                    side_effect=RuntimeError("Pilot setup failed."),
+                ),
+                patch.object(module, "emit_boundary", side_effect=record_event),
+                self.assertRaisesRegex(RuntimeError, "Pilot setup failed"),
+            ):
+                module.main()
+
+            self.assertEqual(
+                events,
+                [
+                    (
+                        "pilot.phase-finished",
+                        {
+                            "phase": "pilot-phase-2",
+                            "action": "pilot",
+                            "native_outcome": "failed",
+                            "reason_code": "PROCESS_EXIT_NONZERO",
+                        },
+                    )
+                ],
+            )
+
     def test_user_values_stay_in_data_not_generated_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -3462,6 +3633,79 @@ runpy.run_path(bundle / "preflight.py", run_name="__main__")
             first_zip = create_bundle_archive(first)
             second_zip = create_bundle_archive(second)
             self.assertEqual(first_zip.read_bytes(), second_zip.read_bytes())
+            inventory = validate_bundle_archive_bytes(first_zip.read_bytes())
+            self.assertIn("bundle-manifest.json", inventory)
+            self.assertIn("plan.json", inventory)
+            self.assertTrue(verify_bundle_archive(first, first_zip))
+
+    def test_archive_rejects_arbitrary_zip_symlink_and_hardlink_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            arbitrary = root / "arbitrary.zip"
+            with zipfile.ZipFile(
+                arbitrary,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            ) as archive:
+                info = zipfile.ZipInfo("plan.json", date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                archive.writestr(info, b"{}\n")
+            with self.assertRaisesRegex(ValueError, "canonical Aptus"):
+                validate_bundle_archive_bytes(arbitrary.read_bytes())
+
+        for kind in ("symlink", "hardlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                output = self._bundle(root)
+                source = output / "plan.json"
+                linked = output / "linked-plan.json"
+                if kind == "symlink":
+                    linked.symlink_to(source)
+                else:
+                    os.link(source, linked)
+                with self.assertRaisesRegex(
+                    ValueError, "symlink|regular non-hardlinked"
+                ):
+                    create_bundle_archive(output, root / "release.zip")
+
+    def test_archive_rejects_a_self_consistent_but_incomplete_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            complete = self._bundle(root)
+            incomplete = root / "incomplete"
+            (incomplete / "policy").mkdir(parents=True)
+            retained = {
+                "plan.json",
+                "policy/model-policy-snapshot.v1.json",
+            }
+            for relative in retained:
+                destination = incomplete / relative
+                destination.write_bytes((complete / relative).read_bytes())
+            manifest = json.loads(
+                (complete / "bundle-manifest.json").read_text(encoding="utf-8")
+            )
+            manifest["files"] = [
+                item for item in manifest["files"] if item["path"] in retained
+            ]
+            (incomplete / "bundle-manifest.json").write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            archive = create_bundle_archive(incomplete, root / "incomplete.zip")
+
+            with self.assertRaisesRegex(ValueError, "canonical Aptus"):
+                validate_bundle_archive_bytes(archive.read_bytes())
+
+    def test_archive_verification_detects_bundle_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = self._bundle(root)
+            archive = create_bundle_archive(output)
+            self.assertTrue(verify_bundle_archive(output, archive))
+            (output / "plan.json").write_text("{}\n", encoding="utf-8")
+            self.assertFalse(verify_bundle_archive(output, archive))
 
     def test_archive_refuses_to_overwrite_existing_output(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

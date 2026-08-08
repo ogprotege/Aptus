@@ -970,7 +970,7 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "Capture and candidate-selection contracts are not yet implemented",
+            "Phase 2B has not produced or merged the sanitized recovery supplement",
             " ".join(documentation_debt.split()),
         )
         self.assertIn(
@@ -1007,21 +1007,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 122)
+        self.assertEqual(len(repository_documents), 123)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 121)
-        self.assertEqual(len(active_documents), 92)
+        self.assertEqual(len(governed_documents), 122)
+        self.assertEqual(len(active_documents), 93)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 121)
-        self.assertIn("121 are governed", normalized_inventory)
-        self.assertIn("121 governed", normalized_inventory)
-        self.assertIn("122 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 92 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 122)
+        self.assertIn("122 are governed", normalized_inventory)
+        self.assertIn("122 governed", normalized_inventory)
+        self.assertIn("123 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 93 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -1042,6 +1042,31 @@ class DocumentationTests(unittest.TestCase):
             "Never report tokens per second until exact padded and supervised token",
         ):
             self.assertIn(required, normalized_campaign)
+
+        phase_2_tooling = (
+            REPOSITORY / "docs/operations/cuda-campaign-phase2-tooling.md"
+        ).read_text(encoding="utf-8")
+        normalized_phase_2_tooling = " ".join(phase_2_tooling.split())
+        for required in (
+            "Phase 2A source tooling implemented and independently reviewed",
+            "No Ubuntu command, model download, GPU workload, or new empirical run occurred",
+            "It is not Aptus's global ceiling",
+            "Phase 2B remains pending",
+            "Ubuntu host mutation remains forbidden",
+            "The earlier stage-review-finalize sequence is not frozen authority",
+            "tools/cuda_campaign/admission.py",
+            "tools/cuda_campaign/phase4.py",
+            "tools/cuda_campaign/outcomes.py",
+            "planned-slot context plus all seven activation files",
+            "seven frozen output roles",
+            "bundle-archive",
+            "two fresh live eligibility passes",
+            "creates no eligible decision anchor until the final pass succeeds",
+            "Failed post-commit verification or parent `fsync` rolls the directory out of the public destination",
+        ):
+            self.assertIn(required, normalized_phase_2_tooling)
+        self.assertNotIn("under red-team remediation", normalized_phase_2_tooling)
+        self.assertNotIn("Phase 2A is not complete", normalized_phase_2_tooling)
 
         phase_6 = campaign.partition("### Phase 6")[2].partition("### Phase 7")[0]
         documented_cuda_single_methods = set(

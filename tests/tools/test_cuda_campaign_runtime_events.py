@@ -294,9 +294,16 @@ class RuntimeBoundaryJournalTests(unittest.TestCase):
             root = Path(temporary)
             path = root / "events.jsonl"
             write_lines(path, [boundary("training.started", 10)])
+            original_metadata = path.stat()
             reader = self._reader(path)
-            path.unlink()
-            write_lines(path, [boundary("training.started", 10)])
+            replacement = root / "replacement.jsonl"
+            write_lines(replacement, [boundary("training.started", 10)])
+            replacement_metadata = replacement.stat()
+            self.assertNotEqual(
+                (original_metadata.st_dev, original_metadata.st_ino),
+                (replacement_metadata.st_dev, replacement_metadata.st_ino),
+            )
+            os.replace(replacement, path)
             with self.assertRaisesRegex(RuntimeBoundaryError, "integrity"):
                 reader.drain()
 

@@ -89,10 +89,17 @@ class CampaignRuntimeEventTests(unittest.TestCase):
             path = root / "events.jsonl"
             path.touch(mode=0o600)
             path.chmod(0o600)
+            original_metadata = path.stat()
             environment = self._environment(path)
-            path.unlink()
-            path.touch(mode=0o600)
-            path.chmod(0o600)
+            replacement = root / "replacement.jsonl"
+            replacement.touch(mode=0o600)
+            replacement.chmod(0o600)
+            replacement_metadata = replacement.stat()
+            self.assertNotEqual(
+                (original_metadata.st_dev, original_metadata.st_ino),
+                (replacement_metadata.st_dev, replacement_metadata.st_ino),
+            )
+            os.replace(replacement, path)
             with patch.dict(os.environ, environment, clear=True):
                 with self.assertRaisesRegex(RuntimeError, "integrity"):
                     emit_boundary("training.started", phase="training", action="train")

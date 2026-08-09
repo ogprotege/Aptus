@@ -2874,17 +2874,19 @@ class CaptureHarness:
                 )
                 result = WindowValidation(False, (code,))
                 break
-            cooldown_samples = [
+            post_run_samples = [
                 item for item in samples if item["observed_monotonic_ns"] >= started_ns
-            ][:QUALIFYING_COOLDOWN_SAMPLES]
-            if len(cooldown_samples) == QUALIFYING_COOLDOWN_SAMPLES:
+            ]
+            if len(post_run_samples) >= QUALIFYING_COOLDOWN_SAMPLES:
+                cooldown_samples = post_run_samples[-QUALIFYING_COOLDOWN_SAMPLES:]
                 result = validate_cooldown(
                     cooldown_samples,
                     context.idle_baseline_summary,
                     required_samples=QUALIFYING_COOLDOWN_SAMPLES,
                 )
-                now_ns = cooldown_samples[-1]["observed_monotonic_ns"]
-                break
+                if result.valid:
+                    now_ns = cooldown_samples[-1]["observed_monotonic_ns"]
+                    break
             if now_ns >= deadline_ns:
                 break
             self._sleep(0.25)

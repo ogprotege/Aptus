@@ -1400,6 +1400,134 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
+    def test_qualifying_cooldown_uses_a_recovered_rolling_window(self) -> None:
+        from tests.tools.test_cuda_campaign_qualification import qualifying_context
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            context = qualifying_context(
+                bundle_path=str(bundle),
+                state_root=str(root / "fresh-state"),
+            )
+            clock = QualificationClock()
+            harness = CaptureHarness(
+                private_directory(root / "state"),
+                attempt_slot_id=context.attempt_slot_id,
+                experiment_run_id=context.experiment_run_id,
+                provisional_retain_not_before_utc=RETAIN_UNTIL,
+                monotonic_ns=clock,
+                wall_time=lambda: WALL_TIME,
+                sleep=lambda _seconds: None,
+            )
+            ledger = harness._new_ledger()
+            cooldown_start = clock.value + 1_000_000_000
+
+            class RecoveringTelemetry:
+                def __init__(self) -> None:
+                    self.snapshots = 0
+
+                def safety_signal(self) -> None:
+                    return None
+
+                def snapshot(self) -> TelemetrySnapshot:
+                    self.snapshots += 1
+                    rows = []
+                    for slot in range(119 + self.snapshots):
+                        sample = qualifying_sample(
+                            sequence=slot,
+                            start_monotonic_ns=cooldown_start,
+                            experiment_run_id=context.experiment_run_id,
+                        )
+                        if slot == 0:
+                            sample["gpu"]["power_draw_w"] = 40.0
+                        rows.append(sample)
+                    return TelemetrySnapshot(
+                        samples=tuple(rows),
+                        configuration={},
+                        safety_events=(),
+                        failure_code=None,
+                    )
+
+            telemetry = RecoveringTelemetry()
+            result = harness._capture_qualifying_cooldown(
+                ledger,
+                telemetry,  # type: ignore[arg-type]
+                context,
+            )
+
+        self.assertTrue(result.valid, result.reason_codes)
+        self.assertEqual(telemetry.snapshots, 2)
+        self.assertEqual(ledger.records[-1]["event_type"], "cooldown.finished")
+        self.assertEqual(ledger.records[-1]["native_outcome"], "passed")
+
+    def test_qualifying_cooldown_deadline_advances_without_new_samples(self) -> None:
+        from tests.tools.test_cuda_campaign_qualification import qualifying_context
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            context = qualifying_context(
+                bundle_path=str(bundle),
+                state_root=str(root / "fresh-state"),
+            )
+            clock = QualificationClock()
+            harness = CaptureHarness(
+                private_directory(root / "state"),
+                attempt_slot_id=context.attempt_slot_id,
+                experiment_run_id=context.experiment_run_id,
+                provisional_retain_not_before_utc=RETAIN_UNTIL,
+                monotonic_ns=clock,
+                wall_time=lambda: WALL_TIME,
+                sleep=lambda _seconds: None,
+            )
+            ledger = harness._new_ledger()
+            cooldown_start = clock.value + 1_000_000_000
+
+            class StalledTelemetry:
+                def __init__(self) -> None:
+                    self.snapshots = 0
+                    rows = []
+                    for slot in range(120):
+                        sample = qualifying_sample(
+                            sequence=slot,
+                            start_monotonic_ns=cooldown_start,
+                            experiment_run_id=context.experiment_run_id,
+                        )
+                        sample["gpu"]["power_draw_w"] = 40.0
+                        rows.append(sample)
+                    self.rows = tuple(rows)
+
+                def safety_signal(self) -> None:
+                    return None
+
+                def snapshot(self) -> TelemetrySnapshot:
+                    self.snapshots += 1
+                    return TelemetrySnapshot(
+                        samples=self.rows,
+                        configuration={},
+                        safety_events=(),
+                        failure_code=None,
+                    )
+
+            telemetry = StalledTelemetry()
+            with patch(
+                "tools.cuda_campaign.harness.QUALIFYING_COOLDOWN_MAXIMUM_WAIT_SECONDS",
+                2,
+            ):
+                result = harness._capture_qualifying_cooldown(
+                    ledger,
+                    telemetry,  # type: ignore[arg-type]
+                    context,
+                )
+
+        self.assertFalse(result.valid)
+        self.assertEqual(telemetry.snapshots, 2)
+        self.assertEqual(ledger.records[-1]["event_type"], "cooldown.finished")
+        self.assertEqual(ledger.records[-1]["native_outcome"], "failed")
+
     def test_runtime_failure_closure_controls_exact_terminal_reason(self) -> None:
         cases = {
             "pre-export-oom": (

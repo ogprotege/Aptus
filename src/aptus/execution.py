@@ -348,6 +348,60 @@ print(json.dumps({
 }, sort_keys=True))
 """
 
+_RUNTIME_ENVIRONMENT_PROBE = r"""
+import json
+import platform
+import sys
+from importlib.metadata import PackageNotFoundError, distribution, version
+from pathlib import Path
+
+bundle = Path(sys.argv[1])
+direct_constraints = {}
+for line in (bundle / "requirements.txt").read_text(encoding="utf-8").splitlines():
+    if not line.strip():
+        continue
+    name = line.split("==", 1)[0]
+    try:
+        direct_constraints[name] = version(name)
+    except PackageNotFoundError:
+        direct_constraints[name] = "missing"
+pending = list(direct_constraints)
+observed = {}
+visited = set()
+while pending:
+    requested = pending.pop()
+    normalized = requested.lower().replace("_", "-").replace(".", "-")
+    if normalized in visited:
+        continue
+    visited.add(normalized)
+    try:
+        package = distribution(requested)
+    except PackageNotFoundError:
+        continue
+    canonical = (package.metadata.get("Name") or requested).lower()
+    canonical = canonical.replace("_", "-").replace(".", "-")
+    observed[canonical] = package.version
+    for requirement in package.requires or ():
+        token = requirement.split(";", 1)[0].strip()
+        boundary = min(
+            (
+                token.find(character)
+                for character in "[ (<>=!~"
+                if character in token
+            ),
+            default=len(token),
+        )
+        dependency = token[:boundary].strip()
+        if dependency:
+            pending.append(dependency)
+print(json.dumps({
+    "python": platform.python_version(),
+    "platform": platform.platform(),
+    "direct_constraints": direct_constraints,
+    "runtime_distributions": dict(sorted(observed.items())),
+}, sort_keys=True, separators=(",", ":")))
+"""
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -2386,7 +2440,11 @@ def _runtime_distribution_closure(names: Mapping[str, str]) -> dict[str, str]:
 
 
 def _actual_runtime_snapshot(
-    world_size: int = 0, device_indices: list[int] | None = None
+    world_size: int = 0,
+    device_indices: list[int] | None = None,
+    *,
+    interpreter: str | Path | None = None,
+    environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     selected_indices = (
         list(range(world_size)) if device_indices is None else list(device_indices)
@@ -2400,10 +2458,18 @@ def _actual_runtime_snapshot(
         or len(set(selected_indices)) != len(selected_indices)
     ):
         raise ValueError("Selected CUDA device indices do not match the planned world.")
+    runtime_interpreter = (
+        str(interpreter) if interpreter is not None else sys.executable
+    )
+    if not runtime_interpreter:
+        raise ValueError("CUDA runtime interpreter is empty.")
+    probe_environment = os.environ.copy()
+    if environment is not None:
+        probe_environment.update(environment)
     try:
         completed = subprocess.run(
             [
-                sys.executable,
+                runtime_interpreter,
                 "-c",
                 _CUDA_RUNTIME_PROBE,
                 json.dumps(selected_indices),
@@ -2412,6 +2478,7 @@ def _actual_runtime_snapshot(
             capture_output=True,
             text=True,
             timeout=30,
+            env=probe_environment,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ValueError(f"CUDA runtime probe failed: {error}") from error
@@ -2435,6 +2502,56 @@ def _actual_runtime_snapshot(
     ):
         raise ValueError("CUDA runtime probe returned invalid free-memory facts.")
     return value
+
+
+def _actual_environment_binding(
+    bundle: Path,
+    *,
+    interpreter: str | Path | None = None,
+    environment: Mapping[str, str] | None = None,
+) -> str:
+    runtime_interpreter = (
+        str(interpreter) if interpreter is not None else sys.executable
+    )
+    if not runtime_interpreter:
+        raise ValueError("Runtime environment interpreter is empty.")
+    probe_environment = os.environ.copy()
+    if environment is not None:
+        probe_environment.update(environment)
+    try:
+        completed = subprocess.run(
+            [runtime_interpreter, "-c", _RUNTIME_ENVIRONMENT_PROBE, str(bundle)],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=probe_environment,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"Runtime environment probe failed: {error}") from error
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ValueError(f"Runtime environment probe failed: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError("Runtime environment probe returned invalid JSON.") from error
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {
+            "python",
+            "platform",
+            "direct_constraints",
+            "runtime_distributions",
+        }
+        or not isinstance(value["python"], str)
+        or not isinstance(value["platform"], str)
+        or not isinstance(value["direct_constraints"], dict)
+        or not isinstance(value["runtime_distributions"], dict)
+    ):
+        raise ValueError("Runtime environment probe returned an invalid contract.")
+    return _json_hash(value)
 
 
 def _actual_hardware_binding(device_indices: list[int]) -> str:
@@ -3109,6 +3226,18 @@ class JobService:
             self._require_no_active_job()
             yield
 
+    def _runtime_interpreter(self, plan: Mapping[str, Any]) -> str:
+        runtime_id = _plan_training_runtime(plan)
+        runtime_key = runtime_environment_key(runtime_id)
+        if (
+            runtime_id in {"mlx-lm", "pytorch-mps"}
+            or self.runtime_environment.get(runtime_key, "").strip()
+        ):
+            return resolve_runtime_interpreter(
+                runtime_id, environment=self.runtime_environment
+            ).path
+        return sys.executable
+
     def _command(
         self,
         bundle: Path,
@@ -3120,27 +3249,8 @@ class JobService:
     ) -> list[str]:
         if plan is None:
             plan = _read_json_object(bundle / "plan.json", "Bundle plan")
-        recommended = plan.get("recommended")
-        runtime_contract = (
-            recommended.get("runtime_contract")
-            if isinstance(recommended, dict)
-            else None
-        )
-        runtime_id = (
-            runtime_contract.get("training_runtime")
-            if isinstance(runtime_contract, dict)
-            and isinstance(runtime_contract.get("training_runtime"), str)
-            else "transformers-peft-cuda"
-        )
-        interpreter = sys.executable
-        runtime_key = runtime_environment_key(runtime_id)
-        if (
-            runtime_id in {"mlx-lm", "pytorch-mps"}
-            or self.runtime_environment.get(runtime_key, "").strip()
-        ):
-            interpreter = resolve_runtime_interpreter(
-                runtime_id, environment=self.runtime_environment
-            ).path
+        runtime_id = _plan_training_runtime(plan)
+        interpreter = self._runtime_interpreter(plan)
         if action in {"dependency", "model-data", "preflight"}:
             level = {
                 "dependency": "dependency",
@@ -3362,14 +3472,24 @@ class JobService:
         )
         if not isinstance(device_indices, list):
             raise ValueError("Selected CUDA device indices must be a list.")
-        runtime = _actual_runtime_snapshot(world_size, device_indices)
+        runtime_interpreter = self._runtime_interpreter(plan)
+        runtime = _actual_runtime_snapshot(
+            world_size,
+            device_indices,
+            interpreter=runtime_interpreter,
+            environment=self.runtime_environment,
+        )
         expected = {
             "bundle": sha256_file(bundle / "bundle-manifest.json"),
             "dataset": plan["dataset"]["source_sha256"],
             "model_revision": plan["model"]["revision"],
             "plan_id": plan["plan_id"],
             "candidate_id": plan["recommended"]["candidate_id"],
-            "environment": _environment_binding(bundle),
+            "environment": _actual_environment_binding(
+                bundle,
+                interpreter=runtime_interpreter,
+                environment=self.runtime_environment,
+            ),
             "hardware": _json_hash(runtime["hardware"]),
             "pilot_metrics": sha256_file(pilot_metrics),
         }

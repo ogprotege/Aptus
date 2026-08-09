@@ -33,6 +33,7 @@ def _probe_reading(*, temperature_c: float = 40.0) -> dict[str, object]:
             "uuid": "GPU-protected-sidecar-test",
             "memory_used": {"value": str(total - free), "unit": "B"},
             "memory_free": {"value": str(free), "unit": "B"},
+            "memory_reserved": {"value": "0", "unit": "B"},
             "memory_total": {"value": str(total), "unit": "B"},
             "utilization_percent": 25.0,
             "temperature_c": temperature_c,

@@ -1399,9 +1399,12 @@ class DocumentationTests(unittest.TestCase):
             2,
         )
         memory_integrity = telemetry["gpu_memory_integrity"]
-        self.assertEqual(memory_integrity["mismatch_tolerance_bytes"], 0)
         self.assertIn(
-            "convert used, free, and total to integer bytes exactly",
+            "one-half of each used, free, reserved, and total",
+            memory_integrity["mismatch_tolerance_rule"],
+        )
+        self.assertIn(
+            "convert used, free, reserved, and total to integer bytes exactly",
             memory_integrity["normalization_rule"],
         )
         phase3 = protocol["phase3_implementation_prerequisites"]
@@ -1477,7 +1480,7 @@ class DocumentationTests(unittest.TestCase):
             "No frozen fixture row reaches 4,096 tokens",
             "39 unique expected digests",
             "The original August 6 packet remains immutable",
-            "Convert each reported used, free, and total value",
+            "Convert each reported used, free, reserved, and total value",
             "Exact padded, non-padding, and supervised token counters may be deferred only",
             "invalid trainable parameter census",
             "applicable uncorrected hardware error",

@@ -658,14 +658,16 @@ warning and abort thresholds above remain additional safety controls; a stream
 can therefore be capture-invalid before its safety abort threshold is reached.
 
 Core GPU channels are protected-only GPU UUID; directly reported memory used,
-free, and total with source units retained and values normalized to integer
+free, reserved, and total with source units retained and values normalized to integer
 bytes; utilization; temperature; power draw and limit; graphics and memory
 clocks; performance state; throttle reasons; Xid projection; and unrelated
 compute processes. Safety binds the directly reported free-memory channel,
-never a derived value. Convert each reported used, free, and total value from
-its retained source unit to integer bytes exactly, then require
-`total_bytes - used_bytes == free_bytes` with no rounding or tolerance. An
-inexact or invalid conversion or a reconciliation mismatch is
+never a derived value. Convert each reported used, free, reserved, and total
+value from its retained source unit to integer bytes exactly. Reconcile
+`total_bytes` against `used_bytes + free_bytes + reserved_bytes`, allowing only
+the sum of one-half of each retained source value's display resolution to account
+for independent `nvidia-smi` rounding. An inexact or invalid conversion or a
+reconciliation mismatch outside that source-resolution bound is
 `capture-invalid` and blocks qualification pending diagnosis. Core host
 channels are `MemAvailable`, swap used and I/O, load, filesystem free bytes,
 managed-process RSS/CPU/I/O counters, disk growth, collector health, and

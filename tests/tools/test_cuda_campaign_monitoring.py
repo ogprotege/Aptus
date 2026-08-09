@@ -73,6 +73,7 @@ def _probe_reading(
             "uuid": "GPU-protected-test-uuid",
             "memory_used": {"value": str(used), "unit": "B"},
             "memory_free": {"value": str(free_vram_bytes), "unit": "B"},
+            "memory_reserved": {"value": "0", "unit": "B"},
             "memory_total": {"value": str(total), "unit": "B"},
             "utilization_percent": utilization_percent,
             "temperature_c": temperature_c,
@@ -177,7 +178,60 @@ class TelemetryConstructionTests(unittest.TestCase):
             exact_bytes("1", "mystery")
 
         reading = _probe_reading()
-        reading["gpu"]["memory_free"] = {"value": "1", "unit": "B"}
+        reading["gpu"]["memory_free"] = {"value": "3", "unit": "B"}
+        with self.assertRaisesRegex(TelemetryValidationError, "do not reconcile"):
+            construct_telemetry_sample(
+                sequence=0,
+                experiment_run_id=RUN_ID,
+                scheduled_slot=0,
+                scheduled_monotonic_ns=0,
+                observed_monotonic_ns=0,
+                wall_time_utc="2026-08-08T12:00:00+00:00",
+                probe_reading=reading,
+                collector={
+                    "healthy": True,
+                    "status_code": None,
+                    "probe_duration_ns": 0,
+                },
+                watchdog={
+                    "healthy": True,
+                    "heartbeat_monotonic_ns": 0,
+                    "ownership_certain": True,
+                },
+            )
+
+    def test_memory_integrity_retains_reserved_and_bounds_display_rounding(self) -> None:
+        reading = _probe_reading()
+        reading["gpu"].update(
+            {
+                "memory_used": {"value": "156", "unit": "MiB"},
+                "memory_free": {"value": "7684", "unit": "MiB"},
+                "memory_reserved": {"value": "353", "unit": "MiB"},
+                "memory_total": {"value": "8192", "unit": "MiB"},
+            }
+        )
+        sample = construct_telemetry_sample(
+            sequence=0,
+            experiment_run_id=RUN_ID,
+            scheduled_slot=0,
+            scheduled_monotonic_ns=0,
+            observed_monotonic_ns=0,
+            wall_time_utc="2026-08-08T12:00:00+00:00",
+            probe_reading=reading,
+            collector={
+                "healthy": True,
+                "status_code": None,
+                "probe_duration_ns": 0,
+            },
+            watchdog={
+                "healthy": True,
+                "heartbeat_monotonic_ns": 0,
+                "ownership_certain": True,
+            },
+        )
+        self.assertEqual(sample["gpu"]["memory"]["reserved"]["source_value"], "353")
+
+        reading["gpu"]["memory_total"] = {"value": "8190", "unit": "MiB"}
         with self.assertRaisesRegex(TelemetryValidationError, "do not reconcile"):
             construct_telemetry_sample(
                 sequence=0,
@@ -404,6 +458,43 @@ class LinuxNvidiaJournalEventProviderTests(unittest.TestCase):
         self.assertIn("--boot=" + boot_id, commands[0])
         self.assertIn("--grep=(NVRM|nvidia|nouveau)", commands[0])
         self.assertIn("--after-cursor=s=baseline", commands[1])
+
+    def test_empty_incremental_journal_query_accepts_cursor_only_status_one(
+        self,
+    ) -> None:
+        boot_id = "a" * 32
+        calls = 0
+
+        def runner(_command: Sequence[str], _timeout: float) -> ProbeCommandResult:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                baseline = json.dumps(
+                    {
+                        "_BOOT_ID": boot_id,
+                        "_TRANSPORT": "kernel",
+                        "MESSAGE": "Linux version test",
+                    },
+                    separators=(",", ":"),
+                )
+                return ProbeCommandResult(0, baseline + "\n-- cursor: s=baseline\n")
+            return ProbeCommandResult(1, "-- cursor: s=baseline\n")
+
+        provider = LinuxNvidiaJournalEventProvider._for_test(
+            journalctl_path="/usr/bin/journalctl",
+            boot_id=boot_id,
+            command_runner=runner,
+        )
+
+        self.assertEqual(
+            provider.snapshot(),
+            {
+                "xid_errors": [],
+                "reset_detected": False,
+                "device_lost": False,
+                "hardware_error": False,
+            },
+        )
 
     def test_preconstruction_xid_remains_sticky_and_blocks_baseline(self) -> None:
         boot_id = "a" * 32
@@ -687,6 +778,7 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
                 self.GPU_UUID,
                 "1024 MiB",
                 "7168 MiB",
+                "0 MiB",
                 "8192 MiB",
                 "0 %",
                 "40 C",
@@ -828,6 +920,7 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
                     self.GPU_UUID,
                     "1024 MiB",
                     "7168 MiB",
+                    "0 MiB",
                     "8192 MiB",
                     "0 %",
                     "40 C",

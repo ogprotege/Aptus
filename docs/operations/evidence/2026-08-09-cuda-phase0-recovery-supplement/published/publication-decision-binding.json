@@ -1,0 +1,7 @@
+{
+  "decision_artifact_id": "artifact_b76ba085740fb4704ee05fdf69f62e8f",
+  "decision_id": "decision_55b4e5f4f12d497b4144272c2aa5ebe5",
+  "decision_raw_manifest_sha256": "4edb3c58a19f93027ed9ab726eb8830edcbbaf991c88ee4a9d465a4432bceb66",
+  "decision_raw_manifest_size_bytes": 1844,
+  "format_version": "aptus.cuda-campaign-publication-decision-binding.v1"
+}

@@ -1,0 +1,28 @@
+{
+  "control_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+  "format_version": "aptus.experiment-publication-review-bindings.v1",
+  "recovery_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+  "review_id": "review_d64f6d06c8a51183660bfee792282395",
+  "stage_files": [
+    {
+      "relative_path": "SHA256SUMS",
+      "sha256": "8f4572753f47855aa861c6418a3a5e4d1c6bd44e36263a5bebf9840ec3a4e5ce",
+      "size_bytes": 265
+    },
+    {
+      "relative_path": "claim-boundary.json",
+      "sha256": "2abab129d599271fc4fae6e5e464cb54142f257d96d6a191dbdc128a7cf26769",
+      "size_bytes": 1166
+    },
+    {
+      "relative_path": "recovery-supplement.json",
+      "sha256": "0e5da25a86f15eb871beaee715509b58cf572b11abf69b626e71fef5e11cf6dc",
+      "size_bytes": 25614
+    },
+    {
+      "relative_path": "sanitization-map.json",
+      "sha256": "02947fdc900e3f3345c6ea7c3deb03165810d45df2c3c0479118bf364d3044eb",
+      "size_bytes": 169558
+    }
+  ]
+}

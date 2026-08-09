@@ -1,0 +1,526 @@
+{
+  "additional_search_items": [
+    {
+      "disposition": "not-found",
+      "item_id": "python-test-transcript",
+      "reason_code": "ORIGINAL_TRANSCRIPT_NOT_FOUND",
+      "search_scope_codes": [
+        "source-host-boundary",
+        "verified-copy-one",
+        "verified-copy-two"
+      ]
+    }
+  ],
+  "claim_boundary": {
+    "allowed_claim_types": [
+      "raw-recovery-integrity"
+    ],
+    "campaign_id": "campaign_dd4ddde0cab20ac2f7e9",
+    "claim_key": "august-6-protected-raw-recovery-integrity",
+    "exact_scope": {
+      "original_packet": "docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance",
+      "recovery_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7"
+    },
+    "forbidden_claims": [
+      "retroactive timing or telemetry",
+      "performance or resource measurement",
+      "repeatability",
+      "another CUDA method, model, host, or environment",
+      "recreation of an absent Python test transcript",
+      "closure of the Ubuntu source-test gate without the original transcript",
+      "release readiness"
+    ],
+    "qualification_dependencies": [
+      "sealed recovery raw manifest",
+      "two verified copies in distinct failure domains",
+      "verified full off-host retrieval",
+      "active retention receipt",
+      "constructive sanitization",
+      "independent review"
+    ],
+    "schema_version": "aptus.experiment-claim-boundary.v1",
+    "statement": "Recovery integrity only for protected artifacts bound to the original August 6 packet."
+  },
+  "copy_verification_receipts": [
+    {
+      "copy_id": "copy_cf481c4779785fddda66ed37775212c3",
+      "created_at_utc": "2026-08-09T12:52:47.954039+00:00",
+      "failure_domain_id": "domain_c8dab4e2d1afefd9e2bf69d567a571d1",
+      "kind": "copy-verification",
+      "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+      "receipt_id": "receipt_f3878c7eecdb519b55304b671947d08e",
+      "result": "passed",
+      "sha256": "29c59119f9e8c8ea423998696e592d503c63f64018d0e5b5f6301508fa8edfa9",
+      "size_bytes": 727
+    },
+    {
+      "copy_id": "copy_962a37779233d1db7f4f64f000890409",
+      "created_at_utc": "2026-08-09T12:52:58.883249+00:00",
+      "failure_domain_id": "domain_94097c623c94c0afd983448303f1f905",
+      "kind": "copy-verification",
+      "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+      "receipt_id": "receipt_9d5ca0f21ad726efa48e70f3e279017c",
+      "result": "passed",
+      "sha256": "cf8c3d6707766908fc6d308d1cef1575ebba159e7e0b72f6245fb625db13e5fa",
+      "size_bytes": 765
+    }
+  ],
+  "expected_digest_manifest": {
+    "logical_digest_count": 40,
+    "schema_version": "aptus.raw-artifact-digests.v1",
+    "sha256": "db6c4845846dcc1bdd2cdb54992210d31b4eba489a514197f33a127ccb37da7a",
+    "unique_digest_count": 39
+  },
+  "independent_review": {
+    "schema_version": "aptus.experiment-publication-review.v1",
+    "status": "pending"
+  },
+  "items": [
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "340d15c6b92def8ea9087dd6b9fda232949f7e80207aef31bf83ad86750eff37",
+      "logical_item_id": "source_and_compilation.exact_source_bundle",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_009",
+      "recovered_sha256": "340d15c6b92def8ea9087dd6b9fda232949f7e80207aef31bf83ad86750eff37",
+      "recovered_size_bytes": 3812867,
+      "source_json_pointer": "/source_and_compilation/exact_source_bundle"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "9fdc9887650fbceb158b4f3895b854ea619a005481c73fcadbbefc696bc82c9d",
+      "logical_item_id": "source_and_compilation.aptus_wheel",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_025",
+      "recovered_sha256": "9fdc9887650fbceb158b4f3895b854ea619a005481c73fcadbbefc696bc82c9d",
+      "recovered_size_bytes": 584751,
+      "source_json_pointer": "/source_and_compilation/aptus_wheel"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "d381aeeacd1a96960bd441a16fc415c6ab264c62e76ed41ce61281ff330d721e",
+      "logical_item_id": "source_and_compilation.root_plan",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_033",
+      "recovered_sha256": "d381aeeacd1a96960bd441a16fc415c6ab264c62e76ed41ce61281ff330d721e",
+      "recovered_size_bytes": 87911,
+      "source_json_pointer": "/source_and_compilation/root_plan"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+      "logical_item_id": "source_and_compilation.embedded_plan",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_028",
+      "recovered_sha256": "b13ed14b416c18e796f64fd3fc41c50466daed6fc69b0c37b4b943ed274f4ad4",
+      "recovered_size_bytes": 87886,
+      "source_json_pointer": "/source_and_compilation/embedded_plan"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "logical_item_id": "source_and_compilation.bundle_manifest",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_007",
+      "recovered_sha256": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+      "recovered_size_bytes": 4839,
+      "source_json_pointer": "/source_and_compilation/bundle_manifest"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "6e79b01f5b723ef9b30f7bc5f886fa5e93e2884ba504733b9d8194ef5c5a04c1",
+      "logical_item_id": "source_and_compilation.bundle_archive",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_019",
+      "recovered_sha256": "6e79b01f5b723ef9b30f7bc5f886fa5e93e2884ba504733b9d8194ef5c5a04c1",
+      "recovered_size_bytes": 103696,
+      "source_json_pointer": "/source_and_compilation/bundle_archive"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "logical_item_id": "source_and_compilation.policy_snapshot",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_031",
+      "recovered_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+      "recovered_size_bytes": 5945,
+      "source_json_pointer": "/source_and_compilation/policy_snapshot"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "710ddba146959711f422a1ad700fe68cf88dbfdbc58c80daa9984cdfec258a49",
+      "logical_item_id": "source_and_compilation.requirements",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_020",
+      "recovered_sha256": "710ddba146959711f422a1ad700fe68cf88dbfdbc58c80daa9984cdfec258a49",
+      "recovered_size_bytes": 86,
+      "source_json_pointer": "/source_and_compilation/requirements"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "21590a9ec99af04747e767b380b19442dd85486b79481c423e9ab63790093dab",
+      "logical_item_id": "source_and_compilation.hardware_profile",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_004",
+      "recovered_sha256": "21590a9ec99af04747e767b380b19442dd85486b79481c423e9ab63790093dab",
+      "recovered_size_bytes": 827,
+      "source_json_pointer": "/source_and_compilation/hardware_profile"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "8b0bbaf0779aa30a9fa5d1c399e57b69ef1075cb9744d347a62a7d52d15eadbf",
+      "logical_item_id": "source_and_compilation.model_profile",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_022",
+      "recovered_sha256": "8b0bbaf0779aa30a9fa5d1c399e57b69ef1075cb9744d347a62a7d52d15eadbf",
+      "recovered_size_bytes": 4684,
+      "source_json_pointer": "/source_and_compilation/model_profile"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "6ced614e7556de3bb88646790fad070a1a132e8c9f45ad7eb08413cc80498ad5",
+      "logical_item_id": "source_and_compilation.dataset_profile",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_018",
+      "recovered_sha256": "6ced614e7556de3bb88646790fad070a1a132e8c9f45ad7eb08413cc80498ad5",
+      "recovered_size_bytes": 1100,
+      "source_json_pointer": "/source_and_compilation/dataset_profile"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "ce820810ad065538a67b4bf50138dccbcc99282d0ee0fda7a6290977d76ba567",
+      "logical_item_id": "source_and_compilation.provider_model_inspection",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_032",
+      "recovered_sha256": "ce820810ad065538a67b4bf50138dccbcc99282d0ee0fda7a6290977d76ba567",
+      "recovered_size_bytes": 9268,
+      "source_json_pointer": "/source_and_compilation/provider_model_inspection"
+    },
+    {
+      "disposition": "not-found",
+      "expected_sha256": "0e2a8df272426dd2fc804c6aa4886abf26b060b9dea7ed03aa068266eb58a2c6",
+      "logical_item_id": "source_and_compilation.raw_model_file_manifest",
+      "reason_code": "NOT_FOUND_AFTER_BOUNDED_SEARCH",
+      "recovered_artifact_entry_id": null,
+      "recovered_sha256": null,
+      "recovered_size_bytes": null,
+      "source_json_pointer": "/source_and_compilation/raw_model_file_manifest"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "d3be111e956c862f287e1e246314eea6fe35a9e05c8e7a2f53a9f80d6fdb4196",
+      "logical_item_id": "qualifying_runtime.preflight_metrics",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_034",
+      "recovered_sha256": "d3be111e956c862f287e1e246314eea6fe35a9e05c8e7a2f53a9f80d6fdb4196",
+      "recovered_size_bytes": 926,
+      "source_json_pointer": "/qualifying_runtime/preflight_metrics"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "a31ecccd12263eef802132309b368ede2a3078dcd2f68daa99b8b49cc3e7463b",
+      "logical_item_id": "qualifying_runtime.pilot_metrics",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_026",
+      "recovered_sha256": "a31ecccd12263eef802132309b368ede2a3078dcd2f68daa99b8b49cc3e7463b",
+      "recovered_size_bytes": 11621,
+      "source_json_pointer": "/qualifying_runtime/pilot_metrics"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "341ce7b73dfcf65d2e3eec13bc3b554390932b06937ade2dce4dc3483b9a095d",
+      "logical_item_id": "qualifying_runtime.pilot_phase_one_metrics",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_010",
+      "recovered_sha256": "341ce7b73dfcf65d2e3eec13bc3b554390932b06937ade2dce4dc3483b9a095d",
+      "recovered_size_bytes": 3218,
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_one_metrics"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "be4a95d02e6ce4988ddbfb3b85c29c800e7fa0e6981e889b46e3c21fb72e1cc0",
+      "logical_item_id": "qualifying_runtime.pilot_phase_two_metrics",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_029",
+      "recovered_sha256": "be4a95d02e6ce4988ddbfb3b85c29c800e7fa0e6981e889b46e3c21fb72e1cc0",
+      "recovered_size_bytes": 3348,
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_two_metrics"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "6c595f2771847fcd16d624e9bd5a6b768d2f3cebc1c4dfa45887e5f68f45b6c9",
+      "logical_item_id": "qualifying_runtime.full_metrics",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_017",
+      "recovered_sha256": "6c595f2771847fcd16d624e9bd5a6b768d2f3cebc1c4dfa45887e5f68f45b6c9",
+      "recovered_size_bytes": 4131,
+      "source_json_pointer": "/qualifying_runtime/full_metrics"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "374439efafd542576178e1843ae433e0c7a05f2042fb4da030712dccec7aca02",
+      "logical_item_id": "qualifying_runtime.final_export_manifest",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_011",
+      "recovered_sha256": "374439efafd542576178e1843ae433e0c7a05f2042fb4da030712dccec7aca02",
+      "recovered_size_bytes": 1386,
+      "source_json_pointer": "/qualifying_runtime/final_export_manifest"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "2dcd12747b5fa179ac0a0e375b7b225e53770572a806eba61e6eb56a8b8622d4",
+      "logical_item_id": "qualifying_runtime.terminal_validation_report",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_008",
+      "recovered_sha256": "2dcd12747b5fa179ac0a0e375b7b225e53770572a806eba61e6eb56a8b8622d4",
+      "recovered_size_bytes": 16882,
+      "source_json_pointer": "/qualifying_runtime/terminal_validation_report"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+      "logical_item_id": "qualifying_runtime.adapter_model_safetensors",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_036",
+      "recovered_sha256": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+      "recovered_size_bytes": 19593064,
+      "source_json_pointer": "/qualifying_runtime/adapter_model_safetensors"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "03d33490e54b1ccc70a9052747c70e3580655bb4a8cb0ee6c6b40a41f371e78d",
+      "logical_item_id": "qualifying_job_records.0.dependency.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_000",
+      "recovered_sha256": "03d33490e54b1ccc70a9052747c70e3580655bb4a8cb0ee6c6b40a41f371e78d",
+      "recovered_size_bytes": 1341,
+      "source_json_pointer": "/qualifying_job_records/0/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f",
+      "logical_item_id": "qualifying_job_records.0.dependency.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_002",
+      "recovered_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f",
+      "recovered_size_bytes": 36,
+      "source_json_pointer": "/qualifying_job_records/0/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "a8c23e5a8402e848c9866fbac5ce04ed8f8a719fd9a168de762b05a462ed6fff",
+      "logical_item_id": "qualifying_job_records.1.model-data.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_027",
+      "recovered_sha256": "a8c23e5a8402e848c9866fbac5ce04ed8f8a719fd9a168de762b05a462ed6fff",
+      "recovered_size_bytes": 1341,
+      "source_json_pointer": "/qualifying_job_records/1/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "0ebc79a695db9e51a780b1f6f46c5eb8b6c1f0a41a9748980ea4d668bf757f02",
+      "logical_item_id": "qualifying_job_records.1.model-data.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_003",
+      "recovered_sha256": "0ebc79a695db9e51a780b1f6f46c5eb8b6c1f0a41a9748980ea4d668bf757f02",
+      "recovered_size_bytes": 460,
+      "source_json_pointer": "/qualifying_job_records/1/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "ff8566a60722e1474f5bade95095a4d32605c80da2904b1419241bbbd488a041",
+      "logical_item_id": "qualifying_job_records.2.preflight.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_037",
+      "recovered_sha256": "ff8566a60722e1474f5bade95095a4d32605c80da2904b1419241bbbd488a041",
+      "recovered_size_bytes": 1348,
+      "source_json_pointer": "/qualifying_job_records/2/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "3dc6ca6efe1c38876988cabe23d03a2476f6326653b8cb8fafa322d6df6d4f6f",
+      "logical_item_id": "qualifying_job_records.2.preflight.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_012",
+      "recovered_sha256": "3dc6ca6efe1c38876988cabe23d03a2476f6326653b8cb8fafa322d6df6d4f6f",
+      "recovered_size_bytes": 1394,
+      "source_json_pointer": "/qualifying_job_records/2/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "040dd4163995deb701733360e192a02b63d75e2d56f9a1771e10c3baf8f5441d",
+      "logical_item_id": "qualifying_job_records.3.pilot.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_001",
+      "recovered_sha256": "040dd4163995deb701733360e192a02b63d75e2d56f9a1771e10c3baf8f5441d",
+      "recovered_size_bytes": 1331,
+      "source_json_pointer": "/qualifying_job_records/3/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "5a2c7f986a2b089a5d6ef7b11f22790869016b17d49b2256721c5b093a343422",
+      "logical_item_id": "qualifying_job_records.3.pilot.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_014",
+      "recovered_sha256": "5a2c7f986a2b089a5d6ef7b11f22790869016b17d49b2256721c5b093a343422",
+      "recovered_size_bytes": 10498,
+      "source_json_pointer": "/qualifying_job_records/3/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "713ad23b0d450cfade8eb276b7f865aac221d6e6adb90d4a32c904e666d4d5df",
+      "logical_item_id": "qualifying_job_records.4.train.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_021",
+      "recovered_sha256": "713ad23b0d450cfade8eb276b7f865aac221d6e6adb90d4a32c904e666d4d5df",
+      "recovered_size_bytes": 4967,
+      "source_json_pointer": "/qualifying_job_records/4/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "c0f9bbd2f7b5966761f093533f4b6a08e519abee5e162a695cacc84f2059fb57",
+      "logical_item_id": "qualifying_job_records.4.train.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_030",
+      "recovered_sha256": "c0f9bbd2f7b5966761f093533f4b6a08e519abee5e162a695cacc84f2059fb57",
+      "recovered_size_bytes": 7954,
+      "source_json_pointer": "/qualifying_job_records/4/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "616746c26528ec6fde4110478133987654d8d8017636dd23d0edbf06e7ae7993",
+      "logical_item_id": "nonqualifying_rehearsal.validation_report",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_015",
+      "recovered_sha256": "616746c26528ec6fde4110478133987654d8d8017636dd23d0edbf06e7ae7993",
+      "recovered_size_bytes": 14580,
+      "source_json_pointer": "/nonqualifying_rehearsal/validation_report_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "984965ac47d037dca8056131b64904b76abb383f6b5dbcc94ab5bc1cd58c6a73",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.0.dependency.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_023",
+      "recovered_sha256": "984965ac47d037dca8056131b64904b76abb383f6b5dbcc94ab5bc1cd58c6a73",
+      "recovered_size_bytes": 1335,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.0.dependency.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_002",
+      "recovered_sha256": "060b3cefd8f7ea0ce5f918420657137020ae567e1472fb232a757ca21701cb3f",
+      "recovered_size_bytes": 36,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "26cf0d41e83310a737a1e0338e3374cbbd558e633909d5be51c7c215373c706c",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.1.model-data.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_006",
+      "recovered_sha256": "26cf0d41e83310a737a1e0338e3374cbbd558e633909d5be51c7c215373c706c",
+      "recovered_size_bytes": 1335,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "9cd4ba6a30ed3ffde7c2576b1ff50e25091cd7760f07169d420bf4561ccadb05",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.1.model-data.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_024",
+      "recovered_sha256": "9cd4ba6a30ed3ffde7c2576b1ff50e25091cd7760f07169d420bf4561ccadb05",
+      "recovered_size_bytes": 460,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "655068dea9c3b32c77b1d6e1e0e6dfde30eb652d3e1d9f9b16e470d7a572d312",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.2.preflight.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_016",
+      "recovered_sha256": "655068dea9c3b32c77b1d6e1e0e6dfde30eb652d3e1d9f9b16e470d7a572d312",
+      "recovered_size_bytes": 1342,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "dd0a66eb23d50c0bba749ac44604868780495d35d159ede4f74484145e461bdb",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.2.preflight.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_035",
+      "recovered_sha256": "dd0a66eb23d50c0bba749ac44604868780495d35d159ede4f74484145e461bdb",
+      "recovered_size_bytes": 1394,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/log_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "499113f89bf2f7ac73800c756cb6cdc60c878a658e637e4a1ffa996a246438fe",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.3.pilot.record",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_013",
+      "recovered_sha256": "499113f89bf2f7ac73800c756cb6cdc60c878a658e637e4a1ffa996a246438fe",
+      "recovered_size_bytes": 1325,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/record_sha256"
+    },
+    {
+      "disposition": "recovered-matching",
+      "expected_sha256": "26c7cdba5b1f700f4401820b4a8326d76e012b9672764fc6134581bee147f0c7",
+      "logical_item_id": "nonqualifying_rehearsal.job_records.3.pilot.log",
+      "reason_code": "RECOVERED_MATCH",
+      "recovered_artifact_entry_id": "entry_recovered_005",
+      "recovered_sha256": "26c7cdba5b1f700f4401820b4a8326d76e012b9672764fc6134581bee147f0c7",
+      "recovered_size_bytes": 10496,
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/log_sha256"
+    }
+  ],
+  "original_packet": {
+    "repository_path": "docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance"
+  },
+  "recovery_raw_manifest": {
+    "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+    "sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+    "size_bytes": 15657
+  },
+  "retention_policy": {
+    "claim_withdrawal_required_before_early_deletion": true,
+    "minimum_calendar_months": 24,
+    "policy_id": "cuda-v02-public-claim-evidence-24m-v1"
+  },
+  "retention_receipt": {
+    "copy_id": null,
+    "created_at_utc": "2026-08-09T12:53:18.751380+00:00",
+    "failure_domain_id": null,
+    "kind": "retention",
+    "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+    "receipt_id": "receipt_0d7c33053a9a66a8f51b3c132d76a2d6",
+    "result": "active",
+    "sha256": "650f526207ff24a4c74ffb00d6a406b0d2796ae0c463c5b40c0dbbe1bce0a34c",
+    "size_bytes": 726
+  },
+  "retrieval_receipt": {
+    "copy_id": "copy_962a37779233d1db7f4f64f000890409",
+    "created_at_utc": "2026-08-09T12:53:09.876969+00:00",
+    "failure_domain_id": "domain_94097c623c94c0afd983448303f1f905",
+    "kind": "retrieval",
+    "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+    "receipt_id": "receipt_36336f407c5f4e688c96ce24658a6bd9",
+    "result": "passed",
+    "sha256": "0b34918de2b4b08b39dc2fa2b7deb5c30dfd15b49b7ec5e8833c7be445692d72",
+    "size_bytes": 1261
+  },
+  "sanitization_map": {
+    "schema_version": "aptus.experiment-sanitization-map.v1",
+    "status": "constructed-separately"
+  },
+  "schema_version": "aptus.experiment-recovery-supplement.v1",
+  "summary_counts": {
+    "logical_digest_count": 40,
+    "not_found": 1,
+    "recovered_matching": 39,
+    "recovered_mismatched": 0
+  }
+}

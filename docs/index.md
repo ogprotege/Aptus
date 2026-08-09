@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-08 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-09 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -26,7 +26,7 @@ The current portable contract uses `aptus.training-plan.v5`,
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
 | Run the bounded RTX 3050 CUDA evidence campaign | [Canonical campaign plan](operations/cuda-empirical-campaign.md) | [State, storage, and retention](operations/state-storage-retention.md) |
-| Review the Phase 2A source-tooling contract and Phase 2B preconditions | [Phase 2A tooling contract](operations/cuda-campaign-phase2-tooling.md) | [Canonical campaign plan](operations/cuda-empirical-campaign.md) |
+| Inspect the Phase 2B sanitized recovery supplement | [2026-08-09 Phase 0 recovery supplement](operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md) | [Phase 2 tooling and review contract](operations/cuda-campaign-phase2-tooling.md) |
 | Inspect the exact CUDA acceptance | [2026-08-06 SmolLM2 CUDA LoRA single-device evidence](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) | [Complete packet and detailed results](operations/index.md#complete-ubuntu-cuda-acceptance-packet) |
 | Inspect the current-contract MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect the original Phase 6 MLX baseline | [2026-08-05 original acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Current-contract evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) |

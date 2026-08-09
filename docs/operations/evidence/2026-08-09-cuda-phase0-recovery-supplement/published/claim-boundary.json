@@ -1,0 +1,30 @@
+{
+  "allowed_claim_types": [
+    "raw-recovery-integrity"
+  ],
+  "campaign_id": "campaign_dd4ddde0cab20ac2f7e9",
+  "claim_key": "august-6-protected-raw-recovery-integrity",
+  "exact_scope": {
+    "original_packet": "docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance",
+    "recovery_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7"
+  },
+  "forbidden_claims": [
+    "retroactive timing or telemetry",
+    "performance or resource measurement",
+    "repeatability",
+    "another CUDA method, model, host, or environment",
+    "recreation of an absent Python test transcript",
+    "closure of the Ubuntu source-test gate without the original transcript",
+    "release readiness"
+  ],
+  "qualification_dependencies": [
+    "sealed recovery raw manifest",
+    "two verified copies in distinct failure domains",
+    "verified full off-host retrieval",
+    "active retention receipt",
+    "constructive sanitization",
+    "independent review"
+  ],
+  "schema_version": "aptus.experiment-claim-boundary.v1",
+  "statement": "Recovery integrity only for protected artifacts bound to the original August 6 packet."
+}

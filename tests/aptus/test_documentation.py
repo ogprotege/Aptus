@@ -970,8 +970,12 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "Phase 2B has not produced or merged the sanitized recovery supplement",
+            "Phase 2B used the exact merged source to publish the independently reviewed",
             " ".join(documentation_debt.split()),
+        )
+        self.assertIn(
+            "2026-08-09-cuda-phase0-recovery-supplement/README.md",
+            documentation_debt,
         )
         self.assertIn(
             "One qualifying exact CUDA LoRA single-device acceptance has been collected",
@@ -1007,21 +1011,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 123)
+        self.assertEqual(len(repository_documents), 124)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 122)
-        self.assertEqual(len(active_documents), 93)
+        self.assertEqual(len(governed_documents), 123)
+        self.assertEqual(len(active_documents), 94)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 122)
-        self.assertIn("122 are governed", normalized_inventory)
-        self.assertIn("122 governed", normalized_inventory)
-        self.assertIn("123 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 93 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 123)
+        self.assertIn("123 are governed", normalized_inventory)
+        self.assertIn("123 governed", normalized_inventory)
+        self.assertIn("124 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 94 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -1048,11 +1052,11 @@ class DocumentationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         normalized_phase_2_tooling = " ".join(phase_2_tooling.split())
         for required in (
-            "Phase 2A source tooling implemented and independently reviewed",
+            "Phase 2A source tooling and Phase 2B sanitized recovery publication complete and independently reviewed",
             "No Ubuntu command, model download, GPU workload, or new empirical run occurred",
             "It is not Aptus's global ceiling",
-            "Phase 2B remains pending",
-            "Ubuntu host mutation remains forbidden",
+            "Phase 2B completion",
+            "No Linux connection, Ubuntu-host mutation, model download, GPU workload, or new empirical run occurred during Phase 2B",
             "The earlier stage-review-finalize sequence is not frozen authority",
             "tools/cuda_campaign/admission.py",
             "tools/cuda_campaign/phase4.py",
@@ -2183,6 +2187,198 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256((baseline / "SHA256SUMS").read_bytes()).hexdigest(),
             summary["baseline"]["packet_sha256s_sha256"],
+        )
+
+    def test_phase2b_recovery_supplement_is_complete_reviewed_and_sanitized(
+        self,
+    ) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-09-cuda-phase0-recovery-supplement"
+        )
+        published = packet / "published"
+        expected_published_files = {
+            "PUBLICATION-SHA256SUMS",
+            "SHA256SUMS",
+            "claim-boundary.json",
+            "finalization.json",
+            "independent-review.json",
+            "publication-candidate.json",
+            "publication-decision-binding.json",
+            "publication-decision.json",
+            "recovery-supplement.json",
+            "review-bindings.json",
+            "sanitization-map.json",
+        }
+        actual_packet_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(
+            actual_packet_files,
+            {"README.md"}
+            | {f"published/{relative}" for relative in expected_published_files},
+        )
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  ([^\n]+)$")
+
+        def verify_checksums(name: str, expected_paths: set[str]) -> None:
+            lines = (published / name).read_text(encoding="utf-8").splitlines()
+            parsed: list[tuple[str, str]] = []
+            for line in lines:
+                match = checksum_pattern.fullmatch(line)
+                self.assertIsNotNone(match, line)
+                assert match is not None
+                parsed.append((match.group(1), match.group(2)))
+            paths = [relative for _digest, relative in parsed]
+            self.assertEqual(paths, sorted(paths))
+            self.assertEqual(len(paths), len(set(paths)))
+            self.assertEqual(set(paths), expected_paths)
+            for expected_digest, relative in parsed:
+                self.assertEqual(
+                    hashlib.sha256((published / relative).read_bytes()).hexdigest(),
+                    expected_digest,
+                    relative,
+                )
+
+        verify_checksums(
+            "PUBLICATION-SHA256SUMS",
+            expected_published_files - {"PUBLICATION-SHA256SUMS"},
+        )
+        finalized_files = {
+            "claim-boundary.json",
+            "finalization.json",
+            "independent-review.json",
+            "recovery-supplement.json",
+            "review-bindings.json",
+            "sanitization-map.json",
+        }
+        verify_checksums("SHA256SUMS", finalized_files)
+
+        supplement = json.loads(
+            (published / "recovery-supplement.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            supplement["summary_counts"],
+            {
+                "logical_digest_count": 40,
+                "not_found": 1,
+                "recovered_matching": 39,
+                "recovered_mismatched": 0,
+            },
+        )
+        self.assertEqual(len(supplement["items"]), 40)
+        not_found = [
+            item for item in supplement["items"] if item["disposition"] == "not-found"
+        ]
+        self.assertEqual(len(not_found), 1)
+        self.assertEqual(
+            not_found[0]["logical_item_id"],
+            "source_and_compilation.raw_model_file_manifest",
+        )
+        recovered_entries = {
+            item["recovered_artifact_entry_id"]
+            for item in supplement["items"]
+            if item["disposition"] == "recovered-matching"
+        }
+        self.assertEqual(len(recovered_entries), 38)
+        self.assertEqual(
+            supplement["additional_search_items"],
+            [
+                {
+                    "disposition": "not-found",
+                    "item_id": "python-test-transcript",
+                    "reason_code": "ORIGINAL_TRANSCRIPT_NOT_FOUND",
+                    "search_scope_codes": [
+                        "source-host-boundary",
+                        "verified-copy-one",
+                        "verified-copy-two",
+                    ],
+                }
+            ],
+        )
+        self.assertEqual(len(supplement["copy_verification_receipts"]), 2)
+        self.assertEqual(
+            {
+                receipt["failure_domain_id"]
+                for receipt in supplement["copy_verification_receipts"]
+            },
+            {
+                "domain_c8dab4e2d1afefd9e2bf69d567a571d1",
+                "domain_94097c623c94c0afd983448303f1f905",
+            },
+        )
+        self.assertEqual(supplement["retrieval_receipt"]["result"], "passed")
+        self.assertEqual(supplement["retention_receipt"]["result"], "active")
+        self.assertEqual(supplement["retention_policy"]["minimum_calendar_months"], 24)
+        self.assertEqual(supplement["independent_review"]["status"], "pending")
+
+        review = json.loads(
+            (published / "independent-review.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(review["result"], "passed")
+        self.assertEqual(review["reason_code"], "NONE")
+        self.assertEqual(
+            review["checks"],
+            {
+                "claim-boundary-correctness": True,
+                "complete-raw-to-public-traceability": True,
+                "complete-sorted-unique-sha256sums": True,
+                "numeric-recomputation": True,
+                "private-value-absence": True,
+                "strict-public-schema": True,
+            },
+        )
+
+        candidate = json.loads(
+            (published / "publication-candidate.json").read_text(encoding="utf-8")
+        )
+        decision = json.loads(
+            (published / "publication-decision.json").read_text(encoding="utf-8")
+        )
+        decision_binding = json.loads(
+            (published / "publication-decision-binding.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            candidate["candidate_id"], "candidate_69cc090b8061cc4a086571f2fb9b3f69"
+        )
+        self.assertEqual(
+            candidate["primary_artifact"]["raw_manifest_sha256"],
+            "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+        )
+        self.assertTrue(decision["eligible"])
+        self.assertEqual(decision["reason_codes"], [])
+        self.assertEqual(
+            decision["candidate"]["candidate_id"], candidate["candidate_id"]
+        )
+        self.assertEqual(
+            decision_binding["decision_id"],
+            "decision_55b4e5f4f12d497b4144272c2aa5ebe5",
+        )
+        self.assertEqual(
+            decision_binding["decision_raw_manifest_sha256"],
+            "4edb3c58a19f93027ed9ab726eb8830edcbbaf991c88ee4a9d465a4432bceb66",
+        )
+
+        for relative in expected_published_files:
+            contents = (published / relative).read_text(encoding="utf-8")
+            for forbidden in ("/Users/", "/Volumes/", "/private/tmp", "/home/"):
+                self.assertNotIn(forbidden, contents, (relative, forbidden))
+
+        packet_link = (
+            "operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md"
+        )
+        self.assertIn(packet_link, (REPOSITORY / "docs/index.md").read_text())
+        self.assertIn(
+            "evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md",
+            (REPOSITORY / "docs/operations/index.md").read_text(),
+        )
+        self.assertIn(
+            "docs/operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md",
+            (REPOSITORY / "ROADMAP.md").read_text(),
         )
 
     def test_cuda_lora_single_acceptance_packet_is_bound_and_sanitized(

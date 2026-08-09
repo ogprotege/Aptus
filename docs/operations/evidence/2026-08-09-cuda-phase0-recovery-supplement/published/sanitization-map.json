@@ -1,0 +1,3803 @@
+{
+  "entries": [
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/allowed_claim_types/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/campaign_id",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/campaign_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/claim_key",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/exact_scope/original_packet",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/original_packet",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/exact_scope/recovery_raw_manifest_sha256",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovery_raw_manifest/sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/1",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/2",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/3",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/4",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/5",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/forbidden_claims/6",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/1",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/2",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/details/off_experiment_host",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/3",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/4",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/qualification_dependencies/5",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/schema_version",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "claim-boundary.json",
+      "public_json_pointer": "/statement",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/disposition",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/disposition",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/item_id",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/item_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/reason_code",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/reason_code",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/search_scope_codes/0",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/search_scope_codes/0",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/search_scope_codes/1",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/search_scope_codes/1",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/additional_search_items/0/search_scope_codes/2",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/additional_search_results/0/search_scope_codes/2",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/allowed_claim_types/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/campaign_id",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/campaign_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/claim_key",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/exact_scope/original_packet",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/original_packet",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/exact_scope/recovery_raw_manifest_sha256",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovery_raw_manifest/sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/1",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/2",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/3",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/4",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/5",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/forbidden_claims/6",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/0",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/1",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/2",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/details/off_experiment_host",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/3",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/4",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/qualification_dependencies/5",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/schema_version",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/claim_boundary/statement",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/copy_id",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/details/copy_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/created_at_utc",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/created_at_utc",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/failure_domain_id",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/details/failure_domain_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/kind",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/kind",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/protected_artifact_id",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/protected_artifact_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/receipt_id",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/receipt_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/result",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "/result",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/sha256",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/0/size_bytes",
+      "source_artifact_entry_id": "entry_receipt_00",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/copy_id",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/details/copy_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/created_at_utc",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/created_at_utc",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/failure_domain_id",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/details/failure_domain_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/kind",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/kind",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/protected_artifact_id",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/protected_artifact_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/receipt_id",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/receipt_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/result",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "/result",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/sha256",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/copy_verification_receipts/1/size_bytes",
+      "source_artifact_entry_id": "entry_receipt_01",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/expected_digest_manifest/logical_digest_count",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/expected_digest_manifest/schema_version",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/expected_digest_manifest/sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/expected_digest_manifest/unique_digest_count",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/independent_review/schema_version",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/independent_review/status",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/disposition",
+      "source_artifact_entry_id": "entry_recovered_009",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/exact_source_bundle",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/exact_source_bundle",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/reason_code",
+      "source_artifact_entry_id": "entry_recovered_009",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_009",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_009",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_009",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/0/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/exact_source_bundle",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/disposition",
+      "source_artifact_entry_id": "entry_recovered_025",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/aptus_wheel",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/aptus_wheel",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/reason_code",
+      "source_artifact_entry_id": "entry_recovered_025",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_025",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_025",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_025",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/1/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/aptus_wheel",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/disposition",
+      "source_artifact_entry_id": "entry_recovered_018",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/dataset_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/dataset_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/reason_code",
+      "source_artifact_entry_id": "entry_recovered_018",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_018",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_018",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_018",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/10/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/dataset_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/disposition",
+      "source_artifact_entry_id": "entry_recovered_032",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/provider_model_inspection",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/provider_model_inspection",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/reason_code",
+      "source_artifact_entry_id": "entry_recovered_032",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_032",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_032",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_032",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/11/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/provider_model_inspection",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/disposition",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/raw_model_file_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/raw_model_file_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/reason_code",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/12/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/raw_model_file_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/disposition",
+      "source_artifact_entry_id": "entry_recovered_034",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/preflight_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/preflight_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/reason_code",
+      "source_artifact_entry_id": "entry_recovered_034",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_034",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_034",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_034",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/13/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/preflight_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/disposition",
+      "source_artifact_entry_id": "entry_recovered_026",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/reason_code",
+      "source_artifact_entry_id": "entry_recovered_026",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_026",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_026",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_026",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/14/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/disposition",
+      "source_artifact_entry_id": "entry_recovered_010",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_one_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_one_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/reason_code",
+      "source_artifact_entry_id": "entry_recovered_010",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_010",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_010",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_010",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/15/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_one_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/disposition",
+      "source_artifact_entry_id": "entry_recovered_029",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_two_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_two_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/reason_code",
+      "source_artifact_entry_id": "entry_recovered_029",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_029",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_029",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_029",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/16/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/pilot_phase_two_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/disposition",
+      "source_artifact_entry_id": "entry_recovered_017",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/full_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/full_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/reason_code",
+      "source_artifact_entry_id": "entry_recovered_017",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_017",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_017",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_017",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/17/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/full_metrics",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/disposition",
+      "source_artifact_entry_id": "entry_recovered_011",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/final_export_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/final_export_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/reason_code",
+      "source_artifact_entry_id": "entry_recovered_011",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_011",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_011",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_011",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/18/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/final_export_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/disposition",
+      "source_artifact_entry_id": "entry_recovered_008",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/terminal_validation_report",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/terminal_validation_report",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/reason_code",
+      "source_artifact_entry_id": "entry_recovered_008",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_008",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_008",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_008",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/19/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/terminal_validation_report",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/disposition",
+      "source_artifact_entry_id": "entry_recovered_033",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/root_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/root_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/reason_code",
+      "source_artifact_entry_id": "entry_recovered_033",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_033",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_033",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_033",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/2/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/root_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/disposition",
+      "source_artifact_entry_id": "entry_recovered_036",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/adapter_model_safetensors",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/adapter_model_safetensors",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/reason_code",
+      "source_artifact_entry_id": "entry_recovered_036",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_036",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_036",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_036",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/20/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_runtime/adapter_model_safetensors",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/disposition",
+      "source_artifact_entry_id": "entry_recovered_000",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/reason_code",
+      "source_artifact_entry_id": "entry_recovered_000",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_000",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_000",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_000",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/21/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/disposition",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/reason_code",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/22/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/disposition",
+      "source_artifact_entry_id": "entry_recovered_027",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/reason_code",
+      "source_artifact_entry_id": "entry_recovered_027",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_027",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_027",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_027",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/23/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/disposition",
+      "source_artifact_entry_id": "entry_recovered_003",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/reason_code",
+      "source_artifact_entry_id": "entry_recovered_003",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_003",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_003",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_003",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/24/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/disposition",
+      "source_artifact_entry_id": "entry_recovered_037",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/reason_code",
+      "source_artifact_entry_id": "entry_recovered_037",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_037",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_037",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_037",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/25/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/disposition",
+      "source_artifact_entry_id": "entry_recovered_012",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/reason_code",
+      "source_artifact_entry_id": "entry_recovered_012",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_012",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_012",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_012",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/26/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/disposition",
+      "source_artifact_entry_id": "entry_recovered_001",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/reason_code",
+      "source_artifact_entry_id": "entry_recovered_001",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_001",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_001",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_001",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/27/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/disposition",
+      "source_artifact_entry_id": "entry_recovered_014",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/reason_code",
+      "source_artifact_entry_id": "entry_recovered_014",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_014",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_014",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_014",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/28/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/disposition",
+      "source_artifact_entry_id": "entry_recovered_021",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/reason_code",
+      "source_artifact_entry_id": "entry_recovered_021",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_021",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_021",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_021",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/29/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/disposition",
+      "source_artifact_entry_id": "entry_recovered_028",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/embedded_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/embedded_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/reason_code",
+      "source_artifact_entry_id": "entry_recovered_028",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_028",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_028",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_028",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/3/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/embedded_plan",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/disposition",
+      "source_artifact_entry_id": "entry_recovered_030",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/reason_code",
+      "source_artifact_entry_id": "entry_recovered_030",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_030",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_030",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_030",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/30/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/qualifying_job_records/4/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/disposition",
+      "source_artifact_entry_id": "entry_recovered_015",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/validation_report_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/validation_report_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/reason_code",
+      "source_artifact_entry_id": "entry_recovered_015",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_015",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_015",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_015",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/31/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/validation_report_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/disposition",
+      "source_artifact_entry_id": "entry_recovered_023",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/reason_code",
+      "source_artifact_entry_id": "entry_recovered_023",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_023",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_023",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_023",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/32/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/disposition",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/reason_code",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_002",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/33/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/0/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/disposition",
+      "source_artifact_entry_id": "entry_recovered_006",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/reason_code",
+      "source_artifact_entry_id": "entry_recovered_006",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_006",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_006",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_006",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/34/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/disposition",
+      "source_artifact_entry_id": "entry_recovered_024",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/reason_code",
+      "source_artifact_entry_id": "entry_recovered_024",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_024",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_024",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_024",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/35/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/1/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/disposition",
+      "source_artifact_entry_id": "entry_recovered_016",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/reason_code",
+      "source_artifact_entry_id": "entry_recovered_016",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_016",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_016",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_016",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/36/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/disposition",
+      "source_artifact_entry_id": "entry_recovered_035",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/reason_code",
+      "source_artifact_entry_id": "entry_recovered_035",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_035",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_035",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_035",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/37/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/2/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/disposition",
+      "source_artifact_entry_id": "entry_recovered_013",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/reason_code",
+      "source_artifact_entry_id": "entry_recovered_013",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_013",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_013",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_013",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/38/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/record_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/disposition",
+      "source_artifact_entry_id": "entry_recovered_005",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/reason_code",
+      "source_artifact_entry_id": "entry_recovered_005",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_005",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_005",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_005",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/39/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/nonqualifying_rehearsal/job_records/3/log_sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/disposition",
+      "source_artifact_entry_id": "entry_recovered_007",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/reason_code",
+      "source_artifact_entry_id": "entry_recovered_007",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_007",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_007",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_007",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/4/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_manifest",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/disposition",
+      "source_artifact_entry_id": "entry_recovered_019",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_archive",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_archive",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/reason_code",
+      "source_artifact_entry_id": "entry_recovered_019",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_019",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_019",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_019",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/5/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/bundle_archive",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/disposition",
+      "source_artifact_entry_id": "entry_recovered_031",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/policy_snapshot",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/policy_snapshot",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/reason_code",
+      "source_artifact_entry_id": "entry_recovered_031",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_031",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_031",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_031",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/6/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/policy_snapshot",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/disposition",
+      "source_artifact_entry_id": "entry_recovered_020",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/requirements",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/requirements",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/reason_code",
+      "source_artifact_entry_id": "entry_recovered_020",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_020",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_020",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_020",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/7/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/requirements",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/disposition",
+      "source_artifact_entry_id": "entry_recovered_004",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/hardware_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/hardware_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/reason_code",
+      "source_artifact_entry_id": "entry_recovered_004",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_004",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_004",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_004",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/8/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/hardware_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/disposition",
+      "source_artifact_entry_id": "entry_recovered_022",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/expected_sha256",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/model_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/logical_item_id",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/model_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/reason_code",
+      "source_artifact_entry_id": "entry_recovered_022",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/recovered_artifact_entry_id",
+      "source_artifact_entry_id": "entry_recovered_022",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "opaque-id"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/recovered_sha256",
+      "source_artifact_entry_id": "entry_recovered_022",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/recovered_size_bytes",
+      "source_artifact_entry_id": "entry_recovered_022",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/items/9/source_json_pointer",
+      "source_artifact_entry_id": "entry_expected_digest_manifest",
+      "source_json_pointer": "/source_and_compilation/model_profile",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/original_packet/repository_path",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/original_packet",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/recovery_raw_manifest/protected_artifact_id",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovery_raw_manifest/protected_artifact_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/recovery_raw_manifest/sha256",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovery_raw_manifest/sha256",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/recovery_raw_manifest/size_bytes",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovery_raw_manifest/size_bytes",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_policy/claim_withdrawal_required_before_early_deletion",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/details",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_policy/minimum_calendar_months",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/details",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_policy/policy_id",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/details",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/copy_id",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/details",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/created_at_utc",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/created_at_utc",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/failure_domain_id",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/details",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/kind",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/kind",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/protected_artifact_id",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/protected_artifact_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/receipt_id",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/receipt_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/result",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "/result",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/sha256",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retention_receipt/size_bytes",
+      "source_artifact_entry_id": "entry_receipt_03",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/copy_id",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/details/source_copy_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/created_at_utc",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/created_at_utc",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/failure_domain_id",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/details/source_failure_domain_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/kind",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/kind",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/protected_artifact_id",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/protected_artifact_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/receipt_id",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/receipt_id",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/result",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "/result",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "copy"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/sha256",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "digest"
+    },
+    {
+      "evidence_class": "measured",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/retrieval_receipt/size_bytes",
+      "source_artifact_entry_id": "entry_receipt_02",
+      "source_json_pointer": "",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "aggregate"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/sanitization_map/schema_version",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/sanitization_map/status",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "declared",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/schema_version",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/schema_version",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "constant"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/summary_counts/logical_digest_count",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "count"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/summary_counts/not_found",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "count"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/summary_counts/recovered_matching",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "count"
+    },
+    {
+      "evidence_class": "inferred",
+      "public_file": "recovery-supplement.json",
+      "public_json_pointer": "/summary_counts/recovered_mismatched",
+      "source_artifact_entry_id": "entry_recovery_input",
+      "source_json_pointer": "/recovered_entries",
+      "source_raw_manifest_sha256": "9e43d98665a15aa92e0a49253fd24ec4b4d688aec0afb1d0c25c94d149a1d737",
+      "transform": "count"
+    }
+  ],
+  "schema_version": "aptus.experiment-sanitization-map.v1"
+}

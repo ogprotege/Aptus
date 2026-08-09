@@ -2,9 +2,9 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze and Phase 2A source-tooling contract
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, and Phase 2B sanitized recovery supplement
 >
-> **Last reviewed:** 2026-08-08
+> **Last reviewed:** 2026-08-09
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,30 +14,30 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 123 tracked Markdown documents. Of those, 122 are
+The repository tree contains 124 tracked Markdown documents. Of those, 123 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
 reviews under `dev/archive/`, brought the native desktop build guide into the
 active set, and applied archived metadata to every legacy-audit report. This
 canonical campaign integration added one active plan, and the Phase 1 protocol
-freeze added one active human-readable protocol. The Phase 2A work adds one
-active source-tooling contract. It documents implemented and independently
-reviewed interfaces and Phase 2B preconditions, not operator authorization or
-a new Ubuntu or empirical campaign result.
+freeze added one active human-readable protocol. Phase 2A added one active
+source-tooling contract, and Phase 2B adds one active, independently reviewed
+sanitized recovery-evidence packet. Neither is operator authorization or a new
+Ubuntu or empirical campaign result.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 93 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 94 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 122 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 123 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the same 122 governed
+The automated `maintained_documentation()` set contains the same 123 governed
 Markdown files. Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -127,13 +127,14 @@ selectability come from `src/aptus/methods/registry.py`.
 
 - [Operations documentation](../operations/index.md)
 - [RTX 3050 CUDA empirical evidence campaign](../operations/cuda-empirical-campaign.md)
-- [CUDA campaign Phase 2A tooling contract](../operations/cuda-campaign-phase2-tooling.md), implemented source and review authority that supplies no new Ubuntu or empirical result
+- [CUDA campaign Phase 2 tooling contract](../operations/cuda-campaign-phase2-tooling.md), implemented source and review authority that supplies no new Ubuntu or empirical result
 - [CUDA campaign protocol](../reference/cuda-campaign-protocol.md), the frozen Phase 1 human contract; it implements no runtime behavior
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json), the canonical machine-readable projection of the same frozen decisions
 - [Apple Silicon pilot matrix](../operations/apple-silicon-pilot.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md), independently reviewed recovery-integrity evidence for the protected August 6 records; not target-runtime, performance, repeatability, or release-readiness evidence
 - [2026-08-06 SmolLM2 CUDA LoRA single-device target-host acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md), one exact five-job `measured-run-pass` workflow at `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed` for the recorded host, runtime, model revision, synthetic dataset, plan, policy, and bundle
 - [2026-08-05 Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md), two fresh v5/v3 repetitions at `719255153e3fc7e38e83b5ff826d587e5e58bf80` for the exact recorded artifact, source tree, M5 Pro host, Python/MLX runtime, dataset, plan, policy snapshot, and bundle fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md), the unchanged historical baseline at `14ed44b52a76bb84d8d9db4f2303951aa641339b`
@@ -306,12 +307,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 122-file lifecycle count is
+The single tracked Markdown file outside the 123-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 123 tracked Markdown files.
+of 124 tracked Markdown files.
 
 ## Excluded local and generated material
 

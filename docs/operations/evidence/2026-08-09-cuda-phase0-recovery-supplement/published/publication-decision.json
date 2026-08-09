@@ -1,0 +1,94 @@
+{
+  "candidate": {
+    "campaign_id": "campaign_dd4ddde0cab20ac2f7e9",
+    "candidate_id": "candidate_69cc090b8061cc4a086571f2fb9b3f69",
+    "claim_key": "august-6-protected-raw-recovery-integrity",
+    "finalized_candidate_file_inventory": [
+      {
+        "relative_path": "SHA256SUMS",
+        "sha256": "6f61c8bc10db3ec60299127951d434b2bcb4b111ddb32d552dc57e42926a043c",
+        "size_bytes": 526
+      },
+      {
+        "relative_path": "claim-boundary.json",
+        "sha256": "2abab129d599271fc4fae6e5e464cb54142f257d96d6a191dbdc128a7cf26769",
+        "size_bytes": 1166
+      },
+      {
+        "relative_path": "finalization.json",
+        "sha256": "4189629aa6c9f9912a6374ee5b849080e730d0c44755ac92a73d33163a235830",
+        "size_bytes": 517
+      },
+      {
+        "relative_path": "independent-review.json",
+        "sha256": "19dbd842ca15c9d81fe72df9c0f693e7111305064cbbf1a04886a55592a4b161",
+        "size_bytes": 590
+      },
+      {
+        "relative_path": "recovery-supplement.json",
+        "sha256": "0e5da25a86f15eb871beaee715509b58cf572b11abf69b626e71fef5e11cf6dc",
+        "size_bytes": 25614
+      },
+      {
+        "relative_path": "review-bindings.json",
+        "sha256": "2cbf10af30b64901c5d5c40a2bd360ca44fabc2f6827376c80a087a7ecdc5dd1",
+        "size_bytes": 1030
+      },
+      {
+        "relative_path": "sanitization-map.json",
+        "sha256": "02947fdc900e3f3345c6ea7c3deb03165810d45df2c3c0479118bf364d3044eb",
+        "size_bytes": 169558
+      }
+    ],
+    "protected_artifact_id": "artifact_565a0f4b5a15bec3d0a6968d208fed1a",
+    "raw_manifest_sha256": "757e0b11deb147466f3cc5cc3b9cd84e01818aa4c91c7d263c89fdb1477263d9",
+    "raw_manifest_size_bytes": 1927,
+    "sealed_candidate_file_inventory": [
+      {
+        "relative_path": "SEALED.json",
+        "sha256": "d952ba1131f1e9c745746934a72f3bf18cad06ac617eca2fc018e2a53dd570a5",
+        "size_bytes": 310
+      },
+      {
+        "relative_path": "publication-candidate.json",
+        "sha256": "b75d4181de853aefa3fa2c2da31c47257045033f2192638e54d2a9c326611fe8",
+        "size_bytes": 5828
+      },
+      {
+        "relative_path": "raw-manifest.json",
+        "sha256": "757e0b11deb147466f3cc5cc3b9cd84e01818aa4c91c7d263c89fdb1477263d9",
+        "size_bytes": 1927
+      }
+    ]
+  },
+  "decision_id": "decision_55b4e5f4f12d497b4144272c2aa5ebe5",
+  "destination_id": "destination_e71ecbb62400402044b90da6801f4f71",
+  "eligible": true,
+  "evaluated_at_utc": "2026-08-09T12:56:20.609454+00:00",
+  "evaluator": {
+    "capture_tool": {
+      "name": "aptus-cuda-campaign-publisher",
+      "source_sha256": "f96cc804be2d1ccbaf10ade52d6842d2785c95111fa6cdbb24ddb705b69abef8",
+      "version": "v1"
+    },
+    "role_id": "phase2b-publication-evaluator"
+  },
+  "external_recovery_attestation_sha256": "288de7b973c371f36e0cfeda93846756dfd392d7142677ffe6451fc6682379eb",
+  "format_version": "aptus.cuda-campaign-publication-decision.v1",
+  "primary_artifact": {
+    "protected_artifact_id": "artifact_c559db7f948695b2a23c23cf30e6fa59",
+    "raw_manifest_sha256": "f35b3383fd58263e7964f301dcadd9369e7b19b1fa85a2ce5d09e2348058f8b7",
+    "raw_manifest_size_bytes": 15657
+  },
+  "reason_codes": [],
+  "receipt_chain": {
+    "canonical_sha256": "12f453c0ac7e8de50ae422d38fe50c657ffb2f10b8c6639c122a933644330edb",
+    "head_receipt_id": "receipt_0d7c33053a9a66a8f51b3c132d76a2d6",
+    "ordered_receipt_ids": [
+      "receipt_f3878c7eecdb519b55304b671947d08e",
+      "receipt_9d5ca0f21ad726efa48e70f3e279017c",
+      "receipt_36336f407c5f4e688c96ce24658a6bd9",
+      "receipt_0d7c33053a9a66a8f51b3c132d76a2d6"
+    ]
+  }
+}

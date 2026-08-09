@@ -795,6 +795,49 @@ class BackgroundTelemetrySession:
             failure_code=failure_code,
         )
 
+    def settle_stop_boundary(self) -> None:
+        """Finish one sampling boundary before the harness freezes stop time.
+
+        A stop request can otherwise interrupt a probe whose scheduled slot is
+        already inside the capture window. Waiting for one additional retained
+        sample gives the harness a boundary between probes. The wait remains
+        bounded by the frozen qualifying-gap limit and existing failures still
+        fail closed in ``stop``.
+        """
+
+        with self._state_lock:
+            if not self._started:
+                raise TelemetrySidecarError("SESSION_NOT_STARTED")
+            if self._stopped or self._stop_event.is_set():
+                raise TelemetrySidecarError("SESSION_ALREADY_STOPPED")
+            initial_count = len(self._samples)
+        started_ns = self._clock()
+        deadline_ns = started_ns + int(
+            self._safety_limits.qualifying_gap_seconds * NANOSECONDS_PER_SECOND
+        )
+        while True:
+            with self._state_lock:
+                if (
+                    len(self._samples) > initial_count
+                    or self._collector_failure_code is not None
+                    or self._watchdog_failure_code is not None
+                    or self._qualification_failure_code is not None
+                ):
+                    return
+            now_ns = self._clock()
+            if now_ns >= deadline_ns:
+                return
+            try:
+                self._sleep(
+                    min(
+                        0.01,
+                        (deadline_ns - now_ns) / NANOSECONDS_PER_SECOND,
+                    )
+                )
+            except BaseException:
+                self._record_collector_failure("SLEEP_FAILED", now_ns)
+                return
+
     def stop(self, *, stop_monotonic_ns: int) -> SidecarTelemetryCapture:
         stop_ns = self._require_monotonic_ns(stop_monotonic_ns, "STOP_MONOTONIC_NS")
         with self._state_lock:

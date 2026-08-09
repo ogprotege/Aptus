@@ -1336,6 +1336,12 @@ class CaptureHarness:
         configuration: Mapping[str, Any] | None = None
         safety_events: tuple[Mapping[str, Any], ...] = ()
         try:
+            settle_stop_boundary = getattr(session, "settle_stop_boundary", None)
+            if callable(settle_stop_boundary):
+                settle_stop_boundary()
+                stopped_ns = max(
+                    self._monotonic_ns(), ledger.records[-1]["monotonic_ns"]
+                )
             capture = session.stop(stop_monotonic_ns=stopped_ns)
             samples = [validate_telemetry_sample(sample) for sample in capture.samples]
             payload = canonical_jsonl_bytes(samples)

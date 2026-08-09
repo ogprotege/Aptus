@@ -351,6 +351,49 @@ class BackgroundTelemetrySessionTests(unittest.TestCase):
         self.assertFalse(session.collector_alive)
         self.assertFalse(session.watchdog_alive)
 
+    def test_settle_stop_boundary_retains_in_flight_scheduled_probe(self) -> None:
+        clock = AcceleratedClock(scale=10.0)
+        second_probe_started = threading.Event()
+        release_second_probe = threading.Event()
+        calls = 0
+
+        def probe() -> dict[str, object]:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                second_probe_started.set()
+                if not release_second_probe.wait(0.5):
+                    raise AssertionError("second probe was not released")
+            return _probe_reading()
+
+        session = _session(clock, probe=probe)
+        session.start(
+            experiment_run_id=RUN_ID,
+            start_monotonic_ns=clock.monotonic_ns(),
+        )
+        self.assertTrue(second_probe_started.wait(0.5))
+
+        settled = threading.Event()
+
+        def settle() -> None:
+            session.settle_stop_boundary()
+            settled.set()
+
+        settling_thread = threading.Thread(target=settle)
+        settling_thread.start()
+        self.assertFalse(settled.wait(0.01))
+        release_second_probe.set()
+        settling_thread.join(0.5)
+
+        self.assertFalse(settling_thread.is_alive())
+        self.assertTrue(settled.is_set())
+        capture = session.stop(stop_monotonic_ns=clock.monotonic_ns())
+        self.assertTrue(capture.healthy, capture.failure_code)
+        self.assertEqual(len(capture.samples), 2)
+        self.assertEqual(
+            [sample["scheduled_slot"] for sample in capture.samples], [0, 1]
+        )
+
     def test_capture_retains_every_safety_event_in_deterministic_order(self) -> None:
         clock = AcceleratedClock()
         session = _session(clock)

@@ -252,6 +252,22 @@ class StopFailingTelemetrySession(HealthyTelemetrySession):
         raise RuntimeError("private collector shutdown failure")
 
 
+class BoundarySettlingTelemetrySession(HealthyTelemetrySession):
+    def __init__(self) -> None:
+        super().__init__()
+        self.settle_count = 0
+        self.settled = False
+
+    def settle_stop_boundary(self) -> None:
+        self.settle_count += 1
+        self.settled = True
+
+    def stop(self, *, stop_monotonic_ns: int) -> TelemetryCapture:
+        if not self.settled:
+            raise AssertionError("capture stopped before its sampling boundary settled")
+        return super().stop(stop_monotonic_ns=stop_monotonic_ns)
+
+
 class ExactFailureTelemetrySession(HealthyTelemetrySession):
     def __init__(self, failure_code: str) -> None:
         super().__init__()
@@ -1956,6 +1972,26 @@ class ManagedSequenceTests(unittest.TestCase):
             self.assertTrue(outcome.sealed)
             self.assertEqual(outcome.evidence_status, "capture-invalid")
             self.assertEqual(outcome.capture_reason_code, "TELEMETRY_COLLECTOR_FAILURE")
+
+    def test_telemetry_sampling_boundary_settles_before_stop(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            service = SequencedJobService(root, ["completed"])
+            harness = harness_at(root, job_service=service)
+            vault = private_directory(root / "vault")
+            session = BoundarySettlingTelemetrySession()
+
+            outcome = harness.run_managed_job(
+                root,
+                artifact_directory=vault / "settled-stop-boundary",
+                supervision_timeout_seconds=5,
+                poll_interval_seconds=0.001,
+                telemetry_session=session,
+            )
+
+            self.assertEqual(session.settle_count, 1)
+            self.assertEqual(session.stop_count, 1)
+            self.assertTrue(outcome.sealed)
 
     def test_exact_telemetry_failure_code_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -16,6 +16,7 @@ from aptus.execution import (
     JobPrerequisiteError,
     JobService,
     JobSubmissionFailure,
+    _actual_environment_binding,
     _actual_runtime_snapshot,
     _environment_binding,
     _json_hash,
@@ -1323,10 +1324,42 @@ class ExecutionJobTests(unittest.TestCase):
             stderr="",
         )
         with patch("aptus.execution.subprocess.run", return_value=completed) as runner:
-            snapshot = _actual_runtime_snapshot(1, [2])
+            snapshot = _actual_runtime_snapshot(
+                1,
+                [2],
+                interpreter="/managed/cuda-python",
+                environment={"HF_HOME": "/managed/cache"},
+            )
         command = runner.call_args.args[0]
+        environment = runner.call_args.kwargs["env"]
+        self.assertEqual(command[0], "/managed/cuda-python")
         self.assertEqual(json.loads(command[-1]), [2])
+        self.assertEqual(environment["HF_HOME"], "/managed/cache")
         self.assertEqual(snapshot["free_cuda_bytes"], [1234])
+
+    def test_parent_environment_probe_uses_configured_runtime(self) -> None:
+        value = {
+            "python": "3.12.3",
+            "platform": "Linux-test",
+            "direct_constraints": {"torch": "2.8.0"},
+            "runtime_distributions": {"torch": "2.8.0"},
+        }
+        completed = subprocess.CompletedProcess(
+            [], 0, stdout=json.dumps(value), stderr=""
+        )
+        with patch("aptus.execution.subprocess.run", return_value=completed) as runner:
+            binding = _actual_environment_binding(
+                Path("/managed/bundle"),
+                interpreter="/managed/cuda-python",
+                environment={"HF_HOME": "/managed/cache"},
+            )
+
+        command = runner.call_args.args[0]
+        environment = runner.call_args.kwargs["env"]
+        self.assertEqual(command[0], "/managed/cuda-python")
+        self.assertEqual(command[-1], "/managed/bundle")
+        self.assertEqual(environment["HF_HOME"], "/managed/cache")
+        self.assertEqual(binding, _json_hash(value))
 
     def test_parent_independently_verifies_safetensors_keys_and_indexes(self) -> None:
         class FakeSafeTensorFile:
@@ -2900,6 +2933,79 @@ class ExecutionJobTests(unittest.TestCase):
                 finished = wait_for(service, submitted["id"])
         self.assertEqual(finished["state"], "failed")
         self.assertIn("completion verification failed", finished["error"])
+
+    def test_cuda_prelaunch_probe_uses_configured_external_interpreter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            plan = json.loads((bundle / "plan.json").read_text())
+            (bundle / "pilot-output").mkdir()
+            metrics_path = bundle / "pilot-output" / "metrics.json"
+            metrics_path.write_text(
+                json.dumps(
+                    {
+                        "checkpoint_continuation_observed": True,
+                        "phase_one": {"measured_reserved_cuda_bytes": 100},
+                        "phase_two_resumed": {"measured_reserved_cuda_bytes": 120},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            bindings = {
+                "bundle": sha256_file(bundle / "bundle-manifest.json"),
+                "dataset": plan["dataset"]["source_sha256"],
+                "model_revision": plan["model"]["revision"],
+                "plan_id": plan["plan_id"],
+                "candidate_id": plan["recommended"]["candidate_id"],
+                "environment": _environment_binding(bundle),
+                "hardware": _json_hash({"identity": "hardware-test"}),
+                "pilot_metrics": sha256_file(metrics_path),
+            }
+            (bundle / "validation-report.json").write_text(
+                json.dumps({"state": "pilot-pass", "bindings": bindings}),
+                encoding="utf-8",
+            )
+            runtime_environment = {
+                "APTUS_CUDA_PYTHON": "/managed/cuda-python",
+                "HF_HOME": "/managed/cache",
+            }
+            service = JobService(root / "jobs", runtime_environment=runtime_environment)
+            with (
+                patch("aptus.execution.validate_plan_payload", return_value=()),
+                patch(
+                    "aptus.execution._actual_runtime_snapshot",
+                    return_value={
+                        "hardware": {"identity": "hardware-test"},
+                        "free_cuda_bytes": [10_000],
+                        "host_ram_free_bytes": 10_000,
+                    },
+                ) as runtime_probe,
+                patch(
+                    "aptus.execution._actual_environment_binding",
+                    return_value=bindings["environment"],
+                ) as environment_probe,
+                patch(
+                    "aptus.execution._verify_pilot_artifacts",
+                    return_value=(100, 100),
+                ),
+                patch(
+                    "aptus.execution.resolve_runtime_interpreter",
+                    return_value=types.SimpleNamespace(path="/managed/cuda-python"),
+                ),
+            ):
+                service._require_current_pilot(bundle)
+
+            runtime_probe.assert_called_once_with(
+                1,
+                [0],
+                interpreter="/managed/cuda-python",
+                environment=runtime_environment,
+            )
+            environment_probe.assert_called_once_with(
+                bundle,
+                interpreter="/managed/cuda-python",
+                environment=runtime_environment,
+            )
 
     def test_malformed_pilot_metrics_fail_closed_without_service_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

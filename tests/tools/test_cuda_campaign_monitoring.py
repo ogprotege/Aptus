@@ -869,10 +869,69 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
         )
         self.assertEqual(len(commands), 2)
         self.assertTrue(all(timeout == 0.25 for _command, timeout in commands))
-        self.assertIn("clocks_event_reasons.active", commands[0][0][2])
-        self.assertEqual(
-            commands[1][0][2], "--query-compute-apps=pid,gpu_uuid,used_gpu_memory"
+        arguments = {command[2] for command, _timeout in commands}
+        self.assertTrue(
+            any("clocks_event_reasons.active" in argument for argument in arguments)
         )
+        self.assertIn(
+            "--query-compute-apps=pid,gpu_uuid,used_gpu_memory", arguments
+        )
+
+    def test_independent_probe_channels_run_concurrently(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            rendezvous = threading.Barrier(5, timeout=1.0)
+            commands: list[tuple[tuple[str, ...], float]] = []
+            base_runner = self._runner(commands)
+
+            def runner(command, timeout):
+                rendezvous.wait()
+                return base_runner(command, timeout)
+
+            def kernel_events():
+                rendezvous.wait()
+                return {
+                    "xid_errors": [],
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                }
+
+            def thermal_limits():
+                rendezvous.wait()
+                return {
+                    "maximum_operating_temperature_c": 92.0,
+                    "slowdown_temperature_c": 94.0,
+                    "shutdown_temperature_c": 97.0,
+                    "target_temperature_c": 83.0,
+                }
+
+            def disk_growth():
+                rendezvous.wait()
+                return 4096
+
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                kernel_events=kernel_events,
+                lease_active=lambda: False,
+                disk_growth_bytes=disk_growth,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=runner,
+                proc_root=proc,
+                gpu_thermal_limits=thermal_limits,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+
+            reading = probe()
+
+        self.assertEqual(reading["gpu"]["temperature_c"], 40.0)
+        self.assertEqual(reading["host"]["disk_growth_bytes"], 4096)
+        self.assertEqual(len(commands), 2)
 
     def test_process_group_descendant_is_managed_and_unrelated_group_is_not(
         self,

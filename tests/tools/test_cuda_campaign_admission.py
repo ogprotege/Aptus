@@ -868,11 +868,16 @@ class ActivationTests(unittest.TestCase):
                 )
                 self.assertTrue(result.admitted)
                 self.assertTrue(result.authorized_for_production_activation(authority))
-                activation = activate_admitted_slot(
-                    result,
-                    authority=authority,
-                    destination=root / "activation",
-                )
+                with patch.object(
+                    admission_module.time,
+                    "monotonic_ns",
+                    return_value=119 * NANOSECONDS_PER_SECOND,
+                ):
+                    activation = activate_admitted_slot(
+                        result,
+                        authority=authority,
+                        destination=root / "activation",
+                    )
                 self.assertTrue(activation.production_qualifying)
 
                 replayed_decision = json.loads(

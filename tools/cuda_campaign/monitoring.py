@@ -14,6 +14,7 @@ import sys
 import threading
 import time
 import weakref
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -2013,7 +2014,7 @@ class LinuxNvidiaHostProbe:
             raise ProbeFailure("MANAGED_PROCESS_GROUP_IDENTITY_LOST")
         return members
 
-    def _gpu_reading(self, executable: str, managed: set[int]) -> dict[str, Any]:
+    def _gpu_device_reading(self, executable: str) -> dict[str, Any]:
         output = self._run_nvidia(
             (
                 executable,
@@ -2067,33 +2068,6 @@ class LinuxNvidiaHostProbe:
             raise ProbeFailure("NVIDIA_THROTTLE_FIELD_INVALID")
         if active and not throttle_reasons:
             throttle_reasons.append("CLOCK_EVENT_ACTIVE_OTHER")
-        try:
-            if self._kernel_events is not None:
-                combined = dict(self._kernel_events())
-                if set(combined) != _KERNEL_EVENT_FIELDS:
-                    raise ProbeFailure("HARDWARE_EVENT_CHANNEL_INVALID")
-                xid_values = list(combined.pop("xid_errors"))
-                event_values = combined
-            else:
-                assert self._xid_errors is not None
-                assert self._hardware_events is not None
-                xid_values = list(self._xid_errors())
-                event_values = dict(self._hardware_events())
-        except ProbeFailure:
-            raise
-        except Exception:
-            raise ProbeFailure("HARDWARE_EVENT_PROVIDER_FAILED") from None
-        if any(
-            isinstance(item, bool) or not isinstance(item, int) or item < 0
-            for item in xid_values
-        ):
-            raise ProbeFailure("XID_CHANNEL_INVALID")
-        required_event_fields = {"reset_detected", "device_lost", "hardware_error"}
-        if set(event_values) != required_event_fields or any(
-            not isinstance(event_values[field_name], bool)
-            for field_name in required_event_fields
-        ):
-            raise ProbeFailure("HARDWARE_EVENT_CHANNEL_INVALID")
         return {
             "uuid": uuid,
             "memory_used": memory[0],
@@ -2134,15 +2108,43 @@ class LinuxNvidiaHostProbe:
             "performance_state": performance_state,
             "throttle_reasons": throttle_reasons,
             "throttle_state": throttle_state,
-            "xid_errors": sorted(set(xid_values)),
-            **event_values,
-            "compute_processes": self._compute_processes(executable, uuid, managed),
         }
 
-    def _compute_processes(
-        self, executable: str, gpu_uuid: str, managed: set[int]
-    ) -> list[dict[str, Any]]:
-        output = self._run_nvidia(
+    def _kernel_event_reading(self) -> dict[str, Any]:
+        try:
+            if self._kernel_events is not None:
+                combined = dict(self._kernel_events())
+                if set(combined) != _KERNEL_EVENT_FIELDS:
+                    raise ProbeFailure("HARDWARE_EVENT_CHANNEL_INVALID")
+                xid_values = list(combined.pop("xid_errors"))
+                event_values = combined
+            else:
+                assert self._xid_errors is not None
+                assert self._hardware_events is not None
+                xid_values = list(self._xid_errors())
+                event_values = dict(self._hardware_events())
+        except ProbeFailure:
+            raise
+        except Exception:
+            raise ProbeFailure("HARDWARE_EVENT_PROVIDER_FAILED") from None
+        if any(
+            isinstance(item, bool) or not isinstance(item, int) or item < 0
+            for item in xid_values
+        ):
+            raise ProbeFailure("XID_CHANNEL_INVALID")
+        required_event_fields = {"reset_detected", "device_lost", "hardware_error"}
+        if set(event_values) != required_event_fields or any(
+            not isinstance(event_values[field_name], bool)
+            for field_name in required_event_fields
+        ):
+            raise ProbeFailure("HARDWARE_EVENT_CHANNEL_INVALID")
+        return {
+            "xid_errors": sorted(set(xid_values)),
+            **event_values,
+        }
+
+    def _compute_process_output(self, executable: str) -> str:
+        return self._run_nvidia(
             (
                 executable,
                 f"--id={self.gpu_index}",
@@ -2150,6 +2152,10 @@ class LinuxNvidiaHostProbe:
                 "--format=csv,noheader",
             )
         )
+
+    def _parse_compute_processes(
+        self, output: str, gpu_uuid: str, managed: set[int]
+    ) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
         seen: set[int] = set()
         for row in csv.reader(output.splitlines()):
@@ -2383,12 +2389,33 @@ class LinuxNvidiaHostProbe:
 
     def __call__(self) -> Mapping[str, Any]:
         try:
-            self._check_gpu_thermal_limits()
             executable = self._executable()
             managed = self._managed_pid_set()
+            # These channels are independent but each may consume most of its
+            # bounded subprocess allowance. Running them serially made the
+            # declared one-hertz collector capable of exceeding its own sample
+            # interval under ordinary host contention.
+            with ThreadPoolExecutor(
+                max_workers=5, thread_name_prefix="aptus-host-probe"
+            ) as executor:
+                thermal = executor.submit(self._check_gpu_thermal_limits)
+                gpu_device = executor.submit(self._gpu_device_reading, executable)
+                compute_output = executor.submit(
+                    self._compute_process_output, executable
+                )
+                kernel_events = executor.submit(self._kernel_event_reading)
+                host = executor.submit(self._host_reading, managed)
+
+                thermal.result()
+                gpu = gpu_device.result()
+                processes = self._parse_compute_processes(
+                    compute_output.result(), str(gpu["uuid"]), managed
+                )
+                gpu.update(kernel_events.result())
+                gpu["compute_processes"] = processes
             return {
-                "gpu": self._gpu_reading(executable, managed),
-                "host": self._host_reading(managed),
+                "gpu": gpu,
+                "host": host.result(),
             }
         except ProbeFailure:
             raise

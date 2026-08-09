@@ -1,0 +1,10 @@
+{
+  "finalization_id": "finalization_75303736145a38fcfa616e9f25f97351",
+  "finalized_at_utc": "2026-08-09T12:53:44+00:00",
+  "finalizer_role_id": "phase2b-publication-finalizer",
+  "format_version": "aptus.experiment-publication-finalization.v1",
+  "review_artifact_id": "artifact_0300b4111413f95913d464c398908380",
+  "review_id": "review_d64f6d06c8a51183660bfee792282395",
+  "review_raw_manifest_sha256": "e276e96a6776f284eb0e3766a19a5163797261dacf9937ed930618e397faf53a",
+  "review_raw_manifest_size_bytes": 1758
+}

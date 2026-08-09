@@ -1,6 +1,6 @@
 # CUDA Campaign Phase 2A Tooling Contract
 
-> **Status:** Phase 2A source tooling implemented and independently reviewed, with source gates complete; Phase 2B sanitized recovery supplement pending | **Authority:** Active implementation and review reference for the opt-in tooling; not an operator authorization, product-capability claim, target-runtime result, or measured-run record | **Applies to:** Aptus 0.2 CUDA campaign evidence-capture implementation work | **Audience:** Implementers, maintainers, custodians, and independent reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-08 | **Review by:** Before Phase 2B, after any capture or publication contract change, or by 2026-09-07
+> **Status:** Phase 2A source tooling and Phase 2B sanitized recovery publication complete and independently reviewed | **Authority:** Active implementation and review reference for the opt-in tooling and bounded recovery publication; not a product-capability claim, target-runtime result, or measured-run record | **Applies to:** Aptus 0.2 CUDA campaign evidence-capture and recovery-publication work | **Audience:** Implementers, maintainers, custodians, and independent reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before Phase 3, after any capture, custody, sanitizer, or publication contract change, or by 2026-09-08
 
 Phase 2A freezes the source interfaces for opt-in capture, Phase 4 authority,
 admission and activation, outcome classification, custody, sanitization,
@@ -16,10 +16,13 @@ No Ubuntu command, model download, GPU workload, or new empirical run occurred
 while building or reviewing Phase 2A. The Phase 0 private recovery facts
 and the immutable 2026-08-06 acceptance packet are unchanged.
 
-Phase 2B remains pending. It must run only from the merged Phase 2A source and
-only against protected Phase 0 copies, then publish and independently review
-the sanitized recovery supplement. The intended Ubuntu host remains frozen.
-Phase 3 candidate selection and measurement-control work is also pending, so
+Phase 2B completed on 2026-08-09 from the exact merged Phase 2A source and only
+against protected Phase 0 copies. Its [dated sanitized recovery
+supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
+passed independent traceability and privacy review, finalized-byte
+reverification, custody and retention checks, publication eligibility, and the
+two-pass publication transaction. The intended Ubuntu host remained untouched.
+Phase 3 candidate selection and measurement-control work is still pending, so
 no new qualifying campaign run is authorized.
 
 ## Claim boundary
@@ -189,31 +192,32 @@ publication custody or attestation defects.
 - The Phase 2 tooling does not implement Phase 3 candidate selection, add
   cloud orchestration, or create multi-GPU evidence.
 
-## Phase 2B remains pending
+## Phase 2B completion
 
-Phase 2A freezes the interface but does not produce the recovery supplement.
-After the Phase 2A source merges, Phase 2B must use that exact merged source
-against protected copies only. It must not connect to, mutate, install on,
-clean, or run a workload on the Ubuntu host. The Phase 2B procedure must, at
-minimum:
+Phase 2B pinned merged Phase 2A commit
+`f6a58612263ccd1b7284ffa9f5460631ba64c2e1`, verified both immutable Phase 0
+copies, and created a new canonical sealed recovery artifact without changing
+the originals. Thirty-nine of 40 logical expected rows were recovered and
+digest-matching. The original raw model-file manifest remained `not-found`.
+The separate original Python test transcript also remained `not-found` and was
+not reconstructed.
 
-1. keep the Ubuntu host frozen and operate only on protected copies;
-2. pin and verify the merged Phase 2A source identity;
-3. verify exact protected inputs, current custody state, pinned receipt head,
-   typed external evidence, retention state, and immutable inventory;
-4. keep recovery candidates protected and separate from publishable output;
-5. bind a durable prior review and the exact source artifacts through every
-   sanitizer and publication transition;
-6. require explicit operator intent, fail-closed recovery, and fresh-output
-   no-clobber semantics for every mutating CLI action;
-7. publish only independently reviewed, finalized, eligibility-approved bytes
-   into a dated checksum-covered supplement; and
-8. rerun repository and documentation gates before merge.
+The canonical artifact was copied into two verified physical failure domains,
+including an encrypted removable off-host store, and a fresh full retrieval
+verified the complete sealed inventory. Typed copy, retrieval, retention, and
+external-evidence records bound the exact artifact. The constructive sanitizer
+then produced a protected stage; the independent review passed all six frozen
+checks; a distinct finalizer created and reverified the nonpublished candidate;
+and publication eligibility returned `eligible: true` with no reason codes.
+The publisher performed two fresh live eligibility passes before committing
+the exact reviewed bytes.
 
-Phase 2B is not complete before that dated supplement and its independent
-review merge. Until then, Ubuntu host mutation remains forbidden. Phase 3 is a
-separate gate, and neither Phase 2A nor Phase 2B authorizes a measured run by
-itself.
+The resulting [dated checksum-covered recovery
+supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md) is
+recovery-integrity evidence only. No Linux connection, Ubuntu-host mutation,
+model download, GPU workload, or new empirical run occurred during Phase 2B.
+Phase 3 is a separate gate, and neither Phase 2A nor Phase 2B authorizes a
+measured run by itself.
 
 ## Related documentation
 

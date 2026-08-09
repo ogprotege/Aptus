@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-08 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-09 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -70,10 +70,20 @@ All notable changes are recorded here.
   custody receipts, allowlisted recovery sanitization, read-only eligibility,
   and two-pass inode-pinned publication with verified rollback. The [Phase 2A
   tooling contract](docs/operations/cuda-campaign-phase2-tooling.md) records the
-  closed adversarial findings and Phase 2B preconditions. This is source and
-  contract evidence, not operator authorization, a product-capability claim,
-  or a target-runtime result; Phase 2B recovery publication and Phase 3
-  measurement controls remain pending.
+  closed adversarial findings and Phase 2B preconditions now satisfied by the
+  dated supplement below. This is source and
+  contract evidence, not a product-capability claim or target-runtime result.
+- A dated, independently reviewed [Phase 2B sanitized recovery
+  supplement](docs/operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
+  produced only from protected Phase 0 copies at merged Phase 2A source
+  `f6a58612263ccd1b7284ffa9f5460631ba64c2e1`. All 40 frozen logical rows have
+  dispositions: 39 are recovered and digest-matching, while the raw model-file
+  manifest remains `not-found`; the separate original Python test transcript
+  also remains `not-found`. Two-copy verification, full off-host retrieval,
+  retention, traceability and privacy review, finalized-byte verification,
+  fail-closed eligibility, and two-pass publication passed. No Linux
+  connection, Ubuntu mutation, model workload, or new empirical result
+  occurred. Phase 3 measurement controls remain pending.
 - Uninterrupted full-duration MLX LoRA and QLoRA execution from the pinned base
   model after `pilot-pass`, with duration derived from compiled training rows,
   batch size, accumulation, and maximum epochs.

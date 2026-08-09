@@ -4,9 +4,9 @@
 >
 > **Applies to:** Repository documentation through merged PR #41, the canonical
 > RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
-> Phase 2A source-tooling contract
+> Phase 2A source-tooling contract and Phase 2B sanitized recovery supplement
 >
-> **Last reviewed:** 2026-08-08
+> **Last reviewed:** 2026-08-09
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -122,8 +122,12 @@ not establish repeatability or general CUDA compatibility.
 On 2026-08-08, campaign Phase 0 completed in the protected private evidence
 layer with a complete disposition, two verified copies in separate failure
 domains, and verified off-host retrieval. No private locator, machine or job
-identity, or raw record is published by this status. The sanitized recovery
-supplement remains pending Phase 2B. The
+identity, or raw record is published by this status. Phase 2B used the exact
+merged Phase 2A source to publish the independently reviewed [sanitized
+recovery supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md).
+It accounts for all 40 logical rows: 39 recovered with matching digests and one
+raw model-file manifest not found; the separately searched Python transcript
+was also not found or reconstructed. The
 [CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and its
 [machine companion](../reference/cuda-campaign-protocol.v1.json) freeze Phase 1
 as design authority; those two protocol documents implement no runtime
@@ -132,10 +136,9 @@ contract](../operations/cuda-campaign-phase2-tooling.md) documents implemented
 and independently reviewed Phase 4 authority, admission/activation, outcome,
 capture, telemetry, watchdog, custody, sanitization, eligibility, and
 publication interfaces. Their integrated development-Mac source gates passed.
-The work did not connect to or mutate the Ubuntu host, run a model or GPU
-workload, or add a new empirical result. Phase 2B recovery publication and
-Phase 3 selection and measurement controls remain pending, and host mutation
-remains forbidden.
+Neither phase connected to or mutated the Ubuntu host, ran a model or GPU
+workload, or added a new empirical result. Phase 3 selection and measurement
+controls remain pending, and host mutation remains forbidden.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
@@ -158,25 +161,25 @@ derive every default, status, and response field from one source.
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, choices, defaults, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, workbench presentation no longer reconstructs policy from topology, the CUDA Phase 1 protocol remains frozen design authority, and the Phase 2A contract separates implemented source tooling from pending target-host evidence |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, workbench presentation no longer reconstructs policy from topology, the CUDA Phase 1 protocol remains frozen design authority, and the Phase 2 contract separates implemented source tooling and completed recovery publication from pending target-host evidence |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, all ten legacy-audit reports, twelve archived engineering reviews, the immutable drift audit, and the failed Phase 6 diagnostic display explicit status boundaries |
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
-| Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, packet checksums and sanitization, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; Phase 0 recovery is privately protected, implemented Phase 2A source tooling adds no target-runtime evidence, and its sanitized supplement remains pending Phase 2B; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
+| Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 122
+The [documentation inventory](documentation-inventory.md) classifies 123
 governed tracked Markdown documents:
 
-- 93 active;
+- 94 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 123 tracked Markdown files in total. The pull-request
+The repository contains 124 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 122 files, including the
+`maintained_documentation()` set covers all other 123 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,
@@ -253,6 +256,18 @@ For the 2026-08-08 Phase 2A source-tooling documentation closeout:
   CUDA-runtime, GPU-resource, timing, thermal, model, or empirical result. The
   integrated source-gate result is recorded in the Phase 2A tooling contract
   after its stable run.
+
+For the 2026-08-09 Phase 2B recovery-publication closeout:
+
+- all 34 documentation tests passed, including exact packet inventory, both
+  checksum layers, all 40 dispositions, distinct reviewer and finalizer
+  bindings, publication eligibility, sanitization, navigation, and lifecycle
+  counts;
+- the same code and packet bytes passed all 889 Python tests, Ruff lint and
+  formatting, all 130 React tests, TypeScript checking, and the tracked
+  production web build; and
+- these are development-host repository gates. They add no Ubuntu, CUDA
+  runtime, GPU, performance, model, or empirical evidence.
 
 The final Phase 2A repository closeout then passed all 888 Python tests in
 45.777 seconds, all 130 React tests across 20 files, Ruff lint and formatting,
@@ -469,24 +484,20 @@ target-host coverage or public notarization.
 1. Preserve the frozen [Phase 1 CUDA campaign
    protocol](../reference/cuda-campaign-protocol.md) and its machine companion
    as the design authority; they do not authorize runtime execution.
-2. Merge the source-gated [Phase 2A tooling
-   contract](../operations/cuda-campaign-phase2-tooling.md); these source gates
-   are not Ubuntu or empirical evidence.
-3. Generate the checked [Phase 2B
-   procedure](../operations/cuda-campaign-phase2-tooling.md#phase-2b-remains-pending)
-   from that pinned merged source, publish the dated supplement, and obtain
-   independent review using protected Phase 0 copies without mutating the
-   Ubuntu host.
-4. Implement and merge Phase 3 explicit candidate selection and exact
+2. Preserve the completed [Phase 2 tooling and recovery-publication
+   record](../operations/cuda-campaign-phase2-tooling.md) and its dated
+   [sanitized supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md);
+   they are not Ubuntu or empirical evidence.
+3. Implement and merge Phase 3 explicit candidate selection and exact
    measurement controls before any measured campaign execution.
-5. Continue the [canonical RTX 3050 CUDA empirical evidence
+4. Continue the [canonical RTX 3050 CUDA empirical evidence
    campaign](../operations/cuda-empirical-campaign.md) through rehearsal and
    its ordered measured phases. Treat every result as evidence for the exact
    RTX 3050 host and configuration, not Aptus's global, cloud, or multi-GPU
    ceiling.
-6. Complete the remaining distributed CUDA target-host coverage and public
+5. Complete the remaining distributed CUDA target-host coverage and public
    desktop distribution evidence that the single-GPU campaign cannot supply.
-7. Revisit the repository-Markdown delivery decision only when versioning,
+6. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 
 ## Next health review

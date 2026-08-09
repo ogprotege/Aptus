@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-08 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-09 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -39,7 +39,7 @@ Completed evidence:
   later August 5 MLX and August 6 CUDA records now supply separately bounded
   current-contract evidence at their exact acceptance sources.
 
-Completed Phase 2A source tooling, not target-runtime evidence:
+Completed Phase 2 tooling and recovery publication, not new target-runtime evidence:
 
 - The CUDA campaign Phase 2A source tooling implements opt-in Phase 4
   source/host authority, exact admission and post-gate identity activation, all
@@ -50,16 +50,23 @@ Completed Phase 2A source tooling, not target-runtime evidence:
   [Phase 2A tooling
   contract](docs/operations/cuda-campaign-phase2-tooling.md) is implementation
   and review authority, not operator authorization or target-runtime evidence.
-  No Ubuntu command, model workload, or new empirical result occurred. Phase 2B
-  recovery publication and Phase 3 selection and measurement controls remain
-  pending, and mutation of the intended Ubuntu host remains forbidden.
+  No Ubuntu command, model workload, or new empirical result occurred.
+- Phase 2B used merged Phase 2A source and only protected Phase 0 copies to
+  publish the [dated, independently reviewed sanitized recovery
+  supplement](docs/operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md).
+  It accounts for all 40 frozen logical rows: 39 are recovered and
+  digest-matching, while the raw model-file manifest remains `not-found`; the
+  separate original Python test transcript also remains `not-found`. Two
+  verified physical copies, full off-host retrieval, retention, traceability,
+  privacy review, finalized-byte verification, eligibility, and two-pass
+  publication passed. This is recovery-integrity evidence only. Phase 3
+  selection and measurement controls remain pending, and mutation of the
+  intended Ubuntu host remains forbidden.
 
 Remaining release work:
 
-- Merge the reviewed Phase 2A source, then execute and independently review the
-  Phase 2B sanitized recovery supplement only from that pinned source and only
-  against protected Phase 0 copies. Complete Phase 3 before any new measured
-  campaign run.
+- Complete Phase 3 explicit candidate selection and exact measurement controls
+  before any new measured campaign run.
 - Execute the canonical [RTX 3050 CUDA empirical evidence
   campaign](docs/operations/cuda-empirical-campaign.md) for repeatability,
   clean-environment dependencies, all four registered single-device method

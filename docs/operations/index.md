@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-08 | **Review by:** 2026-10-27 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-09 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
@@ -66,15 +67,16 @@ described as a publication of the complete raw console output.
 
 Private Phase 0 recovery completed on 2026-08-08 without changing that public
 packet or publishing protected locations, host identities, job identities, or
-raw content. The public sanitized recovery supplement remains pending the
-Phase 2B sanitizer, finalized-byte verification, publication-eligibility gate,
-and independent review. Phase 2A source tooling is implemented, independently
-reviewed, and source-gated on the development Mac; no new Ubuntu run occurred.
+raw content. On 2026-08-09, Phase 2B published the independently reviewed
+[sanitized recovery supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md):
+39 of 40 frozen logical rows were recovered with matching digests, the raw
+model-file manifest was not found, and the separately searched Python test
+transcript was not found or reconstructed. No new Ubuntu run occurred.
 
 ## Experimental host work
 
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
-- [Phase 2A tooling contract and Phase 2B preconditions](cuda-campaign-phase2-tooling.md)
+- [Phase 2 tooling and completed Phase 2B publication contract](cuda-campaign-phase2-tooling.md)
 - [Frozen Phase 1 CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json)
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
@@ -90,10 +92,10 @@ Phase 2A implements and independently reviews the opt-in Phase 4 authority,
 admission/activation, outcomes, capture, telemetry, watchdog, custody,
 sanitizer, eligibility, and publication source interfaces, with its integrated
 source gates complete. It is not operator authorization
-or target-runtime evidence. Phase 2B must still publish and independently
-review the sanitized recovery supplement without mutating the Ubuntu host.
-Phase 3 explicit selection and measurement controls remain pending before any
-measured execution.
+or target-runtime evidence. Phase 2B used that merged source to publish and
+independently review the sanitized recovery supplement without connecting to or
+mutating the Ubuntu host. Phase 3 explicit selection and measurement controls
+remain pending before any measured execution.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6
@@ -110,7 +112,7 @@ before treating a row as passed.
 
 - [Documentation home](../index.md)
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
-- [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md)
+- [Phase 2 tooling and Phase 2B completion](cuda-campaign-phase2-tooling.md)
 - [CUDA campaign protocol](../reference/cuda-campaign-protocol.md)
 - [Run states](../reference/run-states.md)
 - [Troubleshooting](../guides/troubleshooting.md)

@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-08
+> **Last reviewed:** 2026-08-09
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -186,8 +186,12 @@ when its evidence, owner, or resolution changes.
   capture, telemetry, watchdog, semantic sealing, custody, sanitization,
   eligibility, and two-pass rollback-safe publication. Its [source-tooling
   contract](../operations/cuda-campaign-phase2-tooling.md) is not operator
-  authorization and reports no new Ubuntu or empirical run. The sanitized
-  recovery supplement remains pending Phase 2B. The [CUDA campaign
+  authorization and reports no new Ubuntu or empirical run. Phase 2B used the
+  exact merged source to publish the independently reviewed [sanitized recovery
+  supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md):
+  39 of 40 logical rows were recovered with matching digests, while the raw
+  model-file manifest and separately searched Python transcript remain absent.
+  It also reports no new Ubuntu or empirical run. The [CUDA campaign
   protocol](../reference/cuda-campaign-protocol.md) and
   [machine-readable companion](../reference/cuda-campaign-protocol.v1.json)
   freeze the Phase 1 decisions; they do not implement runtime behavior.
@@ -200,19 +204,14 @@ when its evidence, owner, or resolution changes.
   multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
   and notarized desktop evidence for the exact public release commit.
 - **Milestones:** Phase 0 raw recovery is privately complete, Phase 1 is frozen,
-  and Phase 2A source tooling is implemented, independently reviewed, and
-  source-gated. After Phase 2A merges, generate
-  the checked [Phase 2B
-  procedure](../operations/cuda-campaign-phase2-tooling.md#phase-2b-remains-pending)
-  from that pinned source, publish and independently review the sanitized
-  recovery supplement, and implement and merge Phase 3 explicit candidate
-  selection and measurement controls. Only after those phases may the campaign
-  rehearse and freeze, run
+  Phase 2A source tooling is merged and source-gated, and Phase 2B publication
+  is complete and independently reviewed. Next, implement and merge Phase 3
+  explicit candidate selection and measurement controls. Only after Phase 3
+  may the campaign rehearse and freeze, run
   the five-attempt LoRA anchor, four-method matrix, size and configuration
   staircases, endurance, and independently reviewed dated packets. Capability
   claims change only after the applicable packets merge.
-- **Blocker:** Phase 2B has not produced or merged the sanitized recovery
-  supplement, and Phase 3 selection and measurement-control contracts remain
+- **Blocker:** Phase 3 selection and measurement-control contracts remain
   future implementation. Host mutation is still forbidden. The intended RTX
   3050 host has one GPU and cannot close DDP or FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU

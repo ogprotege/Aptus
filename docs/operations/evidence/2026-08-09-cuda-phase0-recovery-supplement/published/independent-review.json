@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "claim-boundary-correctness": true,
+    "complete-raw-to-public-traceability": true,
+    "complete-sorted-unique-sha256sums": true,
+    "numeric-recomputation": true,
+    "private-value-absence": true,
+    "strict-public-schema": true
+  },
+  "producer_role_id": "phase2b-recovery-producer",
+  "reason_code": "NONE",
+  "result": "passed",
+  "review_id": "review_d64f6d06c8a51183660bfee792282395",
+  "reviewed_at_utc": "2026-08-09T12:53:32.748580+00:00",
+  "reviewer_role_id": "phase2b-independent-reviewer",
+  "schema_version": "aptus.experiment-publication-review.v1"
+}

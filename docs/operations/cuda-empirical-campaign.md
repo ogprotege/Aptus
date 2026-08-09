@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phase 0 privately complete; Phase 1 protocol frozen; Phase 2A source tooling implemented, independently reviewed, and source-gated; Phase 2B and Phase 3 pending | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-08 | **Review by:** Before Phase 2B, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-07
+> **Status:** Active experiment plan; Phases 0, 1, 2A, and 2B complete; Phase 3 pending | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before Phase 3, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-08
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -13,18 +13,20 @@ reviewed, dated, checksum-covered record under [`evidence/`](evidence/) can
 establish a measured result. Current capability language remains unchanged
 until such a record passes independent review.
 
-As of 2026-08-08, Phase 0 recovery is complete in the protected private layer:
+As of 2026-08-09, Phase 0 recovery is complete in the protected private layer:
 the expected prior evidence has a private disposition, two verified copies
 exist in separate failure domains, and off-host retrieval passed. No private
 path, machine identity, job identity, or raw record is published by this status
-note. The sanitized recovery supplement remains the pending Phase 2B
-deliverable. The
+note. Phase 2B published and independently reviewed the [sanitized recovery
+supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
+from those protected copies without connecting to the Ubuntu host. The
 [Phase 1 CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and its
 [machine-readable companion](../reference/cuda-campaign-protocol.v1.json) are
 the frozen design authority. The [Phase 2A tooling
 contract](cuda-campaign-phase2-tooling.md) records the implemented source
-interfaces, closed review findings, and Phase 2B preconditions; it does not
-authorize operator mutation and records no new Ubuntu or GPU result.
+interfaces, closed review findings, and completed Phase 2B publication; it
+records no new Ubuntu or GPU result and does not authorize Phase 3 or a new
+campaign run.
 
 ## What this plan reconciles
 
@@ -41,7 +43,7 @@ authorize operator mutation and records no new Ubuntu or GPU result.
 | [Method registry](../reference/method-registry.md) | Executable method, runtime, backend, and placement matrix | Defines which CUDA cells may be attempted |
 | [Model-policy snapshot](../reference/model-policy-snapshot.md) | Canonical model-policy decision contract | Defines whether an inspected artifact can produce the intended CUDA candidate |
 | [CUDA campaign protocol](../reference/cuda-campaign-protocol.md) and [machine companion](../reference/cuda-campaign-protocol.v1.json) | Frozen Phase 1 experiment contract | Defines canonical identities, fixtures, thresholds, schedules, aggregation, retention, sanitization, and stopping semantics; it does not implement them |
-| [Phase 2A tooling contract](cuda-campaign-phase2-tooling.md) | Implemented source and review contract | Freezes the opt-in capture, Phase 4 authority, admission/activation, outcome, custody, sanitizer, eligibility, and publication interfaces and states the Phase 2B preconditions without asserting target-runtime evidence |
+| [Phase 2 tooling and recovery-publication contract](cuda-campaign-phase2-tooling.md) | Implemented source and review contract | Freezes the opt-in capture, Phase 4 authority, admission/activation, outcome, custody, sanitizer, eligibility, and publication interfaces and records completed Phase 2B publication without asserting target-runtime evidence |
 | [Apple Silicon pilot matrix](apple-silicon-pilot.md) | Apple/MLX experiment plan | Remains a sibling plan and supplies no CUDA evidence |
 | [Capability matrix](../reference/capability-matrix.md) | Current executable and evidence status | Changes only after reviewed campaign packets exist |
 | Ignored `WIP.md`, `TempDoc-ForUserReview/`, and `dev/archive/` | Local notes or historical review evidence | Useful historical lessons were incorporated here; these paths are not current authority |
@@ -379,11 +381,10 @@ and measurement-control change. All applicable gates must merge before a
 qualifying GPU run.
 
 Current status is intentionally narrower than the phase descriptions: Phase 0
-completed privately on 2026-08-08, Phase 1 is frozen as design authority, and
-the Phase 2A source interfaces are implemented, independently reviewed, and
-source-gated on the development Mac. Phase 2B has not produced or
-merged the sanitized recovery supplement, Phase 3 remains pending, host
-mutation remains forbidden, and no new Ubuntu or empirical run occurred.
+completed privately on 2026-08-08, Phase 1 is frozen as design authority,
+Phase 2A is merged and source-gated, and Phase 2B published the independently
+reviewed sanitized recovery supplement on 2026-08-09. Phase 3 remains pending,
+host mutation remains forbidden, and no new Ubuntu or empirical run occurred.
 
 | Phase | Outcome | May start when | Exit evidence |
 | ---:| --- | --- | --- |
@@ -430,10 +431,11 @@ verified copies exist in separate failure domains, the off-host copy has passed
 retrieval, and the host can remain unchanged without risking the only raw copy.
 Phase 0 completion alone does not authorize host mutation.
 
-Phase 0 met this private completion boundary on 2026-08-08. Its public
-sanitized supplement remains pending Phase 2B through the reviewed sanitizer;
-the
-private inventory and locators remain outside Git.
+Phase 0 met this private completion boundary on 2026-08-08. Phase 2B published
+its independently reviewed [sanitized
+supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md) on
+2026-08-09 through the reviewed sanitizer; the private inventory and locators
+remain outside Git.
 
 ### Phase 1 — protocol and schema decisions
 
@@ -441,8 +443,8 @@ The frozen decisions are versioned in the
 [human-readable protocol](../reference/cuda-campaign-protocol.md) and
 [canonical machine companion](../reference/cuda-campaign-protocol.v1.json).
 They define design contracts, not runtime behavior. Any discrepancy between
-this scheduling page and those frozen values must be reconciled before Phase 2B
-publication or any measured execution.
+this scheduling page and those frozen values must be reconciled before any
+measured execution.
 
 Review and freeze:
 
@@ -551,20 +553,18 @@ CUDA measurement, or authorization to mutate the intended host.
 
 ### Phase 2B — sanitized recovery supplement
 
-After Phase 2A merges, pin that exact merged source and use only its reviewed
-sanitizer, custody, and publication paths against protected Phase 0 copies to
-create the dated supplement. Follow the
-[Phase 2B preconditions](cuda-campaign-phase2-tooling.md#phase-2b-remains-pending).
-Give every expected Phase 0 item its disposition, recovered byte size when
-available, manifest binding, opaque vault locator, retention-policy and receipt
-bindings, copy-verification result, and retrieval date/result. Keep the
-original August 6 packet immutable.
+Phase 2B pinned merged source
+`f6a58612263ccd1b7284ffa9f5460631ba64c2e1` and used only its reviewed
+sanitizer, custody, eligibility, and publication paths against protected Phase
+0 copies. The [dated supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
+gives all 40 expected rows a disposition, preserves the two known `not-found`
+limitations, and binds the exact sealed artifact, two verified copies, full
+retrieval, retention, durable independent review, finalization, and eligible
+publication decision. The original August 6 packet remains immutable.
 
-The supplement must pass independent sanitization, finalized-byte
-reverification, raw-traceability review, custody and retention checks, and
-fail-closed publication eligibility before merge. Until it merges, Ubuntu-host
-mutation remains forbidden. Phase 2B supplies a sanitized recovery supplement,
-not a new target-runtime result.
+No Linux connection, Ubuntu-host mutation, model download, GPU workload, or
+new empirical run occurred. Phase 2B supplies a sanitized recovery supplement,
+not a new target-runtime result. Phase 3 remains the next required gate.
 
 ### Phase 3 — explicit method selection and measurement contracts
 
@@ -781,20 +781,18 @@ still required for DDP and conditional LoRA FSDP.
 
 1. Preserve the frozen Phase 1 protocol and its machine-readable companion as
    design authority. They authorize no runtime execution.
-2. Merge the reviewed, source-gated Phase 2A contract and pin that exact merged
-   identity. This source work records no new Ubuntu result.
-3. Generate the checked Phase 2B procedure from its
-   [frozen preconditions](cuda-campaign-phase2-tooling.md#phase-2b-remains-pending),
-   execute it only against protected Phase 0 copies without mutating the Ubuntu
-   host, and publish and independently verify the recovery supplement.
-4. Implement, review, and merge Phase 3 explicit candidate selection and exact
+2. Preserve the completed [Phase 2 tooling and recovery-publication
+   record](cuda-campaign-phase2-tooling.md) and dated [sanitized
+   supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md).
+   They record no new Ubuntu result.
+3. Implement, review, and merge Phase 3 explicit candidate selection and exact
    seed, progress, duration, and measurement-control contracts.
-5. After Phase 2B and Phase 3 merge, run the complete repository gates with
+4. After Phase 3 merges, run the complete repository gates with
    retained transcripts, and perform the Phase 4 nonqualifying rehearsal.
-6. Freeze the exact source, host, environments, datasets, models, and run order.
-7. Execute Phases 5 through 9 in order, sealing and reviewing each batch before
+5. Freeze the exact source, host, environments, datasets, models, and run order.
+6. Execute Phases 5 through 9 in order, sealing and reviewing each batch before
    expanding the matrix.
-8. Publish Phase 10 packets and update claims only to the exact evidence boundary.
+7. Publish Phase 10 packets and update claims only to the exact evidence boundary.
 
 ## Related documentation
 

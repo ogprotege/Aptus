@@ -1298,6 +1298,61 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
         self.assertEqual(reading["host"]["managed_process_rss_bytes"], 0)
         self.assertEqual(reading["host"]["managed_process_cpu_seconds"], 0.0)
 
+    def test_terminal_managed_process_is_excluded_before_channel_validation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            self._write_process(
+                proc,
+                pid=123,
+                process_group_id=123,
+                start_ticks=777,
+                resident_pages=50,
+                user_ticks=100,
+                system_ticks=50,
+                read_bytes=4096,
+                write_bytes=8192,
+            )
+            leader = proc / "123"
+            stat_text = (leader / "stat").read_text(encoding="utf-8")
+            (leader / "stat").write_text(
+                stat_text.replace(
+                    "(python nested worker) S ", "(python nested worker) Z "
+                ),
+                encoding="utf-8",
+            )
+            (leader / "statm").write_text("", encoding="utf-8")
+            (leader / "io").write_text("", encoding="utf-8")
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+
+            reading = probe()
+
+        self.assertEqual(reading["host"]["managed_process_rss_bytes"], 0)
+        self.assertEqual(reading["host"]["managed_process_cpu_seconds"], 0.0)
+
     def test_transient_managed_process_permission_race_is_retried(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

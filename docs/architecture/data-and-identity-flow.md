@@ -52,7 +52,7 @@ Provider-declared model fields do not become permission facts. Manual hardware
 values do not become target-host measurements. An inferred model family does
 not replace the raw provider model type or architecture evidence.
 
-For a sparse model, the `aptus.training-plan.v5` model payload binds exact
+For a sparse model, the `aptus.training-plan.v6` model payload binds exact
 provider type, architecture, checkpoint precision, expert count, experts per
 token, expert width, sparse cadence, dense-only layer indices, and optional
 shared-expert width. It also binds backend-derived active parameters and
@@ -120,7 +120,7 @@ registered execution path. Only the candidate whose method, placement, target
 modules, and runtime contract match the emitted path has a non-null policy
 binding. Installed-host loading, compilation, recovery, admission, pilot
 authorization, worker launch, and the completion verification and promotion
-transaction compare a v5 decision and snapshot digest with the current
+transaction compare a v6 decision and snapshot digest with the current
 registry. Load, compile, recovery, and submission workflows surface a coherent
 mismatch as `replan_required`; pilot authorization reports non-current, and
 pending completion evidence is not promoted. Host static validation records the

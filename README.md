@@ -169,7 +169,7 @@ every one keeps its verdict:
 Against 22.0 GiB usable device memory, full fine-tuning is rejected outright,
 LoRA is conditional because its envelope exceeds what is usable, and int8-LoRA
 wins under the quality objective while QLoRA remains the lower-memory
-alternative. The plan is written as `aptus.training-plan.v5` with formula
+alternative. The plan is written as `aptus.training-plan.v6` with formula
 `aptus-memory-v2`, a content-addressed `plan_id`, and the SHA-256 of the
 canonical `aptus.model-policy-snapshot.v1` used to evaluate compatibility.
 
@@ -208,7 +208,8 @@ old revision creates a *new* revision and never restores training authorization.
 | Command | Purpose |
 | --- | --- |
 | `aptus profile` | Profile a local training dataset. |
-| `aptus spec-plan` | Write a persisted v5 plan JSON without compiling. |
+| `aptus spec-plan` | Write a persisted v6 plan JSON without compiling. |
+| `aptus select-candidate` | Select one complete viable candidate into a new plan identity. |
 | `aptus plan` | Compatibility flow: plan, compile, validate, and archive. |
 | `aptus build` | Plan, compile, validate, and archive. |
 | `aptus compile` | Compile a persisted plan JSON into a portable bundle. |
@@ -269,7 +270,7 @@ guidance; local LM Studio and oMLX adapters for inference and evaluation
 (neither is a training engine); typed API responses under `aptus.api.v1` with a
 checked OpenAPI artifact; and read-only diagnosis via `aptus doctor`.
 
-Every v5 plan persists one `aptus.model-compatibility.v2` decision and binds its
+Every v6 plan persists one `aptus.model-compatibility.v2` decision and binds its
 canonical policy snapshot through `model_policy_snapshot_sha256` in the plan
 identity. Every candidate links to that decision, while only an exact
 registered path receives an `aptus.model-policy-binding.v1` binding. Provider
@@ -277,7 +278,7 @@ inspection can add an `aptus.model-inspection-receipt.v1` with separate
 compatibility-subject and observed-planning-facts digests. Direct facts remain
 explicitly `user-attested`. Parameter count and training permission are never
 promoted to provider facts. Old v4, v3, v2, and schema-less plans, plus
-stale-policy or stale-snapshot v5 plans, require replanning instead of
+stale-policy or stale-snapshot v6 plans, require replanning instead of
 reinterpretation.
 
 The registry currently carries two reviewed policy subjects. The Qwen3 MoE row
@@ -491,7 +492,7 @@ commit `719255153e3fc7e38e83b5ff826d587e5e58bf80` and bundle fingerprint
 Crash resume remains unsupported.
 
 Phase 4's source and contract review is complete. Current
-`aptus.training-plan.v5` plans and `aptus.bundle.v3` bundles cross-bind a
+`aptus.training-plan.v6` plans and `aptus.bundle.v3` bundles cross-bind a
 canonical `aptus.model-policy-snapshot.v1`. Package-free programs verify the
 frozen snapshot's integrity and decision parity; installed Aptus separately
 enforces current host-registry currency during host static validation and again

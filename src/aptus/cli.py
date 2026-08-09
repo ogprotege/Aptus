@@ -28,7 +28,7 @@ from .domain import (
 )
 from .generation import create_bundle_archive, generate_bundle
 from .plan_contract import require_current_model_policy, validate_plan_payload
-from .planning import plan_training
+from .planning import plan_training, select_candidate
 from .profiling import (
     build_hardware_spec,
     build_model_spec,
@@ -274,6 +274,16 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         help="Checkpoint interval in optimizer steps (default: 100).",
     )
     parser.add_argument(
+        "--optimizer-steps",
+        type=int,
+        help="Exact completed non-skipped optimizer-step target.",
+    )
+    parser.add_argument("--split-seed", type=int, default=424242)
+    parser.add_argument("--training-seed", type=int, default=17)
+    parser.add_argument("--data-order-seed", type=int, default=1000017)
+    parser.add_argument("--micro-batch-size", type=int)
+    parser.add_argument("--gradient-accumulation-steps", type=int)
+    parser.add_argument(
         "--packing",
         action="store_true",
         help="Request sequence packing; unsupported and fail-closed in Aptus 0.2.",
@@ -310,7 +320,7 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     for name, help_text in (
-        ("spec-plan", "Write a persisted v5 plan JSON without compiling."),
+        ("spec-plan", "Write a persisted v6 plan JSON without compiling."),
         ("plan", "Compatibility flow: plan, compile, validate, and archive."),
         ("build", "Plan, compile, validate, and archive."),
     ):
@@ -333,7 +343,7 @@ def _parser() -> argparse.ArgumentParser:
         "compile", help="Compile a persisted plan JSON into a portable bundle."
     )
     compile_command.add_argument(
-        "--plan", required=True, type=Path, help="Persisted Aptus v5 plan JSON."
+        "--plan", required=True, type=Path, help="Persisted Aptus v6 plan JSON."
     )
     compile_command.add_argument(
         "--output", required=True, type=Path, help="New or empty bundle directory."
@@ -341,6 +351,14 @@ def _parser() -> argparse.ArgumentParser:
     compile_command.add_argument(
         "--archive", type=Path, help="Optional no-clobber ZIP path outside the bundle."
     )
+
+    selection = commands.add_parser(
+        "select-candidate",
+        help="Select one complete viable candidate and write a new plan identity.",
+    )
+    selection.add_argument("--plan", required=True, type=Path)
+    selection.add_argument("--candidate-id", required=True)
+    selection.add_argument("--output", required=True, type=Path)
 
     validate = commands.add_parser(
         "validate", help="Validate a bundle at one explicit evidence level."
@@ -609,6 +627,12 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         packing=arguments.packing,
         checkpoint_steps=arguments.checkpoint_steps,
         training_runtime=training_runtime,
+        optimizer_steps=arguments.optimizer_steps,
+        split_seed=arguments.split_seed,
+        training_seed=arguments.training_seed,
+        data_order_seed=arguments.data_order_seed,
+        micro_batch_size=arguments.micro_batch_size,
+        gradient_accumulation_steps=arguments.gradient_accumulation_steps,
     )
     inspection_receipt = None
     if arguments.inspection_receipt is not None:
@@ -709,6 +733,29 @@ def _run(arguments: argparse.Namespace) -> int:
                 )
         plan = training_plan_from_primitive(value)
         _write_json(_compile(plan, arguments.output, arguments.archive), None)
+        return 0
+    if arguments.command == "select-candidate":
+        if arguments.output.exists():
+            raise FileExistsError(
+                f"Candidate-selection output already exists: {arguments.output}"
+            )
+        try:
+            value = json.loads(arguments.plan.read_text(encoding="utf-8"))
+        except (OSError, RecursionError, ValueError):
+            raise ValueError("Plan is unreadable or invalid JSON.") from None
+        if not isinstance(value, Mapping):
+            raise ValueError("Plan must be a JSON object.")
+        require_current_model_policy(value)
+        validation_errors = validate_plan_payload(value, verify_dataset=False)
+        if validation_errors:
+            raise ValueError(
+                "Candidate selection requires a current unmodified plan: "
+                + " ".join(validation_errors)
+            )
+        selected = select_candidate(
+            training_plan_from_primitive(value), arguments.candidate_id
+        )
+        _write_json(selected, arguments.output)
         return 0
     if arguments.command == "validate":
         if arguments.run and arguments.level not in {"contract", "static"}:

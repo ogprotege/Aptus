@@ -100,7 +100,7 @@ aptus spec-plan \
 
 Open `aptus-work/plan.json` and confirm:
 
-- `schema_version` is `aptus.training-plan.v5`;
+- `schema_version` is `aptus.training-plan.v6`;
 - `model_policy_snapshot_sha256` binds the canonical policy snapshot used to
   produce the compatibility decision;
 - `plan_id` includes that snapshot digest in its content identity;

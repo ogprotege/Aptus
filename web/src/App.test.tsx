@@ -188,7 +188,7 @@ function exactQwen3MoEPlan(): TrainingPlan {
     runtime_contract: runtimeContract,
   };
   return {
-    schema_version: "aptus.training-plan.v5",
+    schema_version: "aptus.training-plan.v6",
     plan_id: `plan_${"d".repeat(20)}`,
     model_policy_snapshot_sha256: "a".repeat(64),
     model: {
@@ -768,8 +768,8 @@ describe("desktop workbench readiness", () => {
     bootstrapMock.mockImplementation((signal) => actualApi.api.bootstrap(signal));
     const cases: Array<[RegExp, () => Record<string, unknown>]> = [
       [
-        /requires aptus\.training-plan\.v5/i,
-        () => ({ ...structuredClone(exactQwen3MoEPlan()), schema_version: "aptus.training-plan.v6" }),
+        /requires aptus\.training-plan\.v6/i,
+        () => ({ ...structuredClone(exactQwen3MoEPlan()), schema_version: "aptus.training-plan.v7" }),
       ],
       [
         /invalid model policy binding.*unsupported schema version/i,
@@ -894,7 +894,7 @@ describe("desktop workbench readiness", () => {
         status: "replan_required",
         plan_id: "plan_legacy",
         found_schema: "aptus.training-plan.v2",
-        required_schema: "aptus.training-plan.v5",
+        required_schema: "aptus.training-plan.v6",
         source: "project-revision",
         message: "This saved plan predates the current executable contract.",
       },
@@ -990,7 +990,7 @@ describe("desktop workbench readiness", () => {
       latest_revision: null,
     };
     const plan = {
-      schema_version: "aptus.training-plan.v5",
+      schema_version: "aptus.training-plan.v6",
       plan_id: "plan_retained",
       project_id: projectId,
       model: {},

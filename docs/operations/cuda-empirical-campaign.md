@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0, 1, 2A, and 2B complete; Phase 3 pending | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before Phase 3, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-08
+> **Status:** Active experiment plan; Phases 0, 1, 2A, 2B, and 3 complete; Phase 4 next | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before Phase 4, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-08
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -25,8 +25,8 @@ from those protected copies without connecting to the Ubuntu host. The
 the frozen design authority. The [Phase 2A tooling
 contract](cuda-campaign-phase2-tooling.md) records the implemented source
 interfaces, closed review findings, and completed Phase 2B publication; it
-records no new Ubuntu or GPU result and does not authorize Phase 3 or a new
-campaign run.
+records no new Ubuntu or GPU result. Phase 3 was implemented locally without a
+Linux connection or campaign run.
 
 ## What this plan reconciles
 
@@ -117,10 +117,10 @@ only that it was not safely admitted on this exact host and configuration.
 
 ## Non-negotiable controls
 
-1. Never edit a generated plan, `recommended` candidate, bundle configuration,
-   or evidence file to force a matrix cell. Aptus currently compiles the
-   recommended candidate; Phase 3 must add an explicit, validated selection
-   contract before comparing alternate viable methods.
+1. Never edit a generated plan, selected candidate, bundle configuration, or
+   evidence file to force a matrix cell. Use the Phase 3 validated selection
+   contract to create a new plan identity before compiling an alternate viable
+   method.
 2. Never reuse a run output directory or overwrite a prior state root. Every
    repetition receives fresh state, bundle, run, and capture locations.
 3. Never install, update, clean, or start Aptus on the Ubuntu host until Phase 0
@@ -137,9 +137,9 @@ only that it was not safely admitted on this exact host and configuration.
    candidate identity, dependency closure, sequence length, effective batch,
    step or token budget, capture method, or host policy without creating a new
    comparison cell.
-7. Never report tokens per second until exact padded and supervised token
-   counters are implemented and bound. Until then, report the runtime's exact
-   step or example rates and the limitation.
+7. Report tokens per second only from the exact Phase 3 padded, non-padding,
+   and supervised-token counters bound into the completed run. Never infer
+   token throughput from configured sequence length or aggregate trainer rates.
 
 ## Campaign identifiers and immutable configuration
 
@@ -383,8 +383,9 @@ qualifying GPU run.
 Current status is intentionally narrower than the phase descriptions: Phase 0
 completed privately on 2026-08-08, Phase 1 is frozen as design authority,
 Phase 2A is merged and source-gated, and Phase 2B published the independently
-reviewed sanitized recovery supplement on 2026-08-09. Phase 3 remains pending,
-host mutation remains forbidden, and no new Ubuntu or empirical run occurred.
+reviewed sanitized recovery supplement on 2026-08-09. Phase 3 now implements
+the frozen selection and measurement-control prerequisites. No Ubuntu or
+empirical run occurred; Phase 4 rehearsal remains the next gate.
 
 | Phase | Outcome | May start when | Exit evidence |
 | ---:| --- | --- | --- |
@@ -564,37 +565,33 @@ publication decision. The original August 6 packet remains immutable.
 
 No Linux connection, Ubuntu-host mutation, model download, GPU workload, or
 new empirical run occurred. Phase 2B supplies a sanitized recovery supplement,
-not a new target-runtime result. Phase 3 remains the next required gate.
+not a new target-runtime result. Phase 3 subsequently completed in source;
+Phase 4 is the next required gate.
 
 ### Phase 3 — explicit method selection and measurement contracts
 
-A fair method matrix is impossible while compilation can select only
-`plan.recommended` and a method preference merely influences ranking. Add an
-explicit API/domain/CLI or equivalent contract that selects one complete viable
-candidate and produces a new plan identity. It must reject a stale, rejected,
-nonselectable, or mutated candidate and preserve the policy and evidence chain.
-Generated plan or bundle files must never be hand-edited.
+**Complete in `aptus.training-plan.v6`.** Domain, API, CLI, and workbench
+selection now choose one complete viable candidate, create a new plan identity,
+and fail closed on stale, rejected, nonselectable, already-selected, or mutated
+identities while preserving policy, inspection, and evidence bindings. Planning
+and compiled CUDA configuration bind the optimizer-step target, independent
+split/training/data-order seeds, and optional explicit micro-batch and
+accumulation controls. Full CUDA training uses the compiled optimizer-step
+target, rejects overrides, writes checkpoint control bindings, and emits
+separate training/evaluation micro-iteration, completed-step, example, padded,
+non-padding, and supervised-token counters plus monotonic per-step progress.
+Static validation and parent completion verification enforce those bindings.
+The Phase 2A watchdog remains only an emergency ceiling. This completion is
+source-contract evidence, not a target-host result.
 
-Add exact padded and supervised token counters before publishing token
-throughput. If that work is deferred, the campaign remains valid but publishes
-only the exact existing step/example rates and wall times. Add any planner axes
-needed for a proposed sweep before the sweep; do not mutate generated trainer
-configuration out of band. In particular, current planning derives micro-batch
-and accumulation rather than accepting them as independent inputs, exposes no
-optimizer-step target, rejects enforced wall time, and forbids a full-run
-`--max-steps` override. Phase 8 needs reviewed micro-batch/accumulation controls
-before sweeping them. Phase 9 needs a reviewed optimizer-step or graceful
-deadline contract before claiming an enforced endurance duration. The Phase 2A
-safety watchdog is an emergency ceiling and cancellation mechanism, not a
-training-duration controller.
-
-Current CUDA bundles also compile seed `17`, and full training rejects the
-pilot-only `--seed` override. Add a reviewed seed input through the planning,
-bundle, runtime, and validation contracts before any multi-seed paired schedule;
-otherwise every slot must declare the fixed seed and no conclusion may imply
-seed breadth. Add fixed-window or per-step progress timestamps and rates before
-Phase 9 claims step-time drift; aggregate trainer rates alone cannot establish
-drift.
+Use only the Phase 3 selection interface; generated plan or bundle files must
+never be hand-edited. Every qualifying slot must bind its explicit optimizer
+target, split/training/data-order seeds, micro-batch and accumulation values,
+exact counters, and per-step progress record through the selected plan and
+compiled bundle. Add any other proposed sweep axis to the planner before the
+sweep rather than mutating generated trainer configuration out of band. The
+Phase 2A safety watchdog remains an emergency ceiling and cancellation
+mechanism, not a training-duration controller.
 
 ### Phase 4 — nonqualifying rehearsal and freeze
 
@@ -643,10 +640,8 @@ receive independent review.
 ### Phase 6 — same-model method matrix
 
 Hold model revision, tokenizer, data and split, loss masking, sequence length,
-effective batch, compiled epochs, derived optimizer-step count, seed policy,
-checkpoint rule, capture, host, and idle/cooldown protocol constant. Hold an
-explicit optimizer-step or supervised-token target only after Phase 3 adds and
-validates that contract.
+effective batch, Phase 3 optimizer-step target, seed policy, checkpoint rule,
+capture, host, and idle/cooldown protocol constant.
 
 | Cell | Required path | Initial expectation on this host |
 | --- | --- | --- |
@@ -707,8 +702,8 @@ planner-controlled axis at a time:
 
 1. sequence length;
 2. effective batch; and
-3. only after Phase 3 adds explicit planner inputs, micro-batch or accumulation
-   while preserving and reporting effective batch.
+3. Phase 3 planner-controlled micro-batch or accumulation while preserving and
+   reporting effective batch.
 
 Use a predeclared increasing ladder bounded by the model context and Aptus
 admission. Recompile for every point and never lower the normal 2 GiB CUDA
@@ -727,15 +722,12 @@ headroom margins above the hard free-VRAM, available-RAM, free-disk, and
 temperature stops across every qualifying input run. It must also have no
 thermal throttling, Xid error, applicable hardware error, or telemetry gap.
 Record the exact observed margins and selection calculation, then schedule
-exactly three measured endurance attempt slots without replacement. If Phase 3
-has added a reviewed optimizer-step or graceful-deadline contract, predeclare a
-30-to-60-minute or several-hundred-update rule through that contract. If it has
-not, freeze dataset size and compiled epochs and report elapsed time as observed;
-do not claim Aptus enforced a duration or update target. The safety watchdog
-remains only an emergency ceiling. Monitor for drift in step time, memory,
-temperature, power, clock state, loss, and artifact growth only through the
-fixed-window or per-step progress contract added in Phase 3; otherwise report
-aggregate rates without a drift conclusion.
+exactly three measured endurance attempt slots without replacement. Predeclare
+the several-hundred-update rule through the Phase 3 optimizer-step contract;
+observed wall time does not become an enforced-duration claim. The safety
+watchdog remains only an emergency ceiling. Monitor for drift in step time,
+memory, temperature, power, clock state, loss, and artifact growth through the
+Phase 3 per-step monotonic progress record.
 
 Separately exercise managed cancellation, same-user global lease exclusion,
 stale-owner recovery, parent verification, and crash-safe pending-completion
@@ -785,9 +777,8 @@ still required for DDP and conditional LoRA FSDP.
    record](cuda-campaign-phase2-tooling.md) and dated [sanitized
    supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md).
    They record no new Ubuntu result.
-3. Implement, review, and merge Phase 3 explicit candidate selection and exact
-   seed, progress, duration, and measurement-control contracts.
-4. After Phase 3 merges, run the complete repository gates with
+3. Preserve the completed Phase 3 selection and measurement-control contracts.
+4. Run the complete repository gates with
    retained transcripts, and perform the Phase 4 nonqualifying rehearsal.
 5. Freeze the exact source, host, environments, datasets, models, and run order.
 6. Execute Phases 5 through 9 in order, sealing and reviewing each batch before

@@ -84,6 +84,12 @@ export const EMPTY_DRAFT: FactDraft = {
     evaluation_fraction: 0.1,
     packing: false,
     checkpoint_steps: 100,
+    optimizer_steps: null,
+    split_seed: 424242,
+    training_seed: 17,
+    data_order_seed: 1000017,
+    micro_batch_size: null,
+    gradient_accumulation_steps: null,
   },
 };
 
@@ -145,6 +151,12 @@ export const EXAMPLE_DRAFT: FactDraft = {
     evaluation_fraction: 0.1,
     packing: false,
     checkpoint_steps: 100,
+    optimizer_steps: 128,
+    split_seed: 424242,
+    training_seed: 17,
+    data_order_seed: 1000017,
+    micro_batch_size: null,
+    gradient_accumulation_steps: null,
   },
 };
 
@@ -314,7 +326,7 @@ const EXAMPLE_CANDIDATES: CandidatePlan[] = [
 const EXAMPLE_RECOMMENDED = EXAMPLE_CANDIDATES[3];
 
 export const EXAMPLE_PLAN: TrainingPlan = {
-  schema_version: "aptus.training-plan.v5",
+  schema_version: "aptus.training-plan.v6",
   plan_id: "plan_eeeeeeeeeeeeeeeeeeee",
   model_policy_snapshot_sha256: "e".repeat(64),
   model: {

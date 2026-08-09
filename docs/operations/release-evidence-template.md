@@ -135,7 +135,7 @@ Record the exact registry and planner facts from the candidate build:
 | Experimental IDs | `dora`, `bitfit`, `adalora`, `sharelora` | `[fill]` | `[fill]` |
 | Research-only IDs | `loreft`, `aflora`, `bilora` | `[fill]` | `[fill]` |
 | Planner rows | 12 | `[fill]` | `[fill]` |
-| Plan schema | `aptus.training-plan.v5` | `[fill]` | `[fill]` |
+| Plan schema | `aptus.training-plan.v6` | `[fill]` | `[fill]` |
 | Policy snapshot schema and digest | `aptus.model-policy-snapshot.v1` | `[fill]` | `[fill]` |
 | Model policy decision | `aptus.model-compatibility.v2` | `[fill]` | `[fill]` |
 | Inspection receipt | `aptus.model-inspection-receipt.v1` or explicit null | `[fill]` | `[fill]` |

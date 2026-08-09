@@ -93,7 +93,7 @@ sequence.
 
 The planner evaluates the model policy once per plan and intersects every
 candidate with the emitted paths. Policy matching does not decide hardware fit,
-memory fit, ranking, or evidence readiness. `aptus.training-plan.v5` persists
+memory fit, ranking, or evidence readiness. `aptus.training-plan.v6` persists
 that decision and its `provider-inspection` or `user-attested` source. Every
 candidate carries the decision ID. Only the candidate that exactly matches an
 emitted path carries an `aptus.model-policy-binding.v1` object.
@@ -128,7 +128,7 @@ Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
 
 Phase 4 places canonical `aptus.model-policy-snapshot.v1` bytes and a generic
-evaluator in every generated bundle. `aptus.training-plan.v5` and
+evaluator in every generated bundle. `aptus.training-plan.v6` and
 `aptus.bundle.v3` cross-bind the snapshot digest. Package-free portable
 validation uses the frozen snapshot to verify integrity and decision parity and
 to reject missing, malformed, noncanonical, or tampered policy state. It has no

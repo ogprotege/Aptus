@@ -44,6 +44,10 @@ def make_plan(
     effective_batch: int = 8,
     task: str = "sft",
     packing: bool = False,
+    optimizer_steps: int | None = None,
+    split_seed: int = 424242,
+    training_seed: int = 17,
+    data_order_seed: int = 1000017,
 ):
     dataset_path = make_dataset(root)
     dataset = profile_dataset(dataset_path, sample_limit=64, sequence_length=128)
@@ -77,6 +81,10 @@ def make_plan(
         task=task,
         packing=packing,
         checkpoint_steps=10,
+        optimizer_steps=optimizer_steps,
+        split_seed=split_seed,
+        training_seed=training_seed,
+        data_order_seed=data_order_seed,
     )
     return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
 

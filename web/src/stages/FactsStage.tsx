@@ -588,6 +588,44 @@ export function FactsStage({
                 <input id="checkpoint-steps" type="number" required min="1" value={draft.target.checkpoint_steps} onChange={(event) => updateTarget("checkpoint_steps", Number(event.target.value))} />
               </div>
             </div>
+            <details className="method-readiness-board">
+              <summary><span>Phase 3 execution controls</span><small>Identity-bound steps, seeds, and batch arithmetic</small></summary>
+              <div className="field-row three-fields">
+                <div className="field">
+                  <label htmlFor="optimizer-steps">Optimizer steps</label>
+                  <input id="optimizer-steps" type="number" min="1" value={draft.target.optimizer_steps ?? ""} onChange={(event) => updateTarget("optimizer_steps", numberValue(event.target.value))} placeholder="Epoch-controlled if blank" />
+                </div>
+                <div className="field">
+                  <label htmlFor="split-seed">Split seed</label>
+                  <input id="split-seed" type="number" min="0" value={draft.target.split_seed} onChange={(event) => updateTarget("split_seed", Number(event.target.value))} />
+                </div>
+                <div className="field">
+                  <label htmlFor="training-seed">Training seed</label>
+                  <input id="training-seed" type="number" min="0" value={draft.target.training_seed} onChange={(event) => {
+                    const value = Number(event.target.value);
+                    setDraft((current) => ({
+                      ...current,
+                      target: { ...current.target, training_seed: value, data_order_seed: 1_000_000 + value },
+                    }));
+                  }} />
+                </div>
+              </div>
+              <div className="field-row three-fields">
+                <div className="field">
+                  <label htmlFor="data-order-seed">Data-order seed</label>
+                  <input id="data-order-seed" type="number" min="0" value={draft.target.data_order_seed} onChange={(event) => updateTarget("data_order_seed", Number(event.target.value))} />
+                </div>
+                <div className="field">
+                  <label htmlFor="micro-batch-size">Micro-batch</label>
+                  <input id="micro-batch-size" type="number" min="1" value={draft.target.micro_batch_size ?? ""} onChange={(event) => updateTarget("micro_batch_size", numberValue(event.target.value))} placeholder="Planner-derived" />
+                </div>
+                <div className="field">
+                  <label htmlFor="gradient-accumulation-steps">Accumulation</label>
+                  <input id="gradient-accumulation-steps" type="number" min="1" value={draft.target.gradient_accumulation_steps ?? ""} onChange={(event) => updateTarget("gradient_accumulation_steps", numberValue(event.target.value))} placeholder="Planner-derived" />
+                </div>
+              </div>
+              <p className="fact-boundary">Micro-batch and accumulation must be supplied together. Full CUDA training rejects unbound step or seed overrides.</p>
+            </details>
             <label className="check-row">
               <input type="checkbox" checked={false} disabled />
               <span><strong>Sequence packing · not supported in v0.2</strong><small>The masking compiler rejects packing until its loss-boundary rules are implemented.</small></span>

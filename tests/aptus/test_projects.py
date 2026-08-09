@@ -73,7 +73,7 @@ class ProjectRepositoryTests(unittest.TestCase):
 
     def _saved_plan(self, state: Path, plan_id: str) -> dict[str, Any]:
         plan = {
-            "schema_version": "aptus.training-plan.v5",
+            "schema_version": "aptus.training-plan.v6",
             "plan_id": plan_id,
             "model_policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
             "recommended": {"candidate_id": "candidate_a"},

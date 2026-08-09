@@ -194,6 +194,14 @@ function restoredDraft(
       evaluation_fraction: numberValue(target.evaluation_fraction) ?? 0.1,
       packing: target.packing === true,
       checkpoint_steps: numberValue(target.checkpoint_steps) ?? 100,
+      optimizer_steps: numberValue(target.optimizer_steps),
+      split_seed: numberValue(target.split_seed) ?? 424242,
+      training_seed: numberValue(target.training_seed) ?? 17,
+      data_order_seed: numberValue(target.data_order_seed) ?? 1000017,
+      micro_batch_size: numberValue(target.micro_batch_size),
+      gradient_accumulation_steps: numberValue(
+        target.gradient_accumulation_steps,
+      ),
     },
   };
 }
@@ -752,6 +760,30 @@ export default function App() {
     }
   };
 
+  const handleSelectCandidate = async (candidate: CandidatePlan) => {
+    if (!isBoundTrainingPlan(plan)) return;
+    if (demoMode) {
+      setError("Clear the labeled example before selecting a candidate.");
+      return;
+    }
+    if (blockMutationDuringRun("Selecting another candidate")) return;
+    beginAction("select-candidate");
+    try {
+      const nextPlan = await api.selectCandidate(plan, candidate.candidate_id);
+      setPlan(nextPlan);
+      setSelectedCandidate(nextPlan.recommended);
+      setBundle(null);
+      setReport(null);
+      setJob(null);
+      setNotice(`Selected ${nextPlan.recommended.method}; Aptus created a new plan identity.`);
+      if (nextPlan.project_id) await refreshProjectSurface(nextPlan.project_id);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      finishAction();
+    }
+  };
+
   const handleValidate = async () => {
     if (!bundle) return;
     if (demoMode) {
@@ -1149,6 +1181,7 @@ export default function App() {
               demoMode={demoMode}
               modelPolicyPresentation={modelPolicyPresentation}
               onInspectCandidate={setSelectedCandidate}
+              onSelectCandidate={handleSelectCandidate}
               onCompile={handleCompile}
               onReturnToFacts={() => setStage("facts")}
             />

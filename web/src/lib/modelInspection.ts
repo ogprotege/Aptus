@@ -125,7 +125,7 @@ export function applyPlanDerivedModelFacts(
   if (!("schema_version" in plan)) return current;
   const model = plan.model;
   if (
-    plan.schema_version !== "aptus.training-plan.v5"
+    plan.schema_version !== "aptus.training-plan.v6"
     || !isRecord(model)
     || !matchesCurrentModel(model, current)
   ) {

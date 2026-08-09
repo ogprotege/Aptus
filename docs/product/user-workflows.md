@@ -16,7 +16,7 @@
    path, and evidence readiness.
 8. Compile the selected plan to a new path.
 
-The current result is an `aptus.training-plan.v5` and an `aptus.bundle.v3`.
+The current result is an `aptus.training-plan.v6` and an `aptus.bundle.v3`.
 Their identities cross-bind the compatibility decision and canonical
 `aptus.model-policy-snapshot.v1` digest.
 

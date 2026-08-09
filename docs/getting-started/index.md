@@ -19,7 +19,7 @@ Choose the smallest path that proves what you need.
 | Checkpoint | Safe conclusion |
 | --- | --- |
 | Dataset profile | The local source was parsed and measured as recorded |
-| Plan | Aptus compared its bounded candidate set against entered facts and wrote an `aptus.training-plan.v5` bound to one policy-snapshot digest |
+| Plan | Aptus compared its bounded candidate set against entered facts and wrote an `aptus.training-plan.v6` bound to one policy-snapshot digest |
 | Package-free static pass | The exact `aptus.bundle.v3` frozen snapshot, decision parity, identities, and structure passed; current host-policy currency was not established |
 | Installed-host static pass | The same bundle checks passed and the snapshot matched the installed host registry at validation time |
 | Pilot pass | The exact real-model path completed the bounded target-host pilot |

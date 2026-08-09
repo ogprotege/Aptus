@@ -23,6 +23,7 @@ interface CompareStageProps {
   demoMode: boolean;
   modelPolicyPresentation: ModelPolicyPresentation | null;
   onInspectCandidate: (candidate: CandidatePlan) => void;
+  onSelectCandidate: (candidate: CandidatePlan) => Promise<void>;
   onCompile: () => Promise<void>;
   onReturnToFacts: () => void;
 }
@@ -34,6 +35,7 @@ export function CompareStage({
   demoMode,
   modelPolicyPresentation,
   onInspectCandidate,
+  onSelectCandidate,
   onCompile,
   onReturnToFacts,
 }: CompareStageProps) {
@@ -209,10 +211,20 @@ export function CompareStage({
       <div className="sticky-actions">
         <div>
           <strong>{recommended ? "Recommended plan ready to compile" : "Compilation blocked"}</strong>
-          <span>{recommended ? "Inspecting an alternative only changes the evidence shown. Compilation uses the recommended candidate above." : "A recommended viable candidate is required."}</span>
+          <span>{recommended ? "Select an inspected viable alternative to create a new bound plan, or compile the selected recommendation." : "A recommended viable candidate is required."}</span>
         </div>
         <div className="action-buttons">
           <button type="button" className="button button-quiet" onClick={onReturnToFacts}>Edit facts</button>
+          {inspected && recommended && inspected.candidate_id !== recommended.candidate_id ? (
+            <button
+              type="button"
+              className="button button-secondary"
+              disabled={!inspected.feasible || !["feasible", "conditional"].includes(inspected.status ?? "") || busy !== null || demoMode}
+              onClick={() => void onSelectCandidate(inspected)}
+            >
+              {busy === "select-candidate" ? "Selecting…" : "Select complete candidate"}
+            </button>
+          ) : null}
           <button type="button" className="button button-primary" disabled={!recommended || busy !== null || demoMode} onClick={() => void onCompile()}>
             {busy === "compile" ? "Compiling…" : "Compile recommended bundle"}
           </button>

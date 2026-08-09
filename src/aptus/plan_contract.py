@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "aptus.training-plan.v5"
+SCHEMA_VERSION = "aptus.training-plan.v6"
 FORMULA_VERSION = "aptus-memory-v2"
 MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
@@ -1731,6 +1731,12 @@ def _normalized_target(value: Any) -> dict[str, Any]:
             "checkpoint_steps",
             "max_wall_time_minutes",
             "training_runtime",
+            "optimizer_steps",
+            "split_seed",
+            "training_seed",
+            "data_order_seed",
+            "micro_batch_size",
+            "gradient_accumulation_steps",
         ),
     )
 
@@ -2464,6 +2470,34 @@ def _validate_plan_payload_impl(
         errors.append("Target max_epochs must be positive.")
     if not _positive_int(target.get("checkpoint_steps")):
         errors.append("Target checkpoint_steps must be positive.")
+    if target.get("optimizer_steps") is not None and not _positive_int(
+        target.get("optimizer_steps")
+    ):
+        errors.append("Target optimizer_steps must be positive when supplied.")
+    for seed_name in ("split_seed", "training_seed", "data_order_seed"):
+        seed_value = target.get(seed_name)
+        if (
+            not isinstance(seed_value, int)
+            or isinstance(seed_value, bool)
+            or seed_value < 0
+        ):
+            errors.append(f"Target {seed_name} must be a non-negative integer.")
+    if (
+        all(
+            isinstance(target.get(name), int) and not isinstance(target.get(name), bool)
+            for name in ("training_seed", "data_order_seed")
+        )
+        and target["data_order_seed"] != 1_000_000 + target["training_seed"]
+    ):
+        errors.append("Target data_order_seed must equal 1000000 + training_seed.")
+    explicit_micro = target.get("micro_batch_size")
+    explicit_accumulation = target.get("gradient_accumulation_steps")
+    if (explicit_micro is None) != (explicit_accumulation is None):
+        errors.append("Target explicit batch controls must be supplied together.")
+    elif explicit_micro is not None and not all(
+        _positive_int(value) for value in (explicit_micro, explicit_accumulation)
+    ):
+        errors.append("Target explicit batch controls must be positive.")
     if target.get("max_wall_time_minutes") is not None and not _positive_int(
         target.get("max_wall_time_minutes")
     ):
@@ -2822,6 +2856,12 @@ def _validate_plan_payload_impl(
                 "effective_batch_size"
             ) or calculated != target.get("effective_batch_size"):
                 errors.append(f"{name} global batch arithmetic is invalid.")
+            if target.get("micro_batch_size") is not None and (
+                candidate["micro_batch_size"] != target["micro_batch_size"]
+                or candidate["gradient_accumulation_steps"]
+                != target["gradient_accumulation_steps"]
+            ):
+                errors.append(f"{name} does not bind the explicit batch controls.")
             expected_world = (
                 1
                 if candidate.get("distribution") == "single"

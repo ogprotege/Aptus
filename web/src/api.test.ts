@@ -111,7 +111,7 @@ function trainingPlanResponse(
   }
   return {
     ...overrides,
-    schema_version: "aptus.training-plan.v5",
+    schema_version: "aptus.training-plan.v6",
     plan_id: overrides.plan_id ?? `plan_${"2".repeat(20)}`,
     model_policy_snapshot_sha256:
       overrides.model_policy_snapshot_sha256 ?? "a".repeat(64),
@@ -852,7 +852,7 @@ describe("typed API client", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
     const plan = {
-      schema_version: "aptus.training-plan.v5",
+      schema_version: "aptus.training-plan.v6",
       plan_id: "plan_exact",
       project_id: projectId,
       project_revision_id: planRevisionId,
@@ -943,7 +943,7 @@ describe("typed API client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(api.compileBundle({
-      schema_version: "aptus.training-plan.v5",
+      schema_version: "aptus.training-plan.v6",
       plan_id: "plan_unbound",
       recommended: null,
       candidates: [],

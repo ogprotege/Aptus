@@ -128,7 +128,7 @@ def _trainer_config(plan: TrainingPlan) -> dict[str, Any]:
     runtime = candidate.runtime_contract
     is_mlx = bool(runtime and runtime.training_runtime == TrainingRuntime.MLX_LM)
     return {
-        "schema_version": "aptus.trainer-config.v2",
+        "schema_version": "aptus.trainer-config.v3",
         "compiler_id": runtime.compiler_id if runtime else descriptor.compiler_id,
         "export_kind": runtime.export_kind if runtime else descriptor.export_kind,
         "training_runtime": (
@@ -168,7 +168,23 @@ def _trainer_config(plan: TrainingPlan) -> dict[str, Any]:
         "final_export_bytes": candidate.final_export_bytes,
         "report_to": [],
         "remove_unused_columns": False,
-        "seed": 17,
+        "optimizer_steps": target.optimizer_steps,
+        "split_seed": target.split_seed,
+        "training_seed": target.training_seed,
+        "data_order_seed": target.data_order_seed,
+        "counter_contract": {
+            "schema_version": "aptus.training-counters.v1",
+            "separate_train_and_evaluation": True,
+            "fields": [
+                "micro_iterations",
+                "completed_non_skipped_optimizer_steps",
+                "examples_consumed",
+                "padded_input_elements",
+                "non_padding_tokens",
+                "supervised_tokens",
+            ],
+            "duration_clock": "time.monotonic_ns",
+        },
         "pilot_row_limit": max(32, target.effective_batch_size * 2),
         "pilot_dataset_path": "data/pilot-sample.jsonl",
         "training_dataset_path": "data/training.jsonl",
@@ -182,10 +198,10 @@ def _mlx_config(plan: TrainingPlan) -> str:
         "train": True,
         "fine_tune_type": "lora",
         "optimizer": "adamw",
-        "seed": 17,
+        "seed": plan.target.training_seed,
         "num_layers": -1,
         "batch_size": candidate.micro_batch_size,
-        "iters": 2,
+        "iters": plan.target.optimizer_steps or 2,
         "val_batches": 1,
         "learning_rate": candidate.learning_rate,
         "steps_per_report": 1,
@@ -370,7 +386,7 @@ def _readme(plan: TrainingPlan) -> str:
 
 This `aptus.bundle.v3` bundle carries the canonical
 `policy/model-policy-snapshot.v1.json` used by its
-`aptus.training-plan.v5` plan. The canonical snapshot bytes hash to digest
+`aptus.training-plan.v6` plan. The canonical snapshot bytes hash to digest
 `{plan.model_policy_snapshot_sha256}`; the plan, manifest, and manifested file
 entry bind that digest. The copied
 `policy_snapshot.py` evaluator and `validate.py` can check canonical bytes,

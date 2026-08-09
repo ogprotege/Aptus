@@ -126,7 +126,7 @@ class ReplanRequiredResponse(ClosedResponseModel):
     status: Literal["replan_required"]
     plan_id: str | None = None
     found_schema: str | None = None
-    required_schema: Literal["aptus.training-plan.v5"]
+    required_schema: Literal["aptus.training-plan.v6"]
     source: Literal["project-revision", "compiled-bundle"]
     project_id: str | None = None
     project_revision_id: str | None = None
@@ -632,7 +632,7 @@ def _require_receipt_model_subject(
 
 
 class TrainingPlanResponse(ResponseModel):
-    schema_version: Literal["aptus.training-plan.v5"]
+    schema_version: Literal["aptus.training-plan.v6"]
     plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")
     model_policy_snapshot_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     model: PlanModelSubjectResponse

@@ -99,7 +99,7 @@ every non-null compatibility subject field and includes at least one
 provider-declared subject observation. A registered path can impose a stricter
 provider-declared field set.
 
-Every candidate in an `aptus.training-plan.v5` plan carries
+Every candidate in an `aptus.training-plan.v6` plan carries
 `model_policy_decision_id`, including candidates that match no policy path.
 Only the candidate whose method, distribution, target modules, and runtime
 contract match a registered path carries an `aptus.model-policy-binding.v1`.
@@ -184,7 +184,7 @@ plan, and v2 bundle named by its scope. The
 [original 2026-08-05 Qwen2 MLX-LM acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 is the unchanged historical Phase 6 baseline. The separate
 [current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-records two fresh, clean `aptus.training-plan.v5` and
+records two fresh, clean `aptus.training-plan.v6` and
 `aptus.bundle.v3` `measured-run-pass` repetitions at source
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
@@ -240,7 +240,7 @@ object per line. The bundle manifest binds that file by path, size, and digest.
 
 ## Evidence identity rules
 
-Evidence-record content is a direct `plan_id` input. The v5 plan ID binds schema
+Evidence-record content is a direct `plan_id` input. The v6 plan ID binds schema
 and formula versions, normalized facts, the semantic policy decision and source,
 the `model_policy_snapshot_sha256` binding, the optional inspection receipt with its
 nested explanatory decision reason excluded, the sorted canonical evidence

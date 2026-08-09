@@ -7,7 +7,7 @@ directory and deterministic ZIP. It does not train a model.
 
 ## Inputs
 
-- Valid `aptus.training-plan.v5` payload whose current policy decision,
+- Valid `aptus.training-plan.v6` payload whose current policy decision,
   canonical policy-snapshot digest,
   decision source, optional inspection receipt, candidate decision links, and
   exact-path binding all revalidate.
@@ -100,7 +100,7 @@ replanning.
 The compiler path and its exact current-contract runtime evidence are complete.
 The [2026-08-05 Qwen2 MLX-LM exact-source refresh
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-binds two fresh, clean `aptus.training-plan.v5` and `aptus.bundle.v3`
+binds two fresh, clean `aptus.training-plan.v6` and `aptus.bundle.v3`
 repetitions at source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`
 and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`

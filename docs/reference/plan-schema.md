@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
-| Authority | Normative field reference for `aptus.training-plan.v5` |
+| Authority | Normative field reference for `aptus.training-plan.v6` |
 | Last reviewed | 2026-08-05 |
 | Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
@@ -13,21 +13,21 @@ Its JSON root must be an object; JSON null, arrays, and scalar roots are invalid
 Parser resource failures such as oversized integers or excessive nesting are
 reported as controlled invalid input rather than escaping from host or
 generated entrypoints. The current schema identifier is
-`aptus.training-plan.v5`. Numbers must be finite JSON values. The self-contained
+`aptus.training-plan.v6`. Numbers must be finite JSON values. The self-contained
 bundle validator recomputes candidate and plan identities and rejects semantic
 mutation. The plan binds the exact
 canonical model-policy snapshot through `model_policy_snapshot_sha256`. Plans
-with `aptus.training-plan.v4`, v3, v2, or no schema identifier lack this v5
+with `aptus.training-plan.v5`, v4, v3, v2, or no schema identifier lack this v6
 binding. Aptus preserves those saved bytes, but it does not reinterpret,
-compile, or recover them. Create a deterministic v5 plan from the preserved
-source facts. Do not relabel the old plan. A coherent v5 plan also enters
+compile, or recover them. Create a deterministic v6 plan from the preserved
+source facts. Do not relabel the old plan. A coherent v6 plan also enters
 `replan_required` when its decision or snapshot digest no longer matches the
-current host registry. Malformed or tampered v5 policy state is invalid input,
+current host registry. Malformed or tampered v6 policy state is invalid input,
 not a stale-plan migration.
 
 The current snapshot has two registered policy rows. Adding the dense Qwen2 row
 did not change the serialized contract shapes: the plan remains
-`aptus.training-plan.v5`, its embedded policy decision remains
+`aptus.training-plan.v6`, its embedded policy decision remains
 `aptus.model-compatibility.v2`, the snapshot remains
 `aptus.model-policy-snapshot.v1`, and compiled bundles remain
 `aptus.bundle.v3`.
@@ -36,7 +36,7 @@ did not change the serialized contract shapes: the plan remains
 
 ```json
 {
-  "schema_version": "aptus.training-plan.v5",
+  "schema_version": "aptus.training-plan.v6",
   "plan_id": "plan_0123456789abcdef0123",
   "formula_version": "aptus-memory-v2",
   "model_policy_snapshot_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -104,7 +104,7 @@ remain user-attested and are excluded from the inspection receipt.
 
 ## Model policy decision
 
-Every v5 plan contains one `aptus.model-compatibility.v2` decision. The planner
+Every v6 plan contains one `aptus.model-compatibility.v2` decision. The planner
 evaluates it once and links every candidate to its `decision_id`.
 
 | Field | Type | Meaning |
@@ -148,7 +148,7 @@ and its compiler binding establish conditional eligibility, not runtime proof.
 The [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact
 source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean `measured-run-pass` repetitions under
-`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+`aptus.training-plan.v6` and `aptus.bundle.v3` for the exact pinned artifact,
 source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
 Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
 fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -346,6 +346,12 @@ the reserve.
 | `checkpoint_steps` | integer | Positive CUDA checkpoint and evaluation interval; retained as a plan fact for MLX, whose generated runtime uses non-resumable adapter weight snapshots |
 | `max_wall_time_minutes` | integer or null | Positive when present, but any value is fail-closed in v0.2 |
 | `training_runtime` | string or null | Explicit `transformers-peft-cuda`, `mlx-lm`, or `pytorch-mps` binding; null requests backend-based inference |
+| `optimizer_steps` | integer or null | Exact positive completed non-skipped optimizer-step target; full CUDA training uses it as the normal controller |
+| `split_seed` | integer | Non-negative dataset split seed |
+| `training_seed` | integer | Non-negative model and training RNG seed |
+| `data_order_seed` | integer | Non-negative sampler seed; must equal `1000000 + training_seed` |
+| `micro_batch_size` | integer or null | Explicit positive per-device micro-batch; must be paired with accumulation |
+| `gradient_accumulation_steps` | integer or null | Explicit positive accumulation count; candidates must preserve exact effective-batch arithmetic |
 
 ## Candidate object
 
@@ -514,7 +520,7 @@ Narrative warnings and rationale do not replace content identity. A payload must
 also pass deterministic replanning parity and current-policy validation during
 loading, compilation, recovery, and host-managed admission. Host static
 validation reports a currency mismatch as an invalid
-`POLICY_SNAPSHOT_DIGEST` finding. Every v4, v3, v2, or schema-less plan requires
+`POLICY_SNAPSHOT_DIGEST` finding. Every v5, v4, v3, v2, or schema-less plan requires
 replanning. A coherent v5 plan also requires replanning after a snapshot-digest
 or policy-semantic change, including a policy-version change, policy addition
 or removal, or changed registered path. For a same-schema v5 policy change,

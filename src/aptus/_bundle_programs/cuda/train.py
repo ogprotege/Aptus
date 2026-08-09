@@ -171,6 +171,8 @@ def load_trainer_config() -> dict[str, Any]:
 def require_compiler_contract(
     plan: dict[str, Any], trainer_config: dict[str, Any]
 ) -> None:
+    if trainer_config.get("schema_version") != "aptus.trainer-config.v3":
+        raise RuntimeError("Trainer configuration is not a Phase 3 contract.")
     expected = {
         "full": ("transformers.full.v2", "full-model-safetensors"),
         "lora": ("transformers.peft-lora.v2", "peft-adapter-safetensors"),
@@ -188,6 +190,26 @@ def require_compiler_contract(
         trainer_config.get("export_kind"),
     ) != expected[method]:
         raise RuntimeError("Trainer configuration does not bind the selected compiler.")
+    target = plan.get("target", {})
+    candidate = plan["recommended"]
+    bound_values = {
+        "optimizer_steps": target.get("optimizer_steps"),
+        "split_seed": target.get("split_seed"),
+        "training_seed": target.get("training_seed"),
+        "data_order_seed": target.get("data_order_seed"),
+        "per_device_train_batch_size": candidate.get("micro_batch_size"),
+        "gradient_accumulation_steps": candidate.get("gradient_accumulation_steps"),
+        "effective_global_batch_size": candidate.get("effective_batch_size"),
+    }
+    for name, expected_value in bound_values.items():
+        if trainer_config.get(name) != expected_value:
+            raise RuntimeError(f"Trainer configuration does not bind {name}.")
+    counter_contract = trainer_config.get("counter_contract")
+    if (
+        not isinstance(counter_contract, dict)
+        or counter_contract.get("schema_version") != "aptus.training-counters.v1"
+    ):
+        raise RuntimeError("Trainer configuration lacks the Phase 3 counter contract.")
 
 
 def _sha256(path: Path) -> str:
@@ -1799,12 +1821,16 @@ def build_model(
     return model, tokenizer, actual_parameter_count, trainable_census
 
 
-def resolve_max_steps(*, pilot: bool, max_steps: int | None) -> int:
+def resolve_max_steps(
+    *, pilot: bool, max_steps: int | None, optimizer_steps: int | None = None
+) -> int:
     if max_steps is not None and max_steps <= 0:
         raise ValueError("max_steps must be positive when supplied.")
     if max_steps is not None:
         return max_steps
-    return 1 if pilot else -1
+    if pilot:
+        return 1
+    return optimizer_steps if optimizer_steps is not None else -1
 
 
 def default_output_dir(plan: dict[str, Any], *, pilot: bool) -> Path:
@@ -2128,6 +2154,88 @@ def assert_measured_training_metrics(
             raise RuntimeError(
                 f"{phase} did not attest at least one {name.replace('_', ' ')}."
             )
+    target = metrics.get("optimizer_step_target")
+    if (
+        not pilot
+        and target is not None
+        and (
+            not isinstance(target, int)
+            or isinstance(target, bool)
+            or target < 1
+            or global_step != target
+            or metrics.get("non_skipped_optimizer_steps") != target
+        )
+    ):
+        raise RuntimeError(
+            "Full training metrics do not bind the exact optimizer-step target."
+        )
+    for seed_name in ("split_seed", "training_seed", "data_order_seed"):
+        value = metrics.get(seed_name)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise RuntimeError(f"{phase} metrics do not bind {seed_name}.")
+    if metrics["data_order_seed"] != 1_000_000 + metrics["training_seed"]:
+        raise RuntimeError(f"{phase} metrics bind an invalid data-order seed.")
+    counters = metrics.get("training_counters")
+    if (
+        not isinstance(counters, dict)
+        or counters.get("schema_version") != "aptus.training-counters.v1"
+    ):
+        raise RuntimeError(f"{phase} metrics lack the training counter contract.")
+    for counter_phase in ("training", "evaluation"):
+        values = counters.get(counter_phase)
+        if not isinstance(values, dict):
+            raise RuntimeError(f"{phase} metrics lack {counter_phase} counters.")
+        for name in (
+            "micro_iterations",
+            "completed_non_skipped_optimizer_steps",
+            "examples_consumed",
+            "padded_input_elements",
+            "non_padding_tokens",
+            "supervised_tokens",
+        ):
+            value = values.get(name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise RuntimeError(
+                    f"{phase} {counter_phase} counter {name} is invalid."
+                )
+        if counter_phase == "training" and any(
+            values[name] < 1
+            for name in (
+                "micro_iterations",
+                "completed_non_skipped_optimizer_steps",
+                "examples_consumed",
+                "padded_input_elements",
+                "non_padding_tokens",
+                "supervised_tokens",
+            )
+        ):
+            raise RuntimeError(f"{phase} training counters must be positive.")
+        started = values.get("started_monotonic_ns")
+        finished = values.get("finished_monotonic_ns")
+        if counter_phase == "training" and (
+            not isinstance(started, int)
+            or not isinstance(finished, int)
+            or finished < started
+        ):
+            raise RuntimeError(f"{phase} training counter duration is invalid.")
+    progress = metrics.get("optimizer_progress")
+    timestamps = (
+        progress.get("timestamps_monotonic_ns") if isinstance(progress, dict) else None
+    )
+    if (
+        not isinstance(progress, dict)
+        or progress.get("schema_version") != "aptus.optimizer-progress.v1"
+        or progress.get("completed_non_skipped_optimizer_steps")
+        != metrics.get("non_skipped_optimizer_steps")
+        or not isinstance(timestamps, list)
+        or len(timestamps) != metrics.get("non_skipped_optimizer_steps")
+        or any(
+            not isinstance(value, int) or isinstance(value, bool)
+            for value in timestamps
+        )
+        or timestamps != sorted(timestamps)
+    ):
+        raise RuntimeError(f"{phase} optimizer progress timing is invalid.")
     require_recorded_trainable_parameter_census(
         metrics.get("trainable_parameter_census"),
         expected_method=str(candidate["method"]),
@@ -2882,7 +2990,9 @@ def run_training(
     resume_from: str | None,
     output_dir: Path,
     local_files_only: bool,
-    seed: int,
+    split_seed: int,
+    training_seed: int,
+    data_order_seed: int,
 ) -> None:
     import torch
     from transformers import Trainer, TrainerCallback, TrainingArguments, set_seed
@@ -2896,6 +3006,27 @@ def run_training(
         finite_trainable_parameter_scans = 0
         optimizer_parameter_binding_checks = 0
         non_skipped_optimizer_steps = 0
+        consumption_counters = {
+            "training": {
+                "micro_iterations": 0,
+                "examples_consumed": 0,
+                "padded_input_elements": 0,
+                "non_padding_tokens": 0,
+                "supervised_tokens": 0,
+            },
+            "evaluation": {
+                "micro_iterations": 0,
+                "examples_consumed": 0,
+                "padded_input_elements": 0,
+                "non_padding_tokens": 0,
+                "supervised_tokens": 0,
+            },
+        }
+        consumption_windows = {
+            "training": {"started_monotonic_ns": None, "finished_monotonic_ns": None},
+            "evaluation": {"started_monotonic_ns": None, "finished_monotonic_ns": None},
+        }
+        optimizer_step_timestamps_monotonic_ns: list[int] = []
 
         def create_optimizer(self) -> Any:
             optimizer = super().create_optimizer()
@@ -2948,7 +3079,32 @@ def run_training(
         def compute_loss(
             self, model: Any, inputs: Any, *args: Any, **kwargs: Any
         ) -> Any:
+            phase = "training" if model.training else "evaluation"
+            now = time.monotonic_ns()
+            window = self.consumption_windows[phase]
+            if window["started_monotonic_ns"] is None:
+                window["started_monotonic_ns"] = now
+            counters = self.consumption_counters[phase]
+            if phase == "evaluation":
+                counters["micro_iterations"] += 1
+            input_ids = inputs.get("input_ids") if isinstance(inputs, dict) else None
+            attention_mask = (
+                inputs.get("attention_mask") if isinstance(inputs, dict) else None
+            )
+            labels = inputs.get("labels") if isinstance(inputs, dict) else None
+            if not all(
+                isinstance(value, torch.Tensor)
+                for value in (input_ids, attention_mask, labels)
+            ):
+                raise RuntimeError(
+                    "Counter contract requires input_ids, attention_mask, and labels."
+                )
+            counters["examples_consumed"] += int(input_ids.shape[0])
+            counters["padded_input_elements"] += int(input_ids.numel())
+            counters["non_padding_tokens"] += int(attention_mask.sum().item())
+            counters["supervised_tokens"] += int((labels != -100).sum().item())
             result = super().compute_loss(model, inputs, *args, **kwargs)
+            window["finished_monotonic_ns"] = time.monotonic_ns()
             loss = result[0] if isinstance(result, tuple) else result
             self.require_collective_finite(loss, label="Raw training/evaluation loss")
             self.finite_raw_loss_checks += 1
@@ -2957,6 +3113,7 @@ def run_training(
         def training_step(
             self, model: Any, inputs: Any, *args: Any, **kwargs: Any
         ) -> Any:
+            self.consumption_counters["training"]["micro_iterations"] += 1
             loss = super().training_step(model, inputs, *args, **kwargs)
             self.require_collective_finite(loss, label="Backpropagated training loss")
             self.finite_backward_loss_checks += 1
@@ -3027,10 +3184,38 @@ def run_training(
                 ),
             )
             self.trainer.non_skipped_optimizer_steps += 1
+            self.trainer.optimizer_step_timestamps_monotonic_ns.append(
+                time.monotonic_ns()
+            )
             return control
 
-    set_seed(seed)
-    random.seed(seed)
+        def on_save(self, args: Any, state: Any, control: Any, **kwargs: Any) -> Any:
+            del kwargs
+            if self.trainer is None:
+                raise RuntimeError("Finite-step callback is not bound to its trainer.")
+            if state.is_world_process_zero:
+                checkpoint = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                checkpoint.mkdir(parents=True, exist_ok=True)
+                binding = {
+                    "schema_version": "aptus.checkpoint-control.v1",
+                    "plan_id": plan["plan_id"],
+                    "candidate_id": plan["recommended"]["candidate_id"],
+                    "optimizer_step_target": trainer_config.get("optimizer_steps"),
+                    "completed_non_skipped_optimizer_steps": self.trainer.non_skipped_optimizer_steps,
+                    "split_seed": split_seed,
+                    "training_seed": training_seed,
+                    "data_order_seed": data_order_seed,
+                }
+                temporary = checkpoint / ".aptus-control.json.tmp"
+                temporary.write_text(
+                    json.dumps(binding, sort_keys=True, allow_nan=False) + "\n",
+                    encoding="utf-8",
+                )
+                os.replace(temporary, checkpoint / "aptus-control.json")
+            return control
+
+    set_seed(training_seed)
+    random.seed(training_seed)
     candidate = plan["recommended"]
     initialize_and_require_strategy(plan)
     pilot_rows: list[dict[str, Any]] | None = None
@@ -3047,11 +3232,15 @@ def run_training(
         train_offsets, eval_offsets, split_evidence = split_jsonl_offsets_with_evidence(
             training_path,
             evaluation_fraction=trainer_config["evaluation_fraction"],
-            seed=seed,
+            seed=split_seed,
         )
         require_collective_dataset_split_binding(training_path, split_evidence)
 
-    effective_steps = resolve_max_steps(pilot=pilot, max_steps=max_steps)
+    effective_steps = resolve_max_steps(
+        pilot=pilot,
+        max_steps=max_steps,
+        optimizer_steps=trainer_config.get("optimizer_steps"),
+    )
     checkpoint_steps = trainer_config["checkpoint_steps"]
     arguments = TrainingArguments(
         output_dir=str(output_dir),
@@ -3082,8 +3271,8 @@ def run_training(
         eval_strategy="steps" if eval_offsets else "no",
         eval_steps=checkpoint_steps,
         report_to=trainer_config["report_to"],
-        seed=seed,
-        data_seed=seed,
+        seed=training_seed,
+        data_seed=data_order_seed,
         remove_unused_columns=trainer_config["remove_unused_columns"],
     )
     if not pilot:
@@ -3098,7 +3287,7 @@ def run_training(
             encode_record(row, tokenizer, trainer_config["sequence_length"])
             for row in pilot_rows
         ]
-        random.Random(seed).shuffle(encoded)
+        random.Random(data_order_seed).shuffle(encoded)
 
         class EncodedDataset:
             def __init__(self, values: list[dict[str, list[int]]]) -> None:
@@ -3167,12 +3356,64 @@ def run_training(
         assert split_evidence is not None
         require_collective_dataset_split_binding(training_path, split_evidence)
     result = trainer.train(resume_from_checkpoint=resume_from)
+    optimizer_step_target = trainer_config.get("optimizer_steps")
+    if (
+        not pilot
+        and optimizer_step_target is not None
+        and (
+            trainer.state.global_step != optimizer_step_target
+            or trainer.non_skipped_optimizer_steps != optimizer_step_target
+        )
+    ):
+        raise RuntimeError(
+            "Full training did not end at the exact completed non-skipped optimizer-step target."
+        )
     if not pilot:
         require_collective_dataset_split_binding(training_path, split_evidence)
     trainer.require_trainable_parameters_finite()
     metrics = dict(result.metrics)
     if eval_dataset is not None:
         metrics.update(trainer.evaluate())
+    counter_names = (
+        "examples_consumed",
+        "padded_input_elements",
+        "non_padding_tokens",
+        "supervised_tokens",
+    )
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        for phase in ("training", "evaluation"):
+            values = torch.tensor(
+                [trainer.consumption_counters[phase][name] for name in counter_names],
+                dtype=torch.int64,
+                device=arguments.device,
+            )
+            torch.distributed.all_reduce(values, op=torch.distributed.ReduceOp.SUM)
+            for index, name in enumerate(counter_names):
+                trainer.consumption_counters[phase][name] = int(values[index].item())
+    trainer.consumption_counters["training"][
+        "completed_non_skipped_optimizer_steps"
+    ] = trainer.non_skipped_optimizer_steps
+    trainer.consumption_counters["evaluation"][
+        "completed_non_skipped_optimizer_steps"
+    ] = 0
+    counters = {
+        "schema_version": "aptus.training-counters.v1",
+        "semantics": trainer_config["counter_contract"],
+        "training": {
+            **trainer.consumption_counters["training"],
+            **trainer.consumption_windows["training"],
+        },
+        "evaluation": {
+            **trainer.consumption_counters["evaluation"],
+            **trainer.consumption_windows["evaluation"],
+        },
+    }
+    progress = {
+        "schema_version": "aptus.optimizer-progress.v1",
+        "clock": "time.monotonic_ns",
+        "completed_non_skipped_optimizer_steps": trainer.non_skipped_optimizer_steps,
+        "timestamps_monotonic_ns": trainer.optimizer_step_timestamps_monotonic_ns,
+    }
     if not pilot:
         require_collective_dataset_split_binding(training_path, split_evidence)
     if not pilot:
@@ -3243,6 +3484,12 @@ def run_training(
             "finite_trainable_parameter_scans": trainer.finite_trainable_parameter_scans,
             "optimizer_parameter_binding_checks": trainer.optimizer_parameter_binding_checks,
             "non_skipped_optimizer_steps": trainer.non_skipped_optimizer_steps,
+            "optimizer_step_target": optimizer_step_target,
+            "split_seed": split_seed,
+            "training_seed": training_seed,
+            "data_order_seed": data_order_seed,
+            "training_counters": counters,
+            "optimizer_progress": progress,
             "resume_from": resume_from,
             "distribution": candidate["distribution"],
             "actual_world_size": (
@@ -3343,8 +3590,20 @@ def _execute(arguments: argparse.Namespace, parser: argparse.ArgumentParser) -> 
             resume_from=arguments.resume_from,
             output_dir=output_dir,
             local_files_only=arguments.local_files_only,
-            seed=(
-                arguments.seed if arguments.seed is not None else trainer_config["seed"]
+            split_seed=trainer_config.get("split_seed", 424242),
+            training_seed=(
+                arguments.seed
+                if arguments.seed is not None
+                else trainer_config.get("training_seed", trainer_config.get("seed", 17))
+            ),
+            data_order_seed=(
+                1_000_000 + arguments.seed
+                if arguments.seed is not None
+                else trainer_config.get(
+                    "data_order_seed",
+                    1_000_000
+                    + trainer_config.get("training_seed", trainer_config.get("seed", 17)),
+                )
             ),
         )
     except BaseException as error:

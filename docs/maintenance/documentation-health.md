@@ -43,7 +43,7 @@ and API execution-path validation. That historical phase intentionally
 preserved the v1 API, v3 plan identity, portable contract, and evidence
 boundary. PR #24 implemented the historical Phase 3 v4 plan, versioned
 decisions, inspection receipts, and exact-path bindings. PR #25 advanced the
-current Phase 4 contract to `aptus.training-plan.v5` and `aptus.bundle.v3` with
+current Phase 4 contract to `aptus.training-plan.v6` and `aptus.bundle.v3` with
 a deterministic portable policy snapshot. PRs #26 through #28 hardened
 malformed-input handling, rejected non-object manifests, and completed the
 remaining contract and package-free regression coverage. PR #29 synchronized
@@ -68,7 +68,7 @@ a reviewed configuration footprint rather than an artifact allowlist. The
 [2026-08-05 Qwen2 MLX-LM exact-source
 refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean, independent current-contract
-`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions
+`aptus.training-plan.v6` and `aptus.bundle.v3` `measured-run-pass` repetitions
 for the exact pinned artifact and revision, source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, Apple M5 Pro host, Python/MLX
@@ -138,7 +138,8 @@ capture, telemetry, watchdog, custody, sanitization, eligibility, and
 publication interfaces. Their integrated development-Mac source gates passed.
 Neither phase connected to or mutated the Ubuntu host, ran a model or GPU
 workload, or added a new empirical result. Phase 3 selection and measurement
-controls remain pending, and host mutation remains forbidden.
+controls are now implemented locally under the v6 plan contract; Phase 4
+target-host rehearsal remains pending.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
@@ -388,7 +389,7 @@ The full documentation suite passed 17 tests, including semantic Phase 3
 coverage and the local link-and-anchor check. This was documentation and
 contract evidence, not a passing real-model pilot.
 
-The current Phase 4 contract uses `aptus.training-plan.v5` and
+The current Phase 4 contract uses `aptus.training-plan.v6` and
 `aptus.bundle.v3`. The canonical `aptus.model-policy-snapshot.v1` is generated
 deterministically from the host registry, cross-bound by digest in the plan and
 manifest, and evaluated inside the bundle without importing Aptus. V4 and older

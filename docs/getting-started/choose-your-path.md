@@ -38,7 +38,7 @@ CUDA training host.
 8. Compile the selected plan to a new path.
 9. Run static validation.
 
-Current planning writes `aptus.training-plan.v5`; compilation writes an
+Current planning writes `aptus.training-plan.v6`; compilation writes an
 `aptus.bundle.v3` that contains and digest-binds one canonical
 `aptus.model-policy-snapshot.v1`.
 

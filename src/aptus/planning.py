@@ -50,6 +50,7 @@ from .plan_contract import (
     candidate_id_for_payload,
     mlx_memory_breakdown_for_contract,
     plan_id_for_payload,
+    validate_plan_payload,
 )
 
 
@@ -636,6 +637,16 @@ def _estimate_candidate_with_policy(
         for value in range(min(32, target.effective_batch_size), 0, -1)
         if target.effective_batch_size % (value * world_size) == 0
     ]
+    if target.micro_batch_size is not None:
+        explicit_batch = (
+            target.micro_batch_size * target.gradient_accumulation_steps * world_size
+        )
+        if explicit_batch != target.effective_batch_size:
+            infeasible.append(
+                "Explicit micro-batch, accumulation, and world-size arithmetic "
+                "does not equal the requested effective batch."
+            )
+        micro_batches = [target.micro_batch_size]
     if not micro_batches:
         micro_batches = [1]
 
@@ -807,8 +818,10 @@ def _estimate_candidate_with_policy(
             "MLX-LM support is pilot-required: the unified-memory estimate is provisional and cannot guarantee that the exact model and data fit."
         )
 
-    accumulation = math.ceil(
-        target.effective_batch_size / (selected_micro * world_size)
+    accumulation = (
+        target.gradient_accumulation_steps
+        if target.gradient_accumulation_steps is not None
+        else math.ceil(target.effective_batch_size / (selected_micro * world_size))
     )
     exact_batch = selected_micro * accumulation * world_size
     if exact_batch != target.effective_batch_size:
@@ -993,6 +1006,55 @@ def _mark_frontier(candidates: tuple[CandidatePlan, ...]) -> tuple[CandidatePlan
         )
         result.append(replace(item, pareto_frontier=item.feasible and not dominated))
     return tuple(result)
+
+
+def select_candidate(plan: TrainingPlan, candidate_id: str) -> TrainingPlan:
+    """Select one complete viable candidate and derive a new immutable plan."""
+
+    payload = to_primitive(plan)
+    errors = validate_plan_payload(payload, verify_dataset=False)
+    if errors:
+        raise ValueError(
+            "Candidate selection requires a current, unmodified plan: "
+            + " ".join(errors)
+        )
+    matches = [item for item in plan.candidates if item.candidate_id == candidate_id]
+    if len(matches) != 1:
+        raise ValueError(
+            "Candidate is stale, unknown, or does not belong to this plan."
+        )
+    selected = matches[0]
+    if (
+        candidate_id_for_payload(
+            to_primitive(selected),
+            model=payload["model"],
+            dataset=payload["dataset"],
+            hardware=payload["hardware"],
+            target=payload["target"],
+        )
+        != candidate_id
+    ):
+        raise ValueError(
+            "Candidate identity is mutated or inconsistent with plan facts."
+        )
+    if not selected.feasible or selected.status not in {
+        CandidateStatus.FEASIBLE,
+        CandidateStatus.CONDITIONAL,
+    }:
+        raise ValueError("Candidate is rejected or nonselectable.")
+    if selected.candidate_id == plan.recommended.candidate_id:
+        raise ValueError("Candidate is already selected; choose a different candidate.")
+    revised = replace(
+        plan,
+        recommended=selected,
+        recommendation_rationale=(
+            f"Explicitly selected complete candidate {selected.candidate_id}.",
+            "Selection preserved the candidate's planning facts, policy binding, and evidence chain.",
+            "The selected configuration remains subject to its recorded validation and pilot gates.",
+        ),
+        plan_id="",
+    )
+    return replace(revised, plan_id=plan_id_for_payload(to_primitive(revised)))
 
 
 def plan_training(

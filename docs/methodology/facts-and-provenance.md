@@ -35,7 +35,7 @@ V0.2 requires explicit:
 - license identifier;
 - affirmative training-permission attestation.
 
-`aptus.training-plan.v5` can also bind exact provider `model_type`,
+`aptus.training-plan.v6` can also bind exact provider `model_type`,
 architecture, checkpoint precision, quantization layout, and a complete MoE
 topology. The topology contains expert count, experts selected per token,
 expert width, sparse cadence, dense-only layer indices, and optional
@@ -180,7 +180,7 @@ packing.
 
 ## Changes and conflicts
 
-Changing an input requires a new `aptus.training-plan.v5` plan. V0.2 does not
+Changing an input requires a new `aptus.training-plan.v6` plan. V0.2 does not
 serialize a field-level override actor, reason, or conflict-resolution history.
 A future fact ledger must retain original and replacement values instead of
 overwriting evidence.

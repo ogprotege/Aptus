@@ -120,7 +120,7 @@ Do not:
   the same registry.
 
 Portable integrity and installed-host currency are separate claims. Current
-`aptus.training-plan.v5` plans and `aptus.bundle.v3` bundles bind one canonical
+`aptus.training-plan.v6` plans and `aptus.bundle.v3` bundles bind one canonical
 `aptus.model-policy-snapshot.v1`; the installed registry remains the authority
 for managed admission and execution.
 

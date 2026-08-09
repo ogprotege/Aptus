@@ -1043,6 +1043,112 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
         self.assertEqual(reading["host"]["managed_process_read_bytes"], 5120)
         self.assertEqual(reading["host"]["managed_process_write_bytes"], 10240)
 
+    def test_process_group_discovery_ignores_unrelated_proc_churn(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            self._write_process(
+                proc,
+                pid=123,
+                process_group_id=123,
+                start_ticks=777,
+                resident_pages=50,
+                user_ticks=100,
+                system_ticks=50,
+                read_bytes=4096,
+                write_bytes=8192,
+            )
+            malformed = proc / "777"
+            malformed.mkdir()
+            malformed_stat = malformed / "stat"
+            malformed_stat.write_text("departing process", encoding="utf-8")
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+
+            original_read_text = Path.read_text
+
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                value = original_read_text(path, *args, **kwargs)
+                if path == malformed_stat:
+                    malformed_stat.unlink()
+                return value
+
+            with patch.object(Path, "read_text", new=read_text):
+                reading = probe()
+            malformed_stat.write_text("persistently malformed", encoding="utf-8")
+            persistent_reading = probe()
+
+            def unavailable_read_text(
+                path: Path, *args: object, **kwargs: object
+            ) -> str:
+                if path == malformed_stat:
+                    raise PermissionError
+                return original_read_text(path, *args, **kwargs)
+
+            with patch.object(Path, "read_text", new=unavailable_read_text):
+                unavailable_reading = probe()
+
+        self.assertEqual(reading["host"]["managed_process_rss_bytes"], 50 * 4096)
+        self.assertEqual(
+            persistent_reading["host"]["managed_process_rss_bytes"], 50 * 4096
+        )
+        self.assertEqual(
+            unavailable_reading["host"]["managed_process_rss_bytes"], 50 * 4096
+        )
+
+    def test_persistently_malformed_group_leader_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+            (proc / "123" / "stat").write_text("malformed leader", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                ProbeFailure, "PROC_PROCESS_IDENTITY_INVALID"
+            ):
+                probe._managed_pid_set()
+
     def test_reused_process_group_leader_identity_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1085,6 +1191,182 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
                 ProbeFailure, "MANAGED_PROCESS_GROUP_IDENTITY_LOST"
             ):
                 probe()
+
+    def test_process_group_exit_during_snapshot_is_not_identity_reuse(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            self._write_process(
+                proc,
+                pid=123,
+                process_group_id=123,
+                start_ticks=777,
+                resident_pages=50,
+                user_ticks=100,
+                system_ticks=50,
+                read_bytes=4096,
+                write_bytes=8192,
+            )
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+            leader_stat = proc / "123" / "stat"
+            original_read_text = Path.read_text
+            leader_reads = 0
+
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                nonlocal leader_reads
+                value = original_read_text(path, *args, **kwargs)
+                if path == leader_stat:
+                    leader_reads += 1
+                    if leader_reads == 2:
+                        leader_stat.unlink()
+                return value
+
+            with patch.object(Path, "read_text", new=read_text):
+                managed = probe._managed_pid_set()
+
+        self.assertEqual(managed, set())
+
+    def test_managed_process_exit_during_totals_is_excluded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            self._write_process(
+                proc,
+                pid=123,
+                process_group_id=123,
+                start_ticks=777,
+                resident_pages=50,
+                user_ticks=100,
+                system_ticks=50,
+                read_bytes=4096,
+                write_bytes=8192,
+            )
+            leader_io = proc / "123" / "io"
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+            original_read_text = Path.read_text
+
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                if path == leader_io:
+                    raise FileNotFoundError
+                return original_read_text(path, *args, **kwargs)
+
+            with patch.object(Path, "read_text", new=read_text):
+                reading = probe()
+
+        self.assertEqual(reading["host"]["managed_process_rss_bytes"], 0)
+        self.assertEqual(reading["host"]["managed_process_cpu_seconds"], 0.0)
+
+    def test_transient_managed_process_permission_race_is_retried(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            self._proc_fixture(proc)
+            self._write_process(
+                proc,
+                pid=123,
+                process_group_id=123,
+                start_ticks=777,
+                resident_pages=50,
+                user_ticks=100,
+                system_ticks=50,
+                read_bytes=4096,
+                write_bytes=8192,
+            )
+            leader_io = proc / "123" / "io"
+            probe = LinuxNvidiaHostProbe(
+                filesystem_path=root,
+                managed_pids=lambda: {123},
+                managed_process_groups=lambda: (
+                    ManagedProcessGroup(123, 123, "linux-start-ticks:777"),
+                ),
+                xid_errors=lambda: [],
+                hardware_events=lambda: {
+                    "reset_detected": False,
+                    "device_lost": False,
+                    "hardware_error": False,
+                },
+                lease_active=lambda: True,
+                disk_growth_bytes=lambda: 0,
+                nvidia_smi_path="/usr/bin/nvidia-smi",
+                command_runner=self._runner([]),
+                proc_root=proc,
+                page_size_bytes=4096,
+                clock_ticks_per_second=100,
+            )
+            original_read_text = Path.read_text
+            io_reads = 0
+
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                nonlocal io_reads
+                if path == leader_io:
+                    io_reads += 1
+                    if io_reads == 1:
+                        raise PermissionError
+                return original_read_text(path, *args, **kwargs)
+
+            with patch.object(Path, "read_text", new=read_text):
+                reading = probe()
+
+            def denied_read_text(
+                path: Path, *args: object, **kwargs: object
+            ) -> str:
+                if path == leader_io:
+                    raise PermissionError
+                return original_read_text(path, *args, **kwargs)
+
+            with (
+                patch.object(Path, "read_text", new=denied_read_text),
+                self.assertRaisesRegex(
+                    ProbeFailure, "PROC_PROCESS_CHANNEL_INVALID"
+                ),
+            ):
+                probe()
+
+        self.assertEqual(reading["host"]["managed_process_rss_bytes"], 50 * 4096)
+        self.assertEqual(io_reads, 2)
 
     def test_required_sensor_and_runner_failures_are_stable_and_sanitized(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

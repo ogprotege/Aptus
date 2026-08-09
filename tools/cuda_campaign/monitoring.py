@@ -1964,35 +1964,54 @@ class LinuxNvidiaHostProbe:
         if len(group_ids) != len(set(group_ids)):
             raise ProbeFailure("MANAGED_PROCESS_GROUP_SET_INVALID")
         for group in groups:
+            # The identity-checked group snapshot, rather than the provider's
+            # separately sampled leader PID, owns attribution on POSIX hosts.
+            values.discard(group.leader_pid)
             values.update(self._live_process_group_members(group))
         return values
 
-    def _process_group_identity(self, pid: int) -> tuple[int, str] | None:
-        try:
-            stat_text = (self.proc_root / str(pid) / "stat").read_text(encoding="utf-8")
-        except FileNotFoundError:
-            return None
-        except OSError:
-            raise ProbeFailure("PROC_PROCESS_IDENTITY_UNAVAILABLE") from None
-        try:
-            after_name = stat_text.rsplit(")", 1)[1].split()
-            process_group_id = int(after_name[2])
-            start_ticks = int(after_name[19])
-        except (IndexError, ValueError):
-            raise ProbeFailure("PROC_PROCESS_IDENTITY_INVALID") from None
-        if process_group_id <= 0 or start_ticks < 0:
-            raise ProbeFailure("PROC_PROCESS_IDENTITY_INVALID")
-        return process_group_id, f"linux-start-ticks:{start_ticks}"
-
-    def _require_live_process_group_leader(self, group: "ManagedProcessGroup") -> None:
-        identity = self._process_group_identity(group.leader_pid)
-        if identity != (group.process_group_id, group.leader_identity):
-            raise ProbeFailure("MANAGED_PROCESS_GROUP_IDENTITY_LOST")
+    def _process_group_identity(
+        self, pid: int, *, exclude_if_unverified: bool = False
+    ) -> tuple[int, str] | None:
+        path = self.proc_root / str(pid) / "stat"
+        for attempt in range(2):
+            try:
+                stat_text = path.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                return None
+            except OSError:
+                if exclude_if_unverified:
+                    return None
+                raise ProbeFailure("PROC_PROCESS_IDENTITY_UNAVAILABLE") from None
+            try:
+                after_name = stat_text.rsplit(")", 1)[1].split()
+                process_group_id = int(after_name[2])
+                start_ticks = int(after_name[19])
+            except (IndexError, ValueError):
+                # A process may exit between /proc enumeration and this read.
+                # Retry once so a vanished entry is excluded without allowing a
+                # persistently malformed live entry into the ownership set.
+                if attempt == 0:
+                    continue
+                if exclude_if_unverified:
+                    return None
+                raise ProbeFailure("PROC_PROCESS_IDENTITY_INVALID") from None
+            if process_group_id <= 0 or start_ticks < 0:
+                if exclude_if_unverified:
+                    return None
+                raise ProbeFailure("PROC_PROCESS_IDENTITY_INVALID")
+            return process_group_id, f"linux-start-ticks:{start_ticks}"
+        raise AssertionError("unreachable")
 
     def _live_process_group_members(self, group: "ManagedProcessGroup") -> set[int]:
         """Resolve an exact live group without ever signaling a discovered PID."""
 
-        self._require_live_process_group_leader(group)
+        expected = (group.process_group_id, group.leader_identity)
+        leader_identity = self._process_group_identity(group.leader_pid)
+        if leader_identity is None:
+            return set()
+        if leader_identity != expected:
+            raise ProbeFailure("MANAGED_PROCESS_GROUP_IDENTITY_LOST")
         members: set[int] = set()
         try:
             entries = tuple(self.proc_root.iterdir())
@@ -2004,12 +2023,17 @@ class LinuxNvidiaHostProbe:
             pid = int(entry.name)
             if pid <= 0:
                 continue
-            identity = self._process_group_identity(pid)
+            identity = self._process_group_identity(pid, exclude_if_unverified=True)
             if identity is not None and identity[0] == group.process_group_id:
                 members.add(pid)
         # Close the enumeration race: a dead/reused group leader invalidates
-        # the snapshot instead of attributing unrelated recycled PIDs.
-        self._require_live_process_group_leader(group)
+        # the snapshot instead of attributing unrelated recycled PIDs. Normal
+        # leader exit yields no managed members; identity reuse remains fatal.
+        leader_identity = self._process_group_identity(group.leader_pid)
+        if leader_identity is None:
+            return set()
+        if leader_identity != expected:
+            raise ProbeFailure("MANAGED_PROCESS_GROUP_IDENTITY_LOST")
         if group.leader_pid not in members:
             raise ProbeFailure("MANAGED_PROCESS_GROUP_IDENTITY_LOST")
         return members
@@ -2210,40 +2234,83 @@ class LinuxNvidiaHostProbe:
             raise ProbeFailure("PROC_MEMINFO_INVALID")
         return int(match.group(1)) * 1024
 
+    def _managed_process_channels(
+        self, pid: int
+    ) -> tuple[int, float, int, int] | None:
+        root = self.proc_root / str(pid)
+        for attempt in range(4):
+            try:
+                statm = (root / "statm").read_text(encoding="utf-8").split()
+                stat_text = (root / "stat").read_text(encoding="utf-8")
+                io_lines = (root / "io").read_text(encoding="utf-8").splitlines()
+            except FileNotFoundError:
+                return None
+            except OSError:
+                if attempt < 3:
+                    time.sleep(0.002)
+                    continue
+                if self._process_group_identity(pid, exclude_if_unverified=True) is None:
+                    return None
+                raise ProbeFailure("PROC_PROCESS_CHANNEL_INVALID") from None
+            io_values: dict[str, str] = {}
+            for line in io_lines:
+                if ":" in line:
+                    key, raw = line.split(":", 1)
+                    io_values[key] = raw.strip()
+                else:
+                    fields = line.split()
+                    if len(fields) == 2:
+                        io_values[fields[0]] = fields[1]
+            if len(statm) < 2 or not statm[1].isdigit():
+                failure_code = "PROC_PROCESS_MEMORY_INVALID"
+            else:
+                failure_code = None
+            try:
+                after_name = stat_text.rsplit(")", 1)[1].split()
+            except IndexError:
+                after_name = []
+            if len(after_name) <= 12 and failure_code is None:
+                failure_code = "PROC_PROCESS_CPU_INVALID"
+            try:
+                user_ticks = int(after_name[11])
+                system_ticks = int(after_name[12])
+                process_read = int(io_values["read_bytes"])
+                process_write = int(io_values["write_bytes"])
+            except (IndexError, KeyError, ValueError):
+                user_ticks = system_ticks = process_read = process_write = -1
+                if failure_code is None:
+                    failure_code = "PROC_PROCESS_CHANNEL_INVALID"
+            if (
+                min(user_ticks, system_ticks, process_read, process_write) < 0
+                and failure_code is None
+            ):
+                failure_code = "PROC_PROCESS_CHANNEL_INVALID"
+            if failure_code is not None:
+                if attempt < 3:
+                    continue
+                if self._process_group_identity(pid, exclude_if_unverified=True) is None:
+                    return None
+                raise ProbeFailure(failure_code)
+            return (
+                int(statm[1]) * self._page_size_bytes,
+                (user_ticks + system_ticks) / self._clock_ticks_per_second,
+                process_read,
+                process_write,
+            )
+        raise AssertionError("unreachable")
+
     def _managed_process_totals(self, managed: set[int]) -> dict[str, int | float]:
         rss = 0
         cpu_seconds = 0.0
         read_bytes = 0
         write_bytes = 0
         for pid in sorted(managed):
-            root = self.proc_root / str(pid)
-            try:
-                statm = (root / "statm").read_text(encoding="utf-8").split()
-                stat_text = (root / "stat").read_text(encoding="utf-8")
-                io_values = self._proc_values(root / "io", "PROC_PROCESS_IO_INVALID")
-            except FileNotFoundError:
+            channels = self._managed_process_channels(pid)
+            if channels is None:
                 continue
-            except OSError:
-                raise ProbeFailure("PROC_PROCESS_CHANNEL_INVALID") from None
-            if len(statm) < 2 or not statm[1].isdigit():
-                raise ProbeFailure("PROC_PROCESS_MEMORY_INVALID")
-            try:
-                after_name = stat_text.rsplit(")", 1)[1].split()
-            except IndexError:
-                raise ProbeFailure("PROC_PROCESS_CPU_INVALID") from None
-            if len(after_name) <= 12:
-                raise ProbeFailure("PROC_PROCESS_CPU_INVALID")
-            try:
-                user_ticks = int(after_name[11])
-                system_ticks = int(after_name[12])
-                process_read = int(io_values["read_bytes"])
-                process_write = int(io_values["write_bytes"])
-            except (KeyError, ValueError):
-                raise ProbeFailure("PROC_PROCESS_CHANNEL_INVALID") from None
-            if min(user_ticks, system_ticks, process_read, process_write) < 0:
-                raise ProbeFailure("PROC_PROCESS_CHANNEL_INVALID")
-            rss += int(statm[1]) * self._page_size_bytes
-            cpu_seconds += (user_ticks + system_ticks) / self._clock_ticks_per_second
+            process_rss, process_cpu, process_read, process_write = channels
+            rss += process_rss
+            cpu_seconds += process_cpu
             read_bytes += process_read
             write_bytes += process_write
         return {
@@ -2390,20 +2457,21 @@ class LinuxNvidiaHostProbe:
     def __call__(self) -> Mapping[str, Any]:
         try:
             executable = self._executable()
-            managed = self._managed_pid_set()
             # These channels are independent but each may consume most of its
             # bounded subprocess allowance. Running them serially made the
             # declared one-hertz collector capable of exceeding its own sample
             # interval under ordinary host contention.
             with ThreadPoolExecutor(
-                max_workers=5, thread_name_prefix="aptus-host-probe"
+                max_workers=6, thread_name_prefix="aptus-host-probe"
             ) as executor:
+                managed_pids = executor.submit(self._managed_pid_set)
                 thermal = executor.submit(self._check_gpu_thermal_limits)
                 gpu_device = executor.submit(self._gpu_device_reading, executable)
                 compute_output = executor.submit(
                     self._compute_process_output, executable
                 )
                 kernel_events = executor.submit(self._kernel_event_reading)
+                managed = managed_pids.result()
                 host = executor.submit(self._host_reading, managed)
 
                 thermal.result()

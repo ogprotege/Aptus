@@ -473,7 +473,9 @@ def _require_current_bundle_model_policy(
     return plan, manifest_fingerprint
 
 
-def _verify_run_metrics(metrics: dict[str, Any], candidate: dict[str, Any]) -> None:
+def _verify_run_metrics(
+    metrics: dict[str, Any], candidate: dict[str, Any], target: dict[str, Any]
+) -> None:
     global_step = metrics.get("global_step")
     train_loss = metrics.get("train_loss")
     if (
@@ -506,6 +508,77 @@ def _verify_run_metrics(metrics: dict[str, Any], candidate: dict[str, Any]) -> N
     for name, value in expected.items():
         if metrics.get(name) != value:
             raise ValueError(f"Measured-run metrics do not bind {name}.")
+    optimizer_steps = target.get("optimizer_steps")
+    if optimizer_steps is not None and (
+        metrics.get("optimizer_step_target") != optimizer_steps
+        or global_step != optimizer_steps
+        or metrics.get("non_skipped_optimizer_steps") != optimizer_steps
+    ):
+        raise ValueError(
+            "Measured-run metrics do not bind the exact optimizer-step target."
+        )
+    for name in ("split_seed", "training_seed", "data_order_seed"):
+        if metrics.get(name) != target.get(name):
+            raise ValueError(f"Measured-run metrics do not bind {name}.")
+    counters = metrics.get("training_counters")
+    progress = metrics.get("optimizer_progress")
+    if (
+        not isinstance(counters, dict)
+        or counters.get("schema_version") != "aptus.training-counters.v1"
+        or not isinstance(progress, dict)
+        or progress.get("schema_version") != "aptus.optimizer-progress.v1"
+    ):
+        raise ValueError("Measured-run metrics do not bind Phase 3 counters.")
+    training_counters = counters.get("training")
+    evaluation_counters = counters.get("evaluation")
+    counter_names = (
+        "micro_iterations",
+        "completed_non_skipped_optimizer_steps",
+        "examples_consumed",
+        "padded_input_elements",
+        "non_padding_tokens",
+        "supervised_tokens",
+    )
+    if any(
+        not isinstance(values, dict)
+        or any(
+            not isinstance(values.get(name), int)
+            or isinstance(values.get(name), bool)
+            or values[name] < 0
+            for name in counter_names
+        )
+        for values in (training_counters, evaluation_counters)
+    ):
+        raise ValueError("Measured-run metrics contain invalid Phase 3 counters.")
+    assert isinstance(training_counters, dict)
+    if (
+        training_counters["completed_non_skipped_optimizer_steps"] != global_step
+        or training_counters["micro_iterations"] < global_step
+        or any(
+            training_counters[name] < 1
+            for name in (
+                "examples_consumed",
+                "padded_input_elements",
+                "non_padding_tokens",
+                "supervised_tokens",
+            )
+        )
+    ):
+        raise ValueError(
+            "Measured-run training counters do not bind completed optimizer steps."
+        )
+    timestamps = progress.get("timestamps_monotonic_ns")
+    if (
+        progress.get("completed_non_skipped_optimizer_steps") != global_step
+        or not isinstance(timestamps, list)
+        or len(timestamps) != global_step
+        or any(
+            not isinstance(value, int) or isinstance(value, bool)
+            for value in timestamps
+        )
+        or timestamps != sorted(timestamps)
+    ):
+        raise ValueError("Measured-run optimizer progress timing is invalid.")
     world_size = int(candidate["world_size"])
     per_rank = metrics.get("per_rank_cuda_peaks")
     if not isinstance(per_rank, list) or len(per_rank) != world_size:
@@ -710,7 +783,7 @@ def _verify_cuda_train_artifacts(record: dict[str, Any]) -> dict[str, Any]:
 
     metrics_path = run_dir / "metrics.json"
     metrics = _read_json_object(metrics_path, "Measured-run metrics")
-    _verify_run_metrics(metrics, candidate)
+    _verify_run_metrics(metrics, candidate, plan["target"])
     if (
         metrics.get("plan_id") != plan["plan_id"]
         or metrics.get("final_export") != export

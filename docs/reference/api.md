@@ -168,12 +168,12 @@ When restorable state exists, the response can also contain:
 If the current revision or restorable bundle contains a v4, v3, or v2 plan, or
 a plan with no schema identifier, bootstrap does not return it as `plan` or
 restore its bundle into the executable workspace. It returns `replan_required`
-with `status`, optional `plan_id`, optional `found_schema`, required v5 schema,
+with `status`, optional `plan_id`, optional `found_schema`, required v6 schema,
 source, project identities when known, and an operator message. A coherent v5
 plan whose policy decision or snapshot digest differs from the current host
 registry has the same result. The source is `project-revision` or
 `compiled-bundle`. The saved plan and source revision stay unchanged. Create a
-deterministic v5 plan from the preserved facts.
+deterministic v6 plan from the preserved facts.
 
 A standalone project plan can be restored from the current immutable revision.
 Bootstrap returns a current-project bundle only when its resolved path, plan ID,
@@ -402,7 +402,7 @@ Both rows report only gated conditional eligibility and require model-data,
 measured-preflight, and pilot validation. The
 [2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean `measured-run-pass` repetitions under
-`aptus.training-plan.v5` and `aptus.bundle.v3` for the exact pinned artifact,
+`aptus.training-plan.v6` and `aptus.bundle.v3` for the exact pinned artifact,
 source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
 Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
 fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -554,8 +554,14 @@ pinned model revision.
 | `evaluation_fraction` | number | No | `0.1`, in `[0, 1)` |
 | `packing` | boolean | No | False; true is rejected by planning |
 | `checkpoint_steps` | integer | No | `100`; CUDA checkpoint/evaluation interval, while MLX uses non-resumable weight snapshots |
+| `optimizer_steps` | integer or null | No | Exact completed non-skipped optimizer-step target when supplied |
+| `split_seed` | non-negative integer | No | `424242` |
+| `training_seed` | non-negative integer | No | `17` |
+| `data_order_seed` | non-negative integer | No | `1000000 + training_seed` |
+| `micro_batch_size` | positive integer or null | No | Must be supplied with `gradient_accumulation_steps`; otherwise planner-derived |
+| `gradient_accumulation_steps` | positive integer or null | No | Must be supplied with `micro_batch_size`; exact global batch arithmetic is validated |
 
-Success persists and returns one full `aptus.training-plan.v5` object plus
+Success persists and returns one full `aptus.training-plan.v6` object plus
 `project_id` and `project_revision_id`. Supplying `project_id` appends to that
 project. Otherwise Aptus creates a named project, using `project_name` or a
 model-derived default. When no candidate is viable, the response is
@@ -564,7 +570,7 @@ the closed typed `422 no_feasible_plan` object. It contains exactly `error`,
 `model_policy_decision_source`, and nullable `inspection_receipt`. Its required
 `model` object carries the submitted `model_id` and immutable `revision`.
 
-The OpenAPI response requires the v5 schema and plan ID,
+The OpenAPI response requires the v6 schema and plan ID,
 `model_policy_snapshot_sha256`, recommendation, candidates, warnings,
 rationale, model-policy decision, decision source, and nullable inspection
 receipt. The maintained browser correlates either outcome's required model
@@ -574,6 +580,15 @@ ID. A provider-backed response requires that exact receipt and its matching
 decision; a user-attested response requires null. This makes even an
 unreceipted user-attested failure request-bound. A mismatch fails before UI
 hydration.
+
+### `POST /api/v1/plans/select`
+
+Selects one complete viable candidate from a current persisted plan. The body
+binds `plan_id`, `candidate_id`, `project_id`, and
+`expected_project_revision_id`. Success returns a new v6 plan and immutable
+project revision with a new plan identity. A stale project revision, unknown or
+already-selected candidate, rejected or nonselectable candidate, or any plan or
+candidate mutation returns `409` without compiling or editing generated files.
 
 Every returned candidate requires this presentation tuple:
 
@@ -607,7 +622,7 @@ The ID must have the exact form `plan_` plus 20 lowercase hexadecimal
 characters. Invalid or missing IDs return `404 plan_not_found`. A valid stored
 plan is rehydrated through the strict domain contract before it is returned. A
 saved v4, v3, v2, or schema-less plan returns `409 replan_required` without
-changing the file. A coherent v5 plan whose policy decision or snapshot digest
+changing the file. A coherent v6 plan whose policy decision or snapshot digest
 differs from the current host registry returns the same response. Malformed or
 tampered v5 policy state remains invalid input rather than a migration case.
 
@@ -655,7 +670,7 @@ unchanged bundle and ZIP created by that request. A replacement at either path
 is preserved.
 
 A persisted v4, v3, v2, or schema-less plan returns `409 replan_required`
-before bundle creation. A coherent v5 plan whose policy decision or snapshot
+before bundle creation. A coherent v6 plan whose policy decision or snapshot
 digest differs from the current host registry returns the same response. The
 stored plan and project revision remain unchanged.
 
@@ -824,9 +839,9 @@ explicitly confirmed train action. Missing projects or revisions return the
 corresponding `project_not_found` or `project_revision_not_found` error.
 A revision whose plan snapshot uses v4, v3, v2, or no schema identifier returns
 `409 replan_required`. Aptus preserves the source revision and appends no
-replacement revision. A coherent v5 plan whose policy decision or snapshot
+replacement revision. A coherent v6 plan whose policy decision or snapshot
 digest differs from the current host registry has the same result. Create a new
-v5 plan from the source facts instead.
+v6 plan from the source facts instead.
 
 ## Error envelopes
 

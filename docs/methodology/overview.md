@@ -54,7 +54,7 @@ boundaries.
 | Ranking | `aptus-ranking-v2` | Pareto annotation and lexicographic objective policy |
 | Preflight | `aptus-preflight-v2` | Runtime-specific bounded update evidence before the real pilot; CUDA uses a synthetic model, while MLX uses the pinned model and compiled data |
 | Bundle | `aptus.bundle.v3` | Atomic manifest, portable policy snapshot, and execution contract |
-| Plan | `aptus.training-plan.v5` | Selected candidate, snapshot digest, policy provenance, and full decision trace |
+| Plan | `aptus.training-plan.v6` | Selected candidate, snapshot digest, policy provenance, and full decision trace |
 | Trainable census | `aptus.trainable-parameter-census.v1` | Method-scope tensor and parameter counts, finite state, and descriptor digest |
 | Dataset split | `aptus.dataset-split.v1` | Full-run assignment strategy, counts, canonical digest, assignment digest, and realized error |
 | MLX dataset split | `aptus.mlx-split.v1` | Disjoint compiled train and validation counts with repeat-within-split microbatch padding |
@@ -66,11 +66,13 @@ requires a new version or an explicitly compatible patch.
 The HTTP API remains `aptus.api.v1`, facts remain `aptus.facts.v3`, and
 candidate runtime records remain `aptus.runtime-contract.v1`.
 
-Phase 4 changed the bundle contract from `aptus.bundle.v2` to
+The historical Phase 4 changed the bundle contract from `aptus.bundle.v2` to
 `aptus.bundle.v3` and the plan contract from `aptus.training-plan.v4` to
 `aptus.training-plan.v5` so the canonical policy snapshot digest is cross-bound
 across both artifacts and included in plan identity as
-`model_policy_snapshot_sha256`. The
+`model_policy_snapshot_sha256`. CUDA campaign Phase 3 advances the current plan
+contract from `aptus.training-plan.v5` to `aptus.training-plan.v6` for explicit
+selection and execution controls while retaining `aptus.bundle.v3`. The
 `aptus.model-policy-snapshot.v1` bytes are deterministic, and the bundled
 generic evaluator reproduces the frozen-snapshot decision without importing
 Aptus. Package-free validation establishes snapshot integrity and parity, not

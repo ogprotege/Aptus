@@ -5,7 +5,7 @@
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
 operational evidence, future work, research inputs, and historical records.
-The current portable contract uses `aptus.training-plan.v5`,
+The current portable contract uses `aptus.training-plan.v6`,
 `aptus.bundle.v3`, and a canonical `aptus.model-policy-snapshot.v1`.
 
 ## Choose by goal

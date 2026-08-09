@@ -145,7 +145,7 @@ record does not qualify CUDA or establish safety, model quality, performance,
 production throughput, production readiness, or release readiness.
 
 This additive registry change does not rename the surrounding contracts. Keep
-`aptus.model-policy-snapshot.v1`, `aptus.training-plan.v5`, and
+`aptus.model-policy-snapshot.v1`, `aptus.training-plan.v6`, and
 `aptus.bundle.v3` unless the serialized shapes themselves change.
 
 When adding a compiler-managed file:

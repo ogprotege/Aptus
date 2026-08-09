@@ -29,11 +29,11 @@ revision. The interface must state that recovery does not restore training
 authorization and must require fresh validation and confirmation.
 
 Saved v4, v3, and v2 plans and plans with no schema identifier remain historical
-records, not executable workspaces. An `aptus.training-plan.v5` whose decision
+records, not executable workspaces. An `aptus.training-plan.v6` whose decision
 or policy snapshot is no longer current also requires replanning. Bootstrap
 exposes `replan_required` and the source identity. The workbench shows that
 message, restores no old plan or bundle, and does not offer compile or revision
-recovery for it. The operator creates a new deterministic v5 plan from the
+recovery for it. The operator creates a new deterministic v6 plan from the
 preserved facts. The UI must never imply that changing the old schema label is
 a migration. Saved-plan load, compile, project recovery, and managed job
 submission expose a coherent stale-policy condition as HTTP 409
@@ -130,7 +130,7 @@ host RAM, disk, assumptions, and evidence. Unsupported rows remain visible.
 Selecting a row changes only the inspected evidence. Compilation always uses the
 plan's clearly labeled recommended candidate.
 
-The `aptus.training-plan.v5` carries one `aptus.model-compatibility.v2`
+The `aptus.training-plan.v6` carries one `aptus.model-compatibility.v2`
 decision. Every candidate links to it, but only the exact registered path may
 show a non-null
 `aptus.model-policy-binding.v1`. The UI must not infer a binding for another

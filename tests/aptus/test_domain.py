@@ -219,7 +219,7 @@ class DomainContractTests(unittest.TestCase):
                     after = json.dumps(payload, sort_keys=True, separators=(",", ":"))
                 self.assertEqual(raised.exception.found_schema, legacy_schema)
                 self.assertEqual(
-                    raised.exception.required_schema, "aptus.training-plan.v5"
+                    raised.exception.required_schema, "aptus.training-plan.v6"
                 )
                 self.assertEqual(after, before)
 

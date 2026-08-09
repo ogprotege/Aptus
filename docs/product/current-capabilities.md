@@ -66,7 +66,7 @@ acceptance remain open.
   configuration footprint, not acceptance of every artifact with those
   structural facts;
   sparse Qwen near-matches remain blocked by the sparse-policy boundary.
-- Persisted `aptus.training-plan.v5` compatibility provenance and the digest of
+- Persisted `aptus.training-plan.v6` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
   IDs and the matched entry's policy, version, and path. The two registered

@@ -101,7 +101,7 @@ Read the candidate list, unsupported reasons, assumptions, and evidence records.
 The recommended candidate is only the highest-ranked viable member of the
 enumerated catalog. Viable includes `feasible` and `conditional`, with feasible
 ranked first. A conditional recommendation is not a measured fit. The output is
-an `aptus.training-plan.v5` whose content identity includes the lowercase
+an `aptus.training-plan.v6` whose content identity includes the lowercase
 SHA-256 of the canonical policy snapshot used for its compatibility decision.
 
 ## 4. Compile

@@ -23,7 +23,7 @@ the separate current-host-registry comparison described below.
 The current registry contains two ordered policy rows, but this additive
 registry change does not alter the contract shape. The snapshot remains
 `aptus.model-policy-snapshot.v1`, decisions remain
-`aptus.model-compatibility.v2`, plans remain `aptus.training-plan.v5`, and
+`aptus.model-compatibility.v2`, plans remain `aptus.training-plan.v6`, and
 bundles remain `aptus.bundle.v3`.
 
 ## Canonical bytes and digest
@@ -173,7 +173,7 @@ eligibility, not target-runtime proof. The
 [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact
 source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean `measured-run-pass` repetitions under the current
-`aptus.training-plan.v5` and `aptus.bundle.v3` contracts for the exact pinned
+`aptus.training-plan.v6` and `aptus.bundle.v3` contracts for the exact pinned
 artifact, source commit `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree,
 Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, and bundle
 fingerprint `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -267,7 +267,7 @@ identity.
 
 ## Bundle integrity and host currency
 
-`aptus.training-plan.v5` binds the canonical digest in
+`aptus.training-plan.v6` binds the canonical digest in
 `model_policy_snapshot_sha256`. `aptus.bundle.v3` binds the same digest in
 `policy_snapshot_sha256`, names the exact snapshot path, and manifests the
 snapshot file by size and digest. Portable validation checks that chain,

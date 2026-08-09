@@ -25,6 +25,7 @@ import type {
   ProjectSummary,
   ProfileRequest,
   ProfileResponse,
+  SelectCandidateRequest,
   TrainingPlan,
   ValidateRequest,
   ValidationReport,
@@ -77,6 +78,7 @@ export const API_PATHS = {
   jobs: "/api/v1/jobs",
   modelInspect: "/api/v1/models/inspect",
   plan: "/api/v1/plan",
+  selectCandidate: "/api/v1/plans/select",
   platform: "/api/v1/platform",
   profile: "/api/v1/profile",
   project: "/api/v1/projects/{project_id}",
@@ -398,6 +400,18 @@ function planRequest(
       evaluation_fraction: facts.target.evaluation_fraction,
       packing: facts.target.packing,
       checkpoint_steps: facts.target.checkpoint_steps,
+      ...(facts.target.optimizer_steps
+        ? { optimizer_steps: facts.target.optimizer_steps }
+        : {}),
+      split_seed: facts.target.split_seed,
+      training_seed: facts.target.training_seed,
+      data_order_seed: facts.target.data_order_seed,
+      ...(facts.target.micro_batch_size
+        ? { micro_batch_size: facts.target.micro_batch_size }
+        : {}),
+      ...(facts.target.gradient_accumulation_steps
+        ? { gradient_accumulation_steps: facts.target.gradient_accumulation_steps }
+        : {}),
     },
     dataset_path: facts.dataset.source_path,
     ...(inspectionReceipt
@@ -759,8 +773,8 @@ function requireV5PlanProvenance(
   payload: Record<string, unknown>,
   context?: PlanResponseContext,
 ): DecodedPlanPolicyContext {
-  if (payload.schema_version !== "aptus.training-plan.v5") {
-    throw new Error("Plan response requires aptus.training-plan.v5.");
+  if (payload.schema_version !== "aptus.training-plan.v6") {
+    throw new Error("Plan response requires aptus.training-plan.v6.");
   }
   if (
     typeof payload.plan_id !== "string"
@@ -1259,6 +1273,31 @@ export const api = {
       project_id: string;
       project_revision_id: string;
     };
+  },
+
+  async selectCandidate(plan: TrainingPlan, candidateId: string) {
+    if (!plan.project_id || !plan.project_revision_id) {
+      throw new Error("Candidate selection requires the exact project revision.");
+    }
+    const body: SelectCandidateRequest = {
+      plan_id: plan.plan_id,
+      candidate_id: candidateId,
+      project_id: plan.project_id,
+      expected_project_revision_id: plan.project_revision_id,
+    };
+    const response = await request<OpenApiTrainingPlanResponse>(
+      API_PATHS.selectCandidate,
+      { method: "POST", body: JSON.stringify(body) },
+    );
+    return normalizePlan(
+      response as unknown as Record<string, unknown>,
+      {
+        modelId: plan.model.model_id,
+        revision: plan.model.revision,
+        expectedSource: plan.model_policy_decision_source,
+        expectedReceiptId: plan.inspection_receipt?.receipt_id ?? null,
+      },
+    );
   },
 
   async validate(

@@ -576,6 +576,38 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertTrue(required <= files)
         self.assertEqual(report.state, ValidationState.STATIC_PASS)
 
+    def test_bundle_binds_phase3_controls_and_counter_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "bundle"
+            plan = make_plan(
+                root, optimizer_steps=128, training_seed=101, data_order_seed=1_000_101
+            )
+            generate_bundle(plan, output)
+            trainer = json.loads(
+                (output / "config" / "trainer.json").read_text(encoding="utf-8")
+            )
+            module = self._load_generated(output, "aptus_generated_phase3")
+
+        self.assertEqual(trainer["schema_version"], "aptus.trainer-config.v3")
+        self.assertEqual(trainer["optimizer_steps"], 128)
+        self.assertEqual(
+            (
+                trainer["split_seed"],
+                trainer["training_seed"],
+                trainer["data_order_seed"],
+            ),
+            (424242, 101, 1_000_101),
+        )
+        self.assertEqual(
+            trainer["counter_contract"]["schema_version"],
+            "aptus.training-counters.v1",
+        )
+        self.assertEqual(
+            module.resolve_max_steps(pilot=False, max_steps=None, optimizer_steps=128),
+            128,
+        )
+
     def test_bundle_binds_canonical_policy_snapshot_across_plan_and_manifest(
         self,
     ) -> None:
@@ -684,7 +716,7 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertNotIn("current pilot fails", readme.lower())
         self.assertNotIn("current pilot fails", runbook.lower())
         self.assertIn("`aptus.bundle.v3`", readme)
-        self.assertIn("`aptus.training-plan.v5`", readme)
+        self.assertIn("`aptus.training-plan.v6`", readme)
         self.assertIn("`policy/model-policy-snapshot.v1.json`", readme)
         self.assertIn(current_model_policy_snapshot_sha256(), readme)
         self.assertIn("proves only the integrity of the frozen policy", readme)
@@ -1923,7 +1955,7 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("python run.py --confirm-full-train", readme)
         self.assertIn("python run.py --confirm-full-train", runbook)
         self.assertIn("`aptus.bundle.v3`", readme)
-        self.assertIn("`aptus.training-plan.v5`", readme)
+        self.assertIn("`aptus.training-plan.v6`", readme)
         self.assertIn("`policy/model-policy-snapshot.v1.json`", readme)
         self.assertIn(current_model_policy_snapshot_sha256(), readme)
         self.assertIn("proves only the integrity of the frozen policy", readme)

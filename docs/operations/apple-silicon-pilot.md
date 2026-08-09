@@ -8,7 +8,7 @@ next experiments for the measured 64 GB M5 Pro host. The
 source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 supplies Phase 6 MLX-LM runtime evidence twice for the exact accepted scope,
 with fresh, independent workflows using an
-`aptus.training-plan.v5` plan and `aptus.bundle.v3` bundle at source commit
+`aptus.training-plan.v6` plan and `aptus.bundle.v3` bundle at source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
@@ -144,7 +144,7 @@ contains the run IDs, timing, hashes, metrics, admission evidence, and retained
 logs. This result proves runtime and artifact correctness for the recorded
 configuration. It does not establish production throughput, model quality,
 usefulness, safety, or broader Apple Silicon fit.
-It also does not establish current `aptus.training-plan.v5` and
+It also does not establish current `aptus.training-plan.v6` and
 `aptus.bundle.v3` acceptance. The historical
 `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` record remains bound to the exact
 artifact and contracts that produced it.

@@ -11,7 +11,7 @@ compatible. Decide the semantic effect before editing code.
 | Contract | Current identifier | Primary authority |
 |---|---|---|
 | Facts | `aptus.facts.v3` | `domain.py` and interface request models |
-| Training plan | `aptus.training-plan.v5` | `domain.py` and `plan_contract.py` |
+| Training plan | `aptus.training-plan.v6` | `domain.py` and `plan_contract.py` |
 | Model-policy snapshot | `aptus.model-policy-snapshot.v1` | `model_compatibility.py` and `policy_snapshot.py` |
 | Model compatibility decision | `aptus.model-compatibility.v2` | `domain.py`, `model_compatibility.py`, and `plan_contract.py` |
 | Model inspection receipt | `aptus.model-inspection-receipt.v1` | `inspection.py`, `model_compatibility.py`, and interface response models |
@@ -133,7 +133,7 @@ Current plan and bundle validators require exact schema identifiers. There is no
 general artifact migration command. Never reinterpret an old artifact under new
 semantics without an explicit reader and migration policy.
 
-The current plan reader accepts only `aptus.training-plan.v5`. A saved v4, v3,
+The current plan reader accepts only `aptus.training-plan.v6`. A saved v4, v3,
 or v2 plan, or a plan with no schema identifier, stays byte-for-byte preserved but
 enters `replan_required`. A v5 plan also requires replanning when its decision,
 snapshot digest, policy version, or registered path differs from the current
@@ -200,7 +200,7 @@ runtime, dataset, and contract scope; it cannot establish a current run or a
 broader artifact claim.
 
 Phase 4 introduced a deterministic `aptus.model-policy-snapshot.v1`, its generic
-portable evaluator, `aptus.training-plan.v5`, and `aptus.bundle.v3`. Generate
+portable evaluator, `aptus.training-plan.v6`, and `aptus.bundle.v3`. Generate
 the snapshot twice and require byte-for-byte identity. Its SHA-256 must agree
 across the plan, manifest, and manifested snapshot file. Host-versus-portable
 decision parity is a required contract test. Also test package-free frozen

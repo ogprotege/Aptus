@@ -1638,6 +1638,7 @@ def validate_bundle(
             candidate = validated_plan["recommended"]
             target = validated_plan["target"]
             expected = {
+                "schema_version": "aptus.trainer-config.v3",
                 "task": target.get("task"),
                 "sequence_length": target.get("sequence_length"),
                 "packing": target.get("packing"),
@@ -1648,6 +1649,10 @@ def validate_bundle(
                 "effective_global_batch_size": candidate.get("effective_batch_size"),
                 "world_size": candidate.get("world_size"),
                 "precision": candidate.get("precision"),
+                "optimizer_steps": target.get("optimizer_steps"),
+                "split_seed": target.get("split_seed"),
+                "training_seed": target.get("training_seed"),
+                "data_order_seed": target.get("data_order_seed"),
             }
             if isinstance(trainer, dict):
                 for key, value in expected.items():
@@ -1659,6 +1664,19 @@ def validate_bundle(
                                 path="config/trainer.json",
                             )
                         )
+                counter_contract = trainer.get("counter_contract")
+                if (
+                    not isinstance(counter_contract, dict)
+                    or counter_contract.get("schema_version")
+                    != "aptus.training-counters.v1"
+                ):
+                    findings.append(
+                        _finding(
+                            "TRAINER_CONFIG_MISMATCH",
+                            "config/trainer.json lacks the Phase 3 counter contract.",
+                            path="config/trainer.json",
+                        )
+                    )
 
     structural_errors = any(item.severity == "error" for item in findings)
     achieved_level: ValidationLevel = "contract"

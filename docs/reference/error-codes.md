@@ -58,10 +58,12 @@ Lifecycle conflicts use structured fields:
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
-| `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a coherent v5 plan's decision or snapshot differs from the current host registry; recreate it deterministically under the `aptus.training-plan.v5` contract |
+| `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a coherent v5 plan's decision or snapshot differs from the current host registry; recreate it deterministically under the `aptus.training-plan.v6` contract |
 | `409` | `project_revision_conflict` | The named project advanced after the caller loaded its expected revision |
 | `409` | `project_plan_mismatch` | The requested plan does not belong to the named project revision |
 | `409` | `project_plan_snapshot_mismatch` | The persisted plan no longer equals the immutable plan snapshot that authorized compilation |
+| `409` | `candidate_selection_rejected` | Explicit selection named a stale, mutated, rejected, unknown, nonselectable, or already-selected candidate |
+| `409` | `project_revision_facts_missing` | The immutable source revision lacks the planning facts required to record a selected-plan revision |
 | `409` | `project_bundle_mismatch` | The requested bundle does not belong to the named project revision |
 | `409` | `project_bundle_binding_mismatch` | The bundle path matches the revision, but its plan, candidate, manifest, or recorded fingerprint binding changed |
 | `422` | `request_validation` | The strict Pydantic request model rejected shape, type, range, or extra fields |
@@ -204,7 +206,7 @@ error, and full log together.
 | No feasible plan | Inspect every candidate reason and correct facts or requirements |
 | Active-job conflict | Wait, poll the owning job, or cancel it through its owner |
 | Prerequisite conflict | Complete or recheck the named prior action |
-| Replan required | Preserve the old plan and create a new v5 plan from its source facts; do not relabel or edit the old artifact |
+| Replan required | Preserve the old plan and create a new v6 plan from its source facts; do not relabel or edit the old artifact |
 | Manifest or plan finding | Recompile from the trusted plan and source |
 | Runtime dependency or model-data failure | Correct the environment, facts, or source and rerun the ordered gate |
 | Capacity failure | Re-probe on the target host or select a different viable plan |

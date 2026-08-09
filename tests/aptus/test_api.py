@@ -1208,6 +1208,40 @@ class ApiEndpointTests(unittest.TestCase):
             )
         )
 
+    def test_candidate_selection_creates_new_plan_and_rejects_stale_revision(
+        self,
+    ) -> None:
+        planned = self.client.post("/api/v1/plan", json=self.plan_payload())
+        self.assertEqual(planned.status_code, 200, planned.text)
+        source = planned.json()
+        alternative = next(
+            item
+            for item in source["candidates"]
+            if item["feasible"]
+            and item["candidate_id"] != source["recommended"]["candidate_id"]
+        )
+        request = {
+            "plan_id": source["plan_id"],
+            "candidate_id": alternative["candidate_id"],
+            "project_id": source["project_id"],
+            "expected_project_revision_id": source["project_revision_id"],
+        }
+
+        selected = self.client.post("/api/v1/plans/select", json=request)
+
+        self.assertEqual(selected.status_code, 200, selected.text)
+        result = selected.json()
+        self.assertEqual(
+            result["recommended"]["candidate_id"], alternative["candidate_id"]
+        )
+        self.assertNotEqual(result["plan_id"], source["plan_id"])
+        self.assertNotEqual(
+            result["project_revision_id"], source["project_revision_id"]
+        )
+        stale = self.client.post("/api/v1/plans/select", json=request)
+        self.assertEqual(stale.status_code, 409, stale.text)
+        self.assertEqual(stale.json()["error"], "project_revision_conflict")
+
     def test_unknown_family_plan_saves_and_reloads_without_reinterpretation(
         self,
     ) -> None:
@@ -1298,7 +1332,7 @@ class ApiEndpointTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 409, response.text)
                 self.assertEqual(response.json()["error"], "replan_required")
                 self.assertEqual(
-                    response.json()["required_schema"], "aptus.training-plan.v5"
+                    response.json()["required_schema"], "aptus.training-plan.v6"
                 )
                 self.assertEqual(response.json()["found_schema"], found_schema)
                 self.assertEqual(path.read_bytes(), before)
@@ -1342,8 +1376,8 @@ class ApiEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(response.json()["error"], "replan_required")
-        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v5")
-        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v5")
+        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v6")
+        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v6")
 
     def owned_bundle_request(self, bundle: Path) -> dict[str, str]:
         planned = self.client.post("/api/v1/plan", json=self.plan_payload())
@@ -1537,7 +1571,7 @@ class ApiEndpointTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.text)
         plan = response.json()
-        self.assertEqual(plan["schema_version"], "aptus.training-plan.v5")
+        self.assertEqual(plan["schema_version"], "aptus.training-plan.v6")
         self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
         self.assertEqual(
             len(plan["model"]["quantization_layout"]["module_overrides"]), 48
@@ -1918,7 +1952,7 @@ class ApiEndpointTests(unittest.TestCase):
                 "status": "replan_required",
                 "plan_id": plan_id,
                 "found_schema": "aptus.training-plan.v2",
-                "required_schema": "aptus.training-plan.v5",
+                "required_schema": "aptus.training-plan.v6",
                 "source": "project-revision",
                 "project_id": project["project_id"],
                 "project_revision_id": revision["revision_id"],
@@ -1933,7 +1967,7 @@ class ApiEndpointTests(unittest.TestCase):
             self.assertEqual(response.status_code, 409, response.text)
             self.assertEqual(response.json()["error"], "replan_required")
             self.assertEqual(
-                response.json()["required_schema"], "aptus.training-plan.v5"
+                response.json()["required_schema"], "aptus.training-plan.v6"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
         self.assertFalse((self.root / "legacy-output").exists())
@@ -2026,13 +2060,13 @@ class ApiEndpointTests(unittest.TestCase):
         )
         self.assertEqual(
             bootstrap.json()["replan_required"]["found_schema"],
-            "aptus.training-plan.v5",
+            "aptus.training-plan.v6",
         )
         for response in (loaded, compiled, recovered):
             self.assertEqual(response.status_code, 409, response.text)
             self.assertEqual(response.json()["error"], "replan_required")
             self.assertEqual(
-                response.json()["required_schema"], "aptus.training-plan.v5"
+                response.json()["required_schema"], "aptus.training-plan.v6"
             )
         self.assertEqual(saved_plan_path.read_bytes(), before)
         self.assertFalse((self.root / "stale-v5-output").exists())
@@ -2771,8 +2805,8 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(response.json()["error"], "replan_required")
         self.assertEqual(response.json()["plan_id"], plan_id)
-        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v5")
-        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v5")
+        self.assertEqual(response.json()["found_schema"], "aptus.training-plan.v6")
+        self.assertEqual(response.json()["required_schema"], "aptus.training-plan.v6")
         self.assertEqual(response.json()["project_id"], identity["project_id"])
         self.assertEqual(
             response.json()["project_revision_id"],

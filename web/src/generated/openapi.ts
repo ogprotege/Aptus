@@ -226,6 +226,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Select Plan Candidate */
+        post: operations["select_plan_candidate_api_v1_plans_select_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform": {
         parameters: {
             query?: never;
@@ -1496,7 +1513,7 @@ export interface components {
              * Required Schema
              * @constant
              */
-            required_schema: "aptus.training-plan.v5";
+            required_schema: "aptus.training-plan.v6";
             /**
              * Source
              * @enum {string}
@@ -1568,6 +1585,17 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** SelectCandidateRequest */
+        SelectCandidateRequest: {
+            /** Candidate Id */
+            candidate_id: string;
+            /** Expected Project Revision Id */
+            expected_project_revision_id: string;
+            /** Plan Id */
+            plan_id: string;
+            /** Project Id */
+            project_id: string;
+        };
         /** ServiceIdentity */
         ServiceIdentity: {
             /** Name */
@@ -1587,6 +1615,11 @@ export interface components {
              */
             checkpoint_steps: number;
             /**
+             * Data Order Seed
+             * @default 1000017
+             */
+            data_order_seed: number;
+            /**
              * Effective Batch Size
              * @default 16
              */
@@ -1596,13 +1629,19 @@ export interface components {
              * @default 0.1
              */
             evaluation_fraction: number;
+            /** Gradient Accumulation Steps */
+            gradient_accumulation_steps?: number | null;
             /**
              * Max Epochs
              * @default 3
              */
             max_epochs: number;
             method_preference?: components["schemas"]["Method"] | null;
+            /** Micro Batch Size */
+            micro_batch_size?: number | null;
             objective: components["schemas"]["Objective"];
+            /** Optimizer Steps */
+            optimizer_steps?: number | null;
             /**
              * Packing
              * @default false
@@ -1611,11 +1650,21 @@ export interface components {
             /** Sequence Length */
             sequence_length: number;
             /**
+             * Split Seed
+             * @default 424242
+             */
+            split_seed: number;
+            /**
              * Task
              * @default sft
              */
             task: string;
             training_runtime?: components["schemas"]["TrainingRuntime"] | null;
+            /**
+             * Training Seed
+             * @default 17
+             */
+            training_seed: number;
         };
         /** TrainingPlanResponse */
         TrainingPlanResponse: {
@@ -1644,7 +1693,7 @@ export interface components {
              * Schema Version
              * @constant
              */
-            schema_version: "aptus.training-plan.v5";
+            schema_version: "aptus.training-plan.v6";
             /** Warnings */
             warnings: string[];
         } & {
@@ -2849,6 +2898,93 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingPlanResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    select_plan_candidate_api_v1_plans_select_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectCandidateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

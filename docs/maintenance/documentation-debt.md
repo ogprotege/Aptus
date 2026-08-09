@@ -205,14 +205,13 @@ when its evidence, owner, or resolution changes.
   and notarized desktop evidence for the exact public release commit.
 - **Milestones:** Phase 0 raw recovery is privately complete, Phase 1 is frozen,
   Phase 2A source tooling is merged and source-gated, and Phase 2B publication
-  is complete and independently reviewed. Next, implement and merge Phase 3
-  explicit candidate selection and measurement controls. Only after Phase 3
-  may the campaign rehearse and freeze, run
+  is complete and independently reviewed. Phase 3 explicit candidate selection
+  and measurement controls are implemented under the v6 plan contract. The
+  campaign may next rehearse and freeze, then run
   the five-attempt LoRA anchor, four-method matrix, size and configuration
   staircases, endurance, and independently reviewed dated packets. Capability
   claims change only after the applicable packets merge.
-- **Blocker:** Phase 3 selection and measurement-control contracts remain
-  future implementation. Host mutation is still forbidden. The intended RTX
+- **Blocker:** Phase 4 target-host rehearsal and freeze remain pending. The intended RTX
   3050 host has one GPU and cannot close DDP or FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple
@@ -379,7 +378,7 @@ when its evidence, owner, or resolution changes.
 
 - **Priority:** P1
 - **Status:** Resolved
-- **Resolution:** `aptus.training-plan.v5` binds the SHA-256 of deterministic
+- **Resolution:** `aptus.training-plan.v6` binds the SHA-256 of deterministic
   canonical `aptus.model-policy-snapshot.v1` bytes. `aptus.bundle.v3` contains
   those bytes, repeats the digest, manifests the snapshot file, and includes a
   generic evaluator that runs without an installed Aptus package. A package-free
@@ -441,7 +440,7 @@ when its evidence, owner, or resolution changes.
   feasibility, rejection, target, runtime, decision, and binding tuple. Any
   broken chain is rejected before the non-compilable rows render.
 - **Boundary:** `aptus.api.v1`, `aptus.facts.v3`,
-  `aptus.training-plan.v5`, `aptus.bundle.v3`, and
+  `aptus.training-plan.v6`, `aptus.bundle.v3`, and
   `aptus.runtime-contract.v1` remain unchanged. Phase 6 has since implemented a
   second reviewed configuration-footprint policy; DOC-024 records the exact
   Phase 6 runtime closeout and the limits that remain in force.
@@ -475,7 +474,7 @@ when its evidence, owner, or resolution changes.
   `14ed44b52a76bb84d8d9db4f2303951aa641339b`. Both repetitions completed the
   dependency, exact model-data, measured-preflight, uninterrupted real-model
   pilot, full-train, immutable export, fresh-process reload, and parent-owned
-  reconciliation ladder under `aptus.training-plan.v5` and `aptus.bundle.v3`.
+  reconciliation ladder under `aptus.training-plan.v6` and `aptus.bundle.v3`.
   The packet binds the exact pinned Qwen2.5 0.5B artifact and revision, source,
   Apple M5 Pro host, Python/MLX runtime, dataset, policy snapshot, plan, bundle,
   metrics, and artifacts.

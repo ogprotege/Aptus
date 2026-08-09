@@ -88,7 +88,7 @@ do not prove public notarization.
   every rejected row. Documentation-only research entries never become
   candidates.
 - Plan and candidate identity mutation tests pass.
-- Plans use `aptus.training-plan.v5`, bundles use `aptus.bundle.v3`, and every
+- Plans use `aptus.training-plan.v6`, bundles use `aptus.bundle.v3`, and every
   bundle carries canonical `aptus.model-policy-snapshot.v1` bytes at
   `policy/model-policy-snapshot.v1.json`.
 - Snapshot, plan, manifest, and current-host digest bindings must be lowercase
@@ -399,7 +399,7 @@ artifact at acceptance source
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
 Two fresh, clean, independent workflows
-used `aptus.training-plan.v5` and `aptus.bundle.v3` and completed dependency,
+used `aptus.training-plan.v6` and `aptus.bundle.v3` and completed dependency,
 model-data, measured preflight, uninterrupted pilot, confirmed full training,
 fresh-process reload, final export, parent-owned promotion, and
 `measured-run-pass`. Relative to the unchanged [original Phase 6 acceptance

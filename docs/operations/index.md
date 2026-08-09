@@ -95,7 +95,7 @@ source gates complete. It is not operator authorization
 or target-runtime evidence. Phase 2B used that merged source to publish and
 independently review the sanitized recovery supplement without connecting to or
 mutating the Ubuntu host. Phase 3 explicit selection and measurement controls
-remain pending before any measured execution.
+are complete in the v6 plan contract; Phase 4 rehearsal and freeze are next.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

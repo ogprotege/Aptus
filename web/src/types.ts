@@ -168,6 +168,12 @@ export interface TargetFacts {
   evaluation_fraction: number;
   packing: boolean;
   checkpoint_steps: number;
+  optimizer_steps: number | null;
+  split_seed: number;
+  training_seed: number;
+  data_order_seed: number;
+  micro_batch_size: number | null;
+  gradient_accumulation_steps: number | null;
 }
 
 export interface FactDraft {
@@ -306,7 +312,7 @@ export interface EvidenceRecord {
 }
 
 export interface TrainingPlan {
-  schema_version: "aptus.training-plan.v5";
+  schema_version: "aptus.training-plan.v6";
   plan_id: string;
   model_policy_snapshot_sha256: string;
   project_id?: string;
@@ -395,6 +401,12 @@ export interface PlanRequest {
     evaluation_fraction: number;
     packing: boolean;
     checkpoint_steps: number;
+    optimizer_steps?: number;
+    split_seed: number;
+    training_seed: number;
+    data_order_seed: number;
+    micro_batch_size?: number;
+    gradient_accumulation_steps?: number;
   };
   dataset_path: string;
   sample_limit?: number;
@@ -615,6 +627,13 @@ export interface CompileRequest {
   expected_project_revision_id: string;
 }
 
+export interface SelectCandidateRequest {
+  plan_id: string;
+  candidate_id: string;
+  project_id: string;
+  expected_project_revision_id: string;
+}
+
 export interface CompileResponse {
   bundle_dir: string;
   archive_path?: string | null;
@@ -715,7 +734,7 @@ export interface ReplanRequired {
   status: "replan_required";
   plan_id?: string | null;
   found_schema?: string | null;
-  required_schema: "aptus.training-plan.v5";
+  required_schema: "aptus.training-plan.v6";
   source: "project-revision" | "compiled-bundle";
   project_id?: string | null;
   project_revision_id?: string | null;

@@ -67,7 +67,7 @@ CUDA and MLX portable static scopes differ as described below.
 
 Core contract checks bind:
 
-- `aptus.training-plan.v5`, every `aptus.runtime-contract.v1`, and the selected
+- `aptus.training-plan.v6`, every `aptus.runtime-contract.v1`, and the selected
   memory estimator identity;
 - the `aptus.model-compatibility.v2` decision and its provider-inspection or
   user-attested source;
@@ -93,7 +93,7 @@ package-free validator uses the bundle's embedded frozen snapshot; this proves
 snapshot integrity and decision parity, but portable validation cannot
 determine host policy currency or know whether an installed host's current
 registry has advanced. Installed Aptus uses its current registry for host
-currency checks. Every v4, v3, v2, or schema-less plan requires replanning. A
+currency checks. Every v5, v4, v3, v2, or schema-less plan requires replanning. A
 coherent v5 plan whose decision or snapshot digest differs from the current
 host registry is also a replanning case; malformed or tampered v5 dependencies
 remain invalid input. Aptus preserves old bytes and never repairs either case

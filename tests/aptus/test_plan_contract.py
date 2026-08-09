@@ -37,7 +37,7 @@ from aptus.plan_contract import (
     validate_model_config_against_plan,
     validate_plan_payload,
 )
-from aptus.planning import plan_training
+from aptus.planning import plan_training, select_candidate
 from aptus.profiling import (
     build_hardware_spec,
     build_model_spec,
@@ -61,9 +61,69 @@ class PlanContractTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_real_v5_plan_is_valid(self) -> None:
+    def test_real_v6_plan_is_valid(self) -> None:
         self.assertEqual(validate_plan_payload(self.payload, verify_dataset=True), ())
-        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v5")
+        self.assertEqual(self.payload["schema_version"], "aptus.training-plan.v6")
+
+    def test_phase3_target_values_mutate_candidate_and_plan_identity(self) -> None:
+        candidate = self.payload["recommended"]
+        changed = copy.deepcopy(self.payload)
+        changed["target"]["training_seed"] = 101
+        changed["target"]["data_order_seed"] = 1_000_101
+
+        changed_candidate_id = candidate_id_for_payload(
+            candidate,
+            model=changed["model"],
+            dataset=changed["dataset"],
+            hardware=changed["hardware"],
+            target=changed["target"],
+        )
+
+        self.assertNotEqual(changed_candidate_id, candidate["candidate_id"])
+        self.assertNotEqual(plan_id_for_payload(changed), self.payload["plan_id"])
+
+    def test_select_candidate_creates_a_new_bound_plan(self) -> None:
+        plan = make_plan(self.root)
+        alternative = next(
+            item
+            for item in plan.candidates
+            if item.feasible and item.candidate_id != plan.recommended.candidate_id
+        )
+
+        selected = select_candidate(plan, alternative.candidate_id)
+
+        self.assertEqual(selected.recommended, alternative)
+        self.assertNotEqual(selected.plan_id, plan.plan_id)
+        self.assertEqual(selected.model_policy_decision, plan.model_policy_decision)
+        self.assertEqual(selected.inspection_receipt, plan.inspection_receipt)
+        self.assertEqual(selected.evidence_records, plan.evidence_records)
+        self.assertEqual(
+            validate_plan_payload(to_primitive(selected), verify_dataset=False), ()
+        )
+
+    def test_select_candidate_rejects_nonselectable_and_mutated_candidates(
+        self,
+    ) -> None:
+        plan = make_plan(self.root)
+        rejected = next(item for item in plan.candidates if not item.feasible)
+        with self.assertRaisesRegex(ValueError, "rejected or nonselectable"):
+            select_candidate(plan, rejected.candidate_id)
+
+        alternative = next(
+            item
+            for item in plan.candidates
+            if item.feasible and item.candidate_id != plan.recommended.candidate_id
+        )
+        mutated = replace(alternative, learning_rate=alternative.learning_rate * 2)
+        tampered = replace(
+            plan,
+            candidates=tuple(
+                mutated if item.candidate_id == alternative.candidate_id else item
+                for item in plan.candidates
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "current, unmodified plan"):
+            select_candidate(tampered, alternative.candidate_id)
 
     def test_semantically_resource_hostile_plan_returns_a_controlled_error(
         self,

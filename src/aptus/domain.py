@@ -8,7 +8,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "aptus.training-plan.v5"
+SCHEMA_VERSION = "aptus.training-plan.v6"
 FACTS_SCHEMA_VERSION = "aptus.facts.v3"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
@@ -972,6 +972,12 @@ class TrainingTarget:
     checkpoint_steps: int = 100
     max_wall_time_minutes: int | None = None
     training_runtime: TrainingRuntime | None = None
+    optimizer_steps: int | None = None
+    split_seed: int = 424242
+    training_seed: int = 17
+    data_order_seed: int = 1000017
+    micro_batch_size: int | None = None
+    gradient_accumulation_steps: int | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -986,6 +992,26 @@ class TrainingTarget:
             raise ValueError("Training target numeric values must be positive.")
         if self.max_wall_time_minutes is not None and self.max_wall_time_minutes <= 0:
             raise ValueError("max_wall_time_minutes must be positive when supplied.")
+        if self.optimizer_steps is not None and self.optimizer_steps <= 0:
+            raise ValueError("optimizer_steps must be positive when supplied.")
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in (self.split_seed, self.training_seed, self.data_order_seed)
+        ):
+            raise ValueError("Training seeds must be non-negative integers.")
+        if self.data_order_seed != 1_000_000 + self.training_seed:
+            raise ValueError("data_order_seed must equal 1000000 + training_seed.")
+        if (self.micro_batch_size is None) != (
+            self.gradient_accumulation_steps is None
+        ):
+            raise ValueError(
+                "micro_batch_size and gradient_accumulation_steps must be supplied together."
+            )
+        if (
+            self.micro_batch_size is not None
+            and min(self.micro_batch_size, self.gradient_accumulation_steps) <= 0
+        ):
+            raise ValueError("Explicit batch controls must be positive.")
         if not 0 <= self.evaluation_fraction < 1:
             raise ValueError("evaluation_fraction must be in [0, 1).")
 
@@ -1452,7 +1478,7 @@ def _model_policy_binding_from(value: Mapping[str, Any]) -> ModelPolicyBinding:
 
 
 def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
-    """Rehydrate the persisted v5 JSON contract without accepting older plans."""
+    """Rehydrate the persisted v6 JSON contract without accepting older plans."""
 
     if not isinstance(value, Mapping):
         raise ValueError("Persisted plan must be an object.")
@@ -1460,7 +1486,7 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         raise UnsupportedPlanSchemaError(value.get("schema_version"))
     if "model_policy_snapshot_sha256" not in value:
         raise ValueError(
-            "Persisted v5 plans require a model_policy_snapshot_sha256 field."
+            "Persisted v6 plans require a model_policy_snapshot_sha256 field."
         )
 
     model_value = value["model"]
@@ -1527,17 +1553,17 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
     )
     policy_decision_value = value.get("model_policy_decision")
     if not isinstance(policy_decision_value, Mapping):
-        raise ValueError("Persisted v5 plans require a model policy decision.")
+        raise ValueError("Persisted v6 plans require a model policy decision.")
     model_policy_decision = _model_policy_decision_from(policy_decision_value)
     if "model_policy_decision_source" not in value:
         raise ValueError(
-            "Persisted v5 plans require a model_policy_decision_source field."
+            "Persisted v6 plans require a model_policy_decision_source field."
         )
     model_policy_decision_source = ModelPolicyBindingSource(
         value["model_policy_decision_source"]
     )
     if "inspection_receipt" not in value:
-        raise ValueError("Persisted v5 plans require an inspection_receipt field.")
+        raise ValueError("Persisted v6 plans require an inspection_receipt field.")
     receipt_value = value.get("inspection_receipt")
     if receipt_value is not None and not isinstance(receipt_value, Mapping):
         raise ValueError("Persisted inspection_receipt must be an object or null.")
@@ -1624,6 +1650,12 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
             if target_value.get("training_runtime")
             else None
         ),
+        optimizer_steps=target_value.get("optimizer_steps"),
+        split_seed=target_value["split_seed"],
+        training_seed=target_value["training_seed"],
+        data_order_seed=target_value["data_order_seed"],
+        micro_batch_size=target_value.get("micro_batch_size"),
+        gradient_accumulation_steps=target_value.get("gradient_accumulation_steps"),
     )
 
     memory_fields = {item.name for item in fields(MemoryBreakdown)}

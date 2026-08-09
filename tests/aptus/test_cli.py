@@ -278,7 +278,7 @@ class CliIntegrationTests(unittest.TestCase):
             self.assertTrue(profile_path.is_file())
             self.assertEqual(
                 json.loads(plan_path.read_text())["schema_version"],
-                "aptus.training-plan.v5",
+                "aptus.training-plan.v6",
             )
             self.assertIsNone(
                 json.loads(plan_path.read_text())["target"]["training_runtime"]
@@ -289,6 +289,76 @@ class CliIntegrationTests(unittest.TestCase):
                 ]
             )
             self.assertTrue((bundle / "bundle-manifest.json").is_file())
+
+    def test_select_candidate_writes_new_plan_identity_without_clobbering(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            source_path = root / "plan.json"
+            selected_path = root / "selected.json"
+            self.assertEqual(
+                main(
+                    [
+                        "spec-plan",
+                        *fact_arguments(dataset),
+                        "--optimizer-steps",
+                        "128",
+                        "--training-seed",
+                        "101",
+                        "--data-order-seed",
+                        "1000101",
+                        "--output",
+                        str(source_path),
+                    ]
+                ),
+                0,
+            )
+            source = json.loads(source_path.read_text(encoding="utf-8"))
+            alternative = next(
+                item
+                for item in source["candidates"]
+                if item["feasible"]
+                and item["candidate_id"] != source["recommended"]["candidate_id"]
+            )
+
+            self.assertEqual(
+                main(
+                    [
+                        "select-candidate",
+                        "--plan",
+                        str(source_path),
+                        "--candidate-id",
+                        alternative["candidate_id"],
+                        "--output",
+                        str(selected_path),
+                    ]
+                ),
+                0,
+            )
+            selected = json.loads(selected_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                selected["recommended"]["candidate_id"],
+                alternative["candidate_id"],
+            )
+            self.assertNotEqual(selected["plan_id"], source["plan_id"])
+            original = selected_path.read_bytes()
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(
+                    main(
+                        [
+                            "select-candidate",
+                            "--plan",
+                            str(source_path),
+                            "--candidate-id",
+                            alternative["candidate_id"],
+                            "--output",
+                            str(selected_path),
+                        ]
+                    ),
+                    2,
+                )
+            self.assertEqual(selected_path.read_bytes(), original)
 
     def test_compile_normalizes_json_parser_resource_errors(self) -> None:
         invalid_documents = (
@@ -433,7 +503,7 @@ class CliIntegrationTests(unittest.TestCase):
             )
 
             plan = json.loads(plan_path.read_text(encoding="utf-8"))
-            self.assertEqual(plan["schema_version"], "aptus.training-plan.v5")
+            self.assertEqual(plan["schema_version"], "aptus.training-plan.v6")
             self.assertEqual(plan["model"]["model_type"], "qwen3_moe")
             self.assertEqual(plan["model"]["architecture"], "Qwen3MoeForCausalLM")
             self.assertEqual(plan["model"]["quantization_bits"], 4)

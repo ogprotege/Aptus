@@ -202,7 +202,7 @@ def mlx_model_load_binding(plan: dict) -> dict:
 def fake_mlx_plan() -> dict:
     reserve = 8 * 1024**3
     plan = {
-        "schema_version": "aptus.training-plan.v5",
+        "schema_version": "aptus.training-plan.v6",
         "plan_id": "plan_" + "a" * 20,
         "model_policy_snapshot_sha256": current_model_policy_snapshot_sha256(),
         "model": {

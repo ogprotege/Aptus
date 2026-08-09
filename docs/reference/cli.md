@@ -20,7 +20,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | Command | Purpose | Default action | Persistent side effects |
 | --- | --- | --- | --- |
 | `profile` | Profile a local dataset | Sample up to 512 valid rows for length statistics | Optional JSON output file |
-| `spec-plan` | Write a standalone v5 plan | Objective `memory` | Plan JSON output file |
+| `spec-plan` | Write a standalone v6 plan | Objective `memory` | Plan JSON output file |
 | `plan` | Compatibility flow for plan, compile, static validation, and archive | Same as `build` | Bundle, ZIP, optional plan file |
 | `build` | Plan, compile, static validation, and archive | Objective `memory` | Bundle, ZIP, optional plan file |
 | `compile` | Compile a persisted plan | Archive beside bundle | Bundle, ZIP, validation report |
@@ -55,6 +55,7 @@ types, validation rules, side effects, and operational meaning.
       "--backend": {"choices": ["cuda", "rocm", "mps", "cpu"], "default": "cuda"},
       "--bf16": {"default": false},
       "--checkpoint-steps": {"default": 100},
+      "--data-order-seed": {"default": 1000017},
       "--confirm-training-allowed": {"default": false},
       "--context-length": {"default": null},
       "--dataset": {"default": null},
@@ -67,6 +68,7 @@ types, validation rules, side effects, and operational meaning.
       "--four-bit": {"default": false},
       "--free-vram-gib": {"default": null},
       "--gpu-count": {"default": null},
+      "--gradient-accumulation-steps": {"default": null},
       "--hidden-size": {"default": null},
       "--host-ram-free-gib": {"default": null},
       "--host-ram-gib": {"default": null},
@@ -74,6 +76,7 @@ types, validation rules, side effects, and operational meaning.
       "--intermediate-size": {"default": null},
       "--layers": {"default": null},
       "--license": {"default": null},
+      "--micro-batch-size": {"default": null},
       "--model-id": {"default": null},
       "--model-type": {"default": null},
       "--moe-decoder-sparse-step": {"default": null},
@@ -83,6 +86,7 @@ types, validation rules, side effects, and operational meaning.
       "--moe-mlp-only-layer": {"default": []},
       "--moe-shared-expert-intermediate-size": {"default": null},
       "--objective": {"choices": ["quality", "memory", "speed"], "default": "memory"},
+      "--optimizer-steps": {"default": null},
       "--packing": {"default": false},
       "--parameters-b": {"default": null},
       "--prefer-method": {"choices": ["full", "lora", "int8-lora", "qlora"], "default": null},
@@ -93,13 +97,15 @@ types, validation rules, side effects, and operational meaning.
       "--revision": {"default": null},
       "--sample-limit": {"default": 512},
       "--sequence-length": {"default": null},
+      "--split-seed": {"default": 424242},
       "--training-runtime": {"choices": ["transformers-peft-cuda", "mlx-lm", "pytorch-mps"], "default": null},
+      "--training-seed": {"default": 17},
       "--vram-gib": {"default": null}
     }
   },
   "commands": {
     "aptus": {
-      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "inspect"], "default": null}
+      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "inspect"], "default": null}
     },
     "aptus profile": {
       "--dataset": {"default": null},
@@ -125,6 +131,11 @@ types, validation rules, side effects, and operational meaning.
       "--plan": {"default": null},
       "--output": {"default": null},
       "--archive": {"default": null}
+    },
+    "aptus select-candidate": {
+      "--plan": {"default": null},
+      "--candidate-id": {"default": null},
+      "--output": {"default": null}
     },
     "aptus validate": {
       "<bundle>": {"default": null},
@@ -294,7 +305,7 @@ aptus spec-plan FACT_OPTIONS --output PLAN.json
 
 The command profiles the source, constructs the supplied model and hardware
 facts, evaluates one model-policy decision, enumerates the 12 candidates, and
-writes one `aptus.training-plan.v5` document. It binds the deterministic
+writes one `aptus.training-plan.v6` document. It binds the deterministic
 model-policy snapshot digest. Without an inspection receipt,
 the decision source is `user-attested`. Parent directories are created. An
 existing plan output file is replaced. No bundle or archive is created.
@@ -325,12 +336,12 @@ when a later compilation step fails.
 aptus compile --plan PLAN.json --output BUNDLE [--archive BUNDLE.zip]
 ```
 
-The plan is rehydrated through the exact v5 domain contract. A saved v4, v3,
-v2, or schema-less plan fails with `Replan required`. A coherent v5 plan whose
+The plan is rehydrated through the exact v6 domain contract. A saved v5, v4,
+v3, v2, or schema-less plan fails with `Replan required`. A coherent v6 plan whose
 policy decision or snapshot digest differs from the current host registry fails
 the same way; malformed or tampered v5 policy state is an ordinary validation
 error. Aptus leaves the source plan unchanged and creates no bundle. Recreate
-the plan deterministically from its preserved facts. Do not relabel it as v5.
+the plan deterministically from its preserved facts. Do not relabel it as v6.
 
 The default archive is the bundle path with its suffix replaced by `.zip`. The
 archive must be outside the bundle. Bundle and archive publication are
@@ -341,6 +352,19 @@ compilation. `compile` does not accept a runtime override.
 Compilation copies cleartext data and writes a mutable
 `validation-report.json` to the directory. The deterministic ZIP excludes that
 report and all runtime-only outputs.
+
+## `aptus select-candidate`
+
+```bash
+aptus select-candidate --plan PLAN.json \
+  --candidate-id cand_0123456789abcdef0123 --output SELECTED.json
+```
+
+The command validates the complete source plan and candidate, rejects stale,
+mutated, rejected, unknown, or already-selected identities, and writes a new
+no-clobber v6 plan with a new `plan_id`. Policy, inspection, evidence, and all
+planning facts remain unchanged. Compilation then uses that explicitly selected
+complete candidate; generated plan and trainer files are never edited.
 
 ## `aptus validate`
 

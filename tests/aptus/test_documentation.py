@@ -263,7 +263,7 @@ class DocumentationTests(unittest.TestCase):
             schema["components"]["schemas"]["TrainingPlanResponse"]["properties"][
                 "schema_version"
             ]["const"],
-            "aptus.training-plan.v5",
+            "aptus.training-plan.v6",
         )
 
     def test_model_compatibility_reference_matches_discriminated_contract(
@@ -460,7 +460,7 @@ class DocumentationTests(unittest.TestCase):
             encoding="utf-8"
         )
         for contract in (
-            "aptus.training-plan.v5",
+            "aptus.training-plan.v6",
             "aptus.model-policy-snapshot.v1",
             "aptus.model-compatibility.v2",
             "aptus.model-inspection-receipt.v1",
@@ -489,7 +489,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("tamper-evident content bindings, not authenticated", plan_schema)
         normalized_plan_schema = " ".join(plan_schema.split())
         self.assertIn(
-            "Every v4, v3, v2, or schema-less plan requires replanning",
+            "Every v5, v4, v3, v2, or schema-less plan requires replanning",
             normalized_plan_schema,
         )
         self.assertIn(
@@ -503,12 +503,12 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("`inspection_receipt`", api)
         self.assertIn("never falls back to the user-attested path", api)
         self.assertIn("`--inspection-receipt PATH`", cli)
-        self.assertIn("aptus.training-plan.v5", cli)
+        self.assertIn("aptus.training-plan.v6", cli)
 
         error_codes = (REPOSITORY / "docs/reference/error-codes.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("`aptus.training-plan.v5` contract", error_codes)
+        self.assertIn("`aptus.training-plan.v6` contract", error_codes)
         self.assertIn("coherent v5 plan", error_codes)
         self.assertIn("current host registry", error_codes)
         self.assertIn("downgrading a bad receipt", error_codes)
@@ -537,7 +537,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Phase 4", system)
         self.assertIn("Phase 5", system)
         self.assertIn("aptus.model-policy-snapshot.v1", system)
-        self.assertIn("aptus.training-plan.v5", system)
+        self.assertIn("aptus.training-plan.v6", system)
         self.assertIn("aptus.bundle.v3", system)
 
         bundle = (REPOSITORY / "docs/reference/bundle-manifest.md").read_text(
@@ -564,7 +564,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("The historical Phase 3 implementation added", health)
         self.assertIn("`aptus.training-plan.v4`", health)
         self.assertIn("The current Phase 4 contract uses", health)
-        self.assertIn("`aptus.training-plan.v5`", health)
+        self.assertIn("`aptus.training-plan.v6`", health)
 
     def test_policy_snapshot_finding_codes_are_fully_documented(self) -> None:
         validation = (REPOSITORY / "src/aptus/validation.py").read_text(
@@ -710,61 +710,60 @@ class DocumentationTests(unittest.TestCase):
     def test_phase4_current_contract_wording_preserves_phase3_history(self) -> None:
         required_current_fragments = {
             "README.md": (
-                "Write a persisted v5 plan JSON without compiling",
-                "Every v5 plan persists",
+                "Write a persisted v6 plan JSON without compiling",
+                "Every v6 plan persists",
             ),
             "docs/reference/api.md": (
-                "required v5 schema",
-                "The OpenAPI response requires the v5 schema",
-                "Create a new v5 plan from the source facts",
+                "required v6 schema",
+                "The OpenAPI response requires the v6 schema",
+                "Create a new v6 plan from the source facts",
             ),
             "docs/reference/cli.md": (
-                "Write a standalone v5 plan",
-                "exact v5 domain contract",
+                "Write a standalone v6 plan",
+                "exact v6 domain contract",
             ),
-            "docs/reference/error-codes.md": ("create a new v5 plan",),
+            "docs/reference/error-codes.md": ("create a new v6 plan",),
             "docs/reference/evidence-records.md": (
-                "Every candidate in an `aptus.training-plan.v5` plan",
-                "The v5 plan ID binds",
+                "Every candidate in an `aptus.training-plan.v6` plan",
+                "The v6 plan ID binds",
             ),
             "docs/reference/plan-schema.md": (
-                "The current schema identifier is `aptus.training-plan.v5`",
-                "Every v4, v3, v2, or schema-less plan requires replanning",
+                "The current schema identifier is `aptus.training-plan.v6`",
+                "Every v5, v4, v3, v2, or schema-less plan requires replanning",
             ),
             "docs/reference/validation-states.md": (
-                "Every v4, v3, v2, or schema-less plan requires replanning",
+                "Every v5, v4, v3, v2, or schema-less plan requires replanning",
             ),
             "docs/architecture/artifact-compiler.md": (
-                "Valid `aptus.training-plan.v5` payload",
+                "Valid `aptus.training-plan.v6` payload",
                 "The installed Aptus host compiler",
             ),
             "docs/architecture/data-and-identity-flow.md": (
-                "`aptus.training-plan.v5` model payload",
-                "compare a v5 decision and snapshot digest",
+                "`aptus.training-plan.v6` model payload",
+                "compare a v6 decision and snapshot digest",
             ),
             "docs/architecture/system.md": (
-                "`aptus.training-plan.v5` and `aptus.bundle.v3` cross-bind",
+                "`aptus.training-plan.v6` and `aptus.bundle.v3` cross-bind",
             ),
             "docs/contributing/changing-contracts.md": (
-                "The current plan reader accepts only `aptus.training-plan.v5`",
+                "The current plan reader accepts only `aptus.training-plan.v6`",
             ),
             "docs/maintenance/documentation-health.md": (
                 "The historical Phase 3 implementation added",
-                "The current Phase 4 contract uses `aptus.training-plan.v5`",
+                "The current Phase 4 contract uses `aptus.training-plan.v6`",
             ),
             "docs/methodology/overview.md": (
-                "the plan contract from `aptus.training-plan.v4` to "
-                "`aptus.training-plan.v5`",
+                "contract from `aptus.training-plan.v5` to `aptus.training-plan.v6`",
             ),
             "docs/product/current-capabilities.md": (
-                "Persisted `aptus.training-plan.v5` compatibility provenance",
+                "Persisted `aptus.training-plan.v6` compatibility provenance",
             ),
             "docs/product/ui-ux.md": (
-                "creates a new deterministic v5 plan",
-                "The `aptus.training-plan.v5` carries one",
+                "creates a new deterministic v6 plan",
+                "The `aptus.training-plan.v6` carries one",
             ),
             "docs/methodology/facts-and-provenance.md": (
-                "Changing an input requires a new `aptus.training-plan.v5` plan",
+                "Changing an input requires a new `aptus.training-plan.v6` plan",
             ),
         }
         stale_current_v4_claim = re.compile(
@@ -778,7 +777,7 @@ class DocumentationTests(unittest.TestCase):
             text = " ".join(
                 (REPOSITORY / relative_path).read_text(encoding="utf-8").split()
             )
-            self.assertIn("aptus.training-plan.v5", text, relative_path)
+            self.assertIn("aptus.training-plan.v6", text, relative_path)
             self.assertIsNone(stale_current_v4_claim.search(text), relative_path)
             for fragment in fragments:
                 self.assertIn(fragment, text, relative_path)
@@ -834,7 +833,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn("V3 fact and training-plan contracts", changelog)
         for contract in (
             "aptus.facts.v3",
-            "aptus.training-plan.v5",
+            "aptus.training-plan.v6",
             "aptus.bundle.v3",
             "aptus.model-policy-snapshot.v1",
         ):
@@ -1043,7 +1042,7 @@ class DocumentationTests(unittest.TestCase):
             "Attempt-slot ID",
             "Only a native `passed` outcome with `protocol-valid` evidence",
             "Started = Protocol-valid + Capture-invalid",
-            "Never report tokens per second until exact padded and supervised token",
+            "Report tokens per second only from the exact Phase 3 padded",
         ):
             self.assertIn(required, normalized_campaign)
 

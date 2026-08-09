@@ -3278,7 +3278,7 @@
             "title": "Project Revision Id"
           },
           "required_schema": {
-            "const": "aptus.training-plan.v5",
+            "const": "aptus.training-plan.v6",
             "title": "Required Schema",
             "type": "string"
           },
@@ -3429,6 +3429,39 @@
         "title": "RuntimeInventoryResponse",
         "type": "object"
       },
+      "SelectCandidateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "pattern": "^cand_[0-9a-f]{20}$",
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "expected_project_revision_id": {
+            "pattern": "^revision_[0-9a-f]{32}$",
+            "title": "Expected Project Revision Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "pattern": "^plan_[0-9a-f]{20}$",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "project_id": {
+            "pattern": "^project_[0-9a-f]{32}$",
+            "title": "Project Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "candidate_id",
+          "project_id",
+          "expected_project_revision_id"
+        ],
+        "title": "SelectCandidateRequest",
+        "type": "object"
+      },
       "ServiceIdentity": {
         "additionalProperties": true,
         "properties": {
@@ -3462,6 +3495,12 @@
             "title": "Checkpoint Steps",
             "type": "integer"
           },
+          "data_order_seed": {
+            "default": 1000017,
+            "minimum": 0.0,
+            "title": "Data Order Seed",
+            "type": "integer"
+          },
           "effective_batch_size": {
             "default": 16,
             "exclusiveMinimum": 0.0,
@@ -3474,6 +3513,18 @@
             "minimum": 0.0,
             "title": "Evaluation Fraction",
             "type": "number"
+          },
+          "gradient_accumulation_steps": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradient Accumulation Steps"
           },
           "max_epochs": {
             "default": 3,
@@ -3491,8 +3542,32 @@
               }
             ]
           },
+          "micro_batch_size": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Micro Batch Size"
+          },
           "objective": {
             "$ref": "#/components/schemas/Objective"
+          },
+          "optimizer_steps": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimizer Steps"
           },
           "packing": {
             "default": false,
@@ -3502,6 +3577,12 @@
           "sequence_length": {
             "exclusiveMinimum": 0.0,
             "title": "Sequence Length",
+            "type": "integer"
+          },
+          "split_seed": {
+            "default": 424242,
+            "minimum": 0.0,
+            "title": "Split Seed",
             "type": "integer"
           },
           "task": {
@@ -3518,6 +3599,12 @@
                 "type": "null"
               }
             ]
+          },
+          "training_seed": {
+            "default": 17,
+            "minimum": 0.0,
+            "title": "Training Seed",
+            "type": "integer"
           }
         },
         "required": [
@@ -3605,7 +3692,7 @@
             "$ref": "#/components/schemas/PlanCandidateResponse"
           },
           "schema_version": {
-            "const": "aptus.training-plan.v5",
+            "const": "aptus.training-plan.v6",
             "title": "Schema Version",
             "type": "string"
           },
@@ -5074,6 +5161,104 @@
           }
         },
         "summary": "Plan"
+      }
+    },
+    "/api/v1/plans/select": {
+      "post": {
+        "operationId": "select_plan_candidate_api_v1_plans_select_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectCandidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Select Plan Candidate"
       }
     },
     "/api/v1/plans/{plan_id}": {

@@ -8,10 +8,10 @@ import stat
 import sys
 import threading
 from pathlib import Path
-from typing import Annotated, Any, Literal, Mapping
+from typing import Annotated, Any, Literal, Mapping, Self
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from . import __version__
 from .api_contracts import (
@@ -70,7 +70,7 @@ from .plan_contract import (
     validate_bundle_manifest,
     validate_plan_payload,
 )
-from .planning import NoFeasiblePlanError, plan_training
+from .planning import NoFeasiblePlanError, plan_training, select_candidate
 from .profiling import (
     build_hardware_spec,
     build_model_spec,
@@ -213,6 +213,24 @@ class TargetRequest(StrictModel):
     evaluation_fraction: float = Field(default=0.1, ge=0, lt=1)
     packing: bool = False
     checkpoint_steps: int = Field(default=100, gt=0)
+    optimizer_steps: int | None = Field(default=None, gt=0)
+    split_seed: int = Field(default=424242, ge=0)
+    training_seed: int = Field(default=17, ge=0)
+    data_order_seed: int = Field(default=1000017, ge=0)
+    micro_batch_size: int | None = Field(default=None, gt=0)
+    gradient_accumulation_steps: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def require_phase3_control_consistency(self) -> Self:
+        if self.data_order_seed != 1_000_000 + self.training_seed:
+            raise ValueError("data_order_seed must equal 1000000 + training_seed.")
+        if (self.micro_batch_size is None) != (
+            self.gradient_accumulation_steps is None
+        ):
+            raise ValueError(
+                "micro_batch_size and gradient_accumulation_steps must be supplied together."
+            )
+        return self
 
 
 class ProfileRequest(StrictModel):
@@ -235,6 +253,13 @@ class PlanRequest(StrictModel):
 class CompileRequest(StrictModel):
     plan_id: str
     output_dir: str
+    project_id: str = Field(pattern=r"^project_[0-9a-f]{32}$")
+    expected_project_revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
+
+
+class SelectCandidateRequest(StrictModel):
+    plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")
+    candidate_id: str = Field(pattern=r"^cand_[0-9a-f]{20}$")
     project_id: str = Field(pattern=r"^project_[0-9a-f]{32}$")
     expected_project_revision_id: str = Field(pattern=r"^revision_[0-9a-f]{32}$")
 
@@ -1499,6 +1524,71 @@ def create_app(
                 status_code=404, detail={"error": "plan_not_found", "plan_id": plan_id}
             )
         return to_primitive(result)
+
+    @app.post("/api/v1/plans/select", response_model=TrainingPlanResponse)
+    def select_plan_candidate(request: SelectCandidateRequest) -> dict[str, Any]:
+        source_revision = require_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            plan_id=request.plan_id,
+        )
+        try:
+            source_plan = context.load_plan(request.plan_id)
+        except (StaleModelPolicyError, UnsupportedPlanSchemaError) as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "replan_required",
+                    "plan_id": request.plan_id,
+                    "message": str(error),
+                },
+            ) from error
+        if source_plan is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "plan_not_found", "plan_id": request.plan_id},
+            )
+        if source_revision.get("plan_snapshot") != to_primitive(source_plan):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "project_plan_snapshot_mismatch",
+                    "plan_id": request.plan_id,
+                    "project_id": request.project_id,
+                },
+            )
+        try:
+            selected_plan = select_candidate(source_plan, request.candidate_id)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "candidate_selection_rejected", "message": str(error)},
+            ) from error
+        facts = source_revision.get("facts")
+        if not isinstance(facts, Mapping):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "project_revision_facts_missing"},
+            )
+        selected_payload = to_primitive(selected_plan)
+        context.save_plan(selected_plan)
+        revision = create_current_project_revision(
+            project_id=request.project_id,
+            expected_revision_id=request.expected_project_revision_id,
+            reason="candidate-selected",
+            facts=facts,
+            plan_id=selected_plan.plan_id,
+            plan_snapshot=selected_payload,
+            selected_candidate_id=selected_plan.recommended.candidate_id,
+            bundle={},
+            validation={},
+            job_ids=[],
+        )
+        return {
+            **selected_payload,
+            "project_id": request.project_id,
+            "project_revision_id": revision["revision_id"],
+        }
 
     @app.post("/api/v1/compile", response_model=CompileResponse)
     def compile_artifacts(request: CompileRequest) -> dict[str, Any]:

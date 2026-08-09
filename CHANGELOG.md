@@ -11,7 +11,7 @@ All notable changes are recorded here.
 - Aptus for Mac, a native AppKit and WebKit application with automatic bundled
   backend lifecycle, private session authentication, native path pickers,
   Finder actions, startup recovery, app packaging, and CUDA-host handoff.
-- `aptus.facts.v3`, `aptus.training-plan.v5`, and `aptus.bundle.v3`, plus the
+- `aptus.facts.v3`, `aptus.training-plan.v6`, and `aptus.bundle.v3`, plus the
   retained versioned runtime, validation, and job contracts.
 - Persisted `aptus.model-compatibility.v2` decisions, explicit
   `provider-inspection` or `user-attested` decision sources,
@@ -52,7 +52,7 @@ All notable changes are recorded here.
 - Portable dependency, model-data, measured preflight, pilot, and full-run
   entrypoints.
 - Deterministic canonical `aptus.model-policy-snapshot.v1` artifacts bound into
-  every v5 plan and v3 bundle, plus a generic package-free evaluator that
+  every v6 plan and v3 bundle, plus a generic package-free evaluator that
   reproduces host compatibility decisions from the frozen snapshot.
 - Local FastAPI service, React workbench, CLI, persisted jobs, cancellation, and
   a per-user host-global Aptus execution lease.
@@ -83,7 +83,15 @@ All notable changes are recorded here.
   retention, traceability and privacy review, finalized-byte verification,
   fail-closed eligibility, and two-pass publication passed. No Linux
   connection, Ubuntu mutation, model workload, or new empirical result
-  occurred. Phase 3 measurement controls remain pending.
+  occurred. At that Phase 2B publication boundary, Phase 3 controls were pending.
+- Phase 3 explicit complete-candidate selection across domain, API, CLI, and
+  workbench, producing a new plan identity and rejecting stale, mutated,
+  rejected, unknown, or already-selected candidates. V6 plans now bind exact
+  optimizer-step, split/training/data-order seed, micro-batch, and accumulation
+  controls. CUDA bundles bind the same values through trainer configuration,
+  checkpoints, runtime completion evidence, separate training/evaluation
+  consumption and exact token counters, and per-step monotonic progress timing.
+  This implementation changed no Ubuntu host and produced no empirical result.
 - Uninterrupted full-duration MLX LoRA and QLoRA execution from the pinned base
   model after `pilot-pass`, with duration derived from compiled training rows,
   batch size, accumulation, and maximum epochs.
@@ -149,7 +157,7 @@ All notable changes are recorded here.
   validation now consume one host-side model compatibility registry. Runtime
   contracts remain derived from the method registry. The API remains
   `aptus.api.v1`, facts remain `aptus.facts.v3`, and candidate runtime contracts
-  remain `aptus.runtime-contract.v1`; current plans are v5 and bundles are v3.
+  remain `aptus.runtime-contract.v1`; current plans are v6 and bundles are v3.
 - Package-free bundle programs validate frozen-snapshot integrity and decision
   parity. Installed-host validation, job admission, pilot authorization, worker
   launch, and the completion verification and promotion transaction separately

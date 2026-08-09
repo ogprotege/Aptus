@@ -889,6 +889,7 @@ class ProjectRepository:
         project_name: str,
         facts: Mapping[str, Any],
         plan: Mapping[str, Any],
+        reason: str = "plan-created",
     ) -> tuple[str, dict[str, Any]]:
         with self._repository_lock():
             manifest = (
@@ -905,7 +906,7 @@ class ProjectRepository:
             )
             revision = self.create_revision(
                 manifest["project_id"],
-                reason="plan-created",
+                reason=reason,
                 facts=facts,
                 plan_id=plan_id,
                 plan_snapshot=plan,

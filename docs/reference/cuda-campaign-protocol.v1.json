@@ -1733,10 +1733,10 @@
       "warning_seconds_greater_than": 3
     },
     "gpu_memory_integrity": {
-      "cross_check": "derive total_bytes - used_bytes only as an integrity cross-check against directly reported free_bytes; it is never the safety input",
+      "cross_check": "compare total_bytes with used_bytes + free_bytes + reserved_bytes only as an integrity cross-check; directly reported free_bytes remains the safety input",
       "mismatch_effect": "emit an integrity mismatch flag, mark the attempt capture-invalid, and block qualification pending diagnosis",
-      "mismatch_tolerance_bytes": 0,
-      "normalization_rule": "retain each directly reported source unit and convert used, free, and total to integer bytes exactly before comparison; an inexact or invalid conversion fails the integrity check",
+      "mismatch_tolerance_rule": "allow at most the sum of one-half of each used, free, reserved, and total source value's retained display resolution, which is 2 MiB when all four nvidia-smi values are integral MiB",
+      "normalization_rule": "retain each directly reported source unit and convert used, free, reserved, and total to integer bytes exactly before comparison; an inexact or invalid conversion fails the integrity check",
       "safety_free_vram_source": "the directly reported free-memory channel, never the derived cross-check value"
     },
     "optional_channels": {
@@ -1745,7 +1745,7 @@
     },
     "required_gpu_channels": [
       "GPU UUID in protected data only",
-      "memory used, free, and total as reported, with each value normalized to integer bytes and its source unit retained",
+      "memory used, free, reserved, and total as reported, with each value normalized to integer bytes and its source unit retained",
       "utilization",
       "temperature",
       "power draw and limit",

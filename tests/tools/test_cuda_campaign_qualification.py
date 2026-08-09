@@ -271,6 +271,7 @@ def telemetry_sample(slot: int) -> dict[str, object]:
                 "uuid": "GPU-private",
                 "memory_used": {"value": str(GIB), "unit": "B"},
                 "memory_free": {"value": str(7 * GIB), "unit": "B"},
+                "memory_reserved": {"value": "0", "unit": "B"},
                 "memory_total": {"value": str(8 * GIB), "unit": "B"},
                 "utilization_percent": 0.0,
                 "temperature_c": 35.0,

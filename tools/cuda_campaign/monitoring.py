@@ -48,6 +48,7 @@ _GPU_PROBE_FIELDS = frozenset(
         "uuid",
         "memory_used",
         "memory_free",
+        "memory_reserved",
         "memory_total",
         "utilization_percent",
         "temperature_c",
@@ -66,7 +67,11 @@ _GPU_PROBE_FIELDS = frozenset(
     }
 )
 _GPU_SAMPLE_FIELDS = frozenset(
-    (_GPU_PROBE_FIELDS - {"memory_used", "memory_free", "memory_total"}) | {"memory"}
+    (
+        _GPU_PROBE_FIELDS
+        - {"memory_used", "memory_free", "memory_reserved", "memory_total"}
+    )
+    | {"memory"}
 )
 _HOST_FIELDS = frozenset(
     {
@@ -325,6 +330,34 @@ def _validate_normalized_memory(value: Any, label: str) -> dict[str, Any]:
     return dict(value)
 
 
+def _memory_reconciliation_tolerance_bytes(
+    values: Sequence[Mapping[str, Any]],
+) -> Decimal:
+    """Bound independent display rounding by the retained source resolutions."""
+
+    tolerance = Decimal(0)
+    for value in values:
+        source = Decimal(value["source_value"])
+        unit = value["source_unit"]
+        resolution = Decimal(_BYTE_UNITS[unit]).scaleb(source.as_tuple().exponent)
+        tolerance += resolution / 2
+    return tolerance
+
+
+def _memory_channels_reconcile(
+    used: Mapping[str, Any],
+    free: Mapping[str, Any],
+    reserved: Mapping[str, Any],
+    total: Mapping[str, Any],
+) -> bool:
+    difference = abs(
+        total["bytes"] - used["bytes"] - free["bytes"] - reserved["bytes"]
+    )
+    return Decimal(difference) <= _memory_reconciliation_tolerance_bytes(
+        (used, free, reserved, total)
+    )
+
+
 def _normalize_processes(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         raise TelemetryValidationError("gpu.compute_processes must be a list")
@@ -398,10 +431,13 @@ def _normalize_gpu(value: Any) -> dict[str, Any]:
         raise TelemetryValidationError("gpu.uuid must be a nonempty protected string")
     used = _normalize_memory_source(value["memory_used"], "gpu.memory_used")
     free = _normalize_memory_source(value["memory_free"], "gpu.memory_free")
+    reserved = _normalize_memory_source(
+        value["memory_reserved"], "gpu.memory_reserved"
+    )
     total = _normalize_memory_source(value["memory_total"], "gpu.memory_total")
-    if total["bytes"] - used["bytes"] != free["bytes"]:
+    if not _memory_channels_reconcile(used, free, reserved, total):
         raise TelemetryValidationError(
-            "GPU memory used, free, and total do not reconcile"
+            "GPU memory used, free, reserved, and total do not reconcile"
         )
     utilization = _finite_number(
         value["utilization_percent"], "gpu.utilization_percent", minimum=0
@@ -444,7 +480,12 @@ def _normalize_gpu(value: Any) -> dict[str, Any]:
         flags[field_name] = flag
     return {
         "uuid": uuid,
-        "memory": {"used": used, "free": free, "total": total},
+        "memory": {
+            "used": used,
+            "free": free,
+            "reserved": reserved,
+            "total": total,
+        },
         "utilization_percent": utilization,
         "temperature_c": _finite_number(value["temperature_c"], "gpu.temperature_c"),
         "power_draw_w": _finite_number(
@@ -478,13 +519,18 @@ def _validate_gpu(value: Any) -> dict[str, Any]:
     memory = value["memory"]
     if not isinstance(memory, Mapping):
         raise TelemetryValidationError("gpu.memory must be an object")
-    _require_exact_fields(memory, frozenset({"used", "free", "total"}), "gpu.memory")
+    _require_exact_fields(
+        memory, frozenset({"used", "free", "reserved", "total"}), "gpu.memory"
+    )
     used = _validate_normalized_memory(memory["used"], "gpu.memory.used")
     free = _validate_normalized_memory(memory["free"], "gpu.memory.free")
+    reserved = _validate_normalized_memory(
+        memory["reserved"], "gpu.memory.reserved"
+    )
     total = _validate_normalized_memory(memory["total"], "gpu.memory.total")
-    if total["bytes"] - used["bytes"] != free["bytes"]:
+    if not _memory_channels_reconcile(used, free, reserved, total):
         raise TelemetryValidationError(
-            "GPU memory used, free, and total do not reconcile"
+            "GPU memory used, free, reserved, and total do not reconcile"
         )
     utilization = _finite_number(
         value["utilization_percent"], "gpu.utilization_percent", minimum=0
@@ -1515,6 +1561,7 @@ _NVIDIA_GPU_QUERY_FIELDS = (
     "uuid",
     "memory.used",
     "memory.free",
+    "memory.reserved",
     "memory.total",
     "utilization.gpu",
     "temperature.gpu",
@@ -1983,22 +2030,27 @@ class LinuxNvidiaHostProbe:
         if not re.fullmatch(r"GPU-[A-Za-z0-9-]{8,80}", uuid):
             raise ProbeFailure("NVIDIA_GPU_UUID_INVALID")
         memory: list[dict[str, str]] = []
-        for raw in row[1:4]:
+        for raw in row[1:5]:
             number, unit = _quantity(
                 raw,
                 allowed_units=frozenset(_BYTE_UNITS),
                 failure_code="NVIDIA_MEMORY_FIELD_INVALID",
             )
             memory.append({"value": number, "unit": unit})
-        used_bytes = exact_bytes(memory[0]["value"], memory[0]["unit"])
-        free_bytes = exact_bytes(memory[1]["value"], memory[1]["unit"])
-        total_bytes = exact_bytes(memory[2]["value"], memory[2]["unit"])
-        if total_bytes - used_bytes != free_bytes:
+        normalized_memory = [
+            {
+                "source_value": item["value"],
+                "source_unit": item["unit"],
+                "bytes": exact_bytes(item["value"], item["unit"]),
+            }
+            for item in memory
+        ]
+        if not _memory_channels_reconcile(*normalized_memory):
             raise ProbeFailure("NVIDIA_MEMORY_INTEGRITY_FAILED")
-        performance_state = row[10]
+        performance_state = row[11]
         if re.fullmatch(r"P\d{1,2}", performance_state) is None:
             raise ProbeFailure("NVIDIA_PSTATE_INVALID")
-        throttle_state = row[11]
+        throttle_state = row[12]
         if re.fullmatch(r"0x[0-9A-Fa-f]{1,16}", throttle_state):
             active_mask = int(throttle_state, 16)
             active = active_mask != 0
@@ -2046,35 +2098,36 @@ class LinuxNvidiaHostProbe:
             "uuid": uuid,
             "memory_used": memory[0],
             "memory_free": memory[1],
-            "memory_total": memory[2],
+            "memory_reserved": memory[2],
+            "memory_total": memory[3],
             "utilization_percent": _metric(
-                row[4],
+                row[5],
                 allowed_units=frozenset({"%"}),
                 failure_code="NVIDIA_UTILIZATION_FIELD_INVALID",
             ),
             "temperature_c": _metric(
-                row[5],
+                row[6],
                 allowed_units=frozenset({"", "C"}),
                 failure_code="NVIDIA_TEMPERATURE_FIELD_INVALID",
                 unit_optional=True,
             ),
             "power_draw_w": _metric(
-                row[6],
-                allowed_units=frozenset({"W"}),
-                failure_code="NVIDIA_POWER_FIELD_UNSUPPORTED",
-            ),
-            "power_limit_w": _metric(
                 row[7],
                 allowed_units=frozenset({"W"}),
                 failure_code="NVIDIA_POWER_FIELD_UNSUPPORTED",
             ),
-            "graphics_clock_mhz": _metric(
+            "power_limit_w": _metric(
                 row[8],
+                allowed_units=frozenset({"W"}),
+                failure_code="NVIDIA_POWER_FIELD_UNSUPPORTED",
+            ),
+            "graphics_clock_mhz": _metric(
+                row[9],
                 allowed_units=frozenset({"MHz"}),
                 failure_code="NVIDIA_CLOCK_FIELD_UNSUPPORTED",
             ),
             "memory_clock_mhz": _metric(
-                row[9],
+                row[10],
                 allowed_units=frozenset({"MHz"}),
                 failure_code="NVIDIA_CLOCK_FIELD_UNSUPPORTED",
             ),

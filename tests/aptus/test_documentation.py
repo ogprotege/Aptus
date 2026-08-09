@@ -1010,21 +1010,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 124)
+        self.assertEqual(len(repository_documents), 125)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 123)
-        self.assertEqual(len(active_documents), 94)
+        self.assertEqual(len(governed_documents), 124)
+        self.assertEqual(len(active_documents), 95)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 123)
-        self.assertIn("123 are governed", normalized_inventory)
-        self.assertIn("123 governed", normalized_inventory)
-        self.assertIn("124 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 94 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 124)
+        self.assertIn("124 are governed", normalized_inventory)
+        self.assertIn("124 governed", normalized_inventory)
+        self.assertIn("125 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 95 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -2284,6 +2284,7 @@ class DocumentationTests(unittest.TestCase):
             for item in supplement["items"]
             if item["disposition"] == "recovered-matching"
         }
+
         self.assertEqual(len(recovered_entries), 38)
         self.assertEqual(
             supplement["additional_search_items"],
@@ -2382,6 +2383,59 @@ class DocumentationTests(unittest.TestCase):
             "docs/operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md",
             (REPOSITORY / "ROADMAP.md").read_text(),
         )
+
+    def test_cuda_phase5_stopping_outcome_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-09-cuda-phase5-repeatability-anchor"
+        )
+        expected_files = {"README.md", "SHA256SUMS", "phase5-outcome.json"}
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        self.assertEqual(
+            [relative for _digest, relative in parsed],
+            ["./README.md", "./phase5-outcome.json"],
+        )
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        outcome = json.loads((packet / "phase5-outcome.json").read_text())
+        self.assertEqual(
+            outcome["decision"]["phase5_status"], "complete-not-established"
+        )
+        self.assertFalse(outcome["aggregate"]["repeatability_anchor_established"])
+        self.assertFalse(outcome["decision"]["phase6_authorized"])
+        self.assertEqual(outcome["aggregate"]["started_measured_slots"], 0)
+        self.assertEqual(len(outcome["measured_slots"]), 5)
+        self.assertTrue(
+            all(
+                slot["slot_status"] == "planned-not-started"
+                for slot in outcome["measured_slots"]
+            )
+        )
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8")
+            for name in ("README.md", "phase5-outcome.json")
+        )
+        for private_marker in ("/home/", "/Users/", "GPU-", "192.168."):
+            self.assertNotIn(private_marker, public_text)
 
     def test_cuda_lora_single_acceptance_packet_is_bound_and_sanitized(
         self,

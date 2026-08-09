@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0, 1, 2A, 2B, and 3 complete; Phase 4 next | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before Phase 4, before the first qualifying run, after any capture or selection contract changes, or by 2026-09-08
+> **Status:** Active experiment plan; Phases 0 through 4 complete; Phase 5 closed without establishing the repeatability anchor | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before authorizing a new Phase 5 cohort, after any capture or selection contract changes, or by 2026-09-08
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -621,6 +621,16 @@ Any capture, schema, source, environment, fixture, or stop-rule change after
 this point invalidates the rehearsal and requires a new freeze.
 
 ### Phase 5 — repeatability anchor
+
+**Complete without establishing the anchor.** The predeclared conditioning
+attempt passed admission and dependency validation, then failed closed during
+model/data validation when the one-hertz telemetry collector missed a scheduled
+sample. The capture was `capture-invalid`; the frozen no-replacement rule left
+all five measured slots `planned-not-started` and denied Phase 6 authorization.
+The [sanitized outcome packet](evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md)
+binds the slot dispositions, stable reason codes, protected artifact digests,
+off-host copy receipts, retrieval receipts, and claim boundary. A newly reviewed
+protocol and cohort are required before another conditioning attempt.
 
 Use one exact SmolLM2 135M revision, the frozen synthetic benchmark dataset,
 LoRA, BF16 or the planner-selected supported precision, and `single` placement.

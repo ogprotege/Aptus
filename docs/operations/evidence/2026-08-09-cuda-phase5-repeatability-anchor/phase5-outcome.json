@@ -1,0 +1,158 @@
+{
+  "aggregate": {
+    "completed_optimizer_steps": 0,
+    "duration_stability": null,
+    "peak_device_memory_stability": null,
+    "promotion_authorized": false,
+    "repeatability_anchor_established": false,
+    "required_measured_slots": 5,
+    "started_measured_slots": 0
+  },
+  "bindings": {
+    "campaign_id": "campaign_75edd17b039317323bd7",
+    "comparison_cell_id": "cell_5ec01c436a023f61a9b4",
+    "comparison_cohort_id": "cohort_c74625538d7c7052482b",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "source_commit": "10e028b5e54a533b9302d53607684ba492cf0c3a",
+    "source_tree": "97fc5dcb21050dca9fe465cd64bd6b85f14554b3"
+  },
+  "claim_boundary": {
+    "establishes": [
+      "conditioning admission passed before the started managed attempt",
+      "conditioning capture failed closed during model-data validation",
+      "the frozen no-replacement and prior-stop rules were applied",
+      "sealed failure evidence passed off-host copy and retrieval verification"
+    ],
+    "does_not_establish": [
+      "repeatability",
+      "performance or resource stability",
+      "model quality",
+      "phase6 eligibility",
+      "production safety",
+      "release readiness"
+    ]
+  },
+  "conditioning": {
+    "action_dispositions": [
+      {
+        "action": "dependency",
+        "native_outcome": "passed",
+        "reason_code": "NONE",
+        "started": true
+      },
+      {
+        "action": "model-data",
+        "native_outcome": "cancelled",
+        "reason_code": "TELEMETRY_COLLECTOR_FAILURE",
+        "started": true
+      },
+      {
+        "action": "measured-preflight",
+        "native_outcome": null,
+        "reason_code": "PRIOR_STOP_RULE",
+        "started": false
+      },
+      {
+        "action": "pilot",
+        "native_outcome": null,
+        "reason_code": "PRIOR_STOP_RULE",
+        "started": false
+      },
+      {
+        "action": "train",
+        "native_outcome": null,
+        "reason_code": "CONDITIONING_ONLY",
+        "started": false
+      }
+    ],
+    "admission_sample_count": 120,
+    "capture_reason_code": "STREAM_CAPTURE_FAILURE",
+    "evidence_status": "capture-invalid",
+    "native_outcome": "cancelled",
+    "reason_code": "TELEMETRY_COLLECTOR_FAILURE",
+    "role": "nonqualifying-conditioning",
+    "scheduled_seed": 17,
+    "telemetry": {
+      "captured_sample_count": 12,
+      "hard_gap_detected": true,
+      "missing_scheduled_sample_count": 1,
+      "sample_interval_seconds": 1
+    }
+  },
+  "custody": {
+    "conditioning_admission": {
+      "copy_receipt_id": "receipt_65eaa94193337a63d41796e33c233b4e",
+      "off_host_copy_verification": "passed",
+      "protected_artifact_id": "artifact_364ec20d3dbad0ee32284c8afeef2433",
+      "raw_manifest_sha256": "52f3e32a533e9ff26ddf7d5d6f2b881fc27028bf8221ac584414c6356f31c517",
+      "retrieval_receipt_id": "receipt_1b5c3cca6744e2db20075e55220befe5",
+      "retrieval_verification": "passed"
+    },
+    "conditioning_capture_failure": {
+      "available_file_count": 10,
+      "available_file_digest_verification": "passed",
+      "copy_receipt_id": "receipt_695185ebfd0f5b6b4e9d992018be94f4",
+      "off_host_copy_verification": "passed",
+      "protected_artifact_id": "artifact_e60883291f58c261f0bb15a10c37876b",
+      "raw_manifest_sha256": "6069f8740efe31c10703bc1b7c1740e0702dae71916905fa32b7fd1fbe5c5185",
+      "retrieval_receipt_id": "receipt_e5035f3ecbedbca8f95979539358c122",
+      "retrieval_verification": "passed"
+    },
+    "provisional_retain_not_before_utc": "2028-08-09T00:00:00+00:00",
+    "retention_policy_id": "cuda-v02-public-claim-evidence-24m-v1"
+  },
+  "decision": {
+    "phase5_status": "complete-not-established",
+    "phase6_authorized": false,
+    "reason_code": "CONDITIONING_CAPTURE_INVALID",
+    "replacement_allowed": false
+  },
+  "measured_slots": [
+    {
+      "attempt_slot_id": "slot_dc3f745f2bc7918cb643",
+      "evidence_status": "not-started",
+      "native_outcome": null,
+      "ordinal": 1,
+      "reason_code": "PRIOR_STOP_RULE",
+      "scheduled_seed": 101,
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_5b352a77c0cb3b782e9a",
+      "evidence_status": "not-started",
+      "native_outcome": null,
+      "ordinal": 2,
+      "reason_code": "PRIOR_STOP_RULE",
+      "scheduled_seed": 211,
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_aedc9927a518b117a012",
+      "evidence_status": "not-started",
+      "native_outcome": null,
+      "ordinal": 3,
+      "reason_code": "PRIOR_STOP_RULE",
+      "scheduled_seed": 307,
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_fce067829347a2b2da29",
+      "evidence_status": "not-started",
+      "native_outcome": null,
+      "ordinal": 4,
+      "reason_code": "PRIOR_STOP_RULE",
+      "scheduled_seed": 401,
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_940ee1a7a14454b7ba1f",
+      "evidence_status": "not-started",
+      "native_outcome": null,
+      "ordinal": 5,
+      "reason_code": "PRIOR_STOP_RULE",
+      "scheduled_seed": 503,
+      "slot_status": "planned-not-started"
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-phase5-outcome.v1"
+}

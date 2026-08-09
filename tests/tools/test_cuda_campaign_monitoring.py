@@ -1325,8 +1325,6 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            (leader / "statm").write_text("", encoding="utf-8")
-            (leader / "io").write_text("", encoding="utf-8")
             probe = LinuxNvidiaHostProbe(
                 filesystem_path=root,
                 managed_pids=lambda: {123},
@@ -1347,8 +1345,15 @@ class LinuxNvidiaHostProbeTests(unittest.TestCase):
                 page_size_bytes=4096,
                 clock_ticks_per_second=100,
             )
+            original_read_text = Path.read_text
 
-            reading = probe()
+            def read_text(path: Path, *args: object, **kwargs: object) -> str:
+                if path in {leader / "statm", leader / "io"}:
+                    raise PermissionError
+                return original_read_text(path, *args, **kwargs)
+
+            with patch.object(Path, "read_text", new=read_text):
+                reading = probe()
 
         self.assertEqual(reading["host"]["managed_process_rss_bytes"], 0)
         self.assertEqual(reading["host"]["managed_process_cpu_seconds"], 0.0)

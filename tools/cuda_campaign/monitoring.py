@@ -2240,8 +2240,18 @@ class LinuxNvidiaHostProbe:
         root = self.proc_root / str(pid)
         for attempt in range(4):
             try:
-                statm = (root / "statm").read_text(encoding="utf-8").split()
                 stat_text = (root / "stat").read_text(encoding="utf-8")
+                try:
+                    after_name = stat_text.rsplit(")", 1)[1].split()
+                except IndexError:
+                    after_name = []
+                # A completed child can remain as a zombie until its owning
+                # parent reaps it. Check that stable identity channel before
+                # touching statm/io, which may already be unavailable even
+                # while /proc/<pid>/stat still exposes the terminal state.
+                if after_name and after_name[0] in {"Z", "X", "x"}:
+                    return None
+                statm = (root / "statm").read_text(encoding="utf-8").split()
                 io_lines = (root / "io").read_text(encoding="utf-8").splitlines()
             except FileNotFoundError:
                 return None
@@ -2265,16 +2275,6 @@ class LinuxNvidiaHostProbe:
                 failure_code = "PROC_PROCESS_MEMORY_INVALID"
             else:
                 failure_code = None
-            try:
-                after_name = stat_text.rsplit(")", 1)[1].split()
-            except IndexError:
-                after_name = []
-            # A completed child can remain as a zombie until its owning parent
-            # reaps it. Its identity and process-group binding are still
-            # readable during that interval, while statm/io may already be
-            # empty. It is terminal and contributes no live resource totals.
-            if after_name and after_name[0] in {"Z", "X", "x"}:
-                return None
             if len(after_name) <= 12 and failure_code is None:
                 failure_code = "PROC_PROCESS_CPU_INVALID"
             try:

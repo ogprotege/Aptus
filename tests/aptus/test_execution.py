@@ -3326,6 +3326,42 @@ class ExecutionJobTests(unittest.TestCase):
             service.cancel(submitted["id"])
             self.assertFalse(service.campaign_lease_active())
 
+    def test_campaign_lease_telemetry_snapshot_never_waits_on_worker_lock(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            service = JobService(Path(temporary) / "jobs")
+            completed = threading.Event()
+            observed: list[bool] = []
+
+            def read_snapshot() -> None:
+                observed.append(service.campaign_lease_active())
+                completed.set()
+
+            with patch.object(service, "_read_global_lease", return_value=None):
+                service._lock.acquire()
+                try:
+                    reader = threading.Thread(target=read_snapshot)
+                    reader.start()
+                    self.assertTrue(completed.wait(timeout=0.5))
+                finally:
+                    service._lock.release()
+                reader.join(timeout=1)
+
+            self.assertEqual(observed, [False])
+
+    def test_campaign_lease_transition_is_conservatively_active(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            service = JobService(Path(temporary) / "jobs")
+            lease = {"job_id": "job_" + "1" * 32}
+            with patch.object(service, "_read_global_lease", side_effect=(None, lease)):
+                self.assertTrue(service.campaign_lease_active())
+            with (
+                patch.object(service, "_read_global_lease", side_effect=(lease, None)),
+                patch.object(service, "_lease_snapshot_active", return_value=False),
+            ):
+                self.assertTrue(service.campaign_lease_active())
+
     def test_worker_start_failure_releases_global_lease(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

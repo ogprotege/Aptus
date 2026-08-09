@@ -2832,6 +2832,8 @@ class JobService:
             return None
         try:
             value = json.loads(self._lease_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
         except (OSError, json.JSONDecodeError) as error:
             raise ValueError(
                 f"The host-global Aptus GPU lease is unreadable: {error}. "
@@ -2870,39 +2872,45 @@ class JobService:
         state = value.get("state")
         return state if isinstance(state, str) else None
 
-    def campaign_lease_active(self) -> bool:
-        """Return the exact read-only host-global lease state for telemetry.
+    def _lease_snapshot_active(self, lease: dict[str, Any]) -> bool:
+        owner_live = self._pid_alive(
+            lease.get("owner_pid"), lease.get("owner_process_identity")
+        )
+        child_live = self._pid_alive(
+            lease.get("process_pid"), lease.get("process_identity")
+        )
+        process_group_id = lease.get("process_group_id")
+        if os.name == "posix" and isinstance(process_group_id, int):
+            child_live = child_live or self._process_group_alive(process_group_id)
+        record_state = self._lease_record_state(lease)
+        terminal_record = record_state in {
+            RunState.COMPLETED.value,
+            RunState.FAILED.value,
+            RunState.CANCELLED.value,
+        }
+        stale = (
+            (terminal_record and not child_live)
+            or (record_state is None and not child_live)
+            or not (owner_live or child_live)
+        )
+        return not stale
 
-        This mirrors stale-lease classification without unlinking or otherwise
-        reconciling state. Malformed lease evidence raises instead of being
-        projected as an optimistic inactive result.
+    def campaign_lease_active(self) -> bool:
+        """Return a nonblocking, conservative host-global lease snapshot.
+
+        Lease and job records are atomically replaced, so telemetry does not
+        take the long-lived worker locks. A concurrent lease transition is
+        projected as active, never as an optimistic inactive result. Malformed
+        evidence still raises and remains fail-closed.
         """
 
-        with self._lock, self._global_lease_lock(), self._records_lock():
-            lease = self._read_global_lease()
-            if lease is None:
-                return False
-            owner_live = self._pid_alive(
-                lease.get("owner_pid"), lease.get("owner_process_identity")
-            )
-            child_live = self._pid_alive(
-                lease.get("process_pid"), lease.get("process_identity")
-            )
-            process_group_id = lease.get("process_group_id")
-            if os.name == "posix" and isinstance(process_group_id, int):
-                child_live = child_live or self._process_group_alive(process_group_id)
-            record_state = self._lease_record_state(lease)
-            terminal_record = record_state in {
-                RunState.COMPLETED.value,
-                RunState.FAILED.value,
-                RunState.CANCELLED.value,
-            }
-            stale = (
-                (terminal_record and not child_live)
-                or (record_state is None and not child_live)
-                or not (owner_live or child_live)
-            )
-            return not stale
+        first = self._read_global_lease()
+        if first is None:
+            return self._read_global_lease() is not None
+        active = self._lease_snapshot_active(first)
+        if self._read_global_lease() != first:
+            return True
+        return active
 
     def _require_global_lease_available(self) -> None:
         lease = self._read_global_lease()

@@ -1378,9 +1378,11 @@ class ExecutionJobTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             shard_keys: dict[str, list[str] | Exception] = {}
+            open_arguments: list[dict[str, object]] = []
             fake_safetensors = types.ModuleType("safetensors")
 
-            def safe_open(path: str, **_kwargs: object) -> FakeSafeTensorFile:
+            def safe_open(path: str, **kwargs: object) -> FakeSafeTensorFile:
+                open_arguments.append(kwargs)
                 value = shard_keys[Path(path).name]
                 if isinstance(value, Exception):
                     raise value
@@ -1461,6 +1463,14 @@ class ExecutionJobTests(unittest.TestCase):
                     encoding="utf-8",
                 )
                 _verify_safetensors_structure(misindexed, misindexed_paths)
+
+            self.assertTrue(open_arguments)
+            self.assertTrue(
+                all(
+                    arguments == {"framework": "numpy", "device": "cpu"}
+                    for arguments in open_arguments
+                )
+            )
 
     def test_host_submission_rejects_a_bundle_after_policy_changes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

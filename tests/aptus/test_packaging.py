@@ -9,6 +9,15 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 
 
 class BundleProgramPackagingTests(unittest.TestCase):
+    def test_parent_export_verification_runtime_is_pinned(self) -> None:
+        project = tomllib.loads(
+            (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
+        )
+
+        dependencies = project["project"]["dependencies"]
+        self.assertIn("numpy==2.3.5", dependencies)
+        self.assertIn("safetensors==0.8.0", dependencies)
+
     def test_wheel_declares_every_bundle_program_resource_directory(self) -> None:
         project = tomllib.loads(
             (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")

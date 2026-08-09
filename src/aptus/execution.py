@@ -673,7 +673,9 @@ def _verify_safetensors_structure(final_dir: Path, weight_files: list[Path]) -> 
     tensor_shards: dict[str, str] = {}
     try:
         for weight_path in weight_files:
-            with safe_open(str(weight_path), framework="pt", device="cpu") as tensors:
+            with safe_open(
+                str(weight_path), framework="numpy", device="cpu"
+            ) as tensors:
                 tensor_keys = list(tensors.keys())
             if not tensor_keys:
                 raise ValueError(

@@ -1228,7 +1228,7 @@ class LinuxNvidiaJournalEventProvider:
             raise ProbeFailure("JOURNALCTL_EXECUTION_FAILED") from None
         if (
             type(result) is not ProbeCommandResult
-            or result.returncode != 0
+            or result.returncode not in {0, 1}
             or not isinstance(result.stdout, str)
         ):
             raise ProbeFailure("JOURNALCTL_QUERY_FAILED")
@@ -1246,6 +1246,8 @@ class LinuxNvidiaJournalEventProvider:
         if match is None:
             raise ProbeFailure("JOURNAL_CURSOR_INVALID")
         event_rows = [row for row in rows if not row.startswith("-- cursor:")]
+        if result.returncode == 1 and (cursor is None or event_rows):
+            raise ProbeFailure("JOURNALCTL_QUERY_FAILED")
         if len(event_rows) > _JOURNAL_MAX_ENTRIES or (
             reject_full and lines and len(event_rows) >= lines
         ):

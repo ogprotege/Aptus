@@ -405,6 +405,43 @@ class LinuxNvidiaJournalEventProviderTests(unittest.TestCase):
         self.assertIn("--grep=(NVRM|nvidia|nouveau)", commands[0])
         self.assertIn("--after-cursor=s=baseline", commands[1])
 
+    def test_empty_incremental_journal_query_accepts_cursor_only_status_one(
+        self,
+    ) -> None:
+        boot_id = "a" * 32
+        calls = 0
+
+        def runner(_command: Sequence[str], _timeout: float) -> ProbeCommandResult:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                baseline = json.dumps(
+                    {
+                        "_BOOT_ID": boot_id,
+                        "_TRANSPORT": "kernel",
+                        "MESSAGE": "Linux version test",
+                    },
+                    separators=(",", ":"),
+                )
+                return ProbeCommandResult(0, baseline + "\n-- cursor: s=baseline\n")
+            return ProbeCommandResult(1, "-- cursor: s=baseline\n")
+
+        provider = LinuxNvidiaJournalEventProvider._for_test(
+            journalctl_path="/usr/bin/journalctl",
+            boot_id=boot_id,
+            command_runner=runner,
+        )
+
+        self.assertEqual(
+            provider.snapshot(),
+            {
+                "xid_errors": [],
+                "reset_detected": False,
+                "device_lost": False,
+                "hardware_error": False,
+            },
+        )
+
     def test_preconstruction_xid_remains_sticky_and_blocks_baseline(self) -> None:
         boot_id = "a" * 32
         calls = 0

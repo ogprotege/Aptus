@@ -15,7 +15,7 @@ class BundleProgramPackagingTests(unittest.TestCase):
         )
 
         dependencies = project["project"]["dependencies"]
-        self.assertIn("numpy==2.5.2", dependencies)
+        self.assertIn("numpy==2.3.5", dependencies)
         self.assertIn("safetensors==0.8.0", dependencies)
 
     def test_wheel_declares_every_bundle_program_resource_directory(self) -> None:

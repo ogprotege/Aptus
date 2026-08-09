@@ -801,10 +801,12 @@ class TrustedExecutable:
     size: int
     modified_ns: int
     binding_sha256: str
+    content_sha256: str | None = None
 
     def verify(self) -> str:
         try:
-            metadata = Path(self.path).stat()
+            path = Path(self.path)
+            metadata = path.stat()
         except OSError:
             raise ProbeFailure("NVIDIA_SMI_IDENTITY_CHANGED") from None
         observed = (
@@ -817,7 +819,71 @@ class TrustedExecutable:
         expected = (self.device, self.inode, self.mode, self.size, self.modified_ns)
         if observed != expected:
             raise ProbeFailure("NVIDIA_SMI_IDENTITY_CHANGED")
+        if self.content_sha256 is not None:
+            observed_digest = _trusted_executable_content_sha256(
+                path,
+                expected=expected,
+                failure_code="NVIDIA_SMI_IDENTITY_CHANGED",
+            )
+            if observed_digest != self.content_sha256:
+                raise ProbeFailure("NVIDIA_SMI_IDENTITY_CHANGED")
         return self.path
+
+
+def _trusted_executable_content_sha256(
+    path: Path,
+    *,
+    expected: tuple[int, int, int, int, int],
+    failure_code: str,
+) -> str:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError:
+        raise ProbeFailure(failure_code) from None
+    digest = hashlib.sha256()
+    try:
+        opened = os.fstat(descriptor)
+        observed = (
+            opened.st_dev,
+            opened.st_ino,
+            opened.st_mode,
+            opened.st_size,
+            opened.st_mtime_ns,
+        )
+        if observed != expected:
+            raise ProbeFailure(failure_code)
+        while True:
+            block = os.read(descriptor, 1024 * 1024)
+            if not block:
+                break
+            digest.update(block)
+        finished = os.fstat(descriptor)
+        finished_identity = (
+            finished.st_dev,
+            finished.st_ino,
+            finished.st_mode,
+            finished.st_size,
+            finished.st_mtime_ns,
+        )
+        if finished_identity != expected:
+            raise ProbeFailure(failure_code)
+    finally:
+        os.close(descriptor)
+    try:
+        after = path.stat()
+    except OSError:
+        raise ProbeFailure(failure_code) from None
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_mode,
+        after.st_size,
+        after.st_mtime_ns,
+    )
+    if after_identity != expected:
+        raise ProbeFailure(failure_code)
+    return digest.hexdigest()
 
 
 def resolve_trusted_nvidia_smi(value: str | None) -> TrustedExecutable:
@@ -839,7 +905,20 @@ def resolve_trusted_nvidia_smi(value: str | None) -> TrustedExecutable:
         or (sys.platform.startswith("linux") and metadata.st_uid != 0)
     ):
         raise ProbeFailure("NVIDIA_SMI_UNTRUSTED")
+    expected = (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+    )
+    content_sha256 = _trusted_executable_content_sha256(
+        path,
+        expected=expected,
+        failure_code="NVIDIA_SMI_UNTRUSTED",
+    )
     identity = {
+        "content_sha256": content_sha256,
         "device": metadata.st_dev,
         "inode": metadata.st_ino,
         "mode": stat.S_IMODE(metadata.st_mode),
@@ -858,6 +937,7 @@ def resolve_trusted_nvidia_smi(value: str | None) -> TrustedExecutable:
         size=metadata.st_size,
         modified_ns=metadata.st_mtime_ns,
         binding_sha256=binding,
+        content_sha256=content_sha256,
     )
 
 
@@ -880,7 +960,20 @@ def resolve_trusted_journalctl(value: str | None = None) -> TrustedExecutable:
         or (sys.platform.startswith("linux") and metadata.st_uid != 0)
     ):
         raise ProbeFailure("JOURNALCTL_UNTRUSTED")
+    expected = (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+    )
+    content_sha256 = _trusted_executable_content_sha256(
+        path,
+        expected=expected,
+        failure_code="JOURNALCTL_UNTRUSTED",
+    )
     identity = {
+        "content_sha256": content_sha256,
         "device": metadata.st_dev,
         "inode": metadata.st_ino,
         "mode": stat.S_IMODE(metadata.st_mode),
@@ -899,6 +992,7 @@ def resolve_trusted_journalctl(value: str | None = None) -> TrustedExecutable:
         size=metadata.st_size,
         modified_ns=metadata.st_mtime_ns,
         binding_sha256=binding,
+        content_sha256=content_sha256,
     )
 
 

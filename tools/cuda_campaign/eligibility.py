@@ -14,6 +14,8 @@ import json
 import os
 import re
 import stat
+import sys
+import ctypes
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -754,6 +756,52 @@ def _private_directory_metadata(metadata: os.stat_result) -> bool:
     )
 
 
+def _linux_directory_mutation_watch(path: Path) -> int | None:
+    """Watch one Linux directory for transient entry replacement."""
+
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        initialize = libc.inotify_init1
+        initialize.argtypes = [ctypes.c_int]
+        initialize.restype = ctypes.c_int
+        add_watch = libc.inotify_add_watch
+        add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+        add_watch.restype = ctypes.c_int
+        descriptor = initialize(
+            getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+        )
+        if descriptor < 0:
+            return None
+        mutation_mask = (
+            0x00000004
+            | 0x00000040
+            | 0x00000080
+            | 0x00000100
+            | 0x00000200
+            | 0x00000400
+            | 0x00000800
+        )
+        if add_watch(descriptor, os.fsencode(path), mutation_mask) < 0:
+            os.close(descriptor)
+            return None
+        return descriptor
+    except (AttributeError, OSError):
+        return None
+
+
+def _linux_watch_saw_mutation(descriptor: int | None) -> bool:
+    if descriptor is None:
+        return False
+    try:
+        return bool(os.read(descriptor, 64 * 1024))
+    except BlockingIOError:
+        return False
+    except OSError:
+        return True
+
+
 def _regular_file_bytes(
     path: object,
     *,
@@ -1111,17 +1159,25 @@ def _private_directory_snapshot(
     if not isinstance(path, Path):
         raise _InvalidEvidence(f"{label} is not a Path")
     try:
+        parent_metadata = path.parent.lstat()
         metadata = path.lstat()
     except OSError as error:
         raise _InvalidEvidence(f"{label} is unavailable") from error
+    if not stat.S_ISDIR(parent_metadata.st_mode):
+        raise _InvalidEvidence(f"{label} parent is not a directory")
+    parent_fingerprint = _metadata_fingerprint(parent_metadata)
     if not _private_directory_metadata(metadata):
         raise _InvalidEvidence(f"{label} is not a private directory")
     directory_fingerprint = _metadata_fingerprint(metadata)
     flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    parent_watch = _linux_directory_mutation_watch(path.parent)
     try:
         directory_descriptor = os.open(path, flags)
     except OSError as error:
+        if parent_watch is not None:
+            os.close(parent_watch)
         raise _InvalidEvidence(f"{label} cannot be opened safely") from error
+    parent_mutated = False
     try:
         opened_directory = os.fstat(directory_descriptor)
         if (
@@ -1165,12 +1221,22 @@ def _private_directory_snapshot(
             or _metadata_fingerprint(finished_directory) != directory_fingerprint
         ):
             raise _InvalidEvidence(f"{label} changed while hashing")
+        parent_mutated = _linux_watch_saw_mutation(parent_watch)
     finally:
         os.close(directory_descriptor)
+        if parent_watch is not None:
+            os.close(parent_watch)
     try:
+        after_parent = path.parent.lstat()
         after = path.lstat()
     except OSError as error:
         raise _InvalidEvidence(f"{label} changed after hashing") from error
+    if (
+        parent_mutated
+        or not stat.S_ISDIR(after_parent.st_mode)
+        or _metadata_fingerprint(after_parent) != parent_fingerprint
+    ):
+        raise _InvalidEvidence(f"{label} changed while hashing")
     if (
         not _private_directory_metadata(after)
         or _metadata_fingerprint(after) != directory_fingerprint

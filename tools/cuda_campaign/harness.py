@@ -107,6 +107,25 @@ _MANAGED_ACTIONS = frozenset(
 _ACTION_LABEL = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 _BLOCK_MARKER = "SUBMISSIONS_BLOCKED.json"
 
+
+def _expected_selected_roles(
+    *, passing_candidate: bool, pilot_passed: bool
+) -> frozenset[str]:
+    roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES | (
+        REQUIRED_QUALIFYING_AUTHORITY_ROLES
+        - {
+            "campaign-record",
+            "comparison-cohort-record",
+            "comparison-cell-record",
+        }
+    )
+    if not passing_candidate:
+        roles -= {"training-metrics", "final-export-manifest"}
+        if not pilot_passed:
+            roles -= {"pilot-metrics"}
+    return roles
+
+
 _ACTIVATION_PROVENANCE = (
     (
         "admission-decision.json",
@@ -3642,24 +3661,13 @@ class CaptureHarness:
                     qualification_failure_code or "MISSING_REQUIRED_EVIDENCE"
                 )
 
-            expected_selected_roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES | (
-                REQUIRED_QUALIFYING_AUTHORITY_ROLES
-                - {
-                    "campaign-record",
-                    "comparison-cohort-record",
-                    "comparison-cell-record",
-                }
-            )
-            if not passing_candidate:
-                expected_selected_roles -= {
-                    "training-metrics",
-                    "final-export-manifest",
-                }
-                if not any(
+            expected_selected_roles = _expected_selected_roles(
+                passing_candidate=passing_candidate,
+                pilot_passed=any(
                     result.spec.action == "pilot" and result.native_outcome == "passed"
                     for result in results
-                ):
-                    expected_selected_roles.discard("pilot-metrics")
+                ),
+            )
             if set(selected_role_digests) != expected_selected_roles:
                 qualification_failure_code = "MISSING_REQUIRED_EVIDENCE"
 

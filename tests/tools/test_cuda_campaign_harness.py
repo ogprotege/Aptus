@@ -30,6 +30,7 @@ from tools.cuda_campaign.harness import (
     SelectedArtifact,
     SubmissionBlockedError,
     TelemetryCapture,
+    _expected_selected_roles,
     verify_cancellation_milestones,
 )
 from tools.cuda_campaign.monitoring import (
@@ -1416,6 +1417,17 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
+    def test_failed_pre_pilot_sequence_omits_unavailable_selected_roles(self) -> None:
+        roles = _expected_selected_roles(
+            passing_candidate=False,
+            pilot_passed=False,
+        )
+
+        self.assertIsInstance(roles, frozenset)
+        self.assertNotIn("pilot-metrics", roles)
+        self.assertNotIn("training-metrics", roles)
+        self.assertNotIn("final-export-manifest", roles)
+
     def test_qualifying_cooldown_uses_a_recovered_rolling_window(self) -> None:
         from tests.tools.test_cuda_campaign_qualification import qualifying_context
 

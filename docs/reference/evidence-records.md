@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Plan reviewers, operators, auditors, and maintainers |
 | Authority | Normative v0.2 reference for provenance, cited evidence, measurements, and runtime attestations |
-| Last reviewed | 2026-08-06 |
+| Last reviewed | 2026-08-10 |
 | Next review | 2026-11-01, or sooner when domain, evidence, validation, or execution contracts change |
 
 Aptus separates seven concepts that answer different questions:
@@ -202,6 +202,14 @@ artifact, device, host, environment, or release claim. The packet is not a
 code-owned `EvidenceRecord` entry and this document does not assign it a
 canonical plan-level evidence ID. Do not insert a fabricated CUDA evidence ID
 into `evidence_records`.
+
+The later [2026-08-10 Phase 5 repeatability anchor
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+is a separate operational cohort record: five predeclared, protocol-valid
+SmolLM2 LoRA single-device slots passed the frozen stability and integrity
+contract and established Phase 6 eligibility for that exact anchor scope. It
+does not retroactively broaden the August 6 packet, create a plan-level
+`EvidenceRecord`, or qualify another method, artifact, host, or environment.
 
 ## Candidate evidence mapping
 

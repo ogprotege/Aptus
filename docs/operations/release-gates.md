@@ -428,6 +428,15 @@ source-test gate; this limitation does not alter the packet's separately bound
 one-execution runtime result. See the [complete committed packet and retention
 boundary](index.md#complete-ubuntu-cuda-acceptance-packet).
 
+The separate [2026-08-10 Phase 5 repeatability anchor
+packet](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md) records
+five of five new predeclared LoRA single-device slots passing the frozen common
+stability and integrity contract, including off-host copies and fresh
+retrieval. It closes the repeatability gate only for that exact source, host,
+environment, model revision, dataset, and configuration. Method-matrix,
+remaining target-host, quality, safety, distribution, and release gates remain
+open.
+
 The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact. The
 [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)

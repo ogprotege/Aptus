@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0 through 4 complete; Phase 5 closed without establishing the repeatability anchor | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-09 | **Review by:** Before authorizing a new Phase 5 cohort, after any capture or selection contract changes, or by 2026-09-08
+> **Status:** Active experiment plan; Phases 0 through 5 complete; Phase 5 repeatability anchor established and Phase 6 authorized for the exact frozen scope | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before starting Phase 6, after any capture or selection contract change, or by 2026-09-09
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -622,15 +622,21 @@ this point invalidates the rehearsal and requires a new freeze.
 
 ### Phase 5 — repeatability anchor
 
-**Complete without establishing the anchor.** The predeclared conditioning
-attempt passed admission and dependency validation, then failed closed during
-model/data validation when the one-hertz telemetry collector missed a scheduled
-sample. The capture was `capture-invalid`; the frozen no-replacement rule left
-all five measured slots `planned-not-started` and denied Phase 6 authorization.
-The [sanitized outcome packet](evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md)
-binds the slot dispositions, stable reason codes, protected artifact digests,
-off-host copy receipts, retrieval receipts, and claim boundary. A newly reviewed
-protocol and cohort are required before another conditioning attempt.
+**Complete with the anchor established.** A successful replacement cohort ran
+all five predeclared measured slots in frozen order with no replacements. Every
+slot completed 128 non-skipped optimizer steps with native outcome `passed`,
+`protocol-valid` evidence, healthy telemetry, a verified seal, an
+off-experiment-host copy, and a verified fresh retrieval. Duration MAD/median,
+duration maximum/minimum, peak-device-memory range, telemetry coverage, and
+maximum telemetry gap all passed the Phase 1 common stability contract. The
+[successful sanitized packet](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+therefore establishes the exact-host anchor and authorizes Phase 6 for the
+exact frozen scope.
+
+The earlier [stopped cohort](evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md)
+remains immutable failure history. Its conditioning capture failed closed and
+its five measured slots did not start. It is not included in the successful
+cohort aggregate and was not overwritten or silently discarded.
 
 Use one exact SmolLM2 135M revision, the frozen synthetic benchmark dataset,
 LoRA, BF16 or the planner-selected supported precision, and `single` placement.
@@ -788,10 +794,11 @@ still required for DDP and conditional LoRA FSDP.
    supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md).
    They record no new Ubuntu result.
 3. Preserve the completed Phase 3 selection and measurement-control contracts.
-4. Run the complete repository gates with
-   retained transcripts, and perform the Phase 4 nonqualifying rehearsal.
-5. Freeze the exact source, host, environments, datasets, models, and run order.
-6. Execute Phases 5 through 9 in order, sealing and reviewing each batch before
+4. Preserve the completed Phase 4 rehearsal, repository-gate evidence, source
+   freeze, host/environment bindings, fixtures, and frozen run order.
+5. Preserve the independently reviewed successful Phase 5 packet and its
+   separate immutable stopped-cohort history.
+6. Execute Phases 6 through 9 in order, sealing and reviewing each batch before
    expanding the matrix.
 7. Publish Phase 10 packets and update claims only to the exact evidence boundary.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-09 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-10 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -8,6 +8,12 @@ All notable changes are recorded here.
 
 ### Added
 
+- A reviewed CUDA Phase 5 repeatability packet: five of five predeclared
+  SmolLM2 LoRA single-device slots passed the frozen stability and integrity
+  contract at source `3bfec547d4cffedbaf049426d9713f1ccc25b5a2`, with verified
+  off-host copies and fresh retrieval. The result establishes only the exact
+  frozen anchor and Phase 6 eligibility, not broad CUDA support or release
+  readiness.
 - Aptus for Mac, a native AppKit and WebKit application with automatic bundled
   backend lifecycle, private session authentication, native path pickers,
   Finder actions, startup recovery, app packaging, and CUDA-host handoff.

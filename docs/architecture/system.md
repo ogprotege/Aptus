@@ -193,8 +193,11 @@ changing the canonical snapshot digest. The record establishes neither model
 quality, safety, performance, production throughput, production readiness, nor
 release readiness, and it does not qualify CUDA. A separate [2026-08-06 CUDA
 LoRA single-device record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-qualifies one exact SmolLM2 workflow only; repeatability and every other CUDA
-method, placement, artifact, host, and environment remain open. The
+qualifies one exact SmolLM2 workflow only. The later [five-slot Phase 5
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+establishes repeatability for the exact frozen LoRA single-device anchor;
+every other CUDA method, placement, artifact, host, and environment remains
+open. The
 [original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 

@@ -112,8 +112,11 @@ dataset, snapshot, plan, and bundle. Compiler eligibility remains a
 configuration-footprint decision, so another matching artifact must establish
 its own runtime evidence. A separate [2026-08-06 CUDA LoRA single-device
 record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-qualifies one exact SmolLM2 five-job workflow; repeatability and every other
-CUDA path remain open. Neither record establishes safety, model quality,
+qualifies one exact SmolLM2 five-job workflow. The later [five-slot Phase 5
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+establishes the exact-host LoRA single-device repeatability anchor; every other
+CUDA method, placement, artifact, host, and environment remains open. None of
+these records establishes safety, model quality,
 performance, production throughput, production readiness, or release readiness. The
 [original acceptance packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.

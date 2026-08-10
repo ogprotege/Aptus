@@ -977,7 +977,7 @@ class DocumentationTests(unittest.TestCase):
             documentation_debt,
         )
         self.assertIn(
-            "One qualifying exact CUDA LoRA single-device acceptance has been collected",
+            "The exact CUDA LoRA single-device repeatability anchor is now established",
             " ".join(documentation_health.split()),
         )
 
@@ -1956,7 +1956,7 @@ class DocumentationTests(unittest.TestCase):
             "docs/maintenance/documentation-health.md": (
                 "That refresh supplies current-contract Phase 6 MLX-LM runtime evidence at its exact acceptance source",
                 "A different matching artifact remains conditional",
-                "One qualifying exact CUDA LoRA single-device acceptance has been collected",
+                "The exact CUDA LoRA single-device repeatability anchor is now established",
             ),
         }
         for relative_path, claims in required_claims.items():
@@ -2436,6 +2436,114 @@ class DocumentationTests(unittest.TestCase):
         )
         for private_marker in ("/home/", "/Users/", "GPU-", "192.168."):
             self.assertNotIn(private_marker, public_text)
+
+    def test_cuda_phase5_repeatability_anchor_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "independent-review.json",
+            "phase5-outcome.json",
+            "sanitization-map.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        self.assertEqual(
+            [relative for _digest, relative in parsed],
+            [
+                "./README.md",
+                "./phase5-outcome.json",
+                "./sanitization-map.json",
+                "./independent-review.json",
+            ],
+        )
+        self.assertEqual(len(parsed), len({relative for _digest, relative in parsed}))
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        outcome = json.loads((packet / "phase5-outcome.json").read_text())
+        aggregate = outcome["aggregate"]
+        self.assertEqual(outcome["decision"]["phase5_status"], "complete-established")
+        self.assertTrue(aggregate["repeatability_anchor_established"])
+        self.assertTrue(outcome["decision"]["phase6_authorized"])
+        self.assertEqual(
+            (
+                aggregate["required_measured_slots"],
+                aggregate["started_measured_slots"],
+                aggregate["protocol_valid_native_passes"],
+                aggregate["replacements"],
+            ),
+            (5, 5, 5, 0),
+        )
+        self.assertEqual(aggregate["completed_non_skipped_optimizer_steps_total"], 640)
+        self.assertTrue(aggregate["duration_stability"]["passed"])
+        self.assertTrue(aggregate["peak_device_memory_stability"]["passed"])
+        self.assertEqual(aggregate["minimum_telemetry_coverage"], 1.0)
+        self.assertLessEqual(aggregate["maximum_telemetry_gap_seconds"], 2.5)
+        self.assertTrue(aggregate["all_copy_verifications_passed"])
+        self.assertTrue(aggregate["all_retrieval_verifications_passed"])
+        self.assertEqual(len(outcome["measured_slots"]), 5)
+        self.assertTrue(
+            all(
+                slot["slot_status"] == "started"
+                and slot["native_outcome"] == "passed"
+                and slot["evidence_status"] == "protocol-valid"
+                and slot["completed_non_skipped_optimizer_steps"] == 128
+                and slot["copy_verification"] == "passed"
+                and slot["retrieval_verification"] == "passed"
+                for slot in outcome["measured_slots"]
+            )
+        )
+
+        review = json.loads((packet / "independent-review.json").read_text())
+        sanitization = json.loads((packet / "sanitization-map.json").read_text())
+        self.assertEqual(review["review_result"], "passed")
+        self.assertTrue(review["role_separation_verified"])
+        self.assertTrue(all(review["checks"].values()))
+        self.assertEqual(sanitization["public_output"], "phase5-outcome.json")
+        self.assertEqual(len(sanitization["field_groups"]), 7)
+
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8") for name in expected_files
+        )
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+        ):
+            self.assertNotIn(private_marker, public_text)
+
+        packet_link = "evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md"
+        for relative in (
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/reference/capability-matrix.md",
+            "docs/product/current-capabilities.md",
+        ):
+            self.assertIn(packet_link, (REPOSITORY / relative).read_text())
 
     def test_cuda_lora_single_acceptance_packet_is_bound_and_sanitized(
         self,

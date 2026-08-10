@@ -208,9 +208,11 @@ recorded error rather than assuming an exact ratio.
 
 CUDA cannot execute on the current development Mac. One separate [exact
 SmolLM2 LoRA single-device workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-has completed on its recorded external host; it does not establish
-repeatability or qualify another target-host path. Complete the remaining
-release gates before treating this path as release-ready.
+has completed on its recorded external host. A later [five-slot repeatability
+cohort](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+established the exact frozen LoRA anchor on that host; it does not qualify
+another CUDA method, artifact, host, environment, or release. Complete the
+remaining release gates before treating this path as release-ready.
 
 ## Related documentation
 

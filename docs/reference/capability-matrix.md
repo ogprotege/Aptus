@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-08-06 |
+| Last reviewed | 2026-08-10 |
 | Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -45,6 +45,15 @@ model-data, measured preflight, two-phase checkpoint-continuation pilot, full
 training, structural PEFT export, and parent promotion to the exact recorded
 host/runtime/model/dataset/plan/policy/bundle scope. It does not establish
 repeatability or qualify any other CUDA matrix cell or environment.
+
+The separate [2026-08-10 Phase 5 repeatability
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+records five of five new, predeclared SmolLM2 LoRA single-device slots passing
+at source `3bfec547d4cffedbaf049426d9713f1ccc25b5a2`. All five completed 128
+optimizer steps with protocol-valid evidence, passed the frozen duration and
+peak-memory stability thresholds, and passed off-host copy and fresh retrieval
+verification. This establishes the exact frozen anchor and Phase 6 eligibility;
+it does not qualify another method, artifact, host, environment, or release.
 
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
@@ -145,7 +154,7 @@ MPS or MLX.
 
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
-| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | One exact SmolLM2 LoRA single-device workflow reached `measured-run-pass`; every other method, placement, artifact, host, and environment remains unqualified |
+| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | Five of five frozen SmolLM2 LoRA single-device Phase 5 slots passed and established the exact-host repeatability anchor; every other method, placement, artifact, host, and environment remains unqualified |
 | `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the conditional Qwen3 MoE row and reviewed 24-layer dense Qwen2 footprint | Two current v5/v3 dense QLoRA workflows reached `measured-run-pass` for the exact accepted Qwen2.5 artifact; every different Qwen2 artifact and the Qwen3 MoE row remain conditional and pilot-required |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
@@ -160,7 +169,7 @@ services for model listing and text generation.
 | Pull-request packaging | Workflow builds GitHub's synthetic merge commit and uploads app ZIP, DMG, checksums, and source marker | Passed only after that exact workflow commit's GitHub Actions job succeeds |
 | Default signature | Ad-hoc signing is built and verified | Local review integrity, not public distribution approval |
 | Public Mac distribution | Developer ID signing, notarization, stapling, and Gatekeeper assessment are implemented as required gates | Open until real credentials produce accepted artifacts bound to the exact release commit |
-| CUDA target-host execution | One exact LoRA single-device workflow reached `measured-run-pass` | Partial; repeatability and every other claimed method, placement, artifact, host, and environment remain open |
+| CUDA target-host execution | Five of five frozen LoRA single-device Phase 5 slots passed the common stability and integrity contract | Partial; the exact repeatability anchor is established, while every other claimed method, placement, artifact, host, and environment remains open |
 
 ## Distribution behavior
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-09 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-10 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
@@ -17,6 +17,13 @@ Completed evidence:
   after dependency, model-data, measured-preflight, two-phase
   checkpoint-continuation pilot, full training, structural PEFT export, and
   parent promotion. It is not repeatability or broad CUDA acceptance.
+- A separate [five-slot Phase 5
+  cohort](docs/operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+  established the exact-host SmolLM2 LoRA single-device repeatability anchor at
+  source `3bfec547d4cffedbaf049426d9713f1ccc25b5a2`. All five predeclared slots
+  passed the frozen stability and integrity contract, off-host copy
+  verification, and fresh retrieval. This authorizes Phase 6 only from the
+  exact frozen anchor scope.
 - Two clean, independent MLX-LM QLoRA workflows reached
   `measured-run-pass` with the exact recorded model, revision, dataset, host,
   runtime, plan, and generated bundle.
@@ -59,16 +66,15 @@ Completed Phase 2 tooling and recovery publication, not new target-runtime evide
   separate original Python test transcript also remains `not-found`. Two
   verified physical copies, full off-host retrieval, retention, traceability,
   privacy review, finalized-byte verification, eligibility, and two-pass
-  publication passed. This is recovery-integrity evidence only. Phase 3
-  selection and measurement controls remain pending, and mutation of the
-  intended Ubuntu host remains forbidden.
+  publication passed. This is recovery-integrity evidence only. Phases 3 and 4
+  later completed their controls and freeze, and Phase 5 established its
+  separately reviewed anchor; none of those results broadens the Phase 2B
+  recovery claim.
 
 Remaining release work:
 
-- Complete Phase 3 explicit candidate selection and exact measurement controls
-  before any new measured campaign run.
 - Execute the canonical [RTX 3050 CUDA empirical evidence
-  campaign](docs/operations/cuda-empirical-campaign.md) for repeatability,
+  campaign](docs/operations/cuda-empirical-campaign.md) from Phase 6 onward for
   clean-environment dependencies, all four registered single-device method
   cells where exact candidates pass their gates,
   model scale, guarded configuration frontiers, endurance, and raw-evidence

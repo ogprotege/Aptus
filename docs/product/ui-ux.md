@@ -215,8 +215,10 @@ gates pass. This state is not a safety, model-quality, performance,
 production-throughput, production-readiness, or release-readiness claim, and
 it does not qualify CUDA. One separate [exact SmolLM2 CUDA LoRA single-device
 workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-has target-runtime evidence; repeatability and every other CUDA scope remain
-open. The [original Phase 6
+has target-runtime evidence. The later [five-slot Phase 5
+cohort](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+establishes the exact-host LoRA single-device repeatability anchor; every other
+CUDA method, placement, artifact, host, and environment remains open. The [original Phase 6
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline.
 

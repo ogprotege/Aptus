@@ -423,6 +423,12 @@ plan, policy snapshot, bundle, and five-job sequence. One qualifying execution
 does not establish repeatability or qualify any other CUDA method, placement,
 device, artifact, dataset, host, or environment.
 
+The later [2026-08-10 Phase 5 repeatability
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+separately establishes the exact frozen SmolLM2 LoRA single-device anchor from
+five protocol-valid slots. It does not change any API schema or qualify another
+method, artifact, host, environment, or release claim.
+
 Prefix matching never admits MoE or multimodal variants. Sparse model-type and
 architecture markers remain unsupported when provider topology is absent, even
 if their normalized family has a dense policy.

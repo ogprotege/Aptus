@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 method-matrix outcome, and the corrected Phase 6 remediation outcome
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, and the current Full confirmatory-stability outcome
 >
 > **Last reviewed:** 2026-08-10
 >
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 128 tracked Markdown documents. Of those, 127 are
+The repository tree contains 129 tracked Markdown documents. Of those, 128 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -27,20 +27,22 @@ sanitized recovery-evidence packet. Phase 5 adds one active stopping-rule
 outcome packet, and the successful replacement cohort adds a separate active
 repeatability-anchor packet without overwriting that failure history. Phase 6
 adds an active method-matrix outcome packet, and its corrected remediation adds
-a separate active packet without overwriting the earlier cohort history.
+a separate active packet without overwriting the earlier cohort history. The
+fixed-source Full cohort adds the current active stability packet without
+altering either prior Phase 6 packet.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 98 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 99 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 127 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 128 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the same 127 governed
+The automated `maintained_documentation()` set contains the same 128 governed
 Markdown files. Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -140,6 +142,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md), independently reviewed recovery-integrity evidence for the protected August 6 records; not target-runtime, performance, repeatability, or release-readiness evidence
 - [2026-08-09 CUDA Phase 5 repeatability-anchor outcome](../operations/evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md), a target-host conditioning capture failure that applies the frozen no-replacement rule and does not establish repeatability or Phase 6 eligibility
 - [2026-08-10 CUDA Phase 5 repeatability anchor](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md), the separate successful five-slot replacement cohort that establishes the exact-host anchor and Phase 6 eligibility within its frozen boundary
+- [2026-08-10 CUDA Phase 6 Full confirmatory stability](../operations/evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md), the separate fixed-source five-slot cohort that establishes one stable exact-host Full cell and authorizes the bounded Phase 7 procedure
 - [2026-08-10 CUDA Phase 6 remediation method matrix](../operations/evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md), the corrected 32-slot outcome in which Full was promoted, then failed to establish confirmatory stability; no stable method or Phase 7 authorization resulted
 - [2026-08-10 historical CUDA Phase 6 method matrix](../operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md), the immutable earlier-cohort outcome with no promoted method or confirmatory execution
 - [2026-08-06 SmolLM2 CUDA LoRA single-device target-host acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md), one exact five-job `measured-run-pass` workflow at `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed` for the recorded host, runtime, model revision, synthetic dataset, plan, policy, and bundle
@@ -314,12 +317,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 127-file lifecycle count is
+The single tracked Markdown file outside the 128-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 128 tracked Markdown files.
+of 129 tracked Markdown files.
 
 ## Excluded local and generated material
 

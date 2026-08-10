@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0 through 6 complete; Phase 6 remediation promoted Full from exploratory testing but established no stable method, so Phase 7 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before authorizing a replacement cohort, changing the capture contract, or by 2026-09-09
+> **Status:** Active experiment plan; Phases 0 through 6 complete; a separate fixed-source five-slot Full cohort established one stable Phase 6 cell, so Phase 7 is authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before beginning Phase 7, changing the frozen cell, changing the capture contract, or by 2026-09-09
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -655,14 +655,22 @@ receive independent review.
 
 ### Phase 6 — same-model method matrix
 
-**Complete with no stable method.** The corrected
+**Complete with one stable Full cell.** The corrected
 [sanitized Phase 6 remediation packet](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
 retains all 32 predeclared slots with no replacements. Full and LoRA were
 admitted; Int8 LoRA and QLoRA were not admitted on the exact host. Full passed
 all three exploratory attempts and was promoted. LoRA passed two of three and
 was not promoted. Exactly five Full confirmatory attempts then started: one
-passed and four were safely cancelled for unrelated GPU activity. Full did not
-establish confirmatory stability, so Phase 7 is not authorized.
+passed and four were safely cancelled for unrelated GPU activity. That cohort
+did not establish confirmatory stability.
+
+The separate [Full confirmatory-stability packet](evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
+records the source corrections and a new fixed-source cohort at exact merged
+commit `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`. All five
+predeclared Full confirmatory slots passed the frozen stability and integrity
+contract without replacements. It establishes one stable exact-host Full cell
+and authorizes Phase 7. The intervening r4 source-defect diagnostic is preserved
+separately and contributes no value to the successful aggregate.
 
 The [earlier Phase 6 packet](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
 remains an immutable historical record of its earlier cohort. The remediation

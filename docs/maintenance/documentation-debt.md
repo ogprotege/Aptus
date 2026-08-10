@@ -214,15 +214,16 @@ when its evidence, owner, or resolution changes.
   is complete and independently reviewed. Phase 3 explicit candidate selection
   and measurement controls are implemented under the v6 plan contract. Phase 4
   rehearsal and freeze are complete, and the successful Phase 5 five-attempt
-  LoRA anchor packet is merged. The corrected Phase 6 four-method matrix is
-  complete: Full was promoted after three passing exploratory attempts, then
-  produced one pass and four unrelated-GPU-activity safety cancellations in
-  five confirmatory attempts. No stable method was established and Phase 7 is
-  not authorized.
-  A replacement cohort or capture-contract change requires separate review.
+  LoRA anchor packet is merged. The corrected Phase 6 four-method remediation
+  matrix remains immutable: Full was promoted after three passing exploratory
+  attempts, then produced one pass and four unrelated-GPU-activity safety
+  cancellations. A separately reviewed fixed-source five-slot Full cohort now
+  passes the frozen stability and integrity contract, establishes one stable
+  exact-host cell, and authorizes Phase 7. A cell change or capture-contract
+  change requires separate review.
   Capability claims change only after the applicable packets merge.
-- **Blocker:** Phase 7 and later campaign phases remain pending because Phase 6
-  established no stable cell. The intended RTX 3050 host has one GPU and cannot
+- **Blocker:** Phase 7 is authorized but remains to be executed under the
+  predeclared scale-and-breadth procedure. The intended RTX 3050 host has one GPU and cannot
   close DDP or FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple

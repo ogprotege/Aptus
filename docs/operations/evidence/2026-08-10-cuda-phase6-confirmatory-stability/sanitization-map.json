@@ -1,0 +1,132 @@
+{
+  "excluded_protected_classes": [
+    "raw argv and working paths",
+    "raw console and job logs",
+    "usernames, hostnames, and network addresses",
+    "raw GPU and machine identifiers",
+    "Aptus job and internal run identifiers",
+    "model and checkpoint bytes"
+  ],
+  "field_groups": [
+    {
+      "derivation": "Exact common values verified equal across all five restored sealed artifacts.",
+      "public_pointers": [
+        "/bindings",
+        "/configuration"
+      ],
+      "raw_sources": [
+        "records/campaign.json",
+        "records/comparison-cell.json",
+        "records/comparison-cohort.json",
+        "phase4/phase4-source-freeze.json"
+      ]
+    },
+    {
+      "derivation": "One public row per restored artifact, ordered by predeclared ordinal; identity, disposition, seed, and terminal fields copied exactly.",
+      "public_pointers": [
+        "/measured_slots/*/ordinal",
+        "/measured_slots/*/attempt_slot_id",
+        "/measured_slots/*/execution_configuration_id",
+        "/measured_slots/*/experiment_run_id",
+        "/measured_slots/*/scheduled_seed",
+        "/measured_slots/*/data_order_seed",
+        "/measured_slots/*/slot_status",
+        "/measured_slots/*/native_outcome",
+        "/measured_slots/*/evidence_status",
+        "/measured_slots/*/reason_code",
+        "/measured_slots/*/capture_reason_code"
+      ],
+      "raw_sources": [
+        "records/attempt-slot.json",
+        "records/execution-configuration.json",
+        "sequence/summary.json"
+      ]
+    },
+    {
+      "derivation": "Exact training.finished monotonic timestamp minus the matching training.started monotonic timestamp for each protected run.",
+      "public_pointers": [
+        "/measured_slots/*/externally_observed_training_duration_ns",
+        "/aggregate/duration_stability"
+      ],
+      "raw_sources": [
+        "actions/train/runtime-boundaries.jsonl"
+      ],
+      "summary_formula": "type-7 median at p=0.5; MAD = median(abs(x_i - median(x))); maximum/minimum uses positive finite durations"
+    },
+    {
+      "derivation": "Exact per-slot runtime counters and values; cross-run summary uses the frozen aggregation formula without exclusions or imputation.",
+      "public_pointers": [
+        "/measured_slots/*/completed_non_skipped_optimizer_steps",
+        "/measured_slots/*/runtime_peak_cuda_bytes",
+        "/measured_slots/*/runtime_reserved_cuda_bytes",
+        "/measured_slots/*/train_loss",
+        "/measured_slots/*/eval_loss",
+        "/aggregate/completed_non_skipped_optimizer_steps_total",
+        "/aggregate/peak_device_memory_stability"
+      ],
+      "raw_sources": [
+        "selected/training-metrics.json"
+      ]
+    },
+    {
+      "derivation": "Exact per-slot qualifying telemetry summary values; aggregate minimum and maximum calculated across all five slots.",
+      "public_pointers": [
+        "/measured_slots/*/telemetry_healthy",
+        "/measured_slots/*/telemetry_coverage",
+        "/measured_slots/*/telemetry_maximum_gap_seconds",
+        "/measured_slots/*/telemetry_peak_gpu_memory_used_bytes",
+        "/aggregate/minimum_telemetry_coverage",
+        "/aggregate/maximum_telemetry_gap_seconds"
+      ],
+      "raw_sources": [
+        "sequence/summary.json",
+        "telemetry/summary.json"
+      ]
+    },
+    {
+      "derivation": "Artifact and manifest bindings copied from each immutable seal; receipt identifiers and results copied from the append-only off-host copy and retrieval journals.",
+      "public_pointers": [
+        "/measured_slots/*/protected_artifact_id",
+        "/measured_slots/*/raw_manifest_sha256",
+        "/measured_slots/*/raw_manifest_size_bytes",
+        "/measured_slots/*/copy_id",
+        "/measured_slots/*/copy_receipt_id",
+        "/measured_slots/*/off_experiment_host",
+        "/measured_slots/*/copy_verification",
+        "/measured_slots/*/destination_restore_id",
+        "/measured_slots/*/retrieval_receipt_id",
+        "/measured_slots/*/retrieval_verification"
+      ],
+      "raw_sources": [
+        "SEALED.json",
+        "append-only copy-verification receipt",
+        "append-only retrieval receipt"
+      ]
+    },
+    {
+      "derivation": "Deterministic application of the frozen Phase 1 common stability and integrity contract to all five predeclared r5 slots; no slot was removed, replaced, or imputed.",
+      "public_pointers": [
+        "/aggregate",
+        "/decision"
+      ],
+      "raw_sources": [
+        "docs/reference/cuda-campaign-protocol.v1.json#/matrix_contract/common_stability_and_integrity_contract",
+        "records/comparison-cohort.json#/promotion_rule"
+      ]
+    },
+    {
+      "derivation": "Exact source and terminal projections from the separately preserved r4 conditioner and first confirmatory artifact; no r4 value enters an r5 aggregate.",
+      "public_pointers": [
+        "/prior_nonqualifying_cohort"
+      ],
+      "raw_sources": [
+        "separately protected r4 source freeze",
+        "separately protected r4 sequence summaries",
+        "separately protected r4 custody receipts"
+      ]
+    }
+  ],
+  "producer_role_id": "phase6-confirmatory-stability-outcome-producer",
+  "public_output": "phase6-outcome.json",
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

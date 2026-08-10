@@ -2748,6 +2748,20 @@ class RawArtifactStorageTests(unittest.TestCase):
             ):
                 writer.seal()
 
+    def test_cooldown_exact_boundary_uses_observation_timestamps(self) -> None:
+        telemetry = protocol_telemetry_records()
+        for sample in telemetry:
+            sample["observed_monotonic_ns"] += 20_000_000
+
+        summary = storage._cooldown_summary(
+            telemetry,
+            start_monotonic_ns=telemetry[1]["observed_monotonic_ns"],
+            stop_monotonic_ns=telemetry[-1]["observed_monotonic_ns"],
+            idle_baseline=protocol_idle_baseline_binding()["summary"],
+        )
+
+        self.assertEqual(summary["sample_count"], 120)
+
     def test_qualifying_run_rejects_digest_and_derived_summary_spoofs(self) -> None:
         telemetry_summary = protocol_telemetry_summary(
             protocol_telemetry_records(), protocol_event_records()

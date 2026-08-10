@@ -1488,6 +1488,7 @@ class ManagedSequenceTests(unittest.TestCase):
                             start_monotonic_ns=cooldown_start,
                             experiment_run_id=context.experiment_run_id,
                         )
+                        sample["observed_monotonic_ns"] += 20_000_000
                         if slot == 0:
                             sample["gpu"]["power_draw_w"] = 40.0
                         rows.append(sample)
@@ -1515,8 +1516,8 @@ class ManagedSequenceTests(unittest.TestCase):
         self.assertEqual(
             [row["monotonic_ns"] for row in cooldown_rows],
             [
-                cooldown_start + 1_000_000_000,
-                cooldown_start + 120_000_000_000,
+                cooldown_start + 1_020_000_000,
+                cooldown_start + 120_020_000_000,
             ],
         )
         self.assertEqual(ledger.records[-1]["event_type"], "cooldown.finished")

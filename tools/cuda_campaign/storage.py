@@ -1653,8 +1653,8 @@ def _cooldown_summary(
     if len(cooldown) != 120:
         raise EvidenceStorageError("Cooldown does not contain exactly 120 samples.")
     if (
-        cooldown[0]["scheduled_monotonic_ns"] != start_monotonic_ns
-        or cooldown[-1]["scheduled_monotonic_ns"] != stop_monotonic_ns
+        cooldown[0]["observed_monotonic_ns"] != start_monotonic_ns
+        or cooldown[-1]["observed_monotonic_ns"] != stop_monotonic_ns
     ):
         raise EvidenceStorageError("Cooldown samples do not cover its exact boundary.")
     try:

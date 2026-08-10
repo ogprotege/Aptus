@@ -65,6 +65,14 @@ passed the frozen stability and integrity contract. It establishes one stable
 exact-host Full cell and authorizes the bounded Phase 7 procedure; it does not
 qualify another method, artifact, host, environment, or release.
 
+The reviewed [Phase 7 scale-staircase
+packet](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+records one passing 128-step 135M LoRA exploratory slot followed by a live
+`THERMAL_WARNING_SUSTAINED` admission refusal before the second slot activated.
+The frozen stop rule left all later slots planned-not-started without
+replacement. No Phase 7 cell established three-run stability, architecture
+breadth did not activate, and Phase 8 is not authorized.
+
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the

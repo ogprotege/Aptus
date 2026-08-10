@@ -1,0 +1,36 @@
+{
+  "checks": {
+    "admission_refusal_classified_as_planned_not_started": true,
+    "all_fresh_retrieval_receipts_verified": true,
+    "all_off_host_copy_receipts_verified": true,
+    "all_restored_raw_manifest_entries_verified": true,
+    "all_seal_bindings_verified": true,
+    "all_slot_dispositions_verified": true,
+    "architecture_breadth_not_activated": true,
+    "claim_wording_verified": true,
+    "model_and_tokenizer_freezes_verified": true,
+    "no_phase7_stability_aggregate_inferred_from_one_run": true,
+    "no_slot_excluded_replaced_or_imputed": true,
+    "phase8_not_authorized": true,
+    "planner_admission_ledger_verified": true,
+    "sanitization_boundary_verified": true,
+    "stopping_rule_application_verified": true
+  },
+  "custodian_role_id": "evidence-custodian",
+  "inputs": {
+    "phase7_outcome_sha256": "3fd597c3c3884de3cfd14184e2c38e49ec66e66b17f186a97b3f9d56d11ab656",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "readme_sha256": "962281fb0c19f59bbeeb098d5de75596912f996ff999c7cf4789ca4636965d7c",
+    "sanitization_map_sha256": "839b1b927ec9d233092901432d65b7f6a1b07ab65df4896a6769679b7a9770f0"
+  },
+  "phase7_status": "complete-stopped-at-live-admission",
+  "phase8_authorized": false,
+  "producer_role_id": "phase7-scale-staircase-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review pass; not an external-human attestation.",
+  "review_id": "review_3fd597c3c3884de3cfd14184e2c38e49",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-10T19:58:00+00:00",
+  "reviewer_role_id": "phase7-evidence-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1"
+}

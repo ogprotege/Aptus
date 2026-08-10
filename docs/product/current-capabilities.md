@@ -36,8 +36,13 @@ two Aptus-owned pre-launch process-registration races, a separate
 at exact merged source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`
 passed the frozen stability and integrity contract. It establishes one stable
 exact-host Full cell and authorizes the bounded Phase 7 campaign procedure.
-All other CUDA methods, placements, artifacts, hosts, and environments remain
-open. The [original Phase 6 acceptance
+The subsequent [Phase 7 scale
+staircase](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+produced one passing 128-step 135M LoRA exploratory slot, then stopped
+fail-closed when live thermal admission refused the second slot before
+activation. No Phase 7 cell established stability and Phase 8 is not
+authorized. All other CUDA methods, placements, artifacts, hosts, and
+environments remain open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit

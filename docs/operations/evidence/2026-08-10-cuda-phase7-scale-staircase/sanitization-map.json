@@ -1,0 +1,79 @@
+{
+  "excluded_protected_classes": [
+    "raw argv, console logs, job logs, and working paths",
+    "usernames, hostnames, network addresses, and raw machine identifiers",
+    "raw GPU identifiers and unrelated process details",
+    "Aptus internal job identifiers",
+    "model, checkpoint, and cache bytes"
+  ],
+  "field_groups": [
+    {
+      "derivation": "Exact frozen source, protocol, dataset, idle-baseline, model revision, provider inspection, license review, model inventory, tokenizer inventory, and token-manifest bindings.",
+      "public_pointers": [
+        "/bindings",
+        "/model_freezes"
+      ],
+      "raw_sources": [
+        "CORE-FROZEN.json",
+        "phase4-model-freezes/*/model-freeze.json",
+        "phase7r1-inputs-2bc4d9a/execution-inventory-*.json"
+      ]
+    },
+    {
+      "derivation": "Exact candidate decisions projected from the completed preparation ledger; long duplicate rejection explanations were reduced to their controlling memory-admission reason.",
+      "public_pointers": [
+        "/planner_admissions"
+      ],
+      "raw_sources": [
+        "PREPARED.json#/admissions"
+      ]
+    },
+    {
+      "derivation": "Exact passing-slot identity, terminal disposition, training counters, runtime allocation, losses, and telemetry summary copied from the restored protected artifact.",
+      "public_pointers": [
+        "/slot_dispositions/0"
+      ],
+      "raw_sources": [
+        "records/attempt-slot.json",
+        "records/execution-configuration.json",
+        "records/experiment-run.json",
+        "sequence/summary.json",
+        "selected/training-metrics.json",
+        "telemetry/summary.json"
+      ]
+    },
+    {
+      "derivation": "The admission-refused slot remains planned-not-started because factory admission rejected it before harness activation; all later dispositions follow the frozen stop and progression rules without replacement.",
+      "public_pointers": [
+        "/slot_dispositions/1",
+        "/slot_dispositions/2",
+        "/unstarted_groups",
+        "/decision"
+      ],
+      "raw_sources": [
+        "PHASE7-STOP.json",
+        "phase7-attempt-slots.json",
+        "docs/reference/cuda-campaign-protocol.v1.json#/matrix_contract/phase7_scale_staircase"
+      ]
+    },
+    {
+      "derivation": "Artifact and manifest bindings copied from immutable seals; receipt identifiers and results copied from append-only off-host copy and retrieval journals.",
+      "public_pointers": [
+        "/conditioning",
+        "/slot_dispositions/0/protected_artifact_id",
+        "/slot_dispositions/0/raw_manifest_sha256",
+        "/slot_dispositions/0/copy_receipt_id",
+        "/slot_dispositions/0/retrieval_receipt_id",
+        "/custody"
+      ],
+      "raw_sources": [
+        "SEALED.json",
+        "append-only copy-verification receipts",
+        "append-only retrieval receipts"
+      ]
+    }
+  ],
+  "producer_role_id": "phase7-scale-staircase-outcome-producer",
+  "public_output": "phase7-outcome.json",
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

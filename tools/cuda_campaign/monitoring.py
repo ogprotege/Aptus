@@ -2256,6 +2256,8 @@ class LinuxNvidiaHostProbe:
             except FileNotFoundError:
                 return None
             except OSError:
+                if self._process_channels_are_terminal(root):
+                    return None
                 if attempt < 3:
                     time.sleep(0.002)
                     continue
@@ -2292,6 +2294,8 @@ class LinuxNvidiaHostProbe:
             ):
                 failure_code = "PROC_PROCESS_CHANNEL_INVALID"
             if failure_code is not None:
+                if self._process_channels_are_terminal(root):
+                    return None
                 if attempt < 3:
                     continue
                 if self._process_group_identity(pid, exclude_if_unverified=True) is None:
@@ -2304,6 +2308,32 @@ class LinuxNvidiaHostProbe:
                 process_write,
             )
         raise AssertionError("unreachable")
+
+    def _process_channels_are_terminal(self, root: Path) -> bool:
+        """Recognize the kernel's pre-zombie process teardown snapshot."""
+
+        try:
+            statm = (root / "statm").read_text(encoding="utf-8").split()
+            status = (root / "status").read_text(encoding="utf-8").splitlines()
+            cmdline = (root / "cmdline").read_bytes()
+        except FileNotFoundError:
+            return False
+        except OSError:
+            return False
+        if not statm or any(not value.isdigit() for value in statm):
+            return False
+        status_values = {
+            key: raw.strip()
+            for line in status
+            if ":" in line
+            for key, raw in (line.split(":", 1),)
+        }
+        return (
+            all(int(value) == 0 for value in statm)
+            and cmdline == b""
+            and status_values.get("FDSize") == "0"
+            and status_values.get("Kthread") == "0"
+        )
 
     def _managed_process_totals(self, managed: set[int]) -> dict[str, int | float]:
         rss = 0

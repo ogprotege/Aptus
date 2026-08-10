@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "all_fresh_retrieval_receipts_verified": true,
+    "all_numeric_calculations_independently_recomputed": true,
+    "all_off_host_copy_receipts_verified": true,
+    "all_restored_raw_manifest_entries_verified": true,
+    "all_seal_bindings_verified": true,
+    "all_slot_dispositions_verified": true,
+    "claim_wording_verified": true,
+    "no_slot_excluded_replaced_or_imputed": true,
+    "release_gate_mapping_verified": true,
+    "restored_raw_manifest_entry_count": 215,
+    "sanitization_boundary_verified": true
+  },
+  "custodian_role_id": "evidence-custodian",
+  "inputs": {
+    "phase5_outcome_sha256": "ae37508c52a0ca2798969dcc1a7eb95177aac89cec9690664eed9dff181a7d46",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "readme_sha256": "9af9e4bed102d2ba55c8142fe3917fb0d7f77c7221afb5af0bd3b3a47a9b784b",
+    "sanitization_map_sha256": "84ba6bd1aab3a7919cb4b1d55bc2baa7b8c8d28329dcec4308cd8895d45d23d8"
+  },
+  "phase5_status": "complete-established",
+  "phase6_authorized": true,
+  "producer_role_id": "phase5-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review pass; not an external-human attestation.",
+  "review_id": "review_99a8f5fc612446a08dbf9385f177cd12",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-10T03:57:19.470786+00:00",
+  "reviewer_role_id": "phase5-evidence-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1"
+}

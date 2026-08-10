@@ -15,7 +15,13 @@ from unittest.mock import patch
 
 from aptus.execution import JobSubmissionFailure
 
-from tools.cuda_campaign.admission import AdmissionError, ExecutionProposal, RunProposal
+from tools.cuda_campaign.admission import (
+    AdmissionError,
+    ExecutionProposal,
+    Phase4CurrentAuthority,
+    PlannedSlotContext,
+    RunProposal,
+)
 from tools.cuda_campaign.contracts import (
     EventLedgerWriter,
     canonical_jsonl_bytes,
@@ -1420,6 +1426,88 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
+    def test_conditioning_profile_reaches_runtime_authority_with_four_actions(
+        self,
+    ) -> None:
+        from tests.tools.test_cuda_campaign_qualification import qualifying_context
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            state = private_directory(root / "fresh-state")
+            vault = private_directory(root / "vault")
+            context = qualifying_context(
+                bundle_path=str(bundle),
+                state_root=str(state),
+                role="conditioning",
+            )
+            verification = fake_phase4_verification(root / "phase4", context)
+            harness = CaptureHarness.with_job_root(
+                state,
+                state,
+                attempt_slot_id=context.attempt_slot_id,
+                experiment_run_id=context.experiment_run_id,
+                provisional_retain_not_before_utc=RETAIN_UNTIL,
+            )
+            harness.qualification_context = context
+            harness._phase4_verification = verification
+            harness._phase4_repository_root = root
+            harness._planned_slot_context = object.__new__(PlannedSlotContext)
+            harness._activation_authority = Phase4CurrentAuthority(
+                directory=root / "phase4",
+                repository_root=root,
+                campaign=context.campaign,
+                comparison_cohort=context.comparison_cohort,
+                comparison_cell=context.comparison_cell,
+            )
+            harness._activation_directory = private_directory(root / "activation")
+            harness._admission_filesystem_device = bundle.stat().st_dev
+            actions = (
+                ManagedActionSpec("dependencies", "dependency", 5),
+                ManagedActionSpec("model-data", "model-data", 5),
+                ManagedActionSpec("measured-preflight", "preflight", 5),
+                ManagedActionSpec(
+                    "bounded-pilot",
+                    "pilot",
+                    5,
+                    {
+                        "campaign_event_capture": True,
+                        "campaign_experiment_run_id": context.experiment_run_id,
+                    },
+                ),
+            )
+
+            with (
+                patch(
+                    "tools.cuda_campaign.harness.verify_activated_slot",
+                    return_value=context.verified_activation,
+                ),
+                patch(
+                    "tools.cuda_campaign.harness.verify_phase4_source_freeze_artifact",
+                    return_value=verification,
+                ),
+                patch(
+                    "tools.cuda_campaign.harness.QualifyingRunContext",
+                    return_value=context,
+                ),
+                patch.object(
+                    harness,
+                    "_require_qualifying_runtime_authority",
+                    side_effect=RuntimeError("runtime-authority-reached"),
+                ),
+                self.assertRaisesRegex(RuntimeError, "runtime-authority-reached"),
+            ):
+                harness._validate_qualifying_sequence(
+                    bundle,
+                    vault / "conditioning",
+                    actions,
+                    (),
+                    object(),  # type: ignore[arg-type]
+                    legacy_single_action_paths=False,
+                    allow_nonqualifying_without_telemetry_for_test=False,
+                )
+
     def test_phase4_resource_drift_is_rejected_before_activation(self) -> None:
         from tests.tools.test_cuda_campaign_admission import _context
         from tests.tools.test_cuda_campaign_qualification import (

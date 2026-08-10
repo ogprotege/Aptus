@@ -2428,6 +2428,59 @@ class ExecutionJobTests(unittest.TestCase):
             start_worker.assert_not_called()
             run_worker.assert_not_called()
 
+    def test_process_registration_callback_precedes_child_launch_permit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root)
+            callback_marker = root / "callback-complete"
+            child_marker = root / "child-started"
+            validate_path = bundle / "validate.py"
+            validate_path.write_text(
+                "from pathlib import Path\n"
+                f"assert Path({str(callback_marker)!r}).is_file()\n"
+                f"Path({str(child_marker)!r}).write_text('started')\n",
+                encoding="utf-8",
+            )
+            manifest_path = bundle / "bundle-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            validate_entry = next(
+                item for item in manifest["files"] if item["path"] == "validate.py"
+            )
+            validate_entry["sha256"] = sha256_file(validate_path)
+            validate_entry["size_bytes"] = validate_path.stat().st_size
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            service = JobService(root / "jobs")
+            callback_entered = threading.Event()
+            release_callback = threading.Event()
+            registrations: list[dict[str, object]] = []
+
+            def register(record: object) -> None:
+                if not isinstance(record, dict):
+                    raise RuntimeError("registration record is not an object")
+                registrations.append(dict(record))
+                callback_entered.set()
+                if not release_callback.wait(timeout=5):
+                    raise RuntimeError("registration callback was not released")
+                callback_marker.write_text("registered", encoding="utf-8")
+
+            submitted = service.submit(
+                bundle,
+                action="preflight",
+                on_process_registered=register,
+            )
+            self.assertTrue(callback_entered.wait(timeout=5))
+            self.assertFalse(child_marker.exists())
+            self.assertEqual(len(registrations), 1)
+            registered = registrations[0]
+            self.assertEqual(registered["id"], submitted["id"])
+            self.assertEqual(registered["state"], "running")
+            self.assertEqual(registered["process_pid"], registered["process_group_id"])
+            self.assertIn("process_identity", registered)
+            release_callback.set()
+            finished = wait_for(service, submitted["id"])
+            self.assertEqual(finished["state"], "completed")
+            self.assertTrue(child_marker.exists())
+
     def test_admission_binding_failure_creates_no_job_record_or_lease(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

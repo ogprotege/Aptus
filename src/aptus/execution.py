@@ -3806,12 +3806,15 @@ class JobService:
             Callable[[Mapping[str, Any]], Mapping[str, Any] | None] | None
         ) = None,
         admission_check: Callable[[], Any] | None = None,
+        on_process_registered: Callable[[Mapping[str, Any]], None] | None = None,
         expected_artifact_fingerprint: str | None = None,
         campaign_event_capture: bool = False,
         campaign_experiment_run_id: str | None = None,
     ) -> dict[str, Any]:
         if action not in JOB_ACTIONS:
             raise ValueError(f"Unsupported job action: {action}")
+        if on_process_registered is not None and not callable(on_process_registered):
+            raise ValueError("on_process_registered must be callable when provided.")
         if action != "train" and confirm_full_train:
             raise ValueError("confirm_full_train is valid only for the train action.")
         if action != "train" and resume_from is not None:
@@ -3903,7 +3906,10 @@ class JobService:
             "campaign_event_sink_identity": None,
         }
         worker = threading.Thread(
-            target=self._run, args=(job_id,), name=f"aptus-{job_id}", daemon=True
+            target=self._run,
+            args=(job_id, on_process_registered),
+            name=f"aptus-{job_id}",
+            daemon=True,
         )
         with self._lock:
             with self._global_lease_lock(), self._records_lock():
@@ -4033,7 +4039,11 @@ class JobService:
                 job_id, terminal, "SUBMISSION_HANDOFF_FAILED"
             ) from None
 
-    def _run(self, job_id: str) -> None:
+    def _run(
+        self,
+        job_id: str,
+        on_process_registered: Callable[[Mapping[str, Any]], None] | None = None,
+    ) -> None:
         log_path = self._log_path(job_id)
         launch_spec = self.root / f".{job_id}.launch-spec"
         launch_permit = self.root / f".{job_id}.permit"
@@ -4179,6 +4189,8 @@ class JobService:
                         job_id, process.pid, process_identity
                     )
                     if not cancelled_before_registration:
+                        if on_process_registered is not None:
+                            on_process_registered(dict(current))
                         self._require_record_bundle_binding(current)
                         launch_permit.write_text("go\n", encoding="utf-8")
                 if cancelled_before_registration and process.poll() is None:

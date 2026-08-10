@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-10 CUDA Phase 6 Full confirmatory stability](evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
 - [2026-08-10 CUDA Phase 6 remediation method matrix](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 repeatability anchor](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
 - [2026-08-10 historical CUDA Phase 6 same-model method matrix](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
@@ -100,12 +101,13 @@ or target-runtime evidence. Phase 2B used that merged source to publish and
 independently review the sanitized recovery supplement without connecting to or
 mutating the Ubuntu host. Phase 3 explicit selection and measurement controls,
 Phase 4 rehearsal and freeze, the successful five-slot Phase 5 repeatability
-anchor, and the Phase 6 same-model method matrix are complete. The reviewed
-Phase 6 remediation packet records Full promotion from three passing
-exploratory attempts followed by one pass and four unrelated-GPU-activity
-safety cancellations in its five confirmatory attempts. No stable method was
-established, so Phase 7 is not authorized. The earlier Phase 6 packet remains
-an immutable historical cohort record.
+anchor, and Phase 6 are complete. The immutable Phase 6 remediation packet
+records Full promotion followed by one pass and four unrelated-GPU-activity
+safety cancellations. After two Aptus-owned pre-launch registration races were
+corrected, a separate five-slot Full cohort passed the frozen stability and
+integrity contract at exact merged source `2bc4d9a`. One stable Full cell is
+therefore established and Phase 7 is authorized. The earlier Phase 6 packets
+and intervening source-defect diagnostic remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

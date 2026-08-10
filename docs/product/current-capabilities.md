@@ -25,12 +25,19 @@ that individual record is not repeatability. A separate [five-slot Phase 5
 cohort](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
 subsequently established exact-host SmolLM2 LoRA single-device repeatability
 under the frozen stability and integrity contract at source
-`3bfec547d4cffedbaf049426d9713f1ccc25b5a2`. It authorizes the Phase 6 method
-matrix only from that exact anchor; all other CUDA methods, placements,
-artifacts, hosts, and environments remain open. The [2026-08-10 CUDA Phase 6
+`3bfec547d4cffedbaf049426d9713f1ccc25b5a2`. It authorized the Phase 6 method
+matrix only from that exact anchor. The [historical Phase 6 method
 matrix](../operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
-then completed with no promoted method, no confirmatory execution, and no
-Phase 7 authorization. The [original Phase 6 acceptance
+remains immutable. The later [Phase 6 remediation
+matrix](../operations/evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
+promoted Full but did not establish confirmatory stability. After correcting
+two Aptus-owned pre-launch process-registration races, a separate
+[five-slot Full cohort](../operations/evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
+at exact merged source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`
+passed the frozen stability and integrity contract. It establishes one stable
+exact-host Full cell and authorizes the bounded Phase 7 campaign procedure.
+All other CUDA methods, placements, artifacts, hosts, and environments remain
+open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit

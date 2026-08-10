@@ -55,12 +55,15 @@ peak-memory stability thresholds, and passed off-host copy and fresh retrieval
 verification. This establishes the exact frozen anchor and Phase 6 eligibility;
 it does not qualify another method, artifact, host, environment, or release.
 
-The subsequent [2026-08-10 Phase 6 method-matrix
-packet](../operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
-retains all 32 frozen slots and records no promoted method. Full conditioning
-was capture-invalid, Int8 LoRA and QLoRA were not admitted, and one of three
-LoRA exploratory slots passed the common contract. No confirmatory comparison
-or Phase 7 progression is authorized by that result.
+The historical [Phase 6 method matrix](../operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+and later [remediation matrix](../operations/evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
+remain immutable nonqualifying cohorts. After two Aptus-owned pre-launch
+registration races were corrected, a separate [five-slot Full
+cohort](../operations/evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
+at exact merged source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`
+passed the frozen stability and integrity contract. It establishes one stable
+exact-host Full cell and authorizes the bounded Phase 7 procedure; it does not
+qualify another method, artifact, host, environment, or release.
 
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result

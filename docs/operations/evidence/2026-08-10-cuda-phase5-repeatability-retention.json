@@ -1,0 +1,128 @@
+{
+  "anchor_packet": {
+    "checksums_sha256": "d46dd419472dbefc44cf090e19e7bab8390271acfb6b28251e0aad7032ab104e",
+    "merge_commit": "517db96e799e7059ea05673b425b5f783a058217",
+    "merged_at_utc": "2026-08-10T04:09:05+00:00",
+    "repository_path": "docs/operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor"
+  },
+  "artifacts": [
+    {
+      "copy_verification_due_at_utc": "2026-11-08T03:52:59.074488+00:00",
+      "off_host_retrieval_due_at_utc": "2027-02-06T03:53:17.847447+00:00",
+      "ordinal": 1,
+      "protected_artifact_id": "artifact_90e24d1ea92a761f1c3f816567aeb0a9",
+      "raw_manifest_sha256": "70c1ba470cd57c54a2245d40345fe2fe052ad5dfc238f89a941cddf8ef45dc60",
+      "retention_receipt": {
+        "created_at_utc": "2026-08-10T04:25:15.679504+00:00",
+        "kind": "retention",
+        "receipt_id": "receipt_c010f7b30047508912fc9ca9ab9e8dc9",
+        "result": "active",
+        "sha256": "e346faadf8e59499510d90d2cd19a4230ef95fee0e75e9338f96373679a48740",
+        "size_bytes": 718
+      }
+    },
+    {
+      "copy_verification_due_at_utc": "2026-11-08T03:53:00.732632+00:00",
+      "off_host_retrieval_due_at_utc": "2027-02-06T03:53:20.236168+00:00",
+      "ordinal": 2,
+      "protected_artifact_id": "artifact_bec81604a928ffceff49db9b16f2402f",
+      "raw_manifest_sha256": "be2d12f011570cea408001f305918968e6e48b417e67d45b962620eff5c56057",
+      "retention_receipt": {
+        "created_at_utc": "2026-08-10T04:25:15.681547+00:00",
+        "kind": "retention",
+        "receipt_id": "receipt_423065432b8e49d91aa87a14355b13ab",
+        "result": "active",
+        "sha256": "30cf3daf75709f1cf1568ba454e06f60ba7733e9024d4528a0f39e64b15bef00",
+        "size_bytes": 718
+      }
+    },
+    {
+      "copy_verification_due_at_utc": "2026-11-08T03:53:02.353261+00:00",
+      "off_host_retrieval_due_at_utc": "2027-02-06T03:53:22.637955+00:00",
+      "ordinal": 3,
+      "protected_artifact_id": "artifact_ec6a967ff65954020125c7afbdde8464",
+      "raw_manifest_sha256": "2729df07eb10d1936bdad51a3f2a9fde2d4093e6295bcbe25e39721631f1c504",
+      "retention_receipt": {
+        "created_at_utc": "2026-08-10T04:25:15.683155+00:00",
+        "kind": "retention",
+        "receipt_id": "receipt_06144063db3715aaf8b3436f709f4aec",
+        "result": "active",
+        "sha256": "dd7e7c26d9128029256d0ac8378d29bc8c9c807c0cd83eda45aee62e3509db50",
+        "size_bytes": 718
+      }
+    },
+    {
+      "copy_verification_due_at_utc": "2026-11-08T03:53:03.995971+00:00",
+      "off_host_retrieval_due_at_utc": "2027-02-06T03:53:25.028706+00:00",
+      "ordinal": 4,
+      "protected_artifact_id": "artifact_58b75aeb663fc00079f562edadb08c3c",
+      "raw_manifest_sha256": "0194d5095ca5c2ccc2d463508da837ab2808cf9b791ef0c05cbfb64c3263880b",
+      "retention_receipt": {
+        "created_at_utc": "2026-08-10T04:25:15.684837+00:00",
+        "kind": "retention",
+        "receipt_id": "receipt_d0e941697e762b5c3e4deb8c5b272eb2",
+        "result": "active",
+        "sha256": "02e9a0e5a7b66f3a5d501bc249fb4db7f1722d22ff5923295e6e2f74e0c00fae",
+        "size_bytes": 718
+      }
+    },
+    {
+      "copy_verification_due_at_utc": "2026-11-08T03:53:05.622482+00:00",
+      "off_host_retrieval_due_at_utc": "2027-02-06T03:53:27.452818+00:00",
+      "ordinal": 5,
+      "protected_artifact_id": "artifact_b169dee7d4a6f0f80a49688afa0bf450",
+      "raw_manifest_sha256": "e0e32afff9fa3867e0f53f1bd0d0d4f36dcec520e07540af522b8fd24ad10029",
+      "retention_receipt": {
+        "created_at_utc": "2026-08-10T04:25:15.686586+00:00",
+        "kind": "retention",
+        "receipt_id": "receipt_02d8c1c23afa8508fe17b52446d6d6e7",
+        "result": "active",
+        "sha256": "7510976477483ee53bb27b7947bc235f23e5c75b5e7d63057fd713cd53619efe",
+        "size_bytes": 718
+      }
+    }
+  ],
+  "claim_boundary": {
+    "authorized_scope": "The exact frozen Phase 5 repeatability anchor only.",
+    "deletion_allowed_while_claim_active": false,
+    "phase5_status": "complete-established",
+    "phase6_authorized": true
+  },
+  "custody": {
+    "all_durable_copy_seals_verified": true,
+    "all_fresh_restore_seals_verified": true,
+    "claim_qualified": true,
+    "distinct_failure_domain_count": 2,
+    "durable_private_off_experiment_host_copy_established": true,
+    "protected_artifact_count": 5,
+    "verified_copy_count_per_artifact": 2
+  },
+  "procedural_review": {
+    "checks": {
+      "all_receipts_active": true,
+      "all_receipts_bind_anchor_raw_manifests": true,
+      "all_retention_states_qualified": true,
+      "deadline_at_least_24_calendar_months_after_packet_merge": true,
+      "durable_copy_and_restore_seals_verified": true,
+      "private_location_and_identity_literals_excluded": true
+    },
+    "review_boundary": "Procedurally separate deterministic review; not an external-human attestation.",
+    "review_result": "passed",
+    "reviewed_at_utc": "2026-08-10T04:26:08+00:00",
+    "reviewer_role_id": "phase5-retention-reviewer"
+  },
+  "retention_policy": {
+    "claim_withdrawal_or_supersession_required_before_deletion": true,
+    "minimum_calendar_months_after_packet_merge": 24,
+    "policy_id": "cuda-v02-public-claim-evidence-24m-v1",
+    "renewal_review_lead_days": 90,
+    "retain_not_before_utc": "2028-08-11T00:00:00+00:00"
+  },
+  "schema_version": "aptus.cuda.phase5.retention-addendum.v1",
+  "source_binding": {
+    "commit": "3bfec547d4cffedbaf049426d9713f1ccc25b5a2",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "tree": "6acaa096ad50b0e814e84e706d3dd12a3cc8cc33"
+  },
+  "status": "active-qualified"
+}

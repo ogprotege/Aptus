@@ -2545,6 +2545,63 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertIn(packet_link, (REPOSITORY / relative).read_text())
 
+    def test_cuda_phase5_retention_addendum_is_bound_and_sanitized(self) -> None:
+        relative = (
+            "docs/operations/evidence/"
+            "2026-08-10-cuda-phase5-repeatability-retention.json"
+        )
+        addendum_path = REPOSITORY / relative
+        addendum = json.loads(addendum_path.read_text())
+
+        self.assertEqual(addendum["status"], "active-qualified")
+        self.assertEqual(
+            addendum["retention_policy"]["policy_id"],
+            "cuda-v02-public-claim-evidence-24m-v1",
+        )
+        self.assertEqual(
+            addendum["retention_policy"]["retain_not_before_utc"],
+            "2028-08-11T00:00:00+00:00",
+        )
+        self.assertTrue(addendum["custody"]["claim_qualified"])
+        self.assertTrue(
+            addendum["custody"]["durable_private_off_experiment_host_copy_established"]
+        )
+        self.assertEqual(len(addendum["artifacts"]), 5)
+        self.assertEqual(
+            [artifact["ordinal"] for artifact in addendum["artifacts"]],
+            [1, 2, 3, 4, 5],
+        )
+        self.assertTrue(
+            all(
+                artifact["retention_receipt"]["kind"] == "retention"
+                and artifact["retention_receipt"]["result"] == "active"
+                and re.fullmatch(
+                    r"receipt_[a-f0-9]{32}",
+                    artifact["retention_receipt"]["receipt_id"],
+                )
+                and re.fullmatch(
+                    r"[a-f0-9]{64}", artifact["retention_receipt"]["sha256"]
+                )
+                for artifact in addendum["artifacts"]
+            )
+        )
+        self.assertEqual(set(addendum["procedural_review"]["checks"].values()), {True})
+
+        public_text = addendum_path.read_text()
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+        ):
+            self.assertNotIn(private_marker, public_text)
+        self.assertIn(
+            f"evidence/{addendum_path.name}",
+            (REPOSITORY / "docs/operations/index.md").read_text(),
+        )
+
     def test_cuda_lora_single_acceptance_packet_is_bound_and_sanitized(
         self,
     ) -> None:

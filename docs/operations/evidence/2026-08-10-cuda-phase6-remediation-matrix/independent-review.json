@@ -1,0 +1,33 @@
+{
+  "checks": {
+    "all_11_started_slot_results_match_restored_raw_records": true,
+    "all_12_off_host_copy_receipts_verified": true,
+    "all_12_restored_seals_verified": true,
+    "all_12_restoration_receipts_verified": true,
+    "all_32_frozen_slot_positions_accounted_for": true,
+    "claim_wording_verified": true,
+    "conditioning_result_recomputed": true,
+    "custody_totals_recomputed": true,
+    "no_slot_replaced_or_imputed": true,
+    "promotion_and_stability_rules_recomputed": true,
+    "sanitization_boundary_verified": true,
+    "started_and_planned_not_started_counts_match_protocol": true
+  },
+  "custodian_role_id": "evidence-custodian",
+  "inputs": {
+    "phase6_outcome_sha256": "d2b8839771909eada9b1211396846091fb72bf2a4726db75124991e240e1699d",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "readme_sha256": "a8fad0b5532ed79ff1fa7fb5106959278dec915003230902a93024ed6174f5b7",
+    "sanitization_map_sha256": "ffd80cc3db74ca5365b6bbc525a8b0aa79d6c956008c7596d44505a989ccf7f3"
+  },
+  "phase6_status": "complete-no-stable-method",
+  "phase7_authorized": false,
+  "producer_role_id": "phase6-remediation-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review pass; not an external-human attestation.",
+  "review_id": "review_d2b8839771909eada9b1211396846091f",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-10T15:54:38Z",
+  "reviewer_role_id": "phase6-remediation-evidence-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1"
+}

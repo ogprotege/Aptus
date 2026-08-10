@@ -14,8 +14,9 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-10 CUDA Phase 6 remediation method matrix](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 repeatability anchor](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
-- [2026-08-10 CUDA Phase 6 same-model method matrix](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+- [2026-08-10 historical CUDA Phase 6 same-model method matrix](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 retention addendum](evidence/2026-08-10-cuda-phase5-repeatability-retention.json)
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
@@ -100,8 +101,11 @@ independently review the sanitized recovery supplement without connecting to or
 mutating the Ubuntu host. Phase 3 explicit selection and measurement controls,
 Phase 4 rehearsal and freeze, the successful five-slot Phase 5 repeatability
 anchor, and the Phase 6 same-model method matrix are complete. The reviewed
-Phase 6 packet records no promoted method, no confirmatory execution, and no
-Phase 7 authorization.
+Phase 6 remediation packet records Full promotion from three passing
+exploratory attempts followed by one pass and four unrelated-GPU-activity
+safety cancellations in its five confirmatory attempts. No stable method was
+established, so Phase 7 is not authorized. The earlier Phase 6 packet remains
+an immutable historical cohort record.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

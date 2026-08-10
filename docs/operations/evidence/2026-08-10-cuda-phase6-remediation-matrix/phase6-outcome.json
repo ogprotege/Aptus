@@ -1,0 +1,319 @@
+{
+  "aggregate": {
+    "conditioning_native_passes": 1,
+    "confirmatory_native_cancellations": 4,
+    "confirmatory_native_passes": 1,
+    "confirmatory_slots_started": 5,
+    "exploratory_native_cancellations": 1,
+    "exploratory_native_passes": 5,
+    "exploratory_slots_started": 6,
+    "matrix_slots_planned_not_started": 21,
+    "matrix_slots_started": 11,
+    "methods_exploratory_promoted": [
+      "full"
+    ],
+    "predeclared_slot_count": 32,
+    "replacements": 0,
+    "stable_confirmatory_methods": []
+  },
+  "bindings": {
+    "dataset_fixture_sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+    "frozen_600_sample_input_sha256": "89f1d122deb7301db7f9665d146b37e44eb5dae24d9cf617bf06e925767e15eb",
+    "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+    "phase4_full_source_freeze_sha256": "97d973c46027d320e358cc7c22b64ca4a9ae515c082d86e00fee9dd0893cbc17",
+    "phase4_lora_source_freeze_sha256": "8968262e745f8537203c4b9705e5ffe08a74ac9040db4b31c6c23a5e482464ac",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "source_commit": "af91225e1a2ba601a0b6dacd2366619e550babda",
+    "source_tree": "3a253447dff884da94cc347be299e988c7d5f87f"
+  },
+  "claim_boundary": {
+    "does_not_establish": [
+      "model quality or method superiority",
+      "broad performance, population calibration, or statistical significance",
+      "another model, method configuration, artifact, host, or environment",
+      "production safety, throughput, or release readiness"
+    ],
+    "establishes": [
+      "the corrected cohort's frozen 32-slot Phase 6 dispositions",
+      "Full exploratory promotion under the frozen three-of-three rule",
+      "one Full pass and four safety cancellations in the five-attempt confirmatory batch",
+      "no stable Phase 6 method",
+      "Phase 7 is not authorized"
+    ]
+  },
+  "conditioning": {
+    "capture_reason_code": "NONE",
+    "copy_verification": "passed",
+    "evidence_status": "protocol-valid",
+    "method": "full",
+    "native_outcome": "passed",
+    "retrieval_verification": "passed",
+    "seal_verification": "passed",
+    "telemetry_status": "healthy"
+  },
+  "custody": {
+    "custody_receipts": 24,
+    "sealed_artifacts": 12,
+    "verified_fresh_restorations": 12,
+    "verified_off_host_copies": 12
+  },
+  "decision": {
+    "confirmatory_comparison_authorized": true,
+    "phase6_status": "complete-no-stable-method",
+    "phase7_authorized": false,
+    "replacement_allowed": false
+  },
+  "method_decisions": [
+    {
+      "admitted": true,
+      "conditioning": "passed",
+      "confirmatory_native_cancellations": 4,
+      "confirmatory_native_passes": 1,
+      "confirmatory_slots_started": 5,
+      "exploratory_native_passes": 3,
+      "method": "full",
+      "promoted": true,
+      "stable": false,
+      "stability_reason": "one of five confirmatory attempts passed; four were safely cancelled for unrelated GPU activity"
+    },
+    {
+      "admitted": true,
+      "confirmatory_slots_started": 0,
+      "exploratory_native_cancellations": 1,
+      "exploratory_native_passes": 2,
+      "method": "lora",
+      "promoted": false,
+      "promotion_reason": "two of three exploratory attempts passed the common contract"
+    },
+    {
+      "admitted": false,
+      "confirmatory_slots_started": 0,
+      "exploratory_slots_started": 0,
+      "method": "int8-lora",
+      "promoted": false,
+      "promotion_reason": "explicit eight-bit support was unavailable on every participating GPU"
+    },
+    {
+      "admitted": false,
+      "confirmatory_slots_started": 0,
+      "exploratory_slots_started": 0,
+      "method": "qlora",
+      "promoted": false,
+      "promotion_reason": "runtime-native four-bit support was unavailable on every participating device"
+    }
+  ],
+  "planned_not_started": {
+    "by_method_and_role": [
+      {
+        "count": 3,
+        "method": "int8-lora",
+        "reason": "not-admitted",
+        "role": "phase6-exploratory"
+      },
+      {
+        "count": 3,
+        "method": "qlora",
+        "reason": "not-admitted",
+        "role": "phase6-exploratory"
+      },
+      {
+        "count": 5,
+        "method": "lora",
+        "reason": "not-promoted",
+        "role": "phase6-confirmatory"
+      },
+      {
+        "count": 5,
+        "method": "int8-lora",
+        "reason": "not-admitted",
+        "role": "phase6-confirmatory"
+      },
+      {
+        "count": 5,
+        "method": "qlora",
+        "reason": "not-admitted",
+        "role": "phase6-confirmatory"
+      }
+    ],
+    "total": 21
+  },
+  "pre_action_events": [
+    {
+      "disposition": "same unconsumed slot started after passive cooldown",
+      "method": "full",
+      "replacement": false,
+      "role": "phase6-exploratory",
+      "slot_label": "E3",
+      "type": "thermal-admission-refusal-before-activation"
+    }
+  ],
+  "started_slot_dispositions": [
+    {
+      "block": 1,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 1,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E1",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 1,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "lora",
+      "native_outcome": "cancelled",
+      "native_reason_code": "UNRELATED_GPU_ACTIVITY",
+      "ordinal": 2,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E1",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 2,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "lora",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 7,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E2",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 2,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 8,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E2",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 3,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "lora",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 9,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E3",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 3,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 10,
+      "retrieval_verification": "passed",
+      "role": "phase6-exploratory",
+      "seal_verification": "passed",
+      "slot_label": "E3",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 1,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "passed",
+      "native_reason_code": "NONE",
+      "ordinal": 13,
+      "retrieval_verification": "passed",
+      "role": "phase6-confirmatory",
+      "seal_verification": "passed",
+      "slot_label": "C1",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 2,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "cancelled",
+      "native_reason_code": "UNRELATED_GPU_ACTIVITY",
+      "ordinal": 19,
+      "retrieval_verification": "passed",
+      "role": "phase6-confirmatory",
+      "seal_verification": "passed",
+      "slot_label": "C2",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 3,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "cancelled",
+      "native_reason_code": "UNRELATED_GPU_ACTIVITY",
+      "ordinal": 22,
+      "retrieval_verification": "passed",
+      "role": "phase6-confirmatory",
+      "seal_verification": "passed",
+      "slot_label": "C3",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 4,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "cancelled",
+      "native_reason_code": "UNRELATED_GPU_ACTIVITY",
+      "ordinal": 28,
+      "retrieval_verification": "passed",
+      "role": "phase6-confirmatory",
+      "seal_verification": "passed",
+      "slot_label": "C4",
+      "telemetry_status": "healthy"
+    },
+    {
+      "block": 5,
+      "capture_reason_code": "NONE",
+      "copy_verification": "passed",
+      "evidence_status": "protocol-valid",
+      "method": "full",
+      "native_outcome": "cancelled",
+      "native_reason_code": "UNRELATED_GPU_ACTIVITY",
+      "ordinal": 32,
+      "retrieval_verification": "passed",
+      "role": "phase6-confirmatory",
+      "seal_verification": "passed",
+      "slot_label": "C5",
+      "telemetry_status": "healthy"
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-phase6-remediation-outcome.v1"
+}

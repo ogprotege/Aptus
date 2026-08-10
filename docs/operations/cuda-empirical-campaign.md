@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0 through 6 complete; Phase 6 produced no promoted method and Phase 7 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before authorizing a replacement cohort, changing the capture contract, or by 2026-09-09
+> **Status:** Active experiment plan; Phases 0 through 6 complete; Phase 6 remediation promoted Full from exploratory testing but established no stable method, so Phase 7 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before authorizing a replacement cohort, changing the capture contract, or by 2026-09-09
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -655,15 +655,19 @@ receive independent review.
 
 ### Phase 6 — same-model method matrix
 
-**Complete with no promoted method.** The
-[sanitized Phase 6 packet](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
-retains all 32 predeclared slots with no replacements. Full fine-tuning was
-blocked after its conditioning evidence was capture-invalid; Int8 LoRA and
-QLoRA were not admitted on the exact host; and LoRA produced one qualifying
-pass, one safety cancellation for unrelated GPU activity, and one activated
-but unlaunched slot whose execution configuration did not match the initial
-source freeze. No method met the frozen three-of-three promotion rule, so no
-confirmatory slot started and Phase 7 is not authorized.
+**Complete with no stable method.** The corrected
+[sanitized Phase 6 remediation packet](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
+retains all 32 predeclared slots with no replacements. Full and LoRA were
+admitted; Int8 LoRA and QLoRA were not admitted on the exact host. Full passed
+all three exploratory attempts and was promoted. LoRA passed two of three and
+was not promoted. Exactly five Full confirmatory attempts then started: one
+passed and four were safely cancelled for unrelated GPU activity. Full did not
+establish confirmatory stability, so Phase 7 is not authorized.
+
+The [earlier Phase 6 packet](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+remains an immutable historical record of its earlier cohort. The remediation
+packet supersedes only current operational status; it does not alter that
+packet's bytes or historical observations.
 
 Hold model revision, tokenizer, data and split, loss masking, sequence length,
 effective batch, Phase 3 optimizer-step target, seed policy, checkpoint rule,

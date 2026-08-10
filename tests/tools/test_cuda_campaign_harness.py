@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
-from aptus.execution import JobSubmissionFailure
+from aptus.execution import JobService, JobSubmissionFailure
 
 from tools.cuda_campaign.admission import (
     AdmissionError,
@@ -2303,6 +2303,49 @@ class ManagedSequenceTests(unittest.TestCase):
 
             self.assertEqual(harness.managed_pids(), frozenset())
             self.assertEqual(harness.managed_process_groups(), ())
+
+    def test_qualifying_prelaunch_callback_registers_exact_owned_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            service = JobService(private_directory(root / "jobs"))
+            harness = harness_at(root, job_service=service)
+            harness._qualifying_authority = object()
+            harness._qualifying_job_service = service
+            spec = ManagedActionSpec("measured-preflight", "preflight", 5)
+            with patch(
+                "tools.cuda_campaign.harness._qualifying_harness_is_registered",
+                return_value=True,
+            ):
+                callback = harness._qualifying_process_registration_callback(
+                    service,
+                    bundle,
+                    spec,
+                )
+            self.assertIsNotNone(callback)
+            assert callback is not None
+            callback(
+                {
+                    "id": JOB_ID,
+                    "job_id": JOB_ID,
+                    "state": "running",
+                    "action": "preflight",
+                    "bundle_dir": str(bundle.resolve()),
+                    "owner_pid": os.getpid(),
+                    "process_pid": 4321,
+                    "process_group_id": 4321,
+                    "process_identity": "linux-start-ticks:9876",
+                    "campaign_event_capture": False,
+                    "campaign_experiment_run_id": None,
+                }
+            )
+
+            groups = harness.managed_process_groups()
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0].leader_pid, 4321)
+            self.assertEqual(groups[0].process_group_id, 4321)
+            self.assertEqual(groups[0].leader_identity, "linux-start-ticks:9876")
 
     def test_two_action_success_uses_one_telemetry_ledger_and_seal(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

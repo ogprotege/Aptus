@@ -1236,6 +1236,65 @@ class CaptureHarness:
             else:
                 self._managed_process_groups_by_job.pop(job_id, None)
 
+    def _qualifying_process_registration_callback(
+        self,
+        service: ManagedJobService | JobService,
+        bundle_dir: Path,
+        spec: ManagedActionSpec,
+    ) -> Callable[[Mapping[str, Any]], None] | None:
+        """Register the exact owned process group before its launch permit.
+
+        ``JobService`` starts each action behind a permit-file barrier.  A
+        qualifying callback closes the interval between process creation and
+        the first supervisor poll so the telemetry sidecar cannot classify the
+        campaign's own newly submitted CUDA context as unrelated activity.
+        """
+
+        authority = self._qualifying_authority
+        if not (
+            authority is not None
+            and _qualifying_harness_is_registered(self, authority)
+            and type(service) is JobService
+            and service is self._qualifying_job_service
+        ):
+            return None
+        expected_bundle = str(bundle_dir.resolve(strict=True))
+        expected_capture = spec.submit_kwargs.get("campaign_event_capture", False)
+        expected_run_id = spec.submit_kwargs.get("campaign_experiment_run_id")
+
+        def register(record: Mapping[str, Any]) -> None:
+            if not isinstance(record, Mapping):
+                raise CaptureHarnessError(
+                    "Prelaunch process registration is not a mapping."
+                )
+            job_id = record.get("job_id")
+            if (
+                not isinstance(job_id, str)
+                or _JOB_ID.fullmatch(job_id) is None
+                or record.get("id") != job_id
+                or record.get("state") != "running"
+                or record.get("action") != spec.action
+                or record.get("bundle_dir") != expected_bundle
+                or record.get("owner_pid") != os.getpid()
+                or record.get("campaign_event_capture") is not expected_capture
+                or record.get("campaign_experiment_run_id") != expected_run_id
+            ):
+                raise CaptureHarnessError(
+                    "Prelaunch process registration is not bound to the exact action."
+                )
+            owned_record = dict(record)
+            owned_record["owner_status"] = "owning-service"
+            self._record_known_active_job(job_id)
+            self._update_managed_pid(job_id, owned_record)
+            with self._managed_pid_lock:
+                registered = job_id in self._managed_process_groups_by_job
+            if not registered:
+                raise CaptureHarnessError(
+                    "Prelaunch process registration lacks an identity-bound group."
+                )
+
+        return register
+
     def _record_known_active_job(self, job_id: str) -> None:
         with self._managed_pid_lock:
             self._known_active_job_ids.add(job_id)
@@ -2193,10 +2252,14 @@ class CaptureHarness:
                 spec, ledger=ledger, signal=pre_submit_signal
             )
         action_started_ns = self._monotonic_ns()
+        submit_kwargs = dict(spec.submit_kwargs)
+        process_registration = self._qualifying_process_registration_callback(
+            service, bundle_dir, spec
+        )
+        if process_registration is not None:
+            submit_kwargs["on_process_registered"] = process_registration
         try:
-            submitted = service.submit(
-                bundle_dir, action=spec.action, **dict(spec.submit_kwargs)
-            )
+            submitted = service.submit(bundle_dir, action=spec.action, **submit_kwargs)
         except JobSubmissionFailure as error:
             terminal_record = error.terminal_record
             job_id = error.job_id

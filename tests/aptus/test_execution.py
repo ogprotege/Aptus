@@ -1337,6 +1337,52 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertEqual(environment["HF_HOME"], "/managed/cache")
         self.assertEqual(snapshot["free_cuda_bytes"], [1234])
 
+    def test_registered_runtime_probe_cannot_initialize_before_callback(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            marker = Path(temporary) / "probe-started"
+            probe_source = (
+                "import json\n"
+                "from pathlib import Path\n"
+                f"Path({str(marker)!r}).write_text('started')\n"
+                "print(json.dumps({"
+                "'hardware': {}, 'free_cuda_bytes': [], "
+                "'host_ram_free_bytes': 1}))\n"
+            )
+            callback_entered = threading.Event()
+            release_callback = threading.Event()
+            result: list[dict[str, object]] = []
+            failures: list[BaseException] = []
+
+            def register(_process: subprocess.Popen[str]) -> None:
+                callback_entered.set()
+                if not release_callback.wait(timeout=5):
+                    raise RuntimeError("registration callback was not released")
+
+            def probe() -> None:
+                try:
+                    result.append(
+                        _actual_runtime_snapshot(
+                            0,
+                            [],
+                            on_process_started=register,
+                        )
+                    )
+                except BaseException as error:
+                    failures.append(error)
+
+            with patch("aptus.execution._CUDA_RUNTIME_PROBE", probe_source):
+                worker = threading.Thread(target=probe)
+                worker.start()
+                self.assertTrue(callback_entered.wait(timeout=5))
+                self.assertFalse(marker.exists())
+                release_callback.set()
+                worker.join(timeout=5)
+
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(failures, [])
+            self.assertTrue(marker.is_file())
+            self.assertEqual(result[0]["free_cuda_bytes"], [])
+
     def test_parent_environment_probe_uses_configured_runtime(self) -> None:
         value = {
             "python": "3.12.3",
@@ -1693,6 +1739,45 @@ class ExecutionJobTests(unittest.TestCase):
                     bundle.resolve(),
                     expected_artifact_fingerprint=fingerprint,
                 )
+            finally:
+                if submitted is not None:
+                    service._threads.pop(submitted["id"], None)
+                    service._clear_global_lease(submitted["id"])
+
+    def test_train_capacity_probe_receives_exact_submission_registration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = fake_bundle(root, validation_state="pilot-pass")
+            service = JobService(root / "jobs")
+            submitted: dict | None = None
+
+            def register(_record: object) -> None:
+                return None
+
+            try:
+                with (
+                    patch.object(
+                        service,
+                        "_require_current_pilot",
+                        return_value={"measured_peak_bytes": 1},
+                    ) as require_pilot,
+                    patch("aptus.execution.threading.Thread.start"),
+                ):
+                    submitted = service.submit(
+                        bundle,
+                        action="train",
+                        confirm_full_train=True,
+                        on_process_registered=register,
+                    )
+                arguments = require_pilot.call_args
+                self.assertIs(arguments.kwargs["on_process_registered"], register)
+                registration = arguments.kwargs["process_registration_record"]
+                self.assertEqual(registration["id"], submitted["id"])
+                self.assertEqual(registration["job_id"], submitted["id"])
+                self.assertEqual(registration["state"], "queued")
+                self.assertEqual(registration["action"], "train")
+                self.assertEqual(registration["bundle_dir"], str(bundle.resolve()))
+                self.assertIsNone(registration["process_pid"])
             finally:
                 if submitted is not None:
                     service._threads.pop(submitted["id"], None)

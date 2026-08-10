@@ -241,6 +241,25 @@ if os.name == "nt":
 os.execvpe(command[0], command, os.environ)
 """
 
+_PROBE_PERMIT_LAUNCHER = r"""
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+permit_path = Path(sys.argv[1])
+command = sys.argv[2:]
+deadline = time.monotonic() + 30
+while not permit_path.is_file():
+    if time.monotonic() >= deadline:
+        raise SystemExit(125)
+    time.sleep(0.05)
+if os.name == "nt":
+    raise SystemExit(subprocess.run(command, check=False).returncode)
+os.execvpe(command[0], command, os.environ)
+"""
+
 _CUDA_RUNTIME_PROBE = r"""
 import json
 import os
@@ -2447,6 +2466,7 @@ def _actual_runtime_snapshot(
     *,
     interpreter: str | Path | None = None,
     environment: Mapping[str, str] | None = None,
+    on_process_started: Callable[[subprocess.Popen[str]], None] | None = None,
 ) -> dict[str, Any]:
     selected_indices = (
         list(range(world_size)) if device_indices is None else list(device_indices)
@@ -2468,27 +2488,71 @@ def _actual_runtime_snapshot(
     probe_environment = os.environ.copy()
     if environment is not None:
         probe_environment.update(environment)
+    process_options: dict[str, Any] = {}
+    if on_process_started is not None:
+        if os.name == "posix":
+            process_options["start_new_session"] = True
+        elif os.name == "nt" and hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP"):
+            process_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     try:
-        completed = subprocess.run(
-            [
-                runtime_interpreter,
-                "-c",
-                _CUDA_RUNTIME_PROBE,
-                json.dumps(selected_indices),
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env=probe_environment,
-        )
+        if on_process_started is None:
+            completed = subprocess.run(
+                [
+                    runtime_interpreter,
+                    "-c",
+                    _CUDA_RUNTIME_PROBE,
+                    json.dumps(selected_indices),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env=probe_environment,
+            )
+            return_code = completed.returncode
+            stdout = completed.stdout
+            stderr = completed.stderr
+        else:
+            with tempfile.TemporaryDirectory(prefix="aptus-cuda-probe-") as temporary:
+                permit_path = Path(temporary) / "permit"
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-c",
+                        _PROBE_PERMIT_LAUNCHER,
+                        str(permit_path),
+                        runtime_interpreter,
+                        "-c",
+                        _CUDA_RUNTIME_PROBE,
+                        json.dumps(selected_indices),
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=probe_environment,
+                    **process_options,
+                )
+                try:
+                    on_process_started(process)
+                    permit_path.write_text("go\n", encoding="utf-8")
+                    stdout, stderr = process.communicate(timeout=30)
+                except BaseException:
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=5)
+                    raise
+                return_code = process.returncode
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ValueError(f"CUDA runtime probe failed: {error}") from error
-    if completed.returncode:
-        detail = completed.stderr.strip() or completed.stdout.strip()
+    if return_code:
+        detail = stderr.strip() or stdout.strip()
         raise ValueError(f"CUDA runtime probe failed: {detail}")
     try:
-        value = json.loads(completed.stdout)
+        value = json.loads(stdout)
     except json.JSONDecodeError as error:
         raise ValueError("CUDA runtime probe returned invalid JSON.") from error
     if not isinstance(value, dict) or not isinstance(value.get("hardware"), dict):
@@ -3381,6 +3445,8 @@ class JobService:
         bundle: Path,
         *,
         expected_artifact_fingerprint: str | None = None,
+        on_process_registered: Callable[[Mapping[str, Any]], None] | None = None,
+        process_registration_record: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         plan, _ = _require_current_bundle_model_policy(
             bundle,
@@ -3475,11 +3541,35 @@ class JobService:
         if not isinstance(device_indices, list):
             raise ValueError("Selected CUDA device indices must be a list.")
         runtime_interpreter = self._runtime_interpreter(plan)
+        if (on_process_registered is None) != (process_registration_record is None):
+            raise ValueError(
+                "CUDA capacity-probe registration requires both callback and record."
+            )
+
+        def register_capacity_probe(process: subprocess.Popen[str]) -> None:
+            assert on_process_registered is not None
+            assert process_registration_record is not None
+            process_identity = self._process_identity(process.pid)
+            probe_record = {
+                **dict(process_registration_record),
+                "state": RunState.RUNNING.value,
+                "process_pid": process.pid,
+                "process_identity": process_identity,
+                "process_group_id": process.pid if os.name == "posix" else None,
+                "process_registration_scope": "prelaunch-capacity-probe",
+            }
+            on_process_registered(probe_record)
+
+        runtime_probe_options: dict[str, Any] = {
+            "interpreter": runtime_interpreter,
+            "environment": self.runtime_environment,
+        }
+        if on_process_registered is not None:
+            runtime_probe_options["on_process_started"] = register_capacity_probe
         runtime = _actual_runtime_snapshot(
             world_size,
             device_indices,
-            interpreter=runtime_interpreter,
-            environment=self.runtime_environment,
+            **runtime_probe_options,
         )
         expected = {
             "bundle": sha256_file(bundle / "bundle-manifest.json"),
@@ -3919,12 +4009,20 @@ class JobService:
                     self._require_action_prerequisite(bundle, action)
                     if action == "train":
                         try:
+                            pilot_check_options: dict[str, Any] = {
+                                "expected_artifact_fingerprint": (
+                                    observed_artifact_fingerprint
+                                )
+                            }
+                            if on_process_registered is not None:
+                                pilot_check_options.update(
+                                    on_process_registered=on_process_registered,
+                                    process_registration_record=record,
+                                )
                             record["prelaunch_capacity_check"] = (
                                 self._require_current_pilot(
                                     bundle,
-                                    expected_artifact_fingerprint=(
-                                        observed_artifact_fingerprint
-                                    ),
+                                    **pilot_check_options,
                                 )
                             )
                         except RuntimeError as error:

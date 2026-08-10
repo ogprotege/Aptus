@@ -5,7 +5,8 @@
 > **Applies to:** Repository documentation through merged PR #41, the canonical
 > RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
 > Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, and
-> the two immutable Phase 5 cohort outcomes
+> the two immutable Phase 5 cohort outcomes, and both the historical and
+> corrected Phase 6 method-matrix outcomes
 >
 > **Last reviewed:** 2026-08-10
 >
@@ -143,6 +144,13 @@ selection, measurement, rehearsal, and freeze controls. The separately merged
 [Phase 5 repeatability packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
 records five of five frozen SmolLM2 LoRA single-device slots passing the common
 stability and integrity contract and authorizes Phase 6 from that exact anchor.
+The corrected
+[Phase 6 remediation packet](../operations/evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
+records Full promotion from three passing exploratory attempts, followed by one
+pass and four unrelated-GPU-activity safety cancellations in five confirmatory
+attempts. No stable Phase 6 method was established and Phase 7 remains
+unauthorized. The earlier Phase 6 packet remains an immutable historical cohort
+record.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
@@ -152,8 +160,9 @@ capabilities being claimed. The July MLX-LM acceptance and local 10-build
 desktop engineering gate and original Phase 6 acceptance remain historical at
 their recorded commits; the August 5 refresh is bounded current-contract
 MLX-LM evidence at its exact acceptance source. The exact CUDA LoRA
-single-device repeatability anchor is now established; other CUDA methods,
-placements, artifacts, hosts, and environments remain unqualified. The repository checks its
+single-device repeatability anchor is now established; the corrected Phase 6
+matrix establishes no stable method. Other CUDA methods, placements, artifacts,
+hosts, and environments remain unqualified. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -170,20 +179,20 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, and the August 10 packet establishes the exact frozen five-slot CUDA LoRA repeatability anchor; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the original Phase 6 packet remains historical, remaining CUDA coverage and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, and the August 10 packets establish the exact frozen five-slot CUDA LoRA repeatability anchor and a corrected Phase 6 matrix with Full exploratory promotion but no confirmatory stability; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the earlier Phase 6 packet remains historical, remaining CUDA coverage and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 125
+The [documentation inventory](documentation-inventory.md) classifies 127
 governed tracked Markdown documents:
 
-- 96 active;
+- 98 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 126 tracked Markdown files in total. The pull-request
+The repository contains 128 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 125 files, including the
+`maintained_documentation()` set covers all other 127 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,

@@ -8,6 +8,14 @@ All notable changes are recorded here.
 
 ### Added
 
+- A reviewed CUDA Phase 6 remediation packet at source
+  `af91225e1a2ba601a0b6dacd2366619e550babda`: Full passed all three
+  exploratory attempts and was promoted, then produced one pass and four
+  unrelated-GPU-activity safety cancellations across its five confirmatory
+  attempts. All 12 conditioning and matrix artifacts were sealed, copied off
+  host, and restored with verification. No stable method was established, so
+  Phase 7 remains unauthorized. The earlier Phase 6 packet remains immutable
+  historical evidence.
 - A reviewed CUDA Phase 5 repeatability packet: five of five predeclared
   SmolLM2 LoRA single-device slots passed the frozen stability and integrity
   contract at source `3bfec547d4cffedbaf049426d9713f1ccc25b5a2`, with verified

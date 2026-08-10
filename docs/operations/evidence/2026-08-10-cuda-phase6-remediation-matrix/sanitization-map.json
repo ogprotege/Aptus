@@ -1,0 +1,41 @@
+{
+  "excluded_private_classes": [
+    "absolute protected paths",
+    "account, host, and network identities",
+    "raw GPU and machine identifiers",
+    "raw process, run, job, slot, artifact, and receipt identifiers",
+    "raw logs, telemetry samples, archives, checkpoints, model bytes, and adapter bytes"
+  ],
+  "field_groups": [
+    {
+      "group": "source-and-protocol",
+      "projection": "exact public commit, tree, model, dataset, protocol, and source-freeze digests"
+    },
+    {
+      "group": "frozen-ledger",
+      "projection": "aggregate 32-slot disposition, public labels for all 11 started slots, and grouped counts for 21 planned-not-started slots"
+    },
+    {
+      "group": "method-decisions",
+      "projection": "admission, conditioning, exploratory promotion, confirmatory stability, and stopping-rule results"
+    },
+    {
+      "group": "custody",
+      "projection": "aggregate seal, off-host copy, restoration, and receipt verification counts without protected identifiers"
+    },
+    {
+      "group": "claim-boundary",
+      "projection": "authorized and explicitly unauthorized conclusions"
+    }
+  ],
+  "private_source_classes": [
+    "frozen Phase 6 input ledger and plans",
+    "activation and admission records",
+    "12 sealed protected artifacts",
+    "one pre-action thermal admission diagnostic",
+    "off-host copy and fresh-restoration receipt chains"
+  ],
+  "producer_role_id": "phase6-remediation-outcome-producer",
+  "public_output": "phase6-outcome.json",
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

@@ -214,8 +214,11 @@ when its evidence, owner, or resolution changes.
   is complete and independently reviewed. Phase 3 explicit candidate selection
   and measurement controls are implemented under the v6 plan contract. Phase 4
   rehearsal and freeze are complete, and the successful Phase 5 five-attempt
-  LoRA anchor packet is merged. The Phase 6 four-method matrix is complete with
-  no promoted method, no confirmatory execution, and no Phase 7 authorization.
+  LoRA anchor packet is merged. The corrected Phase 6 four-method matrix is
+  complete: Full was promoted after three passing exploratory attempts, then
+  produced one pass and four unrelated-GPU-activity safety cancellations in
+  five confirmatory attempts. No stable method was established and Phase 7 is
+  not authorized.
   A replacement cohort or capture-contract change requires separate review.
   Capability claims change only after the applicable packets merge.
 - **Blocker:** Phase 7 and later campaign phases remain pending because Phase 6

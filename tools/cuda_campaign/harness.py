@@ -126,6 +126,13 @@ def _expected_selected_roles(
     return roles
 
 
+def _runtime_journal_relative_path(
+    spec: "ManagedActionSpec", *, legacy_single_action_paths: bool
+) -> str:
+    prefix = "job" if legacy_single_action_paths else f"actions/{spec.action}"
+    return f"{prefix}/runtime-boundaries.jsonl"
+
+
 _ACTIVATION_PROVENANCE = (
     (
         "admission-decision.json",
@@ -2545,6 +2552,13 @@ class CaptureHarness:
                 if path in reserved:
                     raise ValueError("Managed action paths collide.")
                 reserved.add(path)
+            runtime_path = _runtime_journal_relative_path(
+                spec,
+                legacy_single_action_paths=legacy_single_action_paths,
+            )
+            if runtime_path in reserved:
+                raise ValueError("Managed action paths collide.")
+            reserved.add(runtime_path)
         selected_paths: set[str] = set()
         core_roles = {
             "event-ledger",
@@ -3359,7 +3373,12 @@ class CaptureHarness:
                         captured = (
                             write_bytes(
                                 result.runtime_journal_bytes,
-                                f"{prefix}/runtime-boundaries.jsonl",
+                                _runtime_journal_relative_path(
+                                    spec,
+                                    legacy_single_action_paths=(
+                                        legacy_single_action_paths
+                                    ),
+                                ),
                                 "runtime-boundary-journal",
                                 "application/x-ndjson",
                                 f"entry_{spec.label}-runtime-boundaries",

@@ -2745,9 +2745,9 @@ class CaptureHarness:
             or artifact_parent.stat().st_dev != self._admission_filesystem_device
         ):
             raise ValueError("Qualifying runtime paths differ from the frozen run.")
-        if tuple(spec.action for spec in specs) != QUALIFYING_ACTION_ORDER:
+        if tuple(spec.action for spec in specs) != expected_actions:
             raise ValueError(
-                "A qualifying campaign run requires the frozen five-action order."
+                "A production campaign sequence differs from its frozen action profile."
             )
         for spec in specs:
             kwargs = dict(spec.submit_kwargs)

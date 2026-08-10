@@ -372,6 +372,30 @@ class ManagedOutcomeProfileTests(unittest.TestCase):
         with self.assertRaises(OutcomeProfileError):
             validate_managed_sequence_outcome(summary, missing)
 
+    def test_conditioning_pass_ends_after_the_exact_four_action_pilot(self) -> None:
+        body: list[dict[str, Any]] = []
+        started: list[dict[str, Any]] = []
+        for index, action in enumerate(MANAGED_ACTION_ORDER[:-1]):
+            body.extend(_pass_action(action, index))
+            started.append(
+                _action_summary(action, index, outcome="passed", reason="NONE")
+            )
+        summary = _summary(started, outcome="passed", reason="NONE")
+        summary["configured_actions"] = summary["configured_actions"][:-1]
+        ledger = _finish_ledger(body, outcome="passed", reason="NONE")
+
+        profile = validate_managed_sequence_outcome(summary, ledger)
+
+        self.assertEqual(profile.sequence_profile, "conditioning")
+        self.assertEqual(profile.started_action_count, 4)
+        self.assertEqual(profile.runtime_boundary_count, 4)
+        self.assertEqual(profile.stopping_action, "pilot")
+        self.assertTrue(profile.publication_eligible)
+
+        summary["configured_actions"] = summary["configured_actions"][:-1]
+        with self.assertRaises(OutcomeProfileError):
+            validate_managed_sequence_outcome(summary, ledger)
+
     def test_native_and_evidence_axes_are_independent_but_publication_is_not(
         self,
     ) -> None:

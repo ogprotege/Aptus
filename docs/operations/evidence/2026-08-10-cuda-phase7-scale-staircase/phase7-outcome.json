@@ -1,0 +1,275 @@
+{
+  "aggregate": {
+    "admitted_conditioning_cells": 3,
+    "admitted_planner_cells": 3,
+    "architecture_breadth_activated": false,
+    "completed_non_skipped_optimizer_steps_total": 128,
+    "conditioning_artifacts_started": 1,
+    "conditioning_protocol_valid_native_passes": 1,
+    "exploratory_slots_planned": 18,
+    "exploratory_slots_planned_not_started": 17,
+    "exploratory_slots_started": 1,
+    "phase8_authorized": false,
+    "protocol_valid_native_passes": 1,
+    "replacements": 0,
+    "stable_phase7_cells": []
+  },
+  "bindings": {
+    "campaign_id": "campaign_75edd17b039317323bd7",
+    "comparison_cohort_id": "cohort_d0331ce7b3c5cf88b6b0",
+    "dataset_fixture_sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+    "idle_baseline_samples_sha256": "89f1d122deb7301db7f9665d146b37e44eb5dae24d9cf617bf06e925767e15eb",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "source_commit": "2bc4d9a38f88cb0be1087b6e35a329587d1942bf",
+    "source_tree": "bf8a3c0f86e59061a17aa1d4077a157835ef4f53"
+  },
+  "claim_boundary": {
+    "does_not_establish": [
+      "a stable Phase 7 model or method cell",
+      "Phase 8 authorization",
+      "model quality or method superiority",
+      "production throughput, safety, or release readiness",
+      "capacity or behavior on another host, GPU, environment, model revision, or configuration",
+      "an observed 360M, 1.7B, or architecture-breadth training result"
+    ],
+    "establishes": [
+      "the exact Phase 7 planner-admission ledger for the three frozen same-family model revisions",
+      "one protocol-valid 128-step 135M LoRA exploratory result",
+      "a fail-closed thermal admission stop before the second exploratory slot activated",
+      "the no-replacement disposition of every later Phase 7 slot"
+    ]
+  },
+  "conditioning": {
+    "attempt_slot_id": "slot_a6251b85e431fbc2b434",
+    "copy_id": "copy_00000000000000000000000000000001",
+    "copy_receipt_id": "receipt_11c60802042acc0002d694a177202120",
+    "copy_verification": "passed",
+    "destination_restore_id": "restore_00000000000000000000000000000001",
+    "evidence_status": "protocol-valid",
+    "method": "lora",
+    "model_label": "135m",
+    "native_outcome": "passed",
+    "protected_artifact_id": "artifact_26235cc4bc558f732db4abdaf7653e5c",
+    "raw_manifest_sha256": "bccf8dad4477333ac07860924a69a8db5e96715df009f42f44c28adabd7478ec",
+    "retrieval_receipt_id": "receipt_e34a95f22aa3d7665462690ee5a53715",
+    "retrieval_verification": "passed",
+    "telemetry_healthy": true
+  },
+  "configuration": {
+    "checkpoint_cadence_optimizer_steps": 64,
+    "data_order_seeds": [
+      1006101,
+      1006203,
+      1006301
+    ],
+    "effective_batch_size": 8,
+    "gradient_accumulation_steps": 2,
+    "micro_batch_size": 4,
+    "optimizer_step_target": 128,
+    "placement": "single",
+    "precision": "bf16",
+    "sequence_length": 256,
+    "split_seed": 424242,
+    "training_seeds": [
+      6101,
+      6203,
+      6301
+    ],
+    "world_size": 1
+  },
+  "custody": {
+    "custody_receipts": 4,
+    "sealed_artifacts": 2,
+    "verified_fresh_restorations": 2,
+    "verified_off_host_copies": 2
+  },
+  "decision": {
+    "architecture_breadth_status": "not-activated",
+    "phase7_status": "complete-stopped-at-live-admission",
+    "phase8_authorized": false,
+    "reason_code": "THERMAL_WARNING_SUSTAINED",
+    "replacement_allowed": false,
+    "replacement_created": false
+  },
+  "model_freezes": [
+    {
+      "exact_execution_artifact_bytes": 272437573,
+      "exact_parameter_count": 134515008,
+      "full_repository_inventory_file_count": 25,
+      "label": "135m",
+      "license": "apache-2.0",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    },
+    {
+      "exact_execution_artifact_bytes": 727051918,
+      "exact_parameter_count": 361821120,
+      "full_repository_inventory_file_count": 27,
+      "label": "360m",
+      "license": "apache-2.0",
+      "model_id": "HuggingFaceTB/SmolLM2-360M-Instruct",
+      "revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    },
+    {
+      "exact_execution_artifact_bytes": 3426155020,
+      "exact_parameter_count": 1711376384,
+      "full_repository_inventory_file_count": 28,
+      "label": "1p7b",
+      "license": "apache-2.0",
+      "model_id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+      "revision": "31b70e2e869a7173562077fd711b654946d38674",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    }
+  ],
+  "planner_admissions": [
+    {
+      "admitted": true,
+      "candidate_id": "cand_1c8d30162dc6a03abb4d",
+      "method": "lora",
+      "model_label": "135m",
+      "upper_estimate_bytes": 2508144647
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand_347d5624ee9950de6732",
+      "method": "full",
+      "model_label": "135m",
+      "upper_estimate_bytes": 4056775643
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand_689f75a1a085e15715b2",
+      "method": "lora",
+      "model_label": "360m",
+      "upper_estimate_bytes": 3389655441
+    },
+    {
+      "admitted": false,
+      "candidate_id": "cand_36056ef8a8d9d9af2d4d",
+      "method": "full",
+      "model_label": "360m",
+      "reason_codes": [
+        "Even the point estimate exceeds usable per-device memory."
+      ],
+      "upper_estimate_bytes": 7649328482
+    },
+    {
+      "admitted": false,
+      "candidate_id": null,
+      "method": "lora",
+      "model_label": "1p7b",
+      "reason_codes": [
+        "No feasible or conditional exact plan; even the point estimate exceeds usable per-device memory."
+      ]
+    },
+    {
+      "admitted": false,
+      "candidate_id": null,
+      "method": "full",
+      "model_label": "1p7b",
+      "reason_codes": [
+        "No feasible or conditional exact plan; even the point estimate exceeds usable per-device memory."
+      ]
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-phase7-outcome.v1",
+  "slot_dispositions": [
+    {
+      "attempt_slot_id": "slot_e518d7a37321e811de52",
+      "block": 1,
+      "capture_reason_code": "NONE",
+      "completed_non_skipped_optimizer_steps": 128,
+      "copy_id": "copy_00000000000000000000000000000002",
+      "copy_receipt_id": "receipt_d38b276c514c6330a458d407098cca1a",
+      "copy_verification": "passed",
+      "data_order_seed": 1006101,
+      "destination_restore_id": "restore_00000000000000000000000000000002",
+      "eval_loss": 3.0226755142211914,
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_83f8ca7af2aa3fe1d403",
+      "experiment_run_id": "xrun_338805b1a2968d3812b873be79bcfee3",
+      "externally_observed_training_duration_ns": 75580574815,
+      "label": "135m-lora-seed-6101",
+      "method": "lora",
+      "model_label": "135m",
+      "native_outcome": "passed",
+      "ordinal": 1,
+      "protected_artifact_id": "artifact_2a76bd355ad7d54178ca0e97b729f185",
+      "raw_manifest_sha256": "cb138a9c71ca2044fcc0beb58badc298dc65cef4d7051a3a6c32a847f03497b3",
+      "raw_manifest_size_bytes": 25006,
+      "reason_code": "NONE",
+      "retrieval_receipt_id": "receipt_5e57a16b06bd55f9565bbe07a98a46bd",
+      "retrieval_verification": "passed",
+      "runtime_peak_cuda_bytes": 1012389888,
+      "runtime_reserved_cuda_bytes": 1176502272,
+      "scheduled_seed": 6101,
+      "slot_status": "started",
+      "telemetry_coverage": 1.0,
+      "telemetry_healthy": true,
+      "telemetry_maximum_gap_seconds": 1.0775679,
+      "telemetry_peak_gpu_memory_used_bytes": 1472200704,
+      "train_loss": 3.725326493382454
+    },
+    {
+      "admission_decision": "refused-before-harness-activation",
+      "attempt_slot_id": "slot_50e05fec831a82f834f0",
+      "block": 2,
+      "evidence_status": "not-started",
+      "label": "135m-lora-seed-6203",
+      "method": "lora",
+      "model_label": "135m",
+      "native_outcome": null,
+      "ordinal": 2,
+      "reason_code": "THERMAL_WARNING_SUSTAINED",
+      "scheduled_seed": 6203,
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_7390b237e2e3ea8ad9d1",
+      "block": 3,
+      "evidence_status": "not-started",
+      "label": "135m-lora-seed-6301",
+      "method": "lora",
+      "model_label": "135m",
+      "native_outcome": null,
+      "ordinal": 3,
+      "reason_code": "CAMPAIGN_STOPPED_AFTER_ADMISSION_REFUSAL",
+      "scheduled_seed": 6301,
+      "slot_status": "planned-not-started"
+    }
+  ],
+  "unstarted_groups": [
+    {
+      "count": 3,
+      "method": "full",
+      "model_label": "135m",
+      "reason_code": "CAMPAIGN_STOPPED_AFTER_LORA_ADMISSION_REFUSAL"
+    },
+    {
+      "count": 3,
+      "method": "lora",
+      "model_label": "360m",
+      "reason_code": "PRIOR_SIZE_LORA_DID_NOT_PASS_3_OF_3"
+    },
+    {
+      "count": 3,
+      "method": "full",
+      "model_label": "360m",
+      "reason_code": "PLANNER_NOT_ADMITTED"
+    },
+    {
+      "count": 3,
+      "method": "lora",
+      "model_label": "1p7b",
+      "reason_code": "PLANNER_NOT_ADMITTED_AND_PRIOR_SIZE_NOT_ACTIVATED"
+    },
+    {
+      "count": 3,
+      "method": "full",
+      "model_label": "1p7b",
+      "reason_code": "PLANNER_NOT_ADMITTED"
+    }
+  ]
+}

@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-10 CUDA Phase 7 scale staircase](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 - [2026-08-10 CUDA Phase 6 Full confirmatory stability](evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
 - [2026-08-10 CUDA Phase 6 remediation method matrix](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 repeatability anchor](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)

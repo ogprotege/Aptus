@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0 through 6 complete; a separate fixed-source five-slot Full cohort established one stable Phase 6 cell, so Phase 7 is authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before beginning Phase 7, changing the frozen cell, changing the capture contract, or by 2026-09-09
+> **Status:** Phases 0 through 7 complete; Phase 7 stopped fail-closed when the second 135M LoRA slot could not pass live thermal admission, so no Phase 7 cell established stability and Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcome is linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before any Phase 7 retry, Phase 8 activation, protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -702,6 +702,14 @@ Exploratory results remain published but are excluded from confirmatory
 aggregates. Resource results are not a quality ranking.
 
 ### Phase 7 — scale staircase and architecture breadth
+
+The reviewed [Phase 7 scale-staircase packet](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+records the completed fail-closed outcome. The 135M LoRA conditioner and first
+exploratory slot passed, but the second slot remained `planned-not-started`
+after live admission returned `THERMAL_WARNING_SUSTAINED`. Per the frozen stop
+rule, no replacement was created, the remaining same-size and larger-size
+slots were not activated, architecture breadth did not begin, and Phase 8 is
+not authorized.
 
 Start with the same Llama-family SmolLM2 revisions at approximately 135M, 360M,
 and 1.7B parameters. For each size, begin with the stable LoRA configuration,

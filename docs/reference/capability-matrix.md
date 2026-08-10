@@ -55,6 +55,13 @@ peak-memory stability thresholds, and passed off-host copy and fresh retrieval
 verification. This establishes the exact frozen anchor and Phase 6 eligibility;
 it does not qualify another method, artifact, host, environment, or release.
 
+The subsequent [2026-08-10 Phase 6 method-matrix
+packet](../operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+retains all 32 frozen slots and records no promoted method. Full conditioning
+was capture-invalid, Int8 LoRA and QLoRA were not admitted, and one of three
+LoRA exploratory slots passed the common contract. No confirmatory comparison
+or Phase 7 progression is authorized by that result.
+
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the

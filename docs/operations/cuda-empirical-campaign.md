@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Active experiment plan; Phases 0 through 5 complete; Phase 5 repeatability anchor established and Phase 6 authorized for the exact frozen scope | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before starting Phase 6, after any capture or selection contract change, or by 2026-09-09
+> **Status:** Active experiment plan; Phases 0 through 6 complete; Phase 6 produced no promoted method and Phase 7 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-10 | **Review by:** Before authorizing a replacement cohort, changing the capture contract, or by 2026-09-09
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -654,6 +654,16 @@ exactly five-attempt batch, its predeclared decision, and its raw retrieval proo
 receive independent review.
 
 ### Phase 6 — same-model method matrix
+
+**Complete with no promoted method.** The
+[sanitized Phase 6 packet](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+retains all 32 predeclared slots with no replacements. Full fine-tuning was
+blocked after its conditioning evidence was capture-invalid; Int8 LoRA and
+QLoRA were not admitted on the exact host; and LoRA produced one qualifying
+pass, one safety cancellation for unrelated GPU activity, and one activated
+but unlaunched slot whose execution configuration did not match the initial
+source freeze. No method met the frozen three-of-three promotion rule, so no
+confirmatory slot started and Phase 7 is not authorized.
 
 Hold model revision, tokenizer, data and split, loss masking, sequence length,
 effective batch, Phase 3 optimizer-step target, seed policy, checkpoint rule,

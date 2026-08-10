@@ -15,6 +15,7 @@
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
 - [2026-08-10 CUDA Phase 5 repeatability anchor](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+- [2026-08-10 CUDA Phase 6 same-model method matrix](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 retention addendum](evidence/2026-08-10-cuda-phase5-repeatability-retention.json)
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
@@ -97,10 +98,10 @@ source gates complete. It is not operator authorization
 or target-runtime evidence. Phase 2B used that merged source to publish and
 independently review the sanitized recovery supplement without connecting to or
 mutating the Ubuntu host. Phase 3 explicit selection and measurement controls,
-Phase 4 rehearsal and freeze, and the successful five-slot Phase 5
-repeatability anchor are complete. The reviewed Phase 5 packet authorizes
-Phase 6 only for its exact frozen anchor scope; the same-model method matrix is
-next.
+Phase 4 rehearsal and freeze, the successful five-slot Phase 5 repeatability
+anchor, and the Phase 6 same-model method matrix are complete. The reviewed
+Phase 6 packet records no promoted method, no confirmatory execution, and no
+Phase 7 authorization.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

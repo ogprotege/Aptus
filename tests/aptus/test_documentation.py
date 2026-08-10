@@ -1010,21 +1010,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 126)
+        self.assertEqual(len(repository_documents), 127)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 125)
-        self.assertEqual(len(active_documents), 96)
+        self.assertEqual(len(governed_documents), 126)
+        self.assertEqual(len(active_documents), 97)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 125)
-        self.assertIn("125 are governed", normalized_inventory)
-        self.assertIn("125 governed", normalized_inventory)
-        self.assertIn("126 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 96 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 126)
+        self.assertIn("126 are governed", normalized_inventory)
+        self.assertIn("126 governed", normalized_inventory)
+        self.assertIn("127 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 97 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -2537,6 +2537,105 @@ class DocumentationTests(unittest.TestCase):
             self.assertNotIn(private_marker, public_text)
 
         packet_link = "evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md"
+        for relative in (
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/reference/capability-matrix.md",
+            "docs/product/current-capabilities.md",
+        ):
+            self.assertIn(packet_link, (REPOSITORY / relative).read_text())
+
+    def test_cuda_phase6_method_matrix_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY / "docs/operations/evidence/2026-08-10-cuda-phase6-method-matrix"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "independent-review.json",
+            "phase6-outcome.json",
+            "sanitization-map.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        self.assertEqual(
+            [relative for _digest, relative in parsed],
+            [
+                "./README.md",
+                "./phase6-outcome.json",
+                "./sanitization-map.json",
+                "./independent-review.json",
+            ],
+        )
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        outcome = json.loads((packet / "phase6-outcome.json").read_text())
+        self.assertEqual(outcome["decision"]["phase6_status"], "complete-no-promotion")
+        self.assertFalse(outcome["decision"]["phase7_authorized"])
+        self.assertFalse(outcome["decision"]["confirmatory_comparison_authorized"])
+        self.assertEqual(outcome["aggregate"]["predeclared_slot_count"], 32)
+        self.assertEqual(outcome["aggregate"]["methods_promoted"], [])
+        self.assertEqual(outcome["aggregate"]["confirmatory_slots_started"], 0)
+        self.assertEqual(outcome["aggregate"]["replacements"], 0)
+        self.assertEqual(len(outcome["slot_dispositions"]), 32)
+        self.assertEqual(
+            [slot["ordinal"] for slot in outcome["slot_dispositions"]],
+            list(range(1, 33)),
+        )
+        self.assertEqual(
+            {
+                method: sum(
+                    slot["method"] == method for slot in outcome["slot_dispositions"]
+                )
+                for method in ("full", "lora", "int8-lora", "qlora")
+            },
+            {"full": 8, "lora": 8, "int8-lora": 8, "qlora": 8},
+        )
+        measurement = outcome["qualifying_measurement"]
+        self.assertEqual(measurement["completed_non_skipped_optimizer_steps"], 128)
+        self.assertEqual(measurement["native_outcome"], "passed")
+        self.assertEqual(measurement["evidence_status"], "protocol-valid")
+        self.assertEqual(measurement["copy_verification"], "passed")
+        self.assertEqual(measurement["retrieval_verification"], "passed")
+
+        review = json.loads((packet / "independent-review.json").read_text())
+        self.assertEqual(review["review_result"], "passed")
+        self.assertTrue(review["role_separation_verified"])
+        self.assertTrue(all(review["checks"].values()))
+
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8") for name in expected_files
+        )
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+            "GPU-",
+        ):
+            self.assertNotIn(private_marker, public_text)
+
+        packet_link = "evidence/2026-08-10-cuda-phase6-method-matrix/README.md"
         for relative in (
             "docs/operations/index.md",
             "docs/operations/cuda-empirical-campaign.md",

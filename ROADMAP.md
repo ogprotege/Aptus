@@ -24,6 +24,11 @@ Completed evidence:
   passed the frozen stability and integrity contract, off-host copy
   verification, and fresh retrieval. This authorizes Phase 6 only from the
   exact frozen anchor scope.
+- The [Phase 6 same-model method
+  matrix](docs/operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
+  completed all 32 frozen slot dispositions with no replacements. No method
+  met the three-of-three promotion rule, no confirmatory slot started, and
+  Phase 7 is not authorized.
 - Two clean, independent MLX-LM QLoRA workflows reached
   `measured-run-pass` with the exact recorded model, revision, dataset, host,
   runtime, plan, and generated bundle.
@@ -73,12 +78,11 @@ Completed Phase 2 tooling and recovery publication, not new target-runtime evide
 
 Remaining release work:
 
-- Execute the canonical [RTX 3050 CUDA empirical evidence
-  campaign](docs/operations/cuda-empirical-campaign.md) from Phase 6 onward for
-  clean-environment dependencies, all four registered single-device method
-  cells where exact candidates pass their gates,
-  model scale, guarded configuration frontiers, endurance, and raw-evidence
-  retention. That one-GPU campaign cannot close DDP or conditional LoRA FSDP;
+- Review whether to authorize a new frozen Phase 6 cohort or a capture-contract
+  correction before attempting Phase 7 of the canonical [RTX 3050 CUDA
+  empirical evidence campaign](docs/operations/cuda-empirical-campaign.md).
+  The completed cohort established no stable Phase 6 cell. That one-GPU
+  campaign cannot close DDP or conditional LoRA FSDP;
   those placements require a later multi-GPU campaign.
   Any local fit or refusal boundary applies only to the exact RTX 3050 host and
   configuration; it is not Aptus's cloud or multi-GPU ceiling.

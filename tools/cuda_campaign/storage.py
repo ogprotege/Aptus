@@ -126,6 +126,21 @@ _QUALIFYING_RUNTIME_SEQUENCE = {
     ),
 }
 _RUN_EMBEDDED_DIGEST_ROLES = _QUALIFYING_SINGLE_ROLES - {"experiment-run-record"}
+
+
+def _qualifying_single_roles(*, conditioning: bool) -> frozenset[str]:
+    roles = _QUALIFYING_SINGLE_ROLES
+    if conditioning:
+        roles -= {"training-metrics", "final-export-manifest"}
+    return roles
+
+
+def _run_embedded_digest_roles(*, conditioning: bool) -> frozenset[str]:
+    return _qualifying_single_roles(conditioning=conditioning) - {
+        "experiment-run-record"
+    }
+
+
 _ACTIVATION_ROLE_FILES = {
     "activation-admission-decision": "admission-decision.json",
     "activation-admission-observations": "admission-observations.json",
@@ -1421,10 +1436,14 @@ def _validate_qualifying_event_sequence(
     *,
     experiment_run_id: str,
     started_actions: Sequence[Mapping[str, Any]],
+    conditioning: bool = False,
 ) -> tuple[int, int]:
     """Require the exact successful action, runtime, and cooldown boundaries."""
 
-    if tuple(row["action"] for row in started_actions) != QUALIFYING_ACTION_ORDER:
+    expected_actions = (
+        QUALIFYING_ACTION_ORDER[:-1] if conditioning else QUALIFYING_ACTION_ORDER
+    )
+    if tuple(row["action"] for row in started_actions) != expected_actions:
         raise EvidenceStorageError("The qualifying action sequence is not frozen.")
     if any(
         row["job_id"] is None
@@ -1510,19 +1529,22 @@ def _validate_qualifying_event_sequence(
         "verification.finished",
     }
     pilot_job_id = by_action["pilot"]["job_id"]
-    train_job_id = by_action["train"]["job_id"]
     expected_runtime = (
         ("pilot.phase-started", "pilot-phase-1", "pilot", pilot_job_id),
         ("pilot.phase-finished", "pilot-phase-1", "pilot", pilot_job_id),
         ("pilot.phase-started", "pilot-phase-2", "pilot", pilot_job_id),
         ("pilot.phase-finished", "pilot-phase-2", "pilot", pilot_job_id),
-        ("training.started", "training", "train", train_job_id),
-        ("export.started", "final-export", "train", train_job_id),
-        ("export.finished", "final-export", "train", train_job_id),
-        ("training.finished", "training", "train", train_job_id),
-        ("verification.started", "parent-verification", "train", train_job_id),
-        ("verification.finished", "parent-verification", "train", train_job_id),
     )
+    if not conditioning:
+        train_job_id = by_action["train"]["job_id"]
+        expected_runtime += (
+            ("training.started", "training", "train", train_job_id),
+            ("export.started", "final-export", "train", train_job_id),
+            ("export.finished", "final-export", "train", train_job_id),
+            ("training.finished", "training", "train", train_job_id),
+            ("verification.started", "parent-verification", "train", train_job_id),
+            ("verification.finished", "parent-verification", "train", train_job_id),
+        )
     runtime_rows = [row for row in ledger if row["event_type"] in runtime_types]
     if (
         tuple(
@@ -1867,19 +1889,24 @@ def _validate_qualifying_runtime_journals(
     required_role_bindings: Mapping[str, str | Sequence[str]],
     started_actions: Sequence[Mapping[str, Any]],
     ledger: Sequence[Mapping[str, Any]],
+    conditioning: bool = False,
 ) -> None:
     """Cross-check the two retained runtime journals against emitted ledger rows."""
 
+    expected_runtime_actions = ("pilot",) if conditioning else ("pilot", "train")
     journal_ids = _require_complete_role_binding(
         "runtime-boundary-journal",
         bindings=required_role_bindings,
         entries=entries,
-        minimum=2,
-        maximum=2,
+        minimum=len(expected_runtime_actions),
+        maximum=len(expected_runtime_actions),
     )
     journal_entries = [_entry_with_id(entries, entry_id) for entry_id in journal_ids]
     by_path = {str(entry["relative_path"]): entry for entry in journal_entries}
-    if set(by_path) != set(_QUALIFYING_RUNTIME_JOURNAL_PATHS.values()):
+    expected_paths = {
+        _QUALIFYING_RUNTIME_JOURNAL_PATHS[action] for action in expected_runtime_actions
+    }
+    if set(by_path) != expected_paths:
         raise EvidenceStorageError(
             "Qualifying runtime journals do not use the frozen pilot/train paths."
         )
@@ -1889,7 +1916,7 @@ def _validate_qualifying_runtime_journals(
         for row in started_actions
         if row["action"] in _QUALIFYING_RUNTIME_JOURNAL_PATHS
     }
-    if set(jobs_by_action) != set(_QUALIFYING_RUNTIME_JOURNAL_PATHS) or any(
+    if set(jobs_by_action) != set(expected_runtime_actions) or any(
         not isinstance(job_id, str) for job_id in jobs_by_action.values()
     ):
         raise EvidenceStorageError(
@@ -1897,7 +1924,7 @@ def _validate_qualifying_runtime_journals(
         )
 
     boundaries = []
-    for action in ("pilot", "train"):
+    for action in expected_runtime_actions:
         entry = by_path[_QUALIFYING_RUNTIME_JOURNAL_PATHS[action]]
         records = _load_canonical_jsonl_entry(
             root, entry, require_jsonl_media_type=True
@@ -2259,10 +2286,12 @@ def _validate_qualifying_payloads(
     telemetry_stop_monotonic_ns: int,
     cooldown_start_monotonic_ns: int,
     cooldown_stop_monotonic_ns: int,
+    conditioning: bool = False,
 ) -> dict[str, str]:
     role_entries: dict[str, Mapping[str, Any]] = {}
     role_payloads: dict[str, dict[str, Any]] = {}
-    for role in sorted(_QUALIFYING_SINGLE_ROLES):
+    required_single_roles = _qualifying_single_roles(conditioning=conditioning)
+    for role in sorted(required_single_roles):
         entry_id = _require_complete_role_binding(
             role,
             bindings=required_role_bindings,
@@ -2366,7 +2395,8 @@ def _validate_qualifying_payloads(
         "evidence_role_sha256"
     )
     expected_embedded = {
-        role: role_digests[role] for role in sorted(_RUN_EMBEDDED_DIGEST_ROLES)
+        role: role_digests[role]
+        for role in sorted(_run_embedded_digest_roles(conditioning=conditioning))
     }
     if embedded_digests != expected_embedded:
         raise EvidenceStorageError(
@@ -2483,9 +2513,11 @@ def _validate_qualifying_payloads(
         raise EvidenceStorageError(
             "The retained plan, manifest, and execution bundle identity differ."
         )
+    required_artifact_roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES
+    if conditioning:
+        required_artifact_roles -= {"training-metrics", "final-export-manifest"}
     if any(
-        not role_entries[role].get("size_bytes")
-        for role in REQUIRED_QUALIFYING_ARTIFACT_ROLES
+        not role_entries[role].get("size_bytes") for role in required_artifact_roles
     ):
         raise EvidenceStorageError(
             "A frozen qualifying artifact role has an empty canonical payload."
@@ -3134,6 +3166,10 @@ def _validate_protocol_valid_payloads(
             raise EvidenceStorageError(
                 "The retained managed outcome profile is invalid."
             ) from error
+    conditioning = bool(
+        outcome_profile is not None
+        and outcome_profile.sequence_profile == "conditioning"
+    )
     if sequence_summary is not None:
         command_boundaries = [
             row
@@ -3189,6 +3225,14 @@ def _validate_protocol_valid_payloads(
             entries=entries,
             required_role_bindings=required_role_bindings,
         )
+        retained_is_conditioning = (
+            retained_activation.planned_slot_context.planned_attempt_slot["role"]
+            == "conditioning"
+        )
+        if retained_is_conditioning is not conditioning:
+            raise EvidenceStorageError(
+                "The managed sequence profile differs from its retained slot role."
+            )
         if experiment_record is not None:
             template = dict(retained_activation.experiment_run_template)
             mutable_terminal_fields = {
@@ -3223,6 +3267,7 @@ def _validate_protocol_valid_payloads(
             ledger,
             experiment_run_id=experiment_run_id,
             started_actions=started_actions,
+            conditioning=conditioning,
         )
         _validate_qualifying_runtime_journals(
             root,
@@ -3231,6 +3276,7 @@ def _validate_protocol_valid_payloads(
             required_role_bindings=required_role_bindings,
             started_actions=started_actions,
             ledger=ledger,
+            conditioning=conditioning,
         )
         role_digests = _validate_qualifying_payloads(
             root,
@@ -3247,6 +3293,7 @@ def _validate_protocol_valid_payloads(
             telemetry_stop_monotonic_ns=telemetry_stop_ns,
             cooldown_start_monotonic_ns=cooldown_start_ns,
             cooldown_stop_monotonic_ns=cooldown_stop_ns,
+            conditioning=conditioning,
         )
         _validate_protocol_experiment_run_record(
             root,
@@ -3258,7 +3305,10 @@ def _validate_protocol_valid_payloads(
             aptus_run_ids=aptus_run_ids,
             terminal_jobs=terminal_jobs,
             evidence_role_sha256={
-                role: role_digests[role] for role in sorted(_RUN_EMBEDDED_DIGEST_ROLES)
+                role: role_digests[role]
+                for role in sorted(
+                    _run_embedded_digest_roles(conditioning=conditioning)
+                )
             },
             native_outcome=sequence_summary["native_outcome"],
             evidence_status=sequence_summary["evidence_status"],

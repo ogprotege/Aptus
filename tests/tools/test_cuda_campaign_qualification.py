@@ -47,6 +47,7 @@ def qualifying_context(
     state_root: str = "/protected/state",
     bundle_manifest_sha256: str = DIGEST,
     archive_sha256: str = OTHER_DIGEST,
+    role: str = "anchor",
 ) -> QualifyingRunContext:
     campaign_identity = {
         "schema_version": SCHEMA_VERSIONS["campaign"],
@@ -121,7 +122,7 @@ def qualifying_context(
         "comparison_cell_id": cell["comparison_cell_id"],
         "block": 0,
         "ordinal": 1,
-        "role": "anchor",
+        "role": role,
         "order_position": 0,
         "scheduled_seed": 17,
     }
@@ -349,10 +350,13 @@ def qualifying_configuration(context: QualifyingRunContext) -> dict[str, object]
     return session.configuration_record()
 
 
-def passing_inputs() -> dict[str, object]:
-    context = qualifying_context()
-    job_ids = ["job_" + f"{index:032x}" for index in range(1, 6)]
-    actions = list(("dependency", "model-data", "preflight", "pilot", "train"))
+def passing_inputs(*, conditioning: bool = False) -> dict[str, object]:
+    context = qualifying_context(role="conditioning" if conditioning else "anchor")
+    job_count = 4 if conditioning else 5
+    job_ids = ["job_" + f"{index:032x}" for index in range(1, job_count + 1)]
+    actions = list(("dependency", "model-data", "preflight", "pilot", "train"))[
+        :job_count
+    ]
     levels = {
         "dependency": "dependency",
         "model-data": "model-data",
@@ -398,16 +402,25 @@ def passing_inputs() -> dict[str, object]:
             }
         )
     triples = (
-        ("pilot.phase-started", "pilot-phase-1", job_ids[3], 5),
-        ("pilot.phase-finished", "pilot-phase-1", job_ids[3], 6),
-        ("pilot.phase-started", "pilot-phase-2", job_ids[3], 7),
-        ("pilot.phase-finished", "pilot-phase-2", job_ids[3], 8),
-        ("training.started", "training", job_ids[4], 10),
-        ("export.started", "final-export", job_ids[4], 11),
-        ("export.finished", "final-export", job_ids[4], 12),
-        ("training.finished", "training", job_ids[4], 13),
-        ("verification.started", "parent-verification", job_ids[4], 14),
-        ("verification.finished", "parent-verification", job_ids[4], 15),
+        (
+            ("pilot.phase-started", "pilot-phase-1", job_ids[3], 5),
+            ("pilot.phase-finished", "pilot-phase-1", job_ids[3], 6),
+            ("pilot.phase-started", "pilot-phase-2", job_ids[3], 7),
+            ("pilot.phase-finished", "pilot-phase-2", job_ids[3], 8),
+            ("training.started", "training", job_ids[4], 10),
+            ("export.started", "final-export", job_ids[4], 11),
+            ("export.finished", "final-export", job_ids[4], 12),
+            ("training.finished", "training", job_ids[4], 13),
+            ("verification.started", "parent-verification", job_ids[4], 14),
+            ("verification.finished", "parent-verification", job_ids[4], 15),
+        )
+        if not conditioning
+        else (
+            ("pilot.phase-started", "pilot-phase-1", job_ids[3], 5),
+            ("pilot.phase-finished", "pilot-phase-1", job_ids[3], 6),
+            ("pilot.phase-started", "pilot-phase-2", job_ids[3], 7),
+            ("pilot.phase-finished", "pilot-phase-2", job_ids[3], 8),
+        )
     )
     boundaries = [
         RuntimeBoundary(
@@ -474,7 +487,8 @@ def passing_inputs() -> dict[str, object]:
     return {
         "context": context,
         "action_records": action_records,
-        "selected_artifact_roles": set(REQUIRED_QUALIFYING_ARTIFACT_ROLES),
+        "selected_artifact_roles": set(REQUIRED_QUALIFYING_ARTIFACT_ROLES)
+        - ({"training-metrics", "final-export-manifest"} if conditioning else set()),
         "runtime_boundaries": boundaries,
         "telemetry_samples": samples,
         "telemetry_start_monotonic_ns": 0,
@@ -487,6 +501,25 @@ def passing_inputs() -> dict[str, object]:
 
 
 class QualifyingRunContextTests(unittest.TestCase):
+    def test_conditioning_pass_is_complete_without_training_or_export(self) -> None:
+        inputs = passing_inputs(conditioning=True)
+        context = inputs["context"]
+
+        decision = evaluate_passing_qualification(**inputs)  # type: ignore[arg-type]
+
+        self.assertTrue(context.conditioning)  # type: ignore[union-attr]
+        self.assertTrue(decision.valid)
+        records = inputs["action_records"]
+        slot, run = context.finalize_records(  # type: ignore[union-attr]
+            records,  # type: ignore[arg-type]
+            native_outcome="passed",
+            evidence_status="protocol-valid",
+            reason_code="NONE",
+        )
+        self.assertEqual(slot["role"], "conditioning")
+        self.assertEqual(run["aptus_run_ids"], [])
+        self.assertEqual(run["exact_argv"], records[-1]["command"])  # type: ignore[index]
+
     def test_action_records_are_cross_bound_to_context_paths_identity_and_argv(
         self,
     ) -> None:

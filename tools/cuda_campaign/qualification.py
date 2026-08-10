@@ -38,6 +38,7 @@ QUALIFYING_ACTION_ORDER = (
     "pilot",
     "train",
 )
+CONDITIONING_ACTION_ORDER = QUALIFYING_ACTION_ORDER[:-1]
 REQUIRED_QUALIFYING_ARTIFACT_ROLES = frozenset(
     {
         "plan",
@@ -505,6 +506,12 @@ class QualifyingRunContext:
         )
 
     @property
+    def conditioning(self) -> bool:
+        """Return whether this production-captured slot is a conditioner."""
+
+        return self.planned_attempt_slot["role"] == "conditioning"
+
+    @property
     def experiment_run_id(self) -> str:
         return str(self.experiment_run_template["experiment_run_id"])
 
@@ -675,6 +682,8 @@ class QualifyingRunContext:
                 | REQUIRED_QUALIFYING_ARTIFACT_ROLES
                 | REQUIRED_QUALIFYING_AUTHORITY_ROLES
             )
+            if self.conditioning:
+                passing_roles -= {"training-metrics", "final-export-manifest"}
             nonpass_roles = {
                 "attempt-slot-record",
                 "execution-configuration-record",
@@ -755,7 +764,7 @@ def validate_passing_runtime_boundaries(
     boundaries: list[RuntimeBoundary],
     *,
     pilot_job_id: str,
-    train_job_id: str,
+    train_job_id: str | None,
 ) -> None:
     """Require the exact successful runtime-emitted Phase-1 boundary order."""
 
@@ -764,13 +773,16 @@ def validate_passing_runtime_boundaries(
         ("pilot.phase-finished", "pilot-phase-1", pilot_job_id),
         ("pilot.phase-started", "pilot-phase-2", pilot_job_id),
         ("pilot.phase-finished", "pilot-phase-2", pilot_job_id),
-        ("training.started", "training", train_job_id),
-        ("export.started", "final-export", train_job_id),
-        ("export.finished", "final-export", train_job_id),
-        ("training.finished", "training", train_job_id),
-        ("verification.started", "parent-verification", train_job_id),
-        ("verification.finished", "parent-verification", train_job_id),
     )
+    if train_job_id is not None:
+        expected += (
+            ("training.started", "training", train_job_id),
+            ("export.started", "final-export", train_job_id),
+            ("export.finished", "final-export", train_job_id),
+            ("training.finished", "training", train_job_id),
+            ("verification.started", "parent-verification", train_job_id),
+            ("verification.finished", "parent-verification", train_job_id),
+        )
     observed = tuple((item.event_type, item.phase, item.job_id) for item in boundaries)
     if observed != expected:
         raise QualificationError("runtime boundary sequence is incomplete or reordered")
@@ -1095,7 +1107,10 @@ def evaluate_passing_qualification(
 
     reasons: list[str] = []
     actions = [record.get("action") for record in action_records]
-    if tuple(actions) != QUALIFYING_ACTION_ORDER or any(
+    expected_actions = (
+        CONDITIONING_ACTION_ORDER if context.conditioning else QUALIFYING_ACTION_ORDER
+    )
+    if tuple(actions) != expected_actions or any(
         record.get("state") != "completed" or record.get("return_code") != 0
         for record in action_records
     ):
@@ -1104,7 +1119,10 @@ def evaluate_passing_qualification(
         _require_context_bound_action_records(context, action_records)
     except QualificationError:
         reasons.append("MISSING_REQUIRED_EVIDENCE")
-    missing_roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES - selected_artifact_roles
+    required_roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES
+    if context.conditioning:
+        required_roles -= {"training-metrics", "final-export-manifest"}
+    missing_roles = required_roles - selected_artifact_roles
     if missing_roles:
         reasons.append("MISSING_REQUIRED_EVIDENCE")
     try:
@@ -1127,7 +1145,7 @@ def evaluate_passing_qualification(
         validate_passing_runtime_boundaries(
             runtime_boundaries,
             pilot_job_id=job_by_action.get("pilot"),
-            train_job_id=job_by_action.get("train"),
+            train_job_id=(None if context.conditioning else job_by_action.get("train")),
         )
     except QualificationError:
         reasons.append("MISSING_REQUIRED_EVIDENCE")
@@ -1169,6 +1187,7 @@ def evaluate_passing_qualification(
 
 
 __all__ = [
+    "CONDITIONING_ACTION_ORDER",
     "IDLE_BASELINE_BINDING_SCHEMA",
     "QUALIFYING_ACTION_ORDER",
     "REQUIRED_QUALIFYING_ARTIFACT_ROLES",

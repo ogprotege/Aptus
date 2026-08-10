@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -14,6 +15,7 @@ from unittest.mock import patch
 
 from aptus.execution import JobSubmissionFailure
 
+from tools.cuda_campaign.admission import AdmissionError, ExecutionProposal, RunProposal
 from tools.cuda_campaign.contracts import (
     EventLedgerWriter,
     canonical_jsonl_bytes,
@@ -1418,6 +1420,89 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
+    def test_phase4_resource_drift_is_rejected_before_activation(self) -> None:
+        from tests.tools.test_cuda_campaign_admission import _context
+        from tests.tools.test_cuda_campaign_qualification import (
+            qualifying_configuration,
+            qualifying_context,
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            state = root / "state"
+            bundle.mkdir()
+            state.mkdir(mode=0o700)
+            planned = _context()
+            behavior = {
+                **dict(planned.execution_proposal.exact_behavior_values),
+                "emergency_deadline_seconds": 600,
+                "remaining_disk_budget_bytes": 10_001,
+            }
+            planned = replace(
+                planned,
+                execution_proposal=ExecutionProposal(
+                    exact_behavior_values=behavior,
+                    plan_id=planned.execution_proposal.plan_id,
+                    candidate_id=planned.execution_proposal.candidate_id,
+                    bundle_fingerprint=planned.execution_proposal.bundle_fingerprint,
+                    split_seed=planned.execution_proposal.split_seed,
+                    training_seed=planned.execution_proposal.training_seed,
+                    data_order_seed=planned.execution_proposal.data_order_seed,
+                    emergency_deadline_seconds=600,
+                ),
+                run_proposal=RunProposal(
+                    working_directory=str(bundle),
+                    fresh_state_root=str(state),
+                    bundle_path=str(bundle),
+                    output_path=str(bundle / "runs"),
+                    bundle_manifest_sha256=(
+                        planned.run_proposal.bundle_manifest_sha256
+                    ),
+                    archive_sha256=planned.run_proposal.archive_sha256,
+                ),
+            )
+            frozen_context = qualifying_context()
+            verification = Phase4SourceFreezeVerification(
+                directory=root / "phase4",
+                source_freeze={
+                    "telemetry_configuration": qualifying_configuration(frozen_context)
+                },
+                seal={},
+                baseline_binding=dict(planned.phase4_binding),
+                source_freeze_sha256=planned.phase4_binding[
+                    "phase4_source_freeze_sha256"
+                ],
+                seal_sha256=planned.phase4_binding["phase4_source_freeze_seal_sha256"],
+                samples_sha256=planned.phase4_binding["idle_baseline_samples_sha256"],
+            )
+
+            with (
+                patch(
+                    "tools.cuda_campaign.harness.verify_phase4_source_freeze_artifact",
+                    return_value=verification,
+                ),
+                patch(
+                    "tools.cuda_campaign.harness.collect_production_admission_observations"
+                ) as collect,
+                patch("tools.cuda_campaign.harness.activate_admitted_slot") as activate,
+            ):
+                with self.assertRaisesRegex(
+                    AdmissionError,
+                    "resource budget differs from Phase 4 before activation",
+                ):
+                    CaptureHarness.for_qualifying_campaign(
+                        state,
+                        state,
+                        planned_slot_context=planned,
+                        provisional_retain_not_before_utc=RETAIN_UNTIL,
+                        phase4_source_freeze_directory=root / "phase4",
+                        repository_root=root,
+                    )
+
+            collect.assert_not_called()
+            activate.assert_not_called()
+
     def test_runtime_journals_use_action_paths_instead_of_display_labels(self) -> None:
         pilot = ManagedActionSpec("bounded-pilot", "pilot", 5)
         training = ManagedActionSpec("full-training", "train", 5)

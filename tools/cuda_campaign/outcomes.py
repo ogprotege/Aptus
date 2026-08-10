@@ -36,6 +36,7 @@ MANAGED_ACTION_ORDER = (
     "pilot",
     "train",
 )
+CONDITIONING_ACTION_ORDER = MANAGED_ACTION_ORDER[:-1]
 RUNTIME_BOUNDARY_ORDER = (
     ("pilot.phase-started", "pilot-phase-1", "pilot"),
     ("pilot.phase-finished", "pilot-phase-1", "pilot"),
@@ -92,6 +93,7 @@ class ManagedOutcomeProfile:
     stopping_action: str
     started_action_count: int
     runtime_boundary_count: int
+    sequence_profile: str
 
     @property
     def publication_eligible(self) -> bool:
@@ -122,8 +124,14 @@ def is_publication_eligible(native_outcome: str, evidence_status: str) -> bool:
 
 
 def _parse_configured_actions(value: Any) -> tuple[tuple[str, str], ...]:
-    if type(value) is not list or len(value) != len(MANAGED_ACTION_ORDER):
-        raise OutcomeProfileError("configured actions are not the frozen five actions")
+    if type(value) is not list or len(value) not in {
+        len(CONDITIONING_ACTION_ORDER),
+        len(MANAGED_ACTION_ORDER),
+    }:
+        raise OutcomeProfileError(
+            "configured actions are not a frozen conditioning or measured sequence"
+        )
+    expected_order = MANAGED_ACTION_ORDER[: len(value)]
     parsed: list[tuple[str, str]] = []
     for index, item in enumerate(value):
         if type(item) is not dict:
@@ -133,7 +141,7 @@ def _parse_configured_actions(value: Any) -> tuple[tuple[str, str], ...]:
         if (
             not isinstance(label, str)
             or _ACTION_LABEL.fullmatch(label) is None
-            or action != MANAGED_ACTION_ORDER[index]
+            or action != expected_order[index]
         ):
             raise OutcomeProfileError("configured action order or label is invalid")
         parsed.append((label, action))
@@ -206,6 +214,7 @@ def _parse_started_actions(
 def _require_terminal_axes(
     summary: Mapping[str, Any],
     actions: tuple[_ActionResult, ...],
+    configured: tuple[tuple[str, str], ...],
 ) -> tuple[str, str, str]:
     native_outcome = summary.get("native_outcome")
     evidence_status = summary.get("evidence_status")
@@ -237,8 +246,8 @@ def _require_terminal_axes(
             "summary disposition differs from the stopping action"
         )
     if native_outcome == "passed":
-        if len(actions) != len(MANAGED_ACTION_ORDER) or reason_code != "NONE":
-            raise OutcomeProfileError("a pass does not complete all five actions")
+        if len(actions) != len(configured) or reason_code != "NONE":
+            raise OutcomeProfileError("a pass does not complete its frozen sequence")
     elif reason_code == "NONE":
         raise OutcomeProfileError("a non-pass summary lacks its reason")
     if native_outcome == "refused" and reason_code != "APTUS_ADMISSION_REFUSAL":
@@ -264,9 +273,11 @@ def _validate_runtime_shape(
     native_outcome: str,
     reason_code: str,
     evidence_status: str | None = None,
+    conditioning: bool = False,
 ) -> list[Mapping[str, Any]]:
     runtime = _runtime_rows(records)
-    if len(runtime) > len(RUNTIME_BOUNDARY_ORDER):
+    expected_boundary_count = 4 if conditioning else len(RUNTIME_BOUNDARY_ORDER)
+    if len(runtime) > expected_boundary_count:
         raise OutcomeProfileError("runtime boundary sequence contains an insertion")
     job_by_action: dict[str, str] = {}
     if action_results is not None:
@@ -382,7 +393,9 @@ def _validate_runtime_shape(
                 )
             state = {
                 "pilot-phase-1-finish": "pilot-phase-2-start",
-                "pilot-phase-2-finish": "training-start",
+                "pilot-phase-2-finish": (
+                    "terminal" if conditioning else "training-start"
+                ),
                 "export-finish": "training-finish",
                 "training-finish": "verification-start",
                 "verification-finish": "terminal",
@@ -416,7 +429,7 @@ def _validate_runtime_shape(
 
     if native_outcome == "passed":
         if (
-            len(runtime) != len(RUNTIME_BOUNDARY_ORDER)
+            len(runtime) != expected_boundary_count
             or open_boundaries
             or state != "terminal"
         ):
@@ -728,9 +741,10 @@ def validate_managed_sequence_outcome(
     if type(summary) is not dict:
         raise OutcomeProfileError("managed sequence summary is not an object")
     configured = _parse_configured_actions(summary.get("configured_actions"))
+    conditioning = len(configured) == len(CONDITIONING_ACTION_ORDER)
     actions = _parse_started_actions(summary.get("started_actions"), configured)
     native_outcome, evidence_status, reason_code = _require_terminal_axes(
-        summary, actions
+        summary, actions, configured
     )
     try:
         ledger = validate_event_ledger(ledger_records)
@@ -750,6 +764,7 @@ def validate_managed_sequence_outcome(
         native_outcome=native_outcome,
         reason_code=reason_code,
         evidence_status=evidence_status,
+        conditioning=conditioning,
     )
     pair_by_action = {result.action: pair for result, pair in zip(actions, pairs)}
     for row in runtime:
@@ -786,6 +801,7 @@ def validate_managed_sequence_outcome(
         stopping_action=actions[-1].action,
         started_action_count=len(actions),
         runtime_boundary_count=len(runtime),
+        sequence_profile="conditioning" if conditioning else "measured",
     )
 
 

@@ -26,7 +26,7 @@ import weakref
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, Protocol
 
 from aptus.execution import (
@@ -67,6 +67,7 @@ from .monitoring import (
     validate_telemetry_sample,
 )
 from .qualification import (
+    CONDITIONING_ACTION_ORDER,
     QUALIFYING_ACTION_ORDER,
     REQUIRED_QUALIFYING_ARTIFACT_ROLES,
     REQUIRED_QUALIFYING_AUTHORITY_ROLES,
@@ -109,7 +110,7 @@ _BLOCK_MARKER = "SUBMISSIONS_BLOCKED.json"
 
 
 def _expected_selected_roles(
-    *, passing_candidate: bool, pilot_passed: bool
+    *, passing_candidate: bool, pilot_passed: bool, conditioning: bool = False
 ) -> frozenset[str]:
     roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES | (
         REQUIRED_QUALIFYING_AUTHORITY_ROLES
@@ -123,6 +124,8 @@ def _expected_selected_roles(
         roles -= {"training-metrics", "final-export-manifest"}
         if not pilot_passed:
             roles -= {"pilot-metrics"}
+    elif conditioning:
+        roles -= {"training-metrics", "final-export-manifest"}
     return roles
 
 
@@ -925,6 +928,48 @@ class CaptureHarness:
             raise AdmissionError(
                 "qualifying run storage paths are not bound to the bundle"
             )
+        pre_activation_verification = verify_phase4_source_freeze_artifact(
+            phase4_source_freeze_directory,
+            repository_root=repository,
+            campaign=planned_slot_context.campaign,
+            comparison_cohort=planned_slot_context.comparison_cohort,
+            comparison_cell=planned_slot_context.comparison_cell,
+            nvidia_smi_path=nvidia_smi_path,
+            gpu_index=gpu_index,
+        )
+        if dict(pre_activation_verification.baseline_binding) != dict(
+            planned_slot_context.phase4_binding
+        ):
+            raise AdmissionError(
+                "qualifying context differs from its Phase-4 baseline before activation"
+            )
+        remaining_disk_budget = (
+            planned_slot_context.execution_proposal.exact_behavior_values.get(
+                "remaining_disk_budget_bytes"
+            )
+        )
+        if (
+            isinstance(remaining_disk_budget, bool)
+            or not isinstance(remaining_disk_budget, int)
+            or remaining_disk_budget < 0
+        ):
+            raise AdmissionError(
+                "qualifying context lacks its exact remaining-disk budget"
+            )
+        try:
+            validate_qualifying_telemetry_configuration(
+                pre_activation_verification.source_freeze["telemetry_configuration"],
+                context=SimpleNamespace(
+                    emergency_deadline_seconds=(
+                        planned_slot_context.execution_proposal.emergency_deadline_seconds
+                    ),
+                    remaining_disk_budget_bytes=remaining_disk_budget,
+                ),
+            )
+        except (KeyError, QualificationError, TypeError, ValueError) as error:
+            raise AdmissionError(
+                "qualifying resource budget differs from Phase 4 before activation"
+            ) from error
         admission_filesystem_device = bundle.stat().st_dev
         if private_state.stat().st_dev != admission_filesystem_device:
             raise AdmissionError(
@@ -2614,6 +2659,16 @@ class CaptureHarness:
         context = self.qualification_context
         if context is None:
             return
+        observed_actions = tuple(spec.action for spec in specs)
+        expected_actions = (
+            CONDITIONING_ACTION_ORDER
+            if context.conditioning
+            else QUALIFYING_ACTION_ORDER
+        )
+        if observed_actions != expected_actions:
+            raise ValueError(
+                "A production campaign sequence differs from its frozen action profile."
+            )
         phase4 = self._phase4_verification
         repository = self._phase4_repository_root
         planned = self._planned_slot_context
@@ -3112,6 +3167,9 @@ class CaptureHarness:
         if service is None:  # pragma: no cover - guarded by public method.
             raise AssertionError("Owning service disappeared.")
         qualification_context = self.qualification_context
+        conditioning = bool(
+            qualification_context is not None and qualification_context.conditioning
+        )
         identity_bindings: dict[str, Any] = {
             "attempt_slot_id": self.attempt_slot_id,
             "experiment_run_id": self.experiment_run_id,
@@ -3613,22 +3671,25 @@ class CaptureHarness:
                 if any(result.capture_reason_code != "NONE" for result in results):
                     raise QualificationError("qualifying action capture is incomplete")
                 if passing_candidate:
-                    train_record = results[-1].record
-                    train_output = Path(
-                        str(train_record.get("run_output_dir", ""))
-                    ).resolve()
-                    selected_by_role = {
-                        artifact.role: artifact for artifact in capture_artifacts
-                    }
-                    if (
-                        selected_by_role["training-metrics"].source.resolve()
-                        != train_output / "metrics.json"
-                        or selected_by_role["final-export-manifest"].source.resolve()
-                        != train_output / "final-export.json"
-                    ):
-                        raise QualificationError(
-                            "qualifying training artifacts are misbound"
-                        )
+                    if not conditioning:
+                        train_record = results[-1].record
+                        train_output = Path(
+                            str(train_record.get("run_output_dir", ""))
+                        ).resolve()
+                        selected_by_role = {
+                            artifact.role: artifact for artifact in capture_artifacts
+                        }
+                        if (
+                            selected_by_role["training-metrics"].source.resolve()
+                            != train_output / "metrics.json"
+                            or selected_by_role[
+                                "final-export-manifest"
+                            ].source.resolve()
+                            != train_output / "final-export.json"
+                        ):
+                            raise QualificationError(
+                                "qualifying training artifacts are misbound"
+                            )
                     qualification_decision = evaluate_passing_qualification(
                         context=qualification_context,
                         action_records=[dict(result.record) for result in results],
@@ -3696,6 +3757,7 @@ class CaptureHarness:
                     result.spec.action == "pilot" and result.native_outcome == "passed"
                     for result in results
                 ),
+                conditioning=conditioning,
             )
             if set(selected_role_digests) != expected_selected_roles:
                 qualification_failure_code = "MISSING_REQUIRED_EVIDENCE"
@@ -3772,6 +3834,11 @@ class CaptureHarness:
                 outcome_profile = validate_managed_sequence_outcome(
                     summary, list(ledger.records)
                 )
+                expected_profile = "conditioning" if conditioning else "measured"
+                if outcome_profile.sequence_profile != expected_profile:
+                    raise OutcomeProfileError(
+                        "managed outcome profile differs from its activated slot role"
+                    )
                 publication_expected = (
                     passing_candidate
                     and qualification_decision is not None

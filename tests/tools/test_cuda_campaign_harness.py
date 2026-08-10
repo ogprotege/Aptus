@@ -31,6 +31,7 @@ from tools.cuda_campaign.harness import (
     SubmissionBlockedError,
     TelemetryCapture,
     _expected_selected_roles,
+    _runtime_journal_relative_path,
     verify_cancellation_milestones,
 )
 from tools.cuda_campaign.monitoring import (
@@ -1417,6 +1418,25 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
+    def test_runtime_journals_use_action_paths_instead_of_display_labels(self) -> None:
+        pilot = ManagedActionSpec("bounded-pilot", "pilot", 5)
+        training = ManagedActionSpec("full-training", "train", 5)
+
+        self.assertEqual(
+            _runtime_journal_relative_path(
+                pilot,
+                legacy_single_action_paths=False,
+            ),
+            "actions/pilot/runtime-boundaries.jsonl",
+        )
+        self.assertEqual(
+            _runtime_journal_relative_path(
+                training,
+                legacy_single_action_paths=False,
+            ),
+            "actions/train/runtime-boundaries.jsonl",
+        )
+
     def test_failed_pre_pilot_sequence_omits_unavailable_selected_roles(self) -> None:
         roles = _expected_selected_roles(
             passing_candidate=False,

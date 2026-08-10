@@ -1507,6 +1507,18 @@ class ManagedSequenceTests(unittest.TestCase):
 
         self.assertTrue(result.valid, result.reason_codes)
         self.assertEqual(telemetry.snapshots, 2)
+        cooldown_rows = [
+            row
+            for row in ledger.records
+            if row["event_type"] in {"cooldown.started", "cooldown.finished"}
+        ]
+        self.assertEqual(
+            [row["monotonic_ns"] for row in cooldown_rows],
+            [
+                cooldown_start + 1_000_000_000,
+                cooldown_start + 120_000_000_000,
+            ],
+        )
         self.assertEqual(ledger.records[-1]["event_type"], "cooldown.finished")
         self.assertEqual(ledger.records[-1]["native_outcome"], "passed")
 

@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-10 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
 [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source
@@ -21,13 +21,19 @@ SmolLM2 CUDA LoRA single-device workflow reached `measured-run-pass` in the
 record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md).
 It qualifies only its recorded source, Ubuntu/RTX 3050 host, runtime, immutable
 model revision, synthetic dataset, plan, policy, bundle, and five-job sequence;
-repeatability and all other CUDA paths remain open. The [original Phase 6 acceptance
+that individual record is not repeatability. A separate [five-slot Phase 5
+cohort](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+subsequently established exact-host SmolLM2 LoRA single-device repeatability
+under the frozen stability and integrity contract at source
+`3bfec547d4cffedbaf049426d9713f1ccc25b5a2`. It authorizes the Phase 6 method
+matrix only from that exact anchor; all other CUDA methods, placements,
+artifacts, hosts, and environments remain open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`.
-Remaining CUDA target-host coverage and public Developer ID signed and
+Remaining CUDA method and target-host coverage and public Developer ID signed and
 notarized desktop-distribution gates remain open.
 The exact Qwen3 30B-A3B MoE attempt passed dependency validation but stopped
 before model loading because live unified memory was 18.932 GiB below the

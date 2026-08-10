@@ -80,6 +80,15 @@ sequence.” Do not shorten that to “CUDA passed.” The record is one executi
 does not establish repeatability, and does not qualify another CUDA method,
 placement, artifact, device, host, or environment.
 
+The later [2026-08-10 Phase 5 repeatability
+packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+supports this additional wording: “five of five predeclared SmolLM2 CUDA LoRA
+single-device slots passed the frozen common stability and integrity contract
+for the exact recorded source, host, environment, model revision, dataset, and
+configuration.” It may be called an exact-host repeatability anchor. Do not
+shorten it to “CUDA is repeatable,” transfer it to another scope, or describe
+it as quality, broad performance, safety, production, or release evidence.
+
 ## Quality claims
 
 Training loss, evaluation loss from a split, export structure, or job completion
@@ -139,9 +148,10 @@ Use:
 - “the default desktop artifact is ad-hoc signed for review and testing”;
 - “the exact Phase 6 Qwen2 fixture passed two current-contract v5/v3 MLX-LM
   ladders at the recorded acceptance source”;
-- “one exact SmolLM2 CUDA LoRA single-device workflow completed the five-action
-  ladder through `measured-run-pass`; repeatability and other CUDA paths remain
-  open.”
+- “five of five predeclared SmolLM2 CUDA LoRA single-device slots passed the
+  frozen stability and integrity contract, establishing the exact-host Phase 5
+  repeatability anchor; other CUDA methods, placements, artifacts, hosts, and
+  environments remain open.”
 
 Do not:
 

@@ -195,24 +195,32 @@ when its evidence, owner, or resolution changes.
   protocol](../reference/cuda-campaign-protocol.md) and
   [machine-readable companion](../reference/cuda-campaign-protocol.v1.json)
   freeze the Phase 1 decisions; they do not implement runtime behavior.
+  The later [2026-08-10 Phase 5 repeatability
+  packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+  records five of five predeclared SmolLM2 LoRA single-device slots passing the
+  frozen stability and integrity contract, with verified off-host copies and
+  fresh retrieval. It establishes the exact frozen anchor and Phase 6
+  eligibility, while the remaining campaign and release evidence stay open.
 - **Required result:** Execute the [canonical RTX 3050 CUDA empirical evidence
   campaign](../operations/cuda-empirical-campaign.md) to publish the reviewed
   sanitized projection of the privately protected prior records, establish
-  complete capture and retrieval for new attempts, measure repeatability, and
-  characterize all admitted single-device methods, model scale, guarded
+  complete capture and retrieval for new attempts, and characterize the
+  remaining admitted single-device methods, model scale, guarded
   configuration frontiers, endurance, and Ubuntu job control. Add a later
   multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
   and notarized desktop evidence for the exact public release commit.
 - **Milestones:** Phase 0 raw recovery is privately complete, Phase 1 is frozen,
   Phase 2A source tooling is merged and source-gated, and Phase 2B publication
   is complete and independently reviewed. Phase 3 explicit candidate selection
-  and measurement controls are implemented under the v6 plan contract. The
-  campaign may next rehearse and freeze, then run
-  the five-attempt LoRA anchor, four-method matrix, size and configuration
-  staircases, endurance, and independently reviewed dated packets. Capability
-  claims change only after the applicable packets merge.
-- **Blocker:** Phase 4 target-host rehearsal and freeze remain pending. The intended RTX
-  3050 host has one GPU and cannot close DDP or FSDP; its local boundaries are
+  and measurement controls are implemented under the v6 plan contract. Phase 4
+  rehearsal and freeze are complete, and the successful Phase 5 five-attempt
+  LoRA anchor packet is merged. The campaign may next run the Phase 6
+  four-method matrix, then the size and configuration staircases, endurance,
+  and independently reviewed dated packets. Capability claims change only
+  after the applicable packets merge.
+- **Blocker:** The Phase 6 same-model method matrix and later campaign phases
+  remain pending. The intended RTX 3050 host has one GPU and cannot close DDP
+  or FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple
   credentials.

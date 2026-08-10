@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-09 | **Review by:** 2026-10-27 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-10 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -95,8 +95,11 @@ sanitizer, eligibility, and publication source interfaces, with its integrated
 source gates complete. It is not operator authorization
 or target-runtime evidence. Phase 2B used that merged source to publish and
 independently review the sanitized recovery supplement without connecting to or
-mutating the Ubuntu host. Phase 3 explicit selection and measurement controls
-are complete in the v6 plan contract; Phase 4 rehearsal and freeze are next.
+mutating the Ubuntu host. Phase 3 explicit selection and measurement controls,
+Phase 4 rehearsal and freeze, and the successful five-slot Phase 5
+repeatability anchor are complete. The reviewed Phase 5 packet authorizes
+Phase 6 only for its exact frozen anchor scope; the same-model method matrix is
+next.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

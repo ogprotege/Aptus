@@ -4,9 +4,10 @@
 >
 > **Applies to:** Repository documentation through merged PR #41, the canonical
 > RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
-> Phase 2A source-tooling contract and Phase 2B sanitized recovery supplement
+> Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, and
+> the two immutable Phase 5 cohort outcomes
 >
-> **Last reviewed:** 2026-08-09
+> **Last reviewed:** 2026-08-10
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -137,9 +138,11 @@ and independently reviewed Phase 4 authority, admission/activation, outcome,
 capture, telemetry, watchdog, custody, sanitization, eligibility, and
 publication interfaces. Their integrated development-Mac source gates passed.
 Neither phase connected to or mutated the Ubuntu host, ran a model or GPU
-workload, or added a new empirical result. Phase 3 selection and measurement
-controls are now implemented locally under the v6 plan contract; Phase 4
-target-host rehearsal remains pending.
+workload, or added a new empirical result. Phases 3 and 4 later completed their
+selection, measurement, rehearsal, and freeze controls. The separately merged
+[Phase 5 repeatability packet](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
+records five of five frozen SmolLM2 LoRA single-device slots passing the common
+stability and integrity contract and authorizes Phase 6 from that exact anchor.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
@@ -148,9 +151,9 @@ Developer ID signed and notarized public desktop distribution exist for the
 capabilities being claimed. The July MLX-LM acceptance and local 10-build
 desktop engineering gate and original Phase 6 acceptance remain historical at
 their recorded commits; the August 5 refresh is bounded current-contract
-MLX-LM evidence at its exact acceptance source. One qualifying exact CUDA LoRA single-device
-acceptance has been collected; other CUDA methods, placements, artifacts,
-hosts, and environments remain unqualified. The repository checks its
+MLX-LM evidence at its exact acceptance source. The exact CUDA LoRA
+single-device repeatability anchor is now established; other CUDA methods,
+placements, artifacts, hosts, and environments remain unqualified. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -167,20 +170,20 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, and the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the original Phase 6 packet remains historical, repeatability, remaining CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, and the August 10 packet establishes the exact frozen five-slot CUDA LoRA repeatability anchor; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the original Phase 6 packet remains historical, remaining CUDA coverage and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 123
+The [documentation inventory](documentation-inventory.md) classifies 125
 governed tracked Markdown documents:
 
-- 94 active;
+- 96 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 124 tracked Markdown files in total. The pull-request
+The repository contains 126 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 123 files, including the
+`maintained_documentation()` set covers all other 125 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,
@@ -489,11 +492,11 @@ target-host coverage or public notarization.
    record](../operations/cuda-campaign-phase2-tooling.md) and its dated
    [sanitized supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md);
    they are not Ubuntu or empirical evidence.
-3. Implement and merge Phase 3 explicit candidate selection and exact
-   measurement controls before any measured campaign execution.
+3. Preserve the completed Phase 3 selection controls, Phase 4 freeze, and
+   independently reviewed Phase 5 repeatability packet.
 4. Continue the [canonical RTX 3050 CUDA empirical evidence
-   campaign](../operations/cuda-empirical-campaign.md) through rehearsal and
-   its ordered measured phases. Treat every result as evidence for the exact
+   campaign](../operations/cuda-empirical-campaign.md) from Phase 6 through its
+   remaining ordered measured phases. Treat every result as evidence for the exact
    RTX 3050 host and configuration, not Aptus's global, cloud, or multi-GPU
    ceiling.
 5. Complete the remaining distributed CUDA target-host coverage and public

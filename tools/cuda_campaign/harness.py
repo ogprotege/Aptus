@@ -2854,18 +2854,12 @@ class CaptureHarness:
         """Capture the exact post-run 120-sample window, bounded at 30 minutes."""
 
         started_ns = max(self._monotonic_ns(), ledger.records[-1]["monotonic_ns"])
-        ledger.append(
-            monotonic_ns=started_ns,
-            wall_time_utc=self._wall_time(),
-            event_type="cooldown.started",
-            phase="cooldown",
-            subject_kind="experiment-run",
-            subject_id=self.experiment_run_id,
-        )
+        started_wall_time_utc = self._wall_time()
         deadline_ns = started_ns + (
             QUALIFYING_COOLDOWN_MAXIMUM_WAIT_SECONDS * 1_000_000_000
         )
         result = WindowValidation(False, ("MISSING_REQUIRED_EVIDENCE",))
+        validated_window: list[dict[str, Any]] = []
         while True:
             now_ns = self._monotonic_ns()
             try:
@@ -2924,6 +2918,7 @@ class CaptureHarness:
                     required_samples=QUALIFYING_COOLDOWN_SAMPLES,
                 )
                 if result.valid:
+                    validated_window = cooldown_samples
                     now_ns = cooldown_samples[-1]["observed_monotonic_ns"]
                     break
             if now_ns >= deadline_ns:
@@ -2933,9 +2928,24 @@ class CaptureHarness:
         reason_code = "NONE" if result.valid else reasons[0]
         if reason_code not in REASON_CODES:
             reason_code = "MISSING_REQUIRED_EVIDENCE"
+        if validated_window:
+            started_ns = validated_window[0]["observed_monotonic_ns"]
+            started_wall_time_utc = validated_window[0]["wall_time_utc"]
+            now_ns = validated_window[-1]["observed_monotonic_ns"]
+            finished_wall_time_utc = validated_window[-1]["wall_time_utc"]
+        else:
+            finished_wall_time_utc = self._wall_time()
+        ledger.append(
+            monotonic_ns=started_ns,
+            wall_time_utc=started_wall_time_utc,
+            event_type="cooldown.started",
+            phase="cooldown",
+            subject_kind="experiment-run",
+            subject_id=self.experiment_run_id,
+        )
         ledger.append(
             monotonic_ns=max(now_ns, ledger.records[-1]["monotonic_ns"]),
-            wall_time_utc=self._wall_time(),
+            wall_time_utc=finished_wall_time_utc,
             event_type="cooldown.finished",
             phase="cooldown",
             subject_kind="experiment-run",

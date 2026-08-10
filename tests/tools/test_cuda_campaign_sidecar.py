@@ -352,7 +352,11 @@ class BackgroundTelemetrySessionTests(unittest.TestCase):
         self.assertFalse(session.watchdog_alive)
 
     def test_settle_stop_boundary_retains_in_flight_scheduled_probe(self) -> None:
-        clock = AcceleratedClock(scale=10.0)
+        # Keep the frozen 2.5-second qualifying-gap limit comfortably above
+        # normal CI scheduler latency while still accelerating the one-second
+        # sampling interval.  A 10x clock leaves only 250 ms of wall time and
+        # made this synchronization test fail spuriously on busy macOS runners.
+        clock = AcceleratedClock(scale=2.0)
         second_probe_started = threading.Event()
         release_second_probe = threading.Event()
         calls = 0
@@ -371,7 +375,7 @@ class BackgroundTelemetrySessionTests(unittest.TestCase):
             experiment_run_id=RUN_ID,
             start_monotonic_ns=clock.monotonic_ns(),
         )
-        self.assertTrue(second_probe_started.wait(0.5))
+        self.assertTrue(second_probe_started.wait(2.0))
 
         settled = threading.Event()
 

@@ -75,15 +75,17 @@ reload, broad CUDA support, or release readiness. Gemma remains license-excluded
 and Mistral remains planner-ineligible. The
 [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
-remains immutable history. All other CUDA methods, placements, artifacts,
-hosts, and environments remain open. The [original Phase 6 acceptance
+remains immutable history. Every CUDA method, placement, artifact, host, and
+environment not explicitly certified in the Phase 10 packet remains open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`.
-Remaining CUDA method and target-host coverage and public Developer ID signed and
-notarized desktop-distribution gates remain open.
+Broader CUDA target-host coverage, semantic CUDA adapter reload, model-quality
+and production-safety evidence, multi-GPU execution, and public Developer ID
+signed and notarized desktop-distribution gates remain open. No Phase 11 is
+defined; future CUDA work requires a separately reviewed campaign.
 The exact Qwen3 30B-A3B MoE attempt passed dependency validation but stopped
 before model loading because live unified memory was 18.932 GiB below the
 required envelope. Full MoE model-data, preflight, pilot, reload, and training
@@ -400,10 +402,12 @@ scoped to its older plan and bundle contract. The
 binds a 10-of-10 clean local stability result to implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. It does not prove a later source
 head. Pull-request CI must rebuild GitHub's exact tested merge commit and record
-that identity. One [exact CUDA LoRA single-device
-workflow](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-has run on its recorded target; it does not transfer to other CUDA
-configurations. The
+that identity. The [Phase 10 CUDA campaign
+certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+is the current aggregate for the exact RTX 3050 campaign: 149 planned, 58
+started, 91 predeclared-not-started, 47 qualifying, and no replacement runs.
+Its six stable cells, guarded frontier, and endurance/job-control result do not
+transfer to unlisted CUDA configurations. The
 default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
 public distribution.
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)

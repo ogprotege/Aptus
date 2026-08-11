@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its planner can emit runtime-specific CUDA
@@ -123,11 +123,17 @@ Do not skip an action. A higher validation action repeats its lower checks, but
 the managed workflow still requires the preceding recorded state before it
 admits a forward action.
 
-One exact CUDA LoRA single-device workflow has completed this sequence and
-reached `measured-run-pass` on its recorded target host. It does not establish
-repeatability or qualify another method, placement, artifact, device, host, or
-environment. The repository remains an engineering preview until the applicable
-[release gates](../operations/release-gates.md) pass on target hardware.
+The [Phase 10 CUDA campaign
+certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+is the current target-host summary. The bounded campaign completed 149 planned
+slots with 58 starts, 91 predeclared-not-started dispositions, 47 qualifying
+outcomes, and no replacement runs. Its six listed stable cells, guarded
+frontier, and endurance/job-control result qualify only their exact recorded
+scope. Do not run full training merely to provoke an OOM, and do not transfer a
+pilot boundary to another configuration. The repository remains an engineering
+preview until the applicable [release gates](../operations/release-gates.md)
+pass. There is no Phase 11; future CUDA expansion requires a separately
+reviewed campaign.
 
 ## Path D: Use the Mac app, browser workbench, or CLI
 

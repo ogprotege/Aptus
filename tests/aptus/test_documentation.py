@@ -4995,6 +4995,73 @@ class DocumentationTests(unittest.TestCase):
             failures, [], "Documentation creates an environment inside a sealed bundle"
         )
 
+    def test_phase_ten_milestone_is_consistent_across_active_surfaces(self) -> None:
+        milestone_documents = (
+            "README.md",
+            "ROADMAP.md",
+            "SECURITY.md",
+            "docs/index.md",
+            "docs/product/current-capabilities.md",
+            "docs/product/claim-language.md",
+            "docs/product/vision.md",
+            "docs/reference/capability-matrix.md",
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/operations/release-gates.md",
+            "docs/getting-started/choose-your-path.md",
+            "docs/maintenance/documentation-health.md",
+        )
+        for relative in milestone_documents:
+            text = (REPOSITORY / relative).read_text(encoding="utf-8")
+            self.assertIn("Phase 10", text, f"{relative}: missing milestone")
+
+        ledger_documents = (
+            "README.md",
+            "ROADMAP.md",
+            "docs/index.md",
+            "docs/product/current-capabilities.md",
+            "docs/product/claim-language.md",
+            "docs/reference/capability-matrix.md",
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/operations/release-gates.md",
+            "docs/getting-started/choose-your-path.md",
+            "docs/maintenance/documentation-health.md",
+        )
+        for relative in ledger_documents:
+            text = (REPOSITORY / relative).read_text(encoding="utf-8")
+            for claim in ("149", "58", "91", "47"):
+                self.assertIn(claim, text, f"{relative}: missing ledger {claim}")
+
+        active_status_documents = (
+            "README.md",
+            "ROADMAP.md",
+            "docs/product/current-capabilities.md",
+            "docs/operations/index.md",
+        )
+        stale_claims = (
+            "Review whether to authorize a new frozen Phase 6 cohort",
+            "Phase 7 is not authorized.",
+            "only the exact SmolLM2 LoRA single-device record is runtime-qualified",
+            "only the exact separately recorded LoRA single-device target-host workflow",
+        )
+        for relative in active_status_documents:
+            text = (REPOSITORY / relative).read_text(encoding="utf-8")
+            for claim in stale_claims:
+                self.assertNotIn(claim, text, f"{relative}: stale milestone claim")
+
+        campaign = (
+            REPOSITORY / "docs/operations/cuda-empirical-campaign.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("there is no Phase 11", campaign)
+        self.assertIn("performed no training", campaign)
+
+        claim_language = (REPOSITORY / "docs/product/claim-language.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("not permission to run full training merely to", claim_language)
+        self.assertIn("provoke an OOM", claim_language)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,38 @@
 # Roadmap
 
-> **Status:** Active | **Authority:** Product planning | **Applies to:** Work after Aptus 0.2 | **Audience:** Users and contributors | **Last reviewed:** 2026-08-10 | **Review by:** Every release-planning cycle
+> **Status:** Active | **Authority:** Product planning | **Applies to:** Aptus 0.2 and later | **Audience:** Users and contributors | **Last reviewed:** 2026-08-11 | **Review by:** Every release-planning cycle
 
 The roadmap separates the executable v0.2 contract from future work. An item on
 this page is not a supported capability until code, tests, documentation, and
 target-host evidence all agree.
 
-## v0.2 stabilization
+## Current milestone
+
+The canonical [RTX 3050 CUDA empirical evidence
+campaign](docs/operations/cuda-empirical-campaign.md) is complete through its
+final planned phase. The independently reviewed [Phase 10 certification
+packet](docs/operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+aggregates 149 planned slots, 58 started slots, 91
+predeclared-not-started slots, 47 qualifying outcomes, and zero replacement
+runs. It certifies six exact stable cells, the guarded Phase 8 frontier, and the
+Phase 9 endurance/job-control outcome within their recorded source, host,
+runtime, model, method, and configuration boundaries.
+
+Phase 10 added no training. No Phase 11 exists in this campaign. Any future
+CUDA expansion requires its own bounded goal, protocol, review, and explicit
+authorization. Campaign closure does not establish broad CUDA support,
+model-quality, production-safety, multi-GPU, remote-provider, or public-release
+readiness.
+
+Current plan production uses `aptus.training-plan.v6`, bundles use
+`aptus.bundle.v3`, and model-policy provenance uses
+`aptus.model-policy-snapshot.v1`.
+
+## v0.2 stabilization record
+
+The chronology below preserves why each result was authorized. Its statements
+about a later phase being unauthorized describe the decision at that packet's
+publication time; the Phase 10 certification above is the current aggregate.
 
 Completed evidence:
 
@@ -27,8 +53,10 @@ Completed evidence:
 - The [Phase 6 same-model method
   matrix](docs/operations/evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
   completed all 32 frozen slot dispositions with no replacements. No method
-  met the three-of-three promotion rule, no confirmatory slot started, and
-  Phase 7 is not authorized.
+  met the three-of-three promotion rule and no confirmatory slot started. That
+  historical cohort did not authorize Phase 7; later separately reviewed
+  remediation and confirmatory packets supplied the authority used by the
+  completed campaign.
 - Two clean, independent MLX-LM QLoRA workflows reached
   `measured-run-pass` with the exact recorded model, revision, dataset, host,
   runtime, plan, and generated bundle.
@@ -46,7 +74,7 @@ Completed evidence:
 - Phase 4's repository, installed-wheel, and desktop package gates closed the
   portable policy-snapshot source and contract review. They did not renew
   target-runtime acceptance: at that Phase 4 closeout, the July MLX-LM record
-  predated the current v5 plan, v3 bundle, and Phase 6 registry expansion, and
+  predated the then-current v5 plan, v3 bundle, and Phase 6 registry expansion, and
   no current-head MLX or CUDA target-runtime pilot had been collected. The
   later August 5 MLX and August 6 CUDA records now supply separately bounded
   current-contract evidence at their exact acceptance sources.
@@ -78,14 +106,14 @@ Completed Phase 2 tooling and recovery publication, not new target-runtime evide
 
 Remaining release work:
 
-- Review whether to authorize a new frozen Phase 6 cohort or a capture-contract
-  correction before attempting Phase 7 of the canonical [RTX 3050 CUDA
-  empirical evidence campaign](docs/operations/cuda-empirical-campaign.md).
-  The completed cohort established no stable Phase 6 cell. That one-GPU
-  campaign cannot close DDP or conditional LoRA FSDP;
-  those placements require a later multi-GPU campaign.
-  Any local fit or refusal boundary applies only to the exact RTX 3050 host and
-  configuration; it is not Aptus's cloud or multi-GPU ceiling.
+- Define a separately reviewed multi-GPU campaign before claiming DDP or
+  conditional LoRA FSDP. The completed one-GPU campaign cannot close those
+  placements, and its local fit or refusal boundaries are not Aptus's cloud or
+  multi-GPU ceiling.
+- Complete semantic adapter reload and bounded-generation verification for
+  every CUDA path intended for a release claim.
+- Establish model-quality and production-safety evidence independently from
+  the completed execution campaign.
 - Extend MLX-LM acceptance beyond the exact recorded M5 Pro, Qwen QLoRA, and
   synthetic-dataset configuration before making broader Apple Silicon claims.
 - Record clean-environment dependency installation on every claimed CUDA path.
@@ -108,7 +136,7 @@ The first implementation slice recognizes only an exact `qwen3_moe` checkpoint
 whose architecture is `Qwen3MoeForCausalLM`, whose reviewed MLX layout uses
 four-bit group-64 defaults with one eight-bit group-64 router-gate override per
 layer, and which declares no shared expert. It carries the provider topology
-into `aptus.training-plan.v5`, derives active parameters and sparse-layer count,
+into `aptus.training-plan.v6`, derives active parameters and sparse-layer count,
 and permits only single-device MLX-LM QLoRA with attention `q_proj`, `k_proj`,
 `v_proj`, and `o_proj` adapters. Every candidate remains pilot-required. This
 slice is not released until a real target-host model run passes the gates below.
@@ -161,7 +189,7 @@ links to the plan decision. Plans created from direct facts remain explicitly
 and training permission remain outside that receipt.
 
 Phase 4 is complete. The host registry now emits deterministic canonical
-`aptus.model-policy-snapshot.v1` bytes. `aptus.training-plan.v5` binds their
+`aptus.model-policy-snapshot.v1` bytes. `aptus.training-plan.v6` binds their
 SHA-256, and every `aptus.bundle.v3` contains the snapshot, the same digest,
 and a generic portable evaluator. Package-free programs establish frozen
 snapshot integrity and decision parity but cannot determine current registry
@@ -228,7 +256,7 @@ This policy is a reviewed configuration footprint, not an artifact allowlist.
 The
 [2026-08-05 Qwen2 MLX-LM exact-source refresh](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean, independent `measured-run-pass` repetitions under
-`aptus.training-plan.v5` and `aptus.bundle.v3` from exact acceptance source
+the recorded `aptus.training-plan.v5` and `aptus.bundle.v3` contracts at exact acceptance source
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.

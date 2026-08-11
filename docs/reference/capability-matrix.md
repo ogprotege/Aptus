@@ -18,12 +18,12 @@ A current `pilot-pass` can authorize explicit full-duration adapter training.
 Support also depends on the installed host's current model-policy registry. A
 package-free bundle can prove the integrity and decision parity of its embedded
 frozen snapshot, but that result does not establish policy currency. Installed
-Aptus rejects a coherent v5 plan whose decision or snapshot digest is no longer
+Aptus rejects a coherent stale plan whose decision or snapshot digest is no longer
 current and requires deterministic replanning. An earlier `pilot-pass` cannot
 authorize training or completion promotion after that policy boundary changes.
 
 Two fresh, clean Apple Silicon MLX-LM workflows reached `measured-run-pass`
-under the current v5 plan and v3 bundle contracts in the
+under their recorded v5 plan and v3 bundle contracts in the
 [2026-08-05 exact-source acceptance record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md).
 The acceptance source is `719255153e3fc7e38e83b5ff826d587e5e58bf80`, its tree is
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and its bundle fingerprint is
@@ -203,7 +203,7 @@ MPS or MLX.
 
 | Runtime | Discovery and configuration | Current compiler | Highest reachable or recorded evidence |
 | --- | --- | --- | --- |
-| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | Five of five frozen SmolLM2 LoRA single-device Phase 5 slots passed and established the exact-host repeatability anchor; every other method, placement, artifact, host, and environment remains unqualified |
+| `transformers-peft-cuda` | Exact active CUDA Python environment | Full, LoRA, int8-LoRA, QLoRA | The Phase 10 packet certifies the 149-slot exact-host campaign aggregate, six listed stable single-device cells, a guarded 17-point frontier, and the recorded 900-update endurance plus eight-exercise job-control result; every unlisted method, placement, artifact, host, and environment remains unqualified |
 | `mlx-lm` | Exact external Python executable, including persisted Mac selection | Single-device LoRA and QLoRA, including the conditional Qwen3 MoE row and reviewed 24-layer dense Qwen2 footprint | Two current v5/v3 dense QLoRA workflows reached `measured-run-pass` for the exact accepted Qwen2.5 artifact; every different Qwen2 artifact and the Qwen3 MoE row remain conditional and pilot-required |
 | `pytorch-mps` | Discoverable and configurable exact external Python | None | No compiled runtime evidence |
 
@@ -218,7 +218,7 @@ services for model listing and text generation.
 | Pull-request packaging | Workflow builds GitHub's synthetic merge commit and uploads app ZIP, DMG, checksums, and source marker | Passed only after that exact workflow commit's GitHub Actions job succeeds |
 | Default signature | Ad-hoc signing is built and verified | Local review integrity, not public distribution approval |
 | Public Mac distribution | Developer ID signing, notarization, stapling, and Gatekeeper assessment are implemented as required gates | Open until real credentials produce accepted artifacts bound to the exact release commit |
-| CUDA target-host execution | Five of five frozen LoRA single-device Phase 5 slots passed the common stability and integrity contract | Partial; the exact repeatability anchor is established, while every other claimed method, placement, artifact, host, and environment remains open |
+| CUDA target-host execution | Phase 10 reconciled 149 planned slots to 58 starts, 91 predeclared-not-started, 47 qualifying outcomes, and no replacement runs | Complete for the bounded campaign; partial for the product because only the six listed stable cells, guarded frontier, and endurance/job-control scope are qualified |
 
 ## Distribution behavior
 

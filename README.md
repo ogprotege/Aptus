@@ -26,7 +26,7 @@
   <a href="docs/index.md">Documentation</a>
 </p>
 
-> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-06 · **Review by:** 2026-11-01 or when the support contract changes
+> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-11 · **Review by:** 2026-11-01 or when the support contract changes
 
 ---
 
@@ -248,14 +248,15 @@ describe a CUDA host; they do not enable CUDA work on the Mac.
 
 This table describes implemented planner, policy, and compiler coverage. A
 planner-supported row is not automatically runtime-qualified: the exact bundle
-and target host must still pass the evidence ladder. Current runtime evidence is
-bounded to two exact Qwen2.5 MLX-LM QLoRA repetitions and one exact SmolLM2 CUDA
-LoRA single-device execution described under [Recorded evidence](#recorded-evidence).
+and target host must still pass the evidence ladder. Current runtime evidence
+includes two exact Qwen2.5 MLX-LM QLoRA repetitions and the completed Phase
+0–10 CUDA campaign on one exact Ubuntu RTX 3050 host. Neither evidence set
+transfers to another artifact, source tree, host, or runtime configuration.
 
 | Area | Implemented planner/compiler coverage | Outside current coverage |
 | --- | --- | --- |
 | **Methods** | The planner enumerates Full, LoRA, int8-LoRA, and QLoRA; compiler availability remains runtime- and placement-specific | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT and other research identities |
-| **CUDA** | Compiler paths for single-device and DDP, plus conditional LoRA FSDP; only the exact SmolLM2 LoRA single-device record is runtime-qualified | Full-parameter FSDP, quantized FSDP, ROCm, CPU training, and any broader CUDA runtime claim |
+| **CUDA** | Compiler paths for single-device and DDP, plus conditional LoRA FSDP; the Phase 10 packet certifies six exact single-device cells, a guarded frontier, and one endurance/job-control scope on the recorded RTX 3050 host | Full-parameter FSDP, quantized FSDP, ROCm, CPU training, multi-GPU acceptance, and any claim broader than the exact certified cells |
 | **Apple Silicon** | Conditional single-device MLX-LM LoRA and QLoRA compiler paths; the exact recorded Qwen2.5 QLoRA scope is runtime-qualified | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS, and transferring the Qwen2.5 result to another artifact |
 | **MoE** | A conditional, pilot-required policy path for exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed layout, using single-device MLX-LM QLoRA with attention-only adapters; its recorded 30B attempt stopped at the memory gate | General MoE runtime acceptance, other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, and other MoE methods |
 | **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints and treating one matching configuration as artifact-wide runtime acceptance |
@@ -325,6 +326,10 @@ before committing compute time.
 
 | Exact recorded gate | Observed result |
 | --- | ---: |
+| Phase 10 CUDA campaign aggregate | 149 planned, 58 started, 91 predeclared-not-started, 47 qualifying, 0 replacement runs |
+| Stable exact-host CUDA cells | SmolLM2-135M LoRA and Full anchors; stable Phase 7 SmolLM2-135M LoRA, SmolLM2-135M Full, SmolLM2-360M LoRA, and Qwen3-0.6B LoRA cells |
+| Phase 8 guarded frontier | 17 planned points; 16 started, 14 passed, 2 bounded pilot `CUDA_OOM`, 1 predeclared-not-started |
+| Phase 9 endurance and job control | Three Qwen3-0.6B LoRA runs reached 300 optimizer updates each; all eight controlled job-service exercises passed |
 | Exact CUDA LoRA single-device workflow at `c12c4d8` | One fresh five-job sequence reached `measured-run-pass` |
 | CUDA pilot checkpoint continuation | Step 1 resumed and reached step 2 with the same 4,884,480-parameter LoRA census |
 | CUDA full train and structural PEFT export | 3 optimizer updates, 384,180,224-byte allocated peak, 23,123,131-byte export |
@@ -339,8 +344,10 @@ before committing compute time.
 | Ten clean desktop builds at `1038ecdd` | 58.1 s mean, 55–63 s range |
 
 These are acceptance telemetry for exact recorded host, runtime, model,
-dataset, source, plan, and bundle bindings. They are **not** production
-throughput, scalability, repeatability, or model-quality measurements. The
+dataset, source, plan, and bundle bindings. The Phase 5 result is an exact-host
+repeatability anchor, and the later stable cells and endurance record have only
+their packet-defined meanings. They are **not** broad production throughput,
+scalability, model-quality, cloud, or multi-GPU measurements. The
 synthetic MoE forward is not autoregressive generation and does not project
 30B speed. The 30B checkpoint never loaded, so no 30B throughput claim exists.
 
@@ -360,16 +367,25 @@ not establish safety, quality, performance, production throughput, CUDA
 acceptance, production readiness, or release readiness. The original Phase 6
 packet and July runs remain historical evidence for their exact scopes.
 
-The 2026-08-06 CUDA record adds one exact SmolLM2 LoRA single-device
+The 2026-08-06 CUDA record added one exact SmolLM2 LoRA single-device
 `measured-run-pass` workflow at source commit
 `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It covers dependency,
 model-data, measured preflight, two-phase checkpoint-continuation pilot, full
 training, structural PEFT adapter export, and parent-owned promotion on the
-recorded Ubuntu/RTX 3050 runtime. It is one qualifying execution, not a
-repeatability result or evidence for other CUDA methods, placements, devices,
-models, datasets, or environments.
+recorded Ubuntu/RTX 3050 runtime. Later Phase 5–9 packets add separately scoped
+repeatability, method stability, scale and architecture cells, guarded-frontier
+outcomes, and endurance/job-control evidence. The Phase 10 packet aggregates
+and certifies those results without adding training. No result qualifies an
+unlisted method, placement, device, model, dataset, source, or environment.
 
-Full records: [SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) ·
+Full records: [Phase 10 CUDA campaign certification](docs/operations/evidence/2026-08-11-cuda-phase10-certification/README.md) ·
+[Phase 9 endurance and job control](docs/operations/evidence/2026-08-11-cuda-phase9-endurance/README.md) ·
+[Phase 8 guarded frontier](docs/operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md) ·
+[Phase 7 same-family stability](docs/operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md) ·
+[Phase 7 architecture breadth](docs/operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md) ·
+[Phase 6 Full confirmatory stability](docs/operations/evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md) ·
+[Phase 5 repeatability anchor](docs/operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md) ·
+[SmolLM2 CUDA LoRA single-device acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) ·
 [Qwen2 MLX-LM exact-source acceptance](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) ·
 [Original Phase 6 acceptance baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
 [Historical MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
@@ -481,7 +497,7 @@ behavior. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
 <summary>Engineering preview — what is and is not proven</summary>
 
 **Status:** Engineering preview | **Applies to:** Aptus 0.2<br>
-**Last reviewed:** 2026-08-06 | **Review by:** 2026-11-01 or when the support contract changes
+**Last reviewed:** 2026-08-11 | **Review by:** 2026-11-01 or when the support contract changes
 
 Aptus has separate CUDA and MLX-LM compiler contracts. Apple Silicon LoRA and
 QLoRA candidates remain conditional until their exact bundle passes measured
@@ -503,22 +519,23 @@ record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/RE
 binds the exact Qwen2.5 artifact, revision, runtime, host, dataset, policy
 snapshot, v5 plan, v3 bundle, source commit and tree, and bundle fingerprint.
 The [original Phase 6 packet](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
-remains the unchanged historical baseline. The separate [2026-08-06 CUDA LoRA
-single-device record](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-binds one fresh five-action workflow through `measured-run-pass` to its exact
-SmolLM2 revision, Ubuntu/RTX 3050 host, runtime closure, synthetic dataset,
-plan, policy, bundle, source commit, and source tree. One execution does not
-establish repeatability or qualify other CUDA paths, so these bounded results
-and the source and packaging gates do not by themselves establish v0.2 release
-readiness.
+remains the unchanged historical baseline. The CUDA evidence ladder begins with
+the [2026-08-06 exact workflow](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+and closes with the [Phase 10 certification](docs/operations/evidence/2026-08-11-cuda-phase10-certification/README.md).
+The certified campaign has 149 planned slots, 58 starts, 91
+predeclared-not-started dispositions, 47 qualifying outcomes, and no
+replacement runs. Its six listed stable cells, guarded frontier, and
+endurance/job-control result apply only to the recorded exact host and
+configurations. They do not by themselves establish v0.2 release readiness.
 
 Ten consecutive clean local desktop engineering builds passed at implementation
 commit `1038ecdd13103418ef1135e1ced634c10370a961`. That record is historical
 evidence for that exact commit. Pull-request CI rebuilds and packages GitHub's
 exact tested merge commit and records it in `COMMIT`. The default Mac build is
 ad-hoc signed; public distribution still requires a Developer ID identity and
-notarization. **One exact CUDA LoRA single-device workflow has completed; the
-remaining CUDA method/placement and public-distribution gates stay open.**
+notarization. **The bounded CUDA campaign is complete through Phase 10. No
+Phase 11 is defined; broader method, placement, host, semantic-export,
+model-quality, production-safety, and public-distribution gates stay open.**
 
 The first MoE compatibility slice is exact and fail-closed. It recognizes
 `qwen3_moe` checkpoints with `Qwen3MoeForCausalLM` only when they use the

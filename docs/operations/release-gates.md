@@ -1,6 +1,6 @@
 # Release Gates
 
-> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-07 | **Review by:** Every release candidate
+> **Status:** Active | **Authority:** Normative release checklist | **Applies to:** Aptus 0.2 | **Audience:** Maintainers and release reviewers | **Last reviewed:** 2026-08-11 | **Review by:** Every release candidate
 
 Version 0.2 remains unreleased until a dated evidence record proves every
 applicable gate. Passing repository tests is not target-runtime evidence.
@@ -390,7 +390,23 @@ For each claimed MLX-LM LoRA or QLoRA path:
 
 ## Current result
 
-Partially passed. The
+Partially passed.
+
+| Gate family | Current status | Boundary |
+| --- | --- | --- |
+| Source, planner, compiler, and package checks | Passed at their recorded commits | Must pass again for the exact release commit |
+| Exact Qwen2.5 MLX-LM runtime | Passed twice | Exact recorded artifact, source, M5 Pro host, runtime, data, policy, plan, and bundle only |
+| Bounded RTX 3050 CUDA campaign | Complete through Phase 10 | Six exact stable cells, guarded frontier, and endurance/job-control scope only |
+| CUDA semantic adapter reload | Open | Structural export does not prove fresh-process semantic reload |
+| Model quality and production safety | Open | Execution completion and loss are not quality or safety evidence |
+| DDP and conditional LoRA FSDP | Open | Require a separately reviewed multi-GPU campaign |
+| Public macOS distribution | Open | Requires Developer ID signing, notarization, stapling, and Gatekeeper assessment |
+| Aptus 0.2 release readiness | Open | All claims selected for release must have exact-commit evidence |
+
+There is no Phase 11 in the completed CUDA campaign. Open release gates and any
+future CUDA expansion are separately authorized work.
+
+The
 [2026-08-05 Apple Silicon current-contract record at exact
 source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 supplies Phase 6 MLX-LM runtime evidence for the exact pinned Qwen2.5 0.5B
@@ -399,7 +415,7 @@ artifact at acceptance source
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, and bundle fingerprint
 `ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919`.
 Two fresh, clean, independent workflows
-used `aptus.training-plan.v6` and `aptus.bundle.v3` and completed dependency,
+used the recorded `aptus.training-plan.v5` and `aptus.bundle.v3` contracts and completed dependency,
 model-data, measured preflight, uninterrupted pilot, confirmed full training,
 fresh-process reload, final export, parent-owned promotion, and
 `measured-run-pass`. Relative to the unchanged [original Phase 6 acceptance

@@ -350,9 +350,13 @@ def qualifying_configuration(context: QualifyingRunContext) -> dict[str, object]
     return session.configuration_record()
 
 
-def passing_inputs(*, conditioning: bool = False) -> dict[str, object]:
-    context = qualifying_context(role="conditioning" if conditioning else "anchor")
-    job_count = 4 if conditioning else 5
+def passing_inputs(
+    *, conditioning: bool = False, pilot_only_role: str | None = None
+) -> dict[str, object]:
+    role = pilot_only_role or ("conditioning" if conditioning else "anchor")
+    pilot_only = conditioning or pilot_only_role is not None
+    context = qualifying_context(role=role)
+    job_count = 4 if pilot_only else 5
     job_ids = ["job_" + f"{index:032x}" for index in range(1, job_count + 1)]
     actions = list(("dependency", "model-data", "preflight", "pilot", "train"))[
         :job_count
@@ -414,7 +418,7 @@ def passing_inputs(*, conditioning: bool = False) -> dict[str, object]:
             ("verification.started", "parent-verification", job_ids[4], 14),
             ("verification.finished", "parent-verification", job_ids[4], 15),
         )
-        if not conditioning
+        if not pilot_only
         else (
             ("pilot.phase-started", "pilot-phase-1", job_ids[3], 5),
             ("pilot.phase-finished", "pilot-phase-1", job_ids[3], 6),
@@ -488,7 +492,7 @@ def passing_inputs(*, conditioning: bool = False) -> dict[str, object]:
         "context": context,
         "action_records": action_records,
         "selected_artifact_roles": set(REQUIRED_QUALIFYING_ARTIFACT_ROLES)
-        - ({"training-metrics", "final-export-manifest"} if conditioning else set()),
+        - ({"training-metrics", "final-export-manifest"} if pilot_only else set()),
         "runtime_boundaries": boundaries,
         "telemetry_samples": samples,
         "telemetry_start_monotonic_ns": 0,
@@ -519,6 +523,27 @@ class QualifyingRunContextTests(unittest.TestCase):
         self.assertEqual(slot["role"], "conditioning")
         self.assertEqual(run["aptus_run_ids"], [])
         self.assertEqual(run["exact_argv"], records[-1]["command"])  # type: ignore[index]
+
+    def test_phase8_frontier_pass_uses_pilot_only_profile_without_relabeling(
+        self,
+    ) -> None:
+        inputs = passing_inputs(pilot_only_role="phase8-frontier")
+        context = inputs["context"]
+
+        decision = evaluate_passing_qualification(**inputs)  # type: ignore[arg-type]
+
+        self.assertFalse(context.conditioning)  # type: ignore[union-attr]
+        self.assertTrue(context.pilot_only)  # type: ignore[union-attr]
+        self.assertTrue(decision.valid)
+        records = inputs["action_records"]
+        slot, run = context.finalize_records(  # type: ignore[union-attr]
+            records,  # type: ignore[arg-type]
+            native_outcome="passed",
+            evidence_status="protocol-valid",
+            reason_code="NONE",
+        )
+        self.assertEqual(slot["role"], "phase8-frontier")
+        self.assertEqual(run["aptus_run_ids"], [])
 
     def test_action_records_are_cross_bound_to_context_paths_identity_and_argv(
         self,

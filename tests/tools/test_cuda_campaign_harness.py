@@ -1426,7 +1426,7 @@ class ManagedJobCaptureTests(unittest.TestCase):
 
 
 class ManagedSequenceTests(unittest.TestCase):
-    def test_conditioning_profile_reaches_runtime_authority_with_four_actions(
+    def test_phase8_frontier_profile_reaches_runtime_authority_with_four_actions(
         self,
     ) -> None:
         from tests.tools.test_cuda_campaign_qualification import qualifying_context
@@ -1440,7 +1440,7 @@ class ManagedSequenceTests(unittest.TestCase):
             context = qualifying_context(
                 bundle_path=str(bundle),
                 state_root=str(state),
-                role="conditioning",
+                role="phase8-frontier",
             )
             verification = fake_phase4_verification(root / "phase4", context)
             harness = CaptureHarness.with_job_root(
@@ -1500,7 +1500,7 @@ class ManagedSequenceTests(unittest.TestCase):
             ):
                 harness._validate_qualifying_sequence(
                     bundle,
-                    vault / "conditioning",
+                    vault / "phase8-frontier",
                     actions,
                     (),
                     object(),  # type: ignore[arg-type]

@@ -39,6 +39,7 @@ QUALIFYING_ACTION_ORDER = (
     "train",
 )
 CONDITIONING_ACTION_ORDER = QUALIFYING_ACTION_ORDER[:-1]
+PILOT_ONLY_ATTEMPT_ROLES = frozenset({"conditioning", "phase8-frontier"})
 REQUIRED_QUALIFYING_ARTIFACT_ROLES = frozenset(
     {
         "plan",
@@ -512,6 +513,12 @@ class QualifyingRunContext:
         return self.planned_attempt_slot["role"] == "conditioning"
 
     @property
+    def pilot_only(self) -> bool:
+        """Return whether this slot uses the four-action bounded-pilot profile."""
+
+        return self.planned_attempt_slot["role"] in PILOT_ONLY_ATTEMPT_ROLES
+
+    @property
     def experiment_run_id(self) -> str:
         return str(self.experiment_run_template["experiment_run_id"])
 
@@ -682,7 +689,7 @@ class QualifyingRunContext:
                 | REQUIRED_QUALIFYING_ARTIFACT_ROLES
                 | REQUIRED_QUALIFYING_AUTHORITY_ROLES
             )
-            if self.conditioning:
+            if self.pilot_only:
                 passing_roles -= {"training-metrics", "final-export-manifest"}
             nonpass_roles = {
                 "attempt-slot-record",
@@ -1108,7 +1115,7 @@ def evaluate_passing_qualification(
     reasons: list[str] = []
     actions = [record.get("action") for record in action_records]
     expected_actions = (
-        CONDITIONING_ACTION_ORDER if context.conditioning else QUALIFYING_ACTION_ORDER
+        CONDITIONING_ACTION_ORDER if context.pilot_only else QUALIFYING_ACTION_ORDER
     )
     if tuple(actions) != expected_actions or any(
         record.get("state") != "completed" or record.get("return_code") != 0
@@ -1120,7 +1127,7 @@ def evaluate_passing_qualification(
     except QualificationError:
         reasons.append("MISSING_REQUIRED_EVIDENCE")
     required_roles = REQUIRED_QUALIFYING_ARTIFACT_ROLES
-    if context.conditioning:
+    if context.pilot_only:
         required_roles -= {"training-metrics", "final-export-manifest"}
     missing_roles = required_roles - selected_artifact_roles
     if missing_roles:
@@ -1145,7 +1152,7 @@ def evaluate_passing_qualification(
         validate_passing_runtime_boundaries(
             runtime_boundaries,
             pilot_job_id=job_by_action.get("pilot"),
-            train_job_id=(None if context.conditioning else job_by_action.get("train")),
+            train_job_id=(None if context.pilot_only else job_by_action.get("train")),
         )
     except QualificationError:
         reasons.append("MISSING_REQUIRED_EVIDENCE")
@@ -1189,6 +1196,7 @@ def evaluate_passing_qualification(
 __all__ = [
     "CONDITIONING_ACTION_ORDER",
     "IDLE_BASELINE_BINDING_SCHEMA",
+    "PILOT_ONLY_ATTEMPT_ROLES",
     "QUALIFYING_ACTION_ORDER",
     "REQUIRED_QUALIFYING_ARTIFACT_ROLES",
     "REQUIRED_QUALIFYING_AUTHORITY_ROLES",

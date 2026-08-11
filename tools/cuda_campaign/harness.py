@@ -2724,9 +2724,7 @@ class CaptureHarness:
             return
         observed_actions = tuple(spec.action for spec in specs)
         expected_actions = (
-            CONDITIONING_ACTION_ORDER
-            if context.conditioning
-            else QUALIFYING_ACTION_ORDER
+            CONDITIONING_ACTION_ORDER if context.pilot_only else QUALIFYING_ACTION_ORDER
         )
         if observed_actions != expected_actions:
             raise ValueError(
@@ -3231,7 +3229,7 @@ class CaptureHarness:
             raise AssertionError("Owning service disappeared.")
         qualification_context = self.qualification_context
         conditioning = bool(
-            qualification_context is not None and qualification_context.conditioning
+            qualification_context is not None and qualification_context.pilot_only
         )
         identity_bindings: dict[str, Any] = {
             "attempt_slot_id": self.attempt_slot_id,

@@ -49,6 +49,7 @@ from .monitoring import (
     validate_telemetry_sample,
 )
 from .qualification import (
+    PILOT_ONLY_ATTEMPT_ROLES,
     QUALIFYING_ACTION_ORDER,
     REQUIRED_QUALIFYING_ARTIFACT_ROLES,
     REQUIRED_QUALIFYING_AUTHORITY_ROLES,
@@ -3225,11 +3226,11 @@ def _validate_protocol_valid_payloads(
             entries=entries,
             required_role_bindings=required_role_bindings,
         )
-        retained_is_conditioning = (
+        retained_is_pilot_only = (
             retained_activation.planned_slot_context.planned_attempt_slot["role"]
-            == "conditioning"
+            in PILOT_ONLY_ATTEMPT_ROLES
         )
-        if retained_is_conditioning is not conditioning:
+        if retained_is_pilot_only is not conditioning:
             raise EvidenceStorageError(
                 "The managed sequence profile differs from its retained slot role."
             )

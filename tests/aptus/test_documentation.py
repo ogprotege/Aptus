@@ -1339,6 +1339,11 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(
             (phase8["training_seed"], phase8["data_order_seed"]), (8009, 1008009)
         )
+        self.assertEqual(phase8["attempt_slot_role"], "phase8-frontier")
+        self.assertEqual(
+            phase8["managed_action_profile"],
+            ["dependency", "model-data", "preflight", "pilot"],
+        )
         phase9 = matrix["phase9_endurance"]
         self.assertEqual(phase9["training_seeds"], [9101, 9203, 9301])
         self.assertEqual(phase9["measured_attempt_count"], 3)

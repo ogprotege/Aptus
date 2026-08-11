@@ -74,14 +74,21 @@ frozen stability and integrity contract without replacements. The exact planner
 left 360M Full and both 1.7B cells unadmitted and planned-not-started. A
 separate reviewed [architecture-breadth
 amendment](../operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
-admitted one Qwen3-0.6B LoRA cell. Its first conditioning slot stopped during
-model-data validation because serialized tensor elements had been declared as
-unique runtime parameters. The reviewed [parameter-semantics
+admitted one Qwen3-0.6B LoRA cell. Its first cohort stopped during model-data
+validation because serialized tensor elements had been declared as unique
+runtime parameters. The reviewed [parameter-semantics
 correction](../operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
-binds the exact stopped outcome and corrected 596,049,920 unique-parameter
-declaration; no exploratory slot ran, and a fresh reviewed cohort is required.
-Gemma remains license-excluded, Mistral remains planner-ineligible, and Phase 8
-remains unauthorized. The [earlier stopped Phase 7
+bound that stopped outcome and corrected the declaration to 596,049,920 unique
+parameters. A second fresh cohort stopped before optimizer work because Linux
+admission excluded reclaimable page cache. After the probe was corrected at
+exact merged source `a41ae4941661867789034eaa63bb968f2e137aba`, a third,
+independently reviewed [breadth stability
+cohort](../operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
+passed conditioning and all three 128-step exploratory slots without
+replacement. The Qwen3-0.6B LoRA cell passed the frozen stability and integrity
+contract, completing Phase 7. Gemma remains license-excluded, Mistral remains
+planner-ineligible, and Phase 8 remains unauthorized pending a separate
+activation and headroom-selection review. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains an immutable historical record.
 

@@ -1,0 +1,175 @@
+{
+  "aggregate": {
+    "architecture_breadth_activated": true,
+    "conditioning_artifacts_started": 1,
+    "conditioning_protocol_valid_native_passes": 1,
+    "exploratory_slots_planned": 3,
+    "exploratory_slots_started": 3,
+    "phase7_status": "complete-reviewed",
+    "phase8_authorized": false,
+    "protocol_valid_native_passes": 3,
+    "replacements": 0,
+    "stable_phase7_cells": [
+      "qwen3-0p6b:lora"
+    ]
+  },
+  "bindings": {
+    "campaign_id": "campaign_75edd17b039317323bd7",
+    "comparison_cell_id": "cell_15f277311503bc76c6b0",
+    "comparison_cohort_id": "cohort_da14e0463f7568d511b8",
+    "dataset_fixture_sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+    "fresh_current_boot_idle_baseline_samples": 600,
+    "idle_baseline_samples_sha256": "abac707250202cfd0535756f47b42bd159fa9b387e5d72e69d13a3a2904e774a",
+    "protocol_sha256": "e29c6798abba847fa19b1b7143a90b075e7955fa33e27c3e0d02358dd5c49f83",
+    "source_commit": "a41ae4941661867789034eaa63bb968f2e137aba",
+    "source_tree": "431c2be0c41e7b0274d68da408538f89f2ac79bd"
+  },
+  "claim_boundary": {
+    "does_not_establish": [
+      "model quality or LoRA superiority",
+      "a stable Gemma or Mistral cell",
+      "Phase 8 authorization or a frozen Phase 8 base cell",
+      "production throughput, safety, or release readiness",
+      "capacity or behavior on another host, GPU, environment, model revision, or configuration"
+    ],
+    "establishes": [
+      "one stable planner-admitted Qwen3-0.6B LoRA Phase 7 breadth cell on the exact frozen host and source",
+      "three protocol-valid 128-step exploratory passes without replacement",
+      "deep seal, off-host copy, and fresh retrieval verification for all four started artifacts",
+      "non-resumption and non-replacement of both stopped breadth cohorts",
+      "completion of the reviewed Phase 7 same-family and architecture-breadth boundaries"
+    ]
+  },
+  "configuration": {
+    "checkpoint_cadence_optimizer_steps": 64,
+    "data_order_seeds": [
+      1006101,
+      1006203,
+      1006301
+    ],
+    "effective_batch_size": 8,
+    "gradient_accumulation_steps": 2,
+    "micro_batch_size": 4,
+    "optimizer_step_target": 128,
+    "placement": "single",
+    "precision": "bf16",
+    "sequence_length": 256,
+    "split_seed": 424242,
+    "training_seeds": [
+      6101,
+      6203,
+      6301
+    ],
+    "world_size": 1
+  },
+  "custody": {
+    "deeply_verified_sealed_artifacts": 4,
+    "protected_conditioning_artifacts": 1,
+    "protected_exploratory_artifacts": 3,
+    "verified_fresh_restorations": 4,
+    "verified_off_host_copies": 4
+  },
+  "decision": {
+    "phase7_architecture_breadth_status": "complete-reviewed",
+    "phase7_status": "complete-reviewed",
+    "phase8_authorized": false,
+    "phase8_next_boundary": "separate activation and headroom-selection review",
+    "replacement_allowed": false,
+    "replacement_created": false,
+    "stopped_cohorts_resumed": false
+  },
+  "model_freeze": {
+    "adapter_targets": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "architecture": "Qwen3ForCausalLM",
+    "context_length": 40960,
+    "exact_execution_artifact_bytes": 1519182365,
+    "exact_unique_loaded_parameter_count": 596049920,
+    "license": "apache-2.0",
+    "model_id": "Qwen/Qwen3-0.6B",
+    "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "serialized_state_dict_tensor_elements": 751632384,
+    "token_count_manifest_sha256": "5b1bc203cb312954967eb201d6d7136a6f607c8327184493fc9469dda26f6dfb"
+  },
+  "planner_admission": {
+    "admitted": true,
+    "candidate_id": "cand_6a64bb145b8b266c4662",
+    "method": "lora",
+    "model_label": "qwen3-0p6b",
+    "required_disk_bytes": 2152938986,
+    "required_host_ram_bytes": 1311309824,
+    "upper_estimate_bytes": 4083631784
+  },
+  "protected_review_bindings": {
+    "baseline_capture_sha256": "9e8a830c1ff7afc79ae8b6a5603006d7908b0c072566b85f7beab64fc5871775",
+    "final_review_sha256": "81bcac044276562de21ad96d17dfc110407dcee00d341c5ef65096118656efd5",
+    "pre_execution_review_sha256": "cd027d02f6afc725297650580ecc9ba4b7fc6c2b90e0a4a5ed099c94bb9c8ca8",
+    "prepared_record_sha256": "185c19f426d7d4eb7054e7aa6d70add4cacd3a35991b7f625511411145b91755",
+    "r2_diagnosis_review_sha256": "8511e4b7c27bfe5f567ef2f5f222bb3e396436aa91e0f8e7ec3e845f98a8303a",
+    "r2_diagnosis_sha256": "6ed0b6f188a55ac71cd4a1820abd80aba8c00abc9ccb4e73857e663556a78207",
+    "stability_sha256": "4566882942c8e59e11a9d385f5d15398ae3da881fe9deb35c689fb6ce29fc052"
+  },
+  "schema_version": "aptus.cuda-campaign-phase7-breadth-outcome.v1",
+  "stable_cell": {
+    "aggregates": {
+      "duration_mad_to_median": 0.003030675467424427,
+      "duration_maximum_to_minimum": 1.0106737336685578,
+      "duration_median_ns": 186851072999.0,
+      "peak_device_memory_median_bytes": 4003463168.0,
+      "peak_device_memory_range_bytes": 0,
+      "peak_device_memory_range_limit_bytes": 400346316.8
+    },
+    "checks": {
+      "all_three_exact_optimizer_steps": true,
+      "all_three_native_passed_protocol_valid": true,
+      "all_three_seal_copy_and_retrieval_verified": true,
+      "all_three_telemetry_coverage": true,
+      "all_three_telemetry_gap": true,
+      "duration_mad_ratio": true,
+      "duration_max_min_ratio": true,
+      "peak_device_memory_range": true
+    },
+    "method": "lora",
+    "model_label": "qwen3-0p6b",
+    "slots": [
+      {
+        "attempt_slot_id": "slot_cd0f19ed032e29ff0020",
+        "completed_non_skipped_optimizer_steps": 128,
+        "externally_observed_training_duration_ns": 188273142250,
+        "peak_device_memory_used_bytes": 4003463168,
+        "runtime_peak_cuda_bytes": 3302564352,
+        "scheduled_seed": 6101,
+        "telemetry_coverage": 1.0,
+        "telemetry_maximum_gap_seconds": 1.075989702
+      },
+      {
+        "attempt_slot_id": "slot_9397157a59f82b2b5c1b",
+        "completed_non_skipped_optimizer_steps": 128,
+        "externally_observed_training_duration_ns": 186851072999,
+        "peak_device_memory_used_bytes": 4003463168,
+        "runtime_peak_cuda_bytes": 3302564352,
+        "scheduled_seed": 6203,
+        "telemetry_coverage": 1.0,
+        "telemetry_maximum_gap_seconds": 1.061874589
+      },
+      {
+        "attempt_slot_id": "slot_cc3c04b47071c7ea69d8",
+        "completed_non_skipped_optimizer_steps": 128,
+        "externally_observed_training_duration_ns": 186284788036,
+        "peak_device_memory_used_bytes": 4003463168,
+        "runtime_peak_cuda_bytes": 3302564352,
+        "scheduled_seed": 6301,
+        "telemetry_coverage": 1.0,
+        "telemetry_maximum_gap_seconds": 1.081517922
+      }
+    ],
+    "stable": true
+  }
+}

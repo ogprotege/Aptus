@@ -1,0 +1,49 @@
+{
+  "excluded_from_git": [
+    "raw action logs and command output",
+    "unredacted telemetry samples and machine or network identifiers",
+    "working paths, environment values, job state, and process metadata",
+    "model, checkpoint, adapter, cache, and archive bytes",
+    "sealed artifact trees, raw manifests, receipts, journals, and fresh restorations"
+  ],
+  "projections": [
+    {
+      "protected_sources": [
+        "R3 preparation, pre-execution review, current-boot capture, and frozen comparison inputs"
+      ],
+      "public_targets": [
+        "phase7-outcome.json bindings, configuration, model freeze, planner admission, and decision"
+      ]
+    },
+    {
+      "protected_sources": [
+        "three sealed exploratory artifacts and frozen stability decision"
+      ],
+      "public_targets": [
+        "phase7-outcome.json stable-cell measurements and checks",
+        "README.md result table"
+      ]
+    },
+    {
+      "protected_sources": [
+        "four deep seal verifications, off-host copy receipts, and fresh retrieval receipts"
+      ],
+      "public_targets": [
+        "phase7-outcome.json custody counts",
+        "README.md evidence and custody boundary"
+      ]
+    },
+    {
+      "protected_sources": [
+        "R2 capacity diagnosis and review",
+        "R3 final independent review"
+      ],
+      "public_targets": [
+        "phase7-outcome.json protected review digests",
+        "README.md corrected execution boundary",
+        "independent-review.json"
+      ]
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

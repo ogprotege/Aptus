@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, and both Phase 7 cohort outcomes
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, and the Phase 7 outcomes, amendment, and parameter-semantics correction
 >
 > **Last reviewed:** 2026-08-11
 >
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 131 tracked Markdown documents. Of those, 130 are
+The repository tree contains 132 tracked Markdown documents. Of those, 131 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -31,20 +31,21 @@ a separate active packet without overwriting the earlier cohort history. The
 fixed-source Full cohort adds its active stability packet without altering
 either prior Phase 6 packet. Phase 7 adds the historical stopped scale-staircase
 packet and a separate current same-family stability packet without overwriting
-that first cohort. Architecture breadth and Phase 8 remain inactive.
+that first cohort. Architecture breadth adds one reviewed amendment and one
+append-only parameter-semantics correction; Phase 8 remains inactive.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 101 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 102 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 130 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 131 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the same 130 governed
+The automated `maintained_documentation()` set contains the same 131 governed
 Markdown files. Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -321,12 +322,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 130-file lifecycle count is
+The single tracked Markdown file outside the 131-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 131 tracked Markdown files.
+of 132 tracked Markdown files.
 
 ## Excluded local and generated material
 

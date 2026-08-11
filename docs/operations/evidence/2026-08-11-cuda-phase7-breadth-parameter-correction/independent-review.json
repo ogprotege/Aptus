@@ -1,0 +1,24 @@
+{
+  "schema_version": "aptus.cuda-campaign-phase7-breadth-parameter-correction-public-review.v1",
+  "producer_role_id": "phase7-breadth-parameter-correction-producer",
+  "reviewer_role_id": "phase7-breadth-parameter-correction-independent-reviewer",
+  "protected_correction_input_sha256": "8ab5ccfda225285336545b9af17314034c1106f313ac3440419f5640f0eccc0e",
+  "protected_review_sha256": "94875ab0cecc46ce3c53cd58e7d17583fbdde4d9b1b55c04007c8c574374ed9b",
+  "decision": {
+    "status": "passed",
+    "corrected_admitted_cells_after_merge": ["qwen3-0p6b:lora"],
+    "stopped_cohort_resumable": false,
+    "new_reviewed_cohort_required": true,
+    "replacement_allowed": false,
+    "phase8_authorized": false
+  },
+  "checks": {
+    "sealed_failure_bound": true,
+    "parameter_semantics_mismatch_verified": true,
+    "shared_embedding_exactly_explains_difference": true,
+    "corrected_planner_admission_verified": true,
+    "no_exploratory_slot_started": true,
+    "no_replacement_or_resume": true,
+    "phase8_not_authorized": true
+  }
+}

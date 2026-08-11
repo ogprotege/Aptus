@@ -1,0 +1,30 @@
+{
+  "schema_version": "aptus.cuda-campaign-phase7-breadth-parameter-correction-sanitization.v1",
+  "public_files": [
+    "README.md",
+    "correction.json",
+    "independent-review.json",
+    "SHA256SUMS",
+    "sanitization-map.json"
+  ],
+  "included": [
+    "source commit and tree hashes",
+    "cohort and protected artifact identifiers",
+    "model identifier and immutable revision",
+    "exact aggregate parameter counts and tied-embedding observation",
+    "native outcome, reason code, and failed action",
+    "corrected planner dispositions",
+    "no-resume, no-replacement, and Phase 8 boundaries",
+    "protected record digests"
+  ],
+  "excluded": [
+    "host paths",
+    "raw action logs",
+    "raw telemetry samples",
+    "process identifiers",
+    "machine and network identifiers",
+    "operator scripts",
+    "downloaded model files"
+  ],
+  "private_custody": "Protected correction records and the sealed conditioning-failure artifact are retained outside Git with an off-host copy."
+}

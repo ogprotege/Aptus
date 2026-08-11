@@ -1,0 +1,321 @@
+{
+  "aggregate": {
+    "architecture_breadth_activated": false,
+    "conditioning_artifacts_started": 3,
+    "conditioning_protocol_valid_native_passes": 3,
+    "exploratory_slots_planned": 18,
+    "exploratory_slots_planned_not_started": 9,
+    "exploratory_slots_started": 9,
+    "phase8_authorized": false,
+    "protocol_valid_native_passes": 9,
+    "replacements": 0,
+    "stable_phase7_cells": [
+      "135m:lora",
+      "135m:full",
+      "360m:lora"
+    ]
+  },
+  "bindings": {
+    "campaign_id": "campaign_75edd17b039317323bd7",
+    "comparison_cohort_id": "cohort_e997f7c26410b97fef03",
+    "dataset_fixture_sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+    "fresh_current_boot_idle_baseline_samples": 600,
+    "idle_baseline_samples_sha256": "9162445330571e5db41116fae9d68f3a63d6673b74b7adb01dffb400fc9fae22",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "source_commit": "412095bd66618fee9d3e1936e79b90da12a4c61b",
+    "source_tree": "e33a414aec01e377e5c6f9c5f46fd4a67128a1e7",
+    "thermal_diagnosis_sha256": "fa2a9fc37452e0f0bd2024ba1166f56b32b2fdd865101ab1beb0697e98d09d92"
+  },
+  "claim_boundary": {
+    "does_not_establish": [
+      "architecture breadth or behavior for another model family",
+      "a viable 1.7B cell on this host",
+      "Phase 8 authorization",
+      "model quality or method superiority",
+      "production throughput, safety, or release readiness",
+      "capacity or behavior on another host, GPU, environment, model revision, or configuration"
+    ],
+    "establishes": [
+      "three stable planner-admitted same-family Phase 7 cells on the exact frozen host and source",
+      "nine protocol-valid 128-step exploratory passes",
+      "deep seal, off-host copy, and fresh retrieval verification for all twelve started artifacts",
+      "the planner-ineligible and planned-not-started disposition of the other nine exploratory slots",
+      "no replacement or resumption of the historical stopped cohort"
+    ]
+  },
+  "configuration": {
+    "checkpoint_cadence_optimizer_steps": 64,
+    "data_order_seeds": [
+      1006101,
+      1006203,
+      1006301
+    ],
+    "effective_batch_size": 8,
+    "gradient_accumulation_steps": 2,
+    "micro_batch_size": 4,
+    "optimizer_step_target": 128,
+    "placement": "single",
+    "precision": "bf16",
+    "sequence_length": 256,
+    "split_seed": 424242,
+    "training_seeds": [
+      6101,
+      6203,
+      6301
+    ],
+    "world_size": 1
+  },
+  "custody": {
+    "deeply_verified_sealed_artifacts": 12,
+    "protected_conditioning_artifacts": 3,
+    "protected_exploratory_artifacts": 9,
+    "verified_fresh_restorations": 12,
+    "verified_off_host_copies": 12
+  },
+  "decision": {
+    "architecture_breadth_status": "requires-separate-reviewed-protocol-amendment",
+    "historical_cohort_resumed": false,
+    "phase7_same_family_status": "complete-reviewed",
+    "phase8_authorized": false,
+    "replacement_allowed": false,
+    "replacement_created": false
+  },
+  "model_freezes": [
+    {
+      "exact_execution_artifact_bytes": 272437573,
+      "exact_parameter_count": 134515008,
+      "label": "135m",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    },
+    {
+      "exact_execution_artifact_bytes": 727051918,
+      "exact_parameter_count": 361821120,
+      "label": "360m",
+      "model_id": "HuggingFaceTB/SmolLM2-360M-Instruct",
+      "revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    },
+    {
+      "exact_execution_artifact_bytes": 3426155020,
+      "exact_parameter_count": 1711376384,
+      "label": "1p7b",
+      "model_id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+      "revision": "31b70e2e869a7173562077fd711b654946d38674",
+      "token_count_manifest_sha256": "fa8a4c9223e47fa95cb163db871c35159978b92c4ea559b95e8719697c7be9f6"
+    }
+  ],
+  "planner_admissions": [
+    {
+      "admitted": true,
+      "candidate_id": "cand_1c8d30162dc6a03abb4d",
+      "method": "lora",
+      "model_label": "135m",
+      "upper_estimate_bytes": 2508144647
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand_347d5624ee9950de6732",
+      "method": "full",
+      "model_label": "135m",
+      "upper_estimate_bytes": 4056775643
+    },
+    {
+      "admitted": true,
+      "candidate_id": "cand_689f75a1a085e15715b2",
+      "method": "lora",
+      "model_label": "360m",
+      "upper_estimate_bytes": 3389655441
+    },
+    {
+      "admitted": false,
+      "candidate_id": "cand_36056ef8a8d9d9af2d4d",
+      "method": "full",
+      "model_label": "360m",
+      "reason_codes": [
+        "Even the point estimate exceeds usable per-device memory."
+      ],
+      "upper_estimate_bytes": 7649328482
+    },
+    {
+      "admitted": false,
+      "candidate_id": null,
+      "method": "lora",
+      "model_label": "1p7b",
+      "reason_codes": [
+        "No feasible or conditional exact plan; even the point estimate exceeds usable per-device memory."
+      ]
+    },
+    {
+      "admitted": false,
+      "candidate_id": null,
+      "method": "full",
+      "model_label": "1p7b",
+      "reason_codes": [
+        "No feasible or conditional exact plan; even the point estimate exceeds usable per-device memory."
+      ]
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-phase7-same-family-outcome.v1",
+  "stable_cells": [
+    {
+      "aggregates": {
+        "duration_mad_to_median": 0.0007559887813795049,
+        "duration_maximum_to_minimum": 1.0016152688782913,
+        "duration_median_ns": 75948138933.0,
+        "peak_device_memory_median_bytes": 1472200704.0,
+        "peak_device_memory_range_bytes": 2097152,
+        "peak_device_memory_range_limit_bytes": 147220070.4
+      },
+      "comparison_cell_id": "cell_e66306f4925636527c84",
+      "method": "lora",
+      "model_label": "135m",
+      "slots": [
+        {
+          "attempt_slot_id": "slot_0fbf0115972d5489d3dd",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 76013306915,
+          "peak_device_memory_used_bytes": 1472200704,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.082064223
+        },
+        {
+          "attempt_slot_id": "slot_20d39b9a2c71f0d5088c",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 75948138933,
+          "peak_device_memory_used_bytes": 1472200704,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.077581564
+        },
+        {
+          "attempt_slot_id": "slot_ebe93685d3fa655204be",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 75890722992,
+          "peak_device_memory_used_bytes": 1474297856,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.040169513
+        }
+      ],
+      "stable": true
+    },
+    {
+      "aggregates": {
+        "duration_mad_to_median": 0.00004953548229327938,
+        "duration_maximum_to_minimum": 1.0035041793277946,
+        "duration_median_ns": 54904845458.0,
+        "peak_device_memory_median_bytes": 2380267520.0,
+        "peak_device_memory_range_bytes": 119537664,
+        "peak_device_memory_range_limit_bytes": 238026752.0
+      },
+      "comparison_cell_id": "cell_57d01fa38b0c6969a2ad",
+      "method": "full",
+      "model_label": "135m",
+      "slots": [
+        {
+          "attempt_slot_id": "slot_b2a5573bc7e3c728ae1d",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 55094512614,
+          "peak_device_memory_used_bytes": 2298478592,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.093516958
+        },
+        {
+          "attempt_slot_id": "slot_c42d462fb6b1eab0b5af",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 54902125720,
+          "peak_device_memory_used_bytes": 2380267520,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.076289779
+        },
+        {
+          "attempt_slot_id": "slot_c34e10b4da00e5c4b4ef",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 54904845458,
+          "peak_device_memory_used_bytes": 2418016256,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.092953834
+        }
+      ],
+      "stable": true
+    },
+    {
+      "aggregates": {
+        "duration_mad_to_median": 0.0019626526232252857,
+        "duration_maximum_to_minimum": 1.0086065276100629,
+        "duration_median_ns": 124400956191.0,
+        "peak_device_memory_median_bytes": 2067791872.0,
+        "peak_device_memory_range_bytes": 2097152,
+        "peak_device_memory_range_limit_bytes": 206779187.20000002
+      },
+      "comparison_cell_id": "cell_eefcb1151b1c37e40646",
+      "method": "lora",
+      "model_label": "360m",
+      "slots": [
+        {
+          "attempt_slot_id": "slot_54567d501a6dc1ab828e",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 125225359258,
+          "peak_device_memory_used_bytes": 2067791872,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.064649161
+        },
+        {
+          "attempt_slot_id": "slot_ffadddbfb2587c9f04b7",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 124400956191,
+          "peak_device_memory_used_bytes": 2065694720,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.053771959
+        },
+        {
+          "attempt_slot_id": "slot_03973c71421d4f1732f1",
+          "completed_non_skipped_optimizer_steps": 128,
+          "externally_observed_training_duration_ns": 124156800328,
+          "peak_device_memory_used_bytes": 2067791872,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.107246711
+        }
+      ],
+      "stable": true
+    }
+  ],
+  "stability_thresholds": {
+    "exact_optimizer_steps": 128,
+    "maximum_duration_mad_to_median": 0.1,
+    "maximum_duration_max_to_min": 1.2,
+    "maximum_telemetry_gap_seconds": 2.5,
+    "minimum_telemetry_coverage": 0.99,
+    "peak_range_absolute_bytes": 134217728,
+    "peak_range_median_fraction": 0.1
+  },
+  "unstarted_groups": [
+    {
+      "count": 3,
+      "method": "full",
+      "model_label": "360m",
+      "reason_code": "PLANNER_NOT_ADMITTED"
+    },
+    {
+      "count": 3,
+      "method": "lora",
+      "model_label": "1p7b",
+      "reason_code": "PLANNER_NOT_ADMITTED"
+    },
+    {
+      "count": 3,
+      "method": "full",
+      "model_label": "1p7b",
+      "reason_code": "PLANNER_NOT_ADMITTED"
+    }
+  ]
+}

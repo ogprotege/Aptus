@@ -1,0 +1,62 @@
+{
+  "excluded_from_git": [
+    "raw logs and job state",
+    "machine, user, network, and filesystem identifiers",
+    "unredacted telemetry and kernel records",
+    "model, adapter, checkpoint, archive, and bundle bytes",
+    "provider cache and runtime-environment contents",
+    "raw copy, retrieval, and operation journals"
+  ],
+  "private_retention": {
+    "failure_domains": 2,
+    "fresh_retrievals_verified": 12,
+    "off_host_copies_verified": 12,
+    "operator_records_retained": true,
+    "protected_artifacts": 12,
+    "raw_locations_published": false,
+    "retention_locations": "protected experiment host and separate Mac evidence root"
+  },
+  "projection": [
+    {
+      "private_inputs": [
+        "frozen comparison cohort",
+        "attempt-slot ledger",
+        "model and tokenizer freezes",
+        "planner admissions",
+        "fresh current-boot idle baseline"
+      ],
+      "public_outputs": [
+        "phase7-outcome.json bindings",
+        "phase7-outcome.json configuration",
+        "phase7-outcome.json model_freezes",
+        "phase7-outcome.json planner_admissions"
+      ]
+    },
+    {
+      "private_inputs": [
+        "nine exploratory result markers",
+        "three stability decisions",
+        "three conditioning result markers"
+      ],
+      "public_outputs": [
+        "phase7-outcome.json aggregate",
+        "phase7-outcome.json stable_cells",
+        "phase7-outcome.json unstarted_groups"
+      ]
+    },
+    {
+      "private_inputs": [
+        "twelve deep-verified seals",
+        "twelve off-host copy receipts",
+        "twelve fresh retrieval receipts",
+        "procedurally separate same-family review"
+      ],
+      "public_outputs": [
+        "phase7-outcome.json custody",
+        "independent-review.json checks"
+      ]
+    }
+  ],
+  "redaction_policy": "Publish exact source, protocol, model, cohort, planner, slot, aggregate, and integrity bindings required to evaluate the claim while withholding raw operational and identifying content.",
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

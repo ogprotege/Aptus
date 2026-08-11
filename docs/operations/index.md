@@ -1,6 +1,6 @@
 # Operations
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-10 | **Review by:** 2026-10-27 or when operational behavior changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Operators and release maintainers | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27 or when operational behavior changes
 
 ## Run a bundle
 
@@ -14,7 +14,8 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
-- [2026-08-10 CUDA Phase 7 scale staircase](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+- [2026-08-11 CUDA Phase 7 same-family stability](evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)
+- [2026-08-10 historical stopped CUDA Phase 7 scale staircase](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 - [2026-08-10 CUDA Phase 6 Full confirmatory stability](evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
 - [2026-08-10 CUDA Phase 6 remediation method matrix](evidence/2026-08-10-cuda-phase6-remediation-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 repeatability anchor](evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
@@ -107,8 +108,13 @@ records Full promotion followed by one pass and four unrelated-GPU-activity
 safety cancellations. After two Aptus-owned pre-launch registration races were
 corrected, a separate five-slot Full cohort passed the frozen stability and
 integrity contract at exact merged source `2bc4d9a`. One stable Full cell is
-therefore established and Phase 7 is authorized. The earlier Phase 6 packets
-and intervening source-defect diagnostic remain separate historical evidence.
+therefore established and Phase 7 was authorized. A new Phase 7 same-family
+cohort at exact merged source `412095b` then established stable 135M LoRA,
+135M Full, and 360M LoRA cells without replacements. The exact planner left
+360M Full and both 1.7B cells unadmitted and planned-not-started. Architecture
+breadth requires a separately reviewed amendment, and Phase 8 is not
+authorized. Earlier Phase 6 packets, the stopped Phase 7 cohort, and the
+intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

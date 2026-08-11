@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-08-10 |
+| Last reviewed | 2026-08-11 |
 | Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -65,13 +65,17 @@ passed the frozen stability and integrity contract. It establishes one stable
 exact-host Full cell and authorizes the bounded Phase 7 procedure; it does not
 qualify another method, artifact, host, environment, or release.
 
-The reviewed [Phase 7 scale-staircase
-packet](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
-records one passing 128-step 135M LoRA exploratory slot followed by a live
-`THERMAL_WARNING_SUSTAINED` admission refusal before the second slot activated.
-The frozen stop rule left all later slots planned-not-started without
-replacement. No Phase 7 cell established three-run stability, architecture
-breadth did not activate, and Phase 8 is not authorized.
+The current reviewed [Phase 7 same-family stability
+packet](../operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)
+binds a new cohort at exact merged source
+`412095bd66618fee9d3e1936e79b90da12a4c61b`. The 135M LoRA, 135M Full, and
+360M LoRA cells each passed three of three 128-step exploratory slots and the
+frozen stability and integrity contract without replacements. The exact planner
+left 360M Full and both 1.7B cells unadmitted and planned-not-started. This
+evidence does not qualify another artifact or host, establish architecture
+breadth, or authorize Phase 8. The [earlier stopped Phase 7
+cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+remains an immutable historical record.
 
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result

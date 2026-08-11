@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-10 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
 [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source
@@ -36,13 +36,19 @@ two Aptus-owned pre-launch process-registration races, a separate
 at exact merged source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`
 passed the frozen stability and integrity contract. It establishes one stable
 exact-host Full cell and authorizes the bounded Phase 7 campaign procedure.
-The subsequent [Phase 7 scale
-staircase](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
-produced one passing 128-step 135M LoRA exploratory slot, then stopped
-fail-closed when live thermal admission refused the second slot before
-activation. No Phase 7 cell established stability and Phase 8 is not
-authorized. All other CUDA methods, placements, artifacts, hosts, and
-environments remain open. The [original Phase 6 acceptance
+After a bounded training-free diagnosis and correction of the admission-window
+collector, a new [Phase 7 same-family
+cohort](../operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)
+completed all planner-admitted cells at exact merged source
+`412095bd66618fee9d3e1936e79b90da12a4c61b`. The 135M LoRA, 135M Full, and
+360M LoRA cells each passed three of three 128-step exploratory slots and the
+frozen stability and integrity contract without replacements. The exact planner
+did not admit 360M Full or either 1.7B method; those nine slots remain
+planned-not-started. Architecture breadth requires a separate reviewed Phase 7
+amendment, and Phase 8 is not authorized. The [earlier stopped Phase 7
+cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
+remains immutable history. All other CUDA methods, placements, artifacts,
+hosts, and environments remain open. The [original Phase 6 acceptance
 packet](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 remains the unchanged historical baseline. A separate local desktop gate completed
 10 of 10 clean engineering builds at implementation commit

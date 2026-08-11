@@ -1,0 +1,36 @@
+{
+  "checks": {
+    "all_planner_ineligible_slots_remain_unstarted": true,
+    "all_started_artifacts_deeply_verified": true,
+    "all_started_artifacts_have_verified_off_host_copies": true,
+    "all_started_artifacts_have_verified_fresh_retrievals": true,
+    "all_three_admitted_cells_pass_common_stability_contract": true,
+    "claim_wording_verified": true,
+    "cohort_was_reviewed_before_any_outcome": true,
+    "historical_stopped_cohort_not_resumed": true,
+    "model_tokenizer_and_source_bindings_verified": true,
+    "no_slot_excluded_replaced_or_imputed": true,
+    "phase8_not_authorized": true,
+    "planner_admission_ledger_verified": true,
+    "public_aggregate_recomputed_from_protected_records": true,
+    "sanitization_boundary_verified": true
+  },
+  "inputs": {
+    "phase7_outcome_sha256": "e641a68dbc337efc710c6f965170c815b8671bb2a9bdec6ca07884382b74a2ea",
+    "pre_execution_review_sha256": "5d07354df8ea3bf3870038776e9448d91708bb66ebd0277638075910bd17a4f9",
+    "protected_same_family_review_sha256": "6d7a59192bf1f9272cbbd300226b7644ed394d8448751a37f08f9b520afed2e1",
+    "protocol_sha256": "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+    "readme_sha256": "caebf7771f7c6fd52126864601015aa23e174011a051cf66a42bf5520753983c",
+    "sanitization_map_sha256": "9f301f5696f225848b99df1f7484e1acdeb78b41c91a1f906c78cb889c460cc5"
+  },
+  "phase7_same_family_status": "complete-reviewed",
+  "phase8_authorized": false,
+  "producer_role_id": "phase7-same-family-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review pass over the protected pre-execution review, post-custody review, and sanitized projection; not an external-human attestation.",
+  "review_id": "review_e641a68dbc337efc710c6f965170c815",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-11T02:56:00Z",
+  "reviewer_role_id": "phase7-same-family-evidence-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1"
+}

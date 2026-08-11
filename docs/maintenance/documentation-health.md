@@ -5,10 +5,10 @@
 > **Applies to:** Repository documentation through merged PR #41, the canonical
 > RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
 > Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, and
-> the two immutable Phase 5 cohort outcomes, and both the historical and
-> corrected Phase 6 method-matrix outcomes
+> the two immutable Phase 5 cohort outcomes, the historical and corrected
+> Phase 6 outcomes, and both Phase 7 cohort outcomes
 >
-> **Last reviewed:** 2026-08-10
+> **Last reviewed:** 2026-08-11
 >
 > **Next scheduled review:** 2026-11-01, or after the next contract-changing pull request
 
@@ -150,8 +150,13 @@ records Full promotion from three passing exploratory attempts, followed by one
 pass and four unrelated-GPU-activity safety cancellations in five confirmatory
 attempts. A separate fixed-source five-slot Full cohort now passes the frozen
 stability and integrity contract, establishes one stable exact-host Full cell,
-and authorizes Phase 7. The earlier Phase 6 packets and intervening diagnostic
-remain immutable and separate from that aggregate.
+and authorizes Phase 7. After a bounded training-free diagnosis and merged
+admission-window correction, a new Phase 7 cohort established stable 135M LoRA,
+135M Full, and 360M LoRA cells without replacements. The exact planner left
+360M Full and both 1.7B cells planned-not-started. Architecture breadth remains
+pending a separate reviewed amendment, and Phase 8 is not authorized. Earlier
+Phase 6 packets, the stopped Phase 7 cohort, and intervening diagnostics remain
+immutable and separate from the current aggregate.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
@@ -162,8 +167,9 @@ desktop engineering gate and original Phase 6 acceptance remain historical at
 their recorded commits; the August 5 refresh is bounded current-contract
 MLX-LM evidence at its exact acceptance source. The exact CUDA LoRA
 single-device repeatability anchor is now established; the separate fixed-source
-Phase 6 Full cohort establishes one stable exact-host cell. Other CUDA methods, placements, artifacts,
-hosts, and environments remain unqualified. The repository checks its
+Phase 6 Full cohort and the Phase 7 same-family cohort establish their exact
+recorded stable cells. Other CUDA methods, placements, artifacts, hosts, and
+environments remain unqualified. The repository checks its
 principal navigation and executable-reference surfaces, but it does not yet
 derive every default, status, and response field from one source.
 
@@ -180,20 +186,20 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, and the August 10 packets establish the exact frozen five-slot CUDA LoRA repeatability anchor plus one stable fixed-source Phase 6 Full cell that authorizes Phase 7; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; the earlier Phase 6 packets remain historical, remaining CUDA coverage and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 packet establishes stable 135M LoRA, 135M Full, and 360M LoRA Phase 7 cells; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; architecture breadth, other CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 128
+The [documentation inventory](documentation-inventory.md) classifies 130
 governed tracked Markdown documents:
 
-- 99 active;
+- 101 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 129 tracked Markdown files in total. The pull-request
+The repository contains 131 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 128 files, including the
+`maintained_documentation()` set covers all other 130 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,

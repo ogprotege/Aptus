@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 6 and the Phase 7 same-family staircase are complete; three same-family cells are stable and the reviewed architecture-breadth amendment admits one Qwen3-0.6B LoRA cell, whose three-slot cohort has not yet run; Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes and pre-execution amendment are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before sealing the breadth ledger, Phase 8 activation, another protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 6 and the Phase 7 same-family staircase are complete; three same-family cells are stable; the first Qwen3-0.6B breadth cohort stopped at model-data validation, its parameter-semantics correction is reviewed, and a fresh reviewed cohort is required; Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes, amendment, and correction are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before sealing the corrected breadth ledger, Phase 8 activation, another protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -713,8 +713,13 @@ Full remain `planned-not-started` because their exact candidates were not
 admitted. The same-family ladder is complete and reviewed. The separate
 [architecture-breadth amendment](evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
 has now passed independent review and admits exactly one later three-slot
-Qwen3-0.6B LoRA cell. No breadth ledger or run existed during amendment review,
-and Phase 8 is not authorized.
+Qwen3-0.6B LoRA cell. Its first reviewed cohort stopped during model-data
+validation before pilot or training because the declaration counted serialized
+state-dictionary elements instead of unique loaded parameters. The reviewed
+[parameter-semantics correction](evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
+binds the exact failure, corrects the declaration to 596,049,920 unique
+parameters, forbids resume or replacement, and requires a fresh reviewed
+cohort. No exploratory slot ran, and Phase 8 is not authorized.
 
 The earlier [stopped Phase 7 cohort](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. Its second 135M LoRA slot did not activate after the
@@ -754,6 +759,11 @@ The reviewed breadth amendment freezes Qwen3-0.6B revision
 excluded because its manual provider license gate was not accepted, and
 Mistral-7B-v0.3 is excluded because the exact planner admitted no method on the
 frozen host. Neither exclusion creates an informal retry or replacement slot.
+
+The Qwen correction distinguishes 751,632,384 serialized state-dictionary
+tensor elements from 596,049,920 unique loaded model parameters. The difference
+is exactly the tied 155,582,464-element embedding shared by the input and output
+modules. Corrected planning still admits LoRA only.
 
 Stop a model/method staircase at the first safe admission refusal or
 bounded-pilot runtime capacity failure. Record that point; do not force the next
@@ -846,8 +856,9 @@ still required for DDP and conditional LoRA FSDP.
    freeze, host/environment bindings, fixtures, and frozen run order.
 5. Preserve the independently reviewed successful Phase 5 packet and its
    separate immutable stopped-cohort history.
-6. Execute Phases 6 through 9 in order, sealing and reviewing each batch before
-   expanding the matrix.
+6. Merge the reviewed Qwen parameter-semantics correction, then seal and review
+   a fresh Phase 7 breadth cohort before any further execution. Do not resume
+   the stopped cohort or create a replacement slot.
 7. Publish Phase 10 packets and update claims only to the exact evidence boundary.
 
 ## Related documentation

@@ -46,9 +46,13 @@ frozen stability and integrity contract without replacements. The exact planner
 did not admit 360M Full or either 1.7B method; those nine slots remain
 planned-not-started. A separate reviewed [Phase 7 architecture-breadth
 amendment](../operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
-now freezes and admits exactly one later Qwen3-0.6B LoRA three-slot exploratory
-cell. It records no breadth runtime result; Gemma is license-excluded, Mistral
-is planner-ineligible, and Phase 8 is not authorized. The [earlier stopped Phase 7
+froze and admitted exactly one Qwen3-0.6B LoRA three-slot exploratory cell. Its
+first conditioning slot stopped at model-data validation because the plan used
+serialized tensor elements rather than unique loaded parameters. The reviewed
+[parameter-semantics correction](../operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
+corrects the declaration to 596,049,920, records that no exploratory slot ran,
+and requires a fresh reviewed cohort. Gemma is license-excluded, Mistral is
+planner-ineligible, and Phase 8 is not authorized. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. All other CUDA methods, placements, artifacts,
 hosts, and environments remain open. The [original Phase 6 acceptance

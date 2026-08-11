@@ -1,0 +1,95 @@
+{
+  "schema_version": "aptus.cuda-campaign-phase7-breadth-parameter-correction-public.v1",
+  "bindings": {
+    "source_commit": "9eaa91186d68026ac871688ad27df46942e3bead",
+    "source_tree": "6e551f93e777bf77db9398e13c8c17b9f2cc9f60",
+    "comparison_cohort_id": "cohort_a495b897575d91249f51",
+    "protected_correction_input_sha256": "8ab5ccfda225285336545b9af17314034c1106f313ac3440419f5640f0eccc0e",
+    "protected_independent_review_sha256": "94875ab0cecc46ce3c53cd58e7d17583fbdde4d9b1b55c04007c8c574374ed9b",
+    "prior_amendment_sha256": "76f5b86be9098369f7882974c00c6eef3fc3c439db2acc6f7bd112702133a828",
+    "prior_artifact_verification_sha256": "15088253063b53efe029b98af934728682ea6d175fe015c8a796499da5225714",
+    "stopped_artifact_seal_sha256": "6952b2839db9425e6b34ccb341db1c783455c1d8f1e9de99147df8873929f7d3"
+  },
+  "model": {
+    "model_id": "Qwen/Qwen3-0.6B",
+    "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "tie_word_embeddings": true,
+    "input_output_share_storage": true,
+    "input_embedding_elements": 155582464,
+    "output_embedding_elements": 155582464,
+    "serialized_state_dict_tensor_element_count": 751632384,
+    "unique_loaded_model_parameter_count": 596049920
+  },
+  "correction": {
+    "previous_declared_parameter_count": 751632384,
+    "previous_value_semantics": "serialized_state_dict_tensor_elements",
+    "corrected_declared_parameter_count": 596049920,
+    "corrected_value_semantics": "unique_loaded_model_parameters",
+    "difference": 155582464,
+    "difference_explained_by_shared_embedding": true
+  },
+  "stopped_conditioning": {
+    "label": "conditioning-qwen3-0p6b-lora-seed-17",
+    "protected_artifact_id": "artifact_464533ab8a413637815a4209cf2fbc77",
+    "raw_manifest_sha256": "dca6a5f81b460190bc86b2c57abfebeed3c45e25290f7655e9636fb1672c494a",
+    "native_outcome": "failed",
+    "reason_code": "PROCESS_EXIT_NONZERO",
+    "failed_action": "model-data",
+    "error_classification": "PLAN_PARAMETER_SEMANTICS_MISMATCH",
+    "dependency_validation_passed": true,
+    "model_data_validation_passed": false,
+    "measured_preflight_started": false,
+    "pilot_started": false,
+    "training_started": false
+  },
+  "corrected_method_dispositions": [
+    {
+      "method": "lora",
+      "plan_id": "plan_00d109b8579fdfec5b80",
+      "candidate_id": "cand_949a5ae4c30cd1c810f7",
+      "admitted": true,
+      "upper_estimate_bytes": 4083631784,
+      "required_disk_bytes": 2152938986,
+      "required_host_ram_bytes": 1311309824,
+      "reason_codes": []
+    },
+    {
+      "method": "full",
+      "plan_id": "plan_b330b3ea31d5e7e99fbf",
+      "candidate_id": "cand_6de7f66dd52617e69fb0",
+      "admitted": false,
+      "upper_estimate_bytes": 11222853616,
+      "required_disk_bytes": 44230721002,
+      "required_host_ram_bytes": 1311309824,
+      "reason_codes": ["POINT_ESTIMATE_EXCEEDS_USABLE_DEVICE_MEMORY"]
+    },
+    {
+      "method": "int8-lora",
+      "plan_id": "plan_2f114897df9b2b8a1d9b",
+      "candidate_id": "cand_e7e3b443a5e35fa8adaf",
+      "admitted": false,
+      "upper_estimate_bytes": 3220897208,
+      "required_disk_bytes": 2152938986,
+      "required_host_ram_bytes": 1311309824,
+      "reason_codes": ["EXPLICIT_EIGHT_BIT_SUPPORT_UNAVAILABLE"]
+    },
+    {
+      "method": "qlora",
+      "plan_id": "plan_82dc779907eb7afd2aec",
+      "candidate_id": "cand_85934666ddac42eee72a",
+      "admitted": false,
+      "upper_estimate_bytes": 2735836043,
+      "required_disk_bytes": 2152938986,
+      "required_host_ram_bytes": 1311309824,
+      "reason_codes": ["RUNTIME_NATIVE_FOUR_BIT_SUPPORT_UNAVAILABLE"]
+    }
+  ],
+  "decision": {
+    "stopped_cohort_resumed": false,
+    "replacement_slot_created": false,
+    "exploratory_slots_started": 0,
+    "new_cohort_requires_review_after_merge": true,
+    "corrected_admitted_cells_after_merge": ["qwen3-0p6b:lora"],
+    "phase8_authorized": false
+  }
+}

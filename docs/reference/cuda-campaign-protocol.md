@@ -271,9 +271,11 @@ unfavorable result may cause an artifact substitution.
 
 The independently reviewed [Phase 7 architecture-breadth
 amendment](../operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
-freezes the following exact dispositions. It becomes execution authority only
-when merged; no breadth attempt ledger or training result existed during its
-review.
+froze the following exact dispositions. Its first cohort then stopped during
+model-data validation because the amendment used serialized tensor elements as
+the runtime parameter declaration. The independently reviewed [parameter-
+semantics correction](../operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
+keeps the model and method disposition but requires a fresh reviewed cohort.
 
 | Repository | Immutable revision | Amendment disposition |
 | --- | --- | --- |
@@ -282,8 +284,11 @@ review.
 | `mistralai/Mistral-7B-v0.3` | `caa1feb0e54d415e2df31207e5f4e273e33509b1` | Exclude because no single-device method is planner-admitted on the frozen host; no replacement |
 
 For the admitted Qwen artifact, the amendment binds all seven execution-file
-digests, 1,519,182,365 exact artifact bytes, 751,632,384 exact parameters, all
-seven LoRA target modules across 28 layers, and a 512-row tokenizer manifest.
+digests, 1,519,182,365 exact artifact bytes, 751,632,384 serialized state-
+dictionary tensor elements, all seven LoRA target modules across 28 layers,
+and a 512-row tokenizer manifest. The correction binds 596,049,920 unique
+loaded model parameters. Qwen ties its 155,582,464-element input embedding and
+output head, which exactly explains the difference between those two counts.
 The other two repositories retain their exact provider-declared artifact
 inventories as negative admission evidence; their model bytes are not implied
 to have been downloaded or validated locally. Any change to these revisions,

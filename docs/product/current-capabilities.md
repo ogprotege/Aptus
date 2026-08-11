@@ -57,8 +57,12 @@ reclaimable page cache. After the admission probe was corrected, a third
 at exact merged source `a41ae4941661867789034eaa63bb968f2e137aba` passed
 conditioning and all three 128-step exploratory slots, then passed the frozen
 stability and integrity contract without replacement. Phase 7 is complete.
-Gemma is license-excluded, Mistral is planner-ineligible, and Phase 8 is not
-authorized pending a separate activation and headroom-selection review. The
+The separately reviewed [Phase 8 guarded-frontier
+packet](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
+closed all three frozen one-axis ladders with bounded pilots only, selected
+sequence 256, effective batch 32, micro-batch 4, and accumulation 8 under the
+frozen numeric headroom rule, and left Phase 9 unauthorized. Gemma remains
+license-excluded and Mistral remains planner-ineligible. The
 [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. All other CUDA methods, placements, artifacts,

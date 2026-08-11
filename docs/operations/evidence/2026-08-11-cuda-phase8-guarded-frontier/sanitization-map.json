@@ -1,0 +1,57 @@
+{
+  "excluded_from_git": [
+    "raw action logs and command output",
+    "unredacted telemetry samples and machine or network identifiers",
+    "working paths, environment values, job state, and process metadata",
+    "model, checkpoint, adapter, cache, and archive bytes",
+    "sealed artifact trees, raw manifests, receipts, journals, custody records, and fresh restorations"
+  ],
+  "projections": [
+    {
+      "protected_sources": [
+        "Phase 8 base selection, activation review, cohort preparation, pre-execution review, source freezes, and current-boot baseline"
+      ],
+      "public_targets": [
+        "phase8-outcome.json source, base-cell, managed-profile, and decision bindings",
+        "README.md source prerequisite and execution boundary"
+      ]
+    },
+    {
+      "protected_sources": [
+        "sixteen sealed bounded-pilot artifacts and three protected axis-closure records"
+      ],
+      "public_targets": [
+        "phase8-outcome.json aggregate and axis results",
+        "README.md endpoint table"
+      ]
+    },
+    {
+      "protected_sources": [
+        "restored raw telemetry and protected deterministic headroom aggregate"
+      ],
+      "public_targets": [
+        "phase8-outcome.json headroom observations and selected pending candidate",
+        "README.md headroom selection table"
+      ]
+    },
+    {
+      "protected_sources": [
+        "sixteen deep seal verifications, off-host copy receipts, and fresh retrieval receipts"
+      ],
+      "public_targets": [
+        "phase8-outcome.json custody counts",
+        "README.md evidence and custody boundary"
+      ]
+    },
+    {
+      "protected_sources": [
+        "protected Phase 8 final independent review"
+      ],
+      "public_targets": [
+        "independent-review.json",
+        "README.md reviewed phase boundary"
+      ]
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

@@ -6,7 +6,8 @@
 > RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
 > Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, and
 > the two immutable Phase 5 cohort outcomes, the historical and corrected
-> Phase 6 outcomes, and both Phase 7 cohort outcomes
+> Phase 6 outcomes, the complete Phase 7 outcomes, and the reviewed Phase 8
+> guarded-frontier outcome
 >
 > **Last reviewed:** 2026-08-11
 >
@@ -153,10 +154,12 @@ stability and integrity contract, establishes one stable exact-host Full cell,
 and authorizes Phase 7. After a bounded training-free diagnosis and merged
 admission-window correction, a new Phase 7 cohort established stable 135M LoRA,
 135M Full, and 360M LoRA cells without replacements. The exact planner left
-360M Full and both 1.7B cells planned-not-started. Architecture breadth remains
-pending a separate reviewed amendment, and Phase 8 is not authorized. Earlier
-Phase 6 packets, the stopped Phase 7 cohort, and intervening diagnostics remain
-immutable and separate from the current aggregate.
+360M Full and both 1.7B cells planned-not-started. Architecture breadth then
+completed on the reviewed Qwen3-0.6B LoRA cell. The reviewed Phase 8 packet
+closes all three guarded one-axis frontiers and selects one Phase 9 candidate;
+Phase 9 remains unauthorized. Earlier Phase 6 packets, stopped cohorts, and
+intervening diagnostics remain immutable and separate from the current
+aggregate.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release

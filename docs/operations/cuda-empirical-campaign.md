@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 7 are complete; three same-family cells and the Qwen3-0.6B LoRA breadth cell are stable; Phase 8 is not authorized and requires a separate activation and headroom-selection review | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes, amendment, corrections, and final breadth packet are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 8 activation, another protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 8 are complete; the guarded sequence, effective-batch, and micro-batch/accumulation frontiers are reviewed; one Phase 9 candidate is selected but Phase 9 remains unauthorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 and Phase 8 packets are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 9 activation, another protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -724,9 +724,9 @@ work because the generated Linux admission probe excluded reclaimable page
 cache. After the probe was corrected and merged, a third independently reviewed
 [breadth cohort](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
 passed conditioning and all three 128-step exploratory slots, plus every frozen
-stability and custody check, without replacement. Phase 7 is complete. Phase 8
-is not authorized and requires a separate activation and headroom-selection
-review.
+stability and custody check, without replacement. Phase 7 is complete. That
+packet did not authorize Phase 8; the later separately reviewed Phase 8 result
+is recorded below.
 
 The earlier [stopped Phase 7 cohort](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. Its second 135M LoRA slot did not activate after the
@@ -800,6 +800,18 @@ Use attempt-slot role `phase8-frontier` for every frontier point. Its qualifying
 managed profile ends after dependency, model-data, measured-preflight, and the
 bounded pilot. Retained evidence keeps that role and contains no confirmed
 training action.
+
+The independently reviewed [Phase 8 guarded-frontier
+packet](evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md) closes all
+three frozen axes at exact merged source `59993d7`. Sequence length reached a
+first bounded-pilot `CUDA_OOM` at 1,024 after passing 512, leaving 2,048
+planned-not-started. Effective batch passed through the frozen top rung 64 and
+is right-censored there. The micro-batch/accumulation axis reached a first
+bounded-pilot `CUDA_OOM` at `(16,1)` after passing `(8,2)`. Fourteen of sixteen
+started points passed; no slot was retried or replaced, and no full training
+ran. The frozen headroom walk and ranking select sequence 256, effective batch
+32, micro-batch 4, and accumulation 8 as the candidate pending separate Phase 9
+authorization. Phase 9 has not been activated.
 
 ### Phase 9 — endurance and job control
 

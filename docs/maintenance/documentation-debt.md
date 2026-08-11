@@ -4,7 +4,7 @@
 >
 > **Applies to:** Open and recently resolved documentation work
 >
-> **Last reviewed:** 2026-08-09
+> **Last reviewed:** 2026-08-11
 >
 > **Next scheduled review:** At every documentation pull request and before 2026-11-01
 
@@ -219,11 +219,16 @@ when its evidence, owner, or resolution changes.
   attempts, then produced one pass and four unrelated-GPU-activity safety
   cancellations. A separately reviewed fixed-source five-slot Full cohort now
   passes the frozen stability and integrity contract, establishes one stable
-  exact-host cell, and authorizes Phase 7. A cell change or capture-contract
-  change requires separate review.
+  exact-host cell, and authorizes Phase 7. A new Phase 7 same-family cohort at
+  exact merged source `412095b` establishes stable 135M LoRA, 135M Full, and
+  360M LoRA cells without replacements. The exact planner leaves 360M Full and
+  both 1.7B cells planned-not-started. A cell change, capture-contract change,
+  or architecture-breadth activation requires separate review.
   Capability claims change only after the applicable packets merge.
-- **Blocker:** Phase 7 is authorized but remains to be executed under the
-  predeclared scale-and-breadth procedure. The intended RTX 3050 host has one GPU and cannot
+- **Blocker:** The Phase 7 same-family staircase is complete, but architecture
+  breadth requires a separate reviewed amendment that freezes an exact
+  artifact, revision, license, inspection, admitted method, and digests before
+  activation. Phase 8 remains unauthorized. The intended RTX 3050 host has one GPU and cannot
   close DDP or FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple

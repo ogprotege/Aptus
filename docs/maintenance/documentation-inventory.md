@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 137 tracked Markdown documents. Of those, 136 are
+The repository tree contains 138 tracked Markdown documents. Of those, 137 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -37,21 +37,23 @@ packet without overwriting the amendment, correction, or stopped cohorts;
 Phase 8 adds one active reviewed guarded-frontier packet, and Phase 9 adds one
 active reviewed endurance and job-control packet. Phase 10 adds one active
 reviewed certification packet and closes the campaign without authorizing a
-later phase.
+later phase. The mission integrity program adds one active product program plan
+at `docs/product/mission-integrity-plan.md` (working notes live outside
+`docs/` under `.superpowers/mission-integrity-plan/`, not under `dev/active/`).
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 107 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 108 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 136 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 137 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 136 governed
-Markdown files. Together with the root `LICENSE`, that makes 137 maintained
+The automated `maintained_documentation()` set contains the 137 governed
+Markdown files. Together with the root `LICENSE`, that makes 138 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -333,12 +335,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 136-file lifecycle count is
+The single tracked Markdown file outside the 137-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 137 tracked Markdown files.
+of 138 tracked Markdown files.
 
 ## Excluded local and generated material
 

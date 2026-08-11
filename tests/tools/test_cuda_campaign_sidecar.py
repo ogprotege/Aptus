@@ -78,23 +78,33 @@ def _probe_reading(*, temperature_c: float = 40.0) -> dict[str, object]:
 
 
 class AcceleratedClock:
+    """Virtual monotonic clock for sidecar tests.
+
+    Simulated time advances only through :meth:`sleep` and :meth:`advance`.
+    It must not track wall time: under CI load a wall-coupled scale makes
+    ``stop()`` observe multi-second gaps after a short deadline signal and
+    wrongly mark an otherwise healthy capture as ``TELEMETRY_QUALIFYING_GAP``.
+    """
+
     def __init__(self, *, scale: float = 100.0) -> None:
         self._scale = scale
-        self._origin = time.monotonic_ns()
-        self._offset_ns = 0
+        self._now_ns = 0
         self._lock = threading.Lock()
 
     def monotonic_ns(self) -> int:
-        elapsed_ns = time.monotonic_ns() - self._origin
         with self._lock:
-            return int(elapsed_ns * self._scale) + self._offset_ns
+            return self._now_ns
 
     def sleep(self, seconds: float) -> None:
-        time.sleep(seconds / self._scale)
+        # Advance the virtual timeline first so peer threads observe the wait,
+        # then yield a short real sleep so collectors/watchdogs can schedule.
+        with self._lock:
+            self._now_ns += int(seconds * 1_000_000_000)
+        time.sleep(max(seconds / self._scale, 0.0))
 
     def advance(self, seconds: float) -> None:
         with self._lock:
-            self._offset_ns += int(seconds * 1_000_000_000)
+            self._now_ns += int(seconds * 1_000_000_000)
 
 
 def _limits(*, deadline_seconds: float = 10_000.0) -> SafetyLimits:

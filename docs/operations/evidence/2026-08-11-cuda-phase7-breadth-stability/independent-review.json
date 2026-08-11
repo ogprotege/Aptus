@@ -1,0 +1,40 @@
+{
+  "checks": {
+    "all_four_artifacts_deeply_verified": true,
+    "all_four_artifacts_have_verified_fresh_retrievals": true,
+    "all_four_artifacts_have_verified_off_host_copies": true,
+    "all_three_exploratory_slots_passed_exact_128_step_contract": true,
+    "claim_wording_verified": true,
+    "cohort_was_reviewed_before_any_outcome": true,
+    "corrected_parameter_semantics_verified": true,
+    "linux_available_memory_correction_merged_before_cohort": true,
+    "no_slot_excluded_replaced_or_imputed": true,
+    "phase7_complete_claim_verified": true,
+    "phase8_not_authorized": true,
+    "planner_admission_ledger_verified": true,
+    "protected_final_review_passed": true,
+    "public_aggregate_recomputed_from_protected_records": true,
+    "sanitization_boundary_verified": true,
+    "stopped_cohorts_not_resumed": true,
+    "three_slot_stability_contract_passed": true
+  },
+  "inputs": {
+    "phase7_outcome_sha256": "bd0616ea87640c69a2314d291640857b6ddfad59bbaa146044f109870643c119",
+    "protected_final_review_sha256": "81bcac044276562de21ad96d17dfc110407dcee00d341c5ef65096118656efd5",
+    "protected_pre_execution_review_sha256": "cd027d02f6afc725297650580ecc9ba4b7fc6c2b90e0a4a5ed099c94bb9c8ca8",
+    "protected_stability_sha256": "4566882942c8e59e11a9d385f5d15398ae3da881fe9deb35c689fb6ce29fc052",
+    "readme_sha256": "b9f156572d95529e4fec49f96afff55a35b98ce9da39ad6e81bc4c5e493464af",
+    "sanitization_map_sha256": "ff24b7f8135529692d4184e378ef6c02a8dd1cd2e2aa16fadd10f9ea5a81c1c1"
+  },
+  "phase7_architecture_breadth_status": "complete-reviewed",
+  "phase7_status": "complete-reviewed",
+  "phase8_authorized": false,
+  "producer_role_id": "phase7-breadth-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review over the protected R3 final review, stability decision, custody records, and sanitized projection; not an external-human attestation.",
+  "review_id": "review_bd0616ea87640c69a2314d291640857b",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-11T05:32:00Z",
+  "reviewer_role_id": "phase7-breadth-evidence-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1"
+}

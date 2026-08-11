@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-11 CUDA Phase 7 architecture-breadth stability](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
 - [2026-08-11 CUDA Phase 7 architecture-breadth amendment](evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
 - [2026-08-11 CUDA Phase 7 breadth parameter-semantics correction](evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
 - [2026-08-11 CUDA Phase 7 same-family stability](evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)
@@ -117,9 +118,14 @@ cohort at exact merged source `412095b` then established stable 135M LoRA,
 architecture-breadth amendment admitted exactly one Qwen3-0.6B LoRA cell. Its
 first conditioning slot stopped at model-data validation; the reviewed
 parameter-semantics correction now binds the stopped result, corrects the
-unique parameter count, and requires a fresh reviewed cohort. No exploratory
-slot ran, and Phase 8 is not authorized. Earlier Phase 6 packets, both stopped
-Phase 7 cohorts, and the
+unique parameter count, and required a fresh reviewed cohort. A second breadth
+cohort passed conditioning but stopped before optimizer work when Linux
+admission excluded reclaimable page cache. After that probe was corrected, a
+third reviewed [breadth cohort](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
+passed conditioning, all three exploratory slots, and the frozen stability
+contract without replacement. Phase 7 is complete; Phase 8 is not authorized
+pending a separate activation and headroom-selection review. Earlier Phase 6
+packets, the stopped Phase 7 cohorts, and the
 intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance

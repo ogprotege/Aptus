@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 6 and the Phase 7 same-family staircase are complete; three same-family cells are stable; the first Qwen3-0.6B breadth cohort stopped at model-data validation, its parameter-semantics correction is reviewed, and a fresh reviewed cohort is required; Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes, amendment, and correction are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before sealing the corrected breadth ledger, Phase 8 activation, another protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 7 are complete; three same-family cells and the Qwen3-0.6B LoRA breadth cell are stable; Phase 8 is not authorized and requires a separate activation and headroom-selection review | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes, amendment, corrections, and final breadth packet are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 8 activation, another protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -718,8 +718,15 @@ validation before pilot or training because the declaration counted serialized
 state-dictionary elements instead of unique loaded parameters. The reviewed
 [parameter-semantics correction](evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
 binds the exact failure, corrects the declaration to 596,049,920 unique
-parameters, forbids resume or replacement, and requires a fresh reviewed
-cohort. No exploratory slot ran, and Phase 8 is not authorized.
+parameters, forbids resume or replacement, and required a fresh reviewed
+cohort. That second cohort passed conditioning but stopped before optimizer
+work because the generated Linux admission probe excluded reclaimable page
+cache. After the probe was corrected and merged, a third independently reviewed
+[breadth cohort](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
+passed conditioning and all three 128-step exploratory slots, plus every frozen
+stability and custody check, without replacement. Phase 7 is complete. Phase 8
+is not authorized and requires a separate activation and headroom-selection
+review.
 
 The earlier [stopped Phase 7 cohort](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. Its second 135M LoRA slot did not activate after the

@@ -275,7 +275,12 @@ froze the following exact dispositions. Its first cohort then stopped during
 model-data validation because the amendment used serialized tensor elements as
 the runtime parameter declaration. The independently reviewed [parameter-
 semantics correction](../operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
-keeps the model and method disposition but requires a fresh reviewed cohort.
+kept the model and method disposition but required a fresh reviewed cohort. A
+second cohort stopped before optimizer work when Linux admission excluded
+reclaimable page cache. After that probe was corrected, a third independently
+reviewed [breadth cohort](../operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
+passed conditioning, all three exploratory slots, and the common stability
+contract without replacement.
 
 | Repository | Immutable revision | Amendment disposition |
 | --- | --- | --- |

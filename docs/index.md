@@ -26,7 +26,7 @@ The current portable contract uses `aptus.training-plan.v6`,
 | Add a method | [Adding a method](contributing/adding-a-method.md) | [Method registry](reference/method-registry.md) |
 | Prepare a release | [Release gates](operations/release-gates.md) | [Evidence template](operations/release-evidence-template.md) |
 | Run the bounded RTX 3050 CUDA evidence campaign | [Canonical campaign plan](operations/cuda-empirical-campaign.md) | [State, storage, and retention](operations/state-storage-retention.md) |
-| Inspect the current CUDA Phase 7 outcome | [2026-08-11 breadth parameter correction](operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md) | [Same-family stability](operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md) |
+| Inspect the current CUDA Phase 7 outcome | [2026-08-11 architecture-breadth stability](operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md) | [Same-family stability](operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md) |
 | Inspect the Phase 2B sanitized recovery supplement | [2026-08-09 Phase 0 recovery supplement](operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md) | [Phase 2 tooling and review contract](operations/cuda-campaign-phase2-tooling.md) |
 | Inspect the exact CUDA acceptance | [2026-08-06 SmolLM2 CUDA LoRA single-device evidence](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md) | [Complete packet and detailed results](operations/index.md#complete-ubuntu-cuda-acceptance-packet) |
 | Inspect the current-contract MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
@@ -127,6 +127,7 @@ Authority labels have a separate meaning:
 - [Release evidence template](operations/release-evidence-template.md)
 - [RTX 3050 CUDA empirical evidence campaign](operations/cuda-empirical-campaign.md)
 - [Phase 2A CUDA campaign tooling contract](operations/cuda-campaign-phase2-tooling.md)
+- [2026-08-11 CUDA Phase 7 architecture-breadth stability](operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
 - [2026-08-11 CUDA Phase 7 architecture-breadth amendment](operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
 - [2026-08-11 CUDA Phase 7 breadth parameter-semantics correction](operations/evidence/2026-08-11-cuda-phase7-breadth-parameter-correction/README.md)
 - [2026-08-11 CUDA Phase 7 same-family stability](operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)

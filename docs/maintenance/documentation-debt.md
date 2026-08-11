@@ -222,14 +222,15 @@ when its evidence, owner, or resolution changes.
   exact-host cell, and authorizes Phase 7. A new Phase 7 same-family cohort at
   exact merged source `412095b` establishes stable 135M LoRA, 135M Full, and
   360M LoRA cells without replacements. The exact planner leaves 360M Full and
-  both 1.7B cells planned-not-started. A cell change, capture-contract change,
-  or architecture-breadth activation requires separate review.
+  both 1.7B cells planned-not-started. Phase 7 architecture breadth and all
+  three Phase 8 guarded frontiers are now complete and independently reviewed.
+  The frozen headroom calculation selects one Phase 9 candidate, but Phase 9
+  remains separately authorized work.
   Capability claims change only after the applicable packets merge.
-- **Blocker:** The Phase 7 same-family staircase is complete, but architecture
-  breadth requires a separate reviewed amendment that freezes an exact
-  artifact, revision, license, inspection, admitted method, and digests before
-  activation. Phase 8 remains unauthorized. The intended RTX 3050 host has one GPU and cannot
-  close DDP or FSDP; its local boundaries are
+- **Blocker:** Phase 9 endurance and target-host job-control evidence remain
+  unexecuted and require separate authorization over the selected frozen
+  candidate. The intended RTX 3050 host has one GPU and cannot close DDP or
+  FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple
   credentials.

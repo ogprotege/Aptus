@@ -86,9 +86,14 @@ independently reviewed [breadth stability
 cohort](../operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
 passed conditioning and all three 128-step exploratory slots without
 replacement. The Qwen3-0.6B LoRA cell passed the frozen stability and integrity
-contract, completing Phase 7. Gemma remains license-excluded, Mistral remains
-planner-ineligible, and Phase 8 remains unauthorized pending a separate
-activation and headroom-selection review. The [earlier stopped Phase 7
+contract, completing Phase 7. The separately reviewed [Phase 8 guarded-frontier
+packet](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
+closed the three frozen one-axis ladders at exact source `59993d7` with fourteen
+bounded-pilot passes, two controlled bounded-pilot OOM nonpasses, one
+planned-not-started point, complete custody, and no full training. It selects
+sequence 256, effective batch 32, micro-batch 4, and accumulation 8 only as a
+candidate pending separate Phase 9 authorization. Gemma remains
+license-excluded and Mistral remains planner-ineligible. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains an immutable historical record.
 

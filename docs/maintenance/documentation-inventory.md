@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, and the complete reviewed Phase 7 same-family and architecture-breadth outcomes
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, and the reviewed Phase 8 guarded-frontier outcome
 >
 > **Last reviewed:** 2026-08-11
 >
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 133 tracked Markdown documents. Of those, 132 are
+The repository tree contains 134 tracked Markdown documents. Of those, 133 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -34,21 +34,22 @@ packet and a separate current same-family stability packet without overwriting
 that first cohort. Architecture breadth adds one reviewed amendment, one
 append-only parameter-semantics correction, and one active final stability
 packet without overwriting the amendment, correction, or stopped cohorts;
-Phase 8 remains inactive.
+Phase 8 adds one active reviewed guarded-frontier packet while keeping Phase 9
+inactive.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 103 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 104 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 132 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 133 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 132 governed
-Markdown files plus the root `LICENSE`, for 133 maintained reader documents.
+The automated `maintained_documentation()` set contains the 133 governed
+Markdown files plus the root `LICENSE`, for 134 maintained reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -145,6 +146,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-11 CUDA Phase 8 guarded configuration frontier](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md), the reviewed bounded-pilot frontier outcome with three closed one-axis ladders, complete custody, a deterministic Phase 9 candidate, and no Phase 9 authorization
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md), independently reviewed recovery-integrity evidence for the protected August 6 records; not target-runtime, performance, repeatability, or release-readiness evidence
 - [2026-08-09 CUDA Phase 5 repeatability-anchor outcome](../operations/evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md), a target-host conditioning capture failure that applies the frozen no-replacement rule and does not establish repeatability or Phase 6 eligibility
 - [2026-08-10 CUDA Phase 5 repeatability anchor](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md), the separate successful five-slot replacement cohort that establishes the exact-host anchor and Phase 6 eligibility within its frozen boundary

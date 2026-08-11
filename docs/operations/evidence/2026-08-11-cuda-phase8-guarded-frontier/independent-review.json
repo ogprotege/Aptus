@@ -1,0 +1,45 @@
+{
+  "checks": {
+    "all_sixteen_artifacts_deeply_verified": true,
+    "all_sixteen_artifacts_have_verified_fresh_retrievals": true,
+    "all_sixteen_artifacts_have_verified_off_host_copies": true,
+    "all_three_axis_closures_recomputed": true,
+    "claim_wording_verified": true,
+    "cohorts_were_reviewed_before_any_outcome": true,
+    "fixed_candidate_ranking_recomputed": true,
+    "fourteen_passes_and_two_bounded_pilot_ooms_verified": true,
+    "full_training_never_executed": true,
+    "headroom_walk_recomputed_from_restored_raw_telemetry": true,
+    "no_retry_replacement_or_imputation": true,
+    "phase8_complete_claim_verified": true,
+    "phase9_not_authorized_or_activated": true,
+    "public_projection_recomputed_from_protected_records": true,
+    "sanitization_boundary_verified": true,
+    "sequence_2048_remained_planned_not_started": true,
+    "source_prerequisite_merged_before_fresh_cohorts": true
+  },
+  "inputs": {
+    "phase8_outcome_sha256": "d0b943cb5bb116eb29bfff0e73e60c825b7fe316c95c442d16abe4973dd087be",
+    "protected_aggregate_sha256": "ee0d39a4155dc7ff46beafbe5aeb1f5c125d68c1ee81eeb75c429086ccba2024",
+    "protected_final_review_sha256": "65d1cd1c897cabe47a7748425f2abf8dcaeb92bd038281985370db548eeb3cad",
+    "readme_sha256": "b23d2fb5f4cdffe16be382fc7dcbed4428208b015dd7c7b0015f904950422c1e",
+    "sanitization_map_sha256": "6e6a95d64495d1c8407c06cdf7a926a38f7f0f2858e9cc26895de33ba06f34fc"
+  },
+  "phase8_status": "complete-reviewed",
+  "phase9_authorized": false,
+  "phase9_candidate_status": "selected-pending-separate-authorization",
+  "producer_role_id": "phase8-frontier-outcome-producer",
+  "review_boundary": "Procedurally separate deterministic review over the protected Phase 8 final review, restored raw telemetry, custody records, axis closures, headroom aggregate, and sanitized projection; not an external-human attestation.",
+  "review_id": "review_d0b943cb5bb116eb29bfff0e73e60c825",
+  "review_result": "passed",
+  "reviewed_at_utc": "2026-08-11T13:38:47Z",
+  "reviewer_role_id": "phase8-frontier-publication-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-independent-review.v1",
+  "selected_pending_phase9_authorization": {
+    "effective_batch_size": 32,
+    "gradient_accumulation_steps": 8,
+    "micro_batch_size": 4,
+    "sequence_length": 256
+  }
+}

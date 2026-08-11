@@ -899,8 +899,9 @@ def _collect_production_admission_payload(
         MAXIMUM_ADMISSION_ACQUISITION_SECONDS * NANOSECONDS_PER_SECOND
     )
     observations: list[dict[str, Any]] = []
+    selected_window: list[dict[str, Any]] | None = None
     try:
-        for index in range(REQUIRED_IDLE_OBSERVATIONS):
+        for index in range(MAXIMUM_ADMISSION_ACQUISITION_SECONDS):
             scheduled = started + index * NANOSECONDS_PER_SECOND
             if not _real_sleep_until(scheduled, deadline):
                 break
@@ -932,6 +933,25 @@ def _collect_production_admission_payload(
                         watchdog=watchdog_state,
                     )
                 )
+                if len(observations) >= REQUIRED_IDLE_OBSERVATIONS:
+                    # Keep the acquisition clock and original scheduled slots so a
+                    # later qualifying suffix cannot masquerade as an immediate
+                    # window. The persisted decision binds the complete wait.
+                    candidate = observations[-REQUIRED_IDLE_OBSERVATIONS:]
+                    candidate_reasons, _ = _validate_idle_gate(
+                        candidate,
+                        acquisition_started_monotonic_ns=started,
+                        acquisition_finished_monotonic_ns=candidate[-1][
+                            "observed_monotonic_ns"
+                        ],
+                        context_sha256=context.sha256,
+                        authority_sha256=authority_sha256,
+                        baseline=context.phase4_binding["summary"],
+                        budget=context.resource_budget,
+                    )
+                    if not candidate_reasons:
+                        selected_window = candidate
+                        break
             except (ProbeFailure, AdmissionError):
                 break
     finally:
@@ -943,7 +963,9 @@ def _collect_production_admission_payload(
         or final_authority_sha256 != authority_sha256
     ):
         raise AdmissionError("production authority changed during collection")
-    return observations, started, finished, authority
+    if selected_window is None and len(observations) > REQUIRED_IDLE_OBSERVATIONS:
+        selected_window = observations[-REQUIRED_IDLE_OBSERVATIONS:]
+    return selected_window or observations, started, finished, authority
 
 
 def _bind_production_observation_collector(
@@ -1107,13 +1129,18 @@ def _validate_idle_gate(
     except (TypeError, ValueError):
         return ("MISSING_REQUIRED_EVIDENCE",), {"sample_count": len(observations)}
     reasons: list[str] = []
+    first_sequence = valid[0]["sequence"]
+    first_slot = valid[0]["scheduled_slot"]
     if (
-        [item["sequence"] for item in valid] != list(range(REQUIRED_IDLE_OBSERVATIONS))
+        first_sequence != first_slot
+        or [item["sequence"] for item in valid]
+        != list(range(first_sequence, first_sequence + REQUIRED_IDLE_OBSERVATIONS))
         or [item["scheduled_slot"] for item in valid]
-        != list(range(REQUIRED_IDLE_OBSERVATIONS))
+        != list(range(first_slot, first_slot + REQUIRED_IDLE_OBSERVATIONS))
         or any(
             item["scheduled_monotonic_ns"]
-            != acquisition_started_monotonic_ns + index * NANOSECONDS_PER_SECOND
+            != acquisition_started_monotonic_ns
+            + item["scheduled_slot"] * NANOSECONDS_PER_SECOND
             or item["observed_monotonic_ns"] < item["scheduled_monotonic_ns"]
             or item["observed_monotonic_ns"]
             >= item["scheduled_monotonic_ns"] + NANOSECONDS_PER_SECOND
@@ -1148,6 +1175,8 @@ def _validate_idle_gate(
             item["host"]["filesystem_free_bytes"] for item in valid
         ),
     }
+    if first_slot:
+        summary["window_start_offset_seconds"] = first_slot
     return tuple(dict.fromkeys(reasons)), summary
 
 

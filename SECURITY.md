@@ -1,14 +1,14 @@
 # Security Policy
 
-> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security policy | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and maintainers | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27 or after a trust-boundary change
 
 ## Supported status
 
 Aptus v0.2 is an engineering preview. The
 [2026-08-05 Apple Silicon MLX-LM exact-source
 record](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-reached `measured-run-pass` twice under the current v5 plan and v3 bundle
-contracts. It is bound to its exact Qwen2.5 artifact, source commit and tree, M5
+reached `measured-run-pass` twice under its recorded v5 plan and v3 bundle
+contracts. Current plans use v6. The acceptance is bound to its exact Qwen2.5 artifact, source commit and tree, M5
 Pro host, Python/MLX runtime, synthetic dataset, plan, bundle, policy snapshot,
 and bundle fingerprint; it is not CUDA, safety, quality, broader compatibility,
 performance, production-throughput, production-readiness, or release-readiness
@@ -17,10 +17,16 @@ remains an unchanged historical baseline. Ten of 10 clean local desktop engineer
 implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. That historical gate proves the
 recorded source and ad-hoc-signed packages only. Pull-request CI must rebuild the
-exact workflow commit. Pull requests use GitHub's synthetic merge commit. One
-[exact SmolLM2 CUDA LoRA single-device workflow](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-has separate target-host evidence; repeatability, every other CUDA scope, and
-public Developer ID signing and notarization remain open. Report vulnerabilities privately to
+exact workflow commit. Pull requests use GitHub's synthetic merge commit. The
+[Phase 10 CUDA certification](docs/operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+closes the bounded 149-slot RTX 3050 campaign with six exact stable cells, a
+guarded frontier, and a separately bounded endurance/job-control result. It is
+rooted in the original [SmolLM2 CUDA LoRA single-device
+acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+and the later immutable campaign packets. It is
+not broad CUDA, safety, quality, multi-GPU, remote-provider, production, or
+release-readiness evidence. Public Developer ID signing and notarization remain
+open. Report vulnerabilities privately to
 [aptus-security@proton.me](mailto:aptus-security@proton.me) before sharing
 technical details. Do not include credentials, private datasets, model tokens,
 exploit details, or unredacted logs in a public issue.
@@ -69,7 +75,7 @@ Package-free entrypoints can prove only frozen-snapshot integrity and saved
 decision parity. Installed Aptus separately evaluates current registry currency
 during host static validation and again during managed admission, pilot
 authorization, worker launch, and the completion verification and promotion
-transaction. A coherent stale v5 plan requires replanning; malformed or
+transaction. A coherent stale plan requires replanning; malformed or
 modified policy state remains invalid input.
 
 ## Data copies
@@ -105,7 +111,7 @@ Review `diagnostics.json` before sharing the archive.
 - Compilation refuses a non-empty output directory and refuses an existing
   archive target.
 - Bundle integrity binds compiler-created files and source data by hash.
-- Model-policy integrity binds the canonical snapshot bytes, v5 plan, v3
+- Model-policy integrity binds the canonical snapshot bytes, current v6 plan, v3
   manifest, and manifested file entry. Host validation adds the current-registry
   digest comparison. An untrusted embedded snapshot cannot override that host
   policy.

@@ -86,7 +86,7 @@ raw content. On 2026-08-09, Phase 2B published the independently reviewed
 model-file manifest was not found, and the separately searched Python test
 transcript was not found or reconstructed. No new Ubuntu run occurred.
 
-## Experimental host work
+## Completed and experimental host work
 
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
 - [Phase 2 tooling and completed Phase 2B publication contract](cuda-campaign-phase2-tooling.md)
@@ -94,11 +94,11 @@ transcript was not found or reconstructed. No new Ubuntu run occurred.
 - [CUDA campaign protocol machine companion](../reference/cuda-campaign-protocol.v1.json)
 - [Apple Silicon fine-tuning experiment matrix](apple-silicon-pilot.md)
 
-The CUDA campaign is the canonical ordered plan for recovering the existing raw
+The CUDA campaign is the canonical completed record for recovering the existing raw
 Ubuntu records, implementing complete capture and explicit candidate selection,
 then measuring single-device repeatability, method behavior, scale, guarded
-capacity frontiers, and endurance. It does not itself assert a result, and one
-RTX 3050 cannot supply DDP or FSDP evidence.
+capacity frontiers, and endurance. Its Phase 10 packet is the current aggregate
+result. One RTX 3050 cannot supply DDP or FSDP evidence.
 
 Phase 0 is privately complete. The Phase 1 protocol is frozen design authority.
 Phase 2A implements and independently reviews the opt-in Phase 4 authority,
@@ -135,21 +135,23 @@ sequence 256, effective batch 32, micro-batch 4, and accumulation 8. The later
 records all three frozen 300-update slots and all eight controlled job-service
 exercises passing without replacement. Phase 9 is complete and independently
 reviewed. The later reviewed [Phase 10 certification](evidence/2026-08-11-cuda-phase10-certification/README.md)
-reconciles all 149 campaign slots, binds 47 qualifying passes, verifies the
+reconciles all 149 campaign slots to 58 starts, 91
+predeclared-not-started dispositions, and 47 qualifying passes, verifies the
 prior public and protected evidence, and closes the campaign without new
-training or replacement runs. It does not establish release readiness or
-authorize Phase 11. Earlier Phase 6 packets, stopped
+training or replacement runs. It does not establish release readiness. The
+approved campaign ends at Phase 10; future work requires a new reviewed
+campaign rather than an implied Phase 11. Earlier Phase 6 packets, stopped
 cohorts, and intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6
-baseline, historical v2/v2 evidence, and proposed larger-model work. The
-separate record above covers one exact 2026-08-06 CUDA LoRA single-device
-acceptance and identifies the remaining CUDA target-host work. Every result is
+baseline, historical v2/v2 evidence, and proposed larger-model work. The Phase
+10 record above covers the exact certified RTX 3050 campaign scopes and
+identifies the remaining product and release work. Every result is
 scoped to its exact artifact, source tree,
 bundle fingerprint, host, and environment; none transfers to another runtime
-path or establishes repeatability, safety, quality, performance, production
-readiness, or release readiness. Read the linked immutable evidence record
+path or establishes broad safety, quality, performance, production readiness,
+or release readiness. Read the linked immutable evidence record
 before treating a row as passed.
 
 ## Related documentation

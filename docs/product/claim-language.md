@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-06 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-11 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -89,6 +89,22 @@ configuration.” It may be called an exact-host repeatability anchor. Do not
 shorten it to “CUDA is repeatable,” transfer it to another scope, or describe
 it as quality, broad performance, safety, production, or release evidence.
 
+The [2026-08-11 Phase 10 campaign
+certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+supports this aggregate wording: “the bounded RTX 3050 campaign completed 149
+planned slots with 58 starts, 91 predeclared-not-started dispositions, 47
+qualifying outcomes, and no replacement runs.” It also supports naming the six
+exact stable cells listed in that packet, the 17-point guarded frontier, and
+the three-run 900-update endurance plus eight-exercise job-control outcome.
+Always retain their exact-source, exact-host, exact-runtime, model, method, and
+configuration boundaries.
+
+Do not shorten that aggregate to “CUDA is certified,” “CUDA is stable,” or
+“Aptus found the RTX 3050 limit.” The two Phase 8 `CUDA_OOM` outcomes were
+bounded pilot results; they are not permission to run full training merely to
+provoke an OOM. Phase 10 is the final approved campaign phase. Do not describe
+release-gate work or a future campaign as Phase 11.
+
 ## Quality claims
 
 Training loss, evaluation loss from a split, export structure, or job completion
@@ -150,8 +166,10 @@ Use:
   ladders at the recorded acceptance source”;
 - “five of five predeclared SmolLM2 CUDA LoRA single-device slots passed the
   frozen stability and integrity contract, establishing the exact-host Phase 5
-  repeatability anchor; other CUDA methods, placements, artifacts, hosts, and
-  environments remain open.”
+  repeatability anchor within its exact recorded boundary”;
+- “the Phase 10 review certified the bounded 149-slot campaign aggregate,
+  including six exact stable cells, the guarded frontier, and the recorded
+  endurance/job-control outcome, without adding training or replacement runs.”
 
 Do not:
 
@@ -165,8 +183,12 @@ Do not:
   commit, or CUDA path;
 - apply the 2026-08-06 CUDA result to another method, placement, artifact,
   revision, device, host, runtime, dataset, source, plan, policy, or bundle;
-- call v0.2 release-ready while remaining claimed CUDA target-host coverage and
-  public Developer ID signing and notarization remain open.
+- generalize the Phase 10 exact-host result to broad CUDA, cloud, multi-GPU,
+  safety, quality, performance, or production readiness;
+- invent or imply a Phase 11; or
+- call v0.2 release-ready while semantic export, model-quality,
+  production-safety, broader target-runtime coverage, and public Developer ID
+  signing and notarization remain open.
 
 Repository tests, real MLX target-host evidence, desktop stability evidence,
 workflow-commit CI packaging, CUDA acceptance, and public distribution approval
@@ -178,6 +200,7 @@ are separate claims. State which one the evidence supports.
 - [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Validation states](../reference/validation-states.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-11 CUDA Phase 10 campaign certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
 - [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Original Phase 6 Qwen2 MLX-LM acceptance baseline](../operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

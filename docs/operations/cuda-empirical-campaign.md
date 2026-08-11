@@ -893,7 +893,9 @@ The certification establishes only its listed exact-host stable cells, the
 probe-only Phase 8 frontier, and the Phase 9 endurance/job-control outcome. It
 does not establish release readiness, task quality, production safety,
 semantic CUDA adapter reload, DDP, LoRA FSDP, public notarization, or a
-confirmatory paired method ranking. Phase 11 is not authorized.
+confirmatory paired method ranking. The approved campaign ends at Phase 10;
+there is no Phase 11. Any future campaign requires a new bounded goal, protocol,
+independent review, and explicit authorization.
 
 ## Closed-campaign preservation rules
 
@@ -912,8 +914,9 @@ confirmatory paired method ranking. Phase 11 is not authorized.
    dispositions without replacement or retrospective relabeling.
 7. Preserve the reviewed [Phase 10 certification
    packet](evidence/2026-08-11-cuda-phase10-certification/README.md) and do not
-   broaden its exact-host claims. Any later phase or campaign requires separate
-   authorization and a newly frozen protocol.
+   broaden its exact-host claims. Any later campaign requires separate
+   authorization and a newly frozen protocol; it is not a continuation phase of
+   this closed campaign.
 
 ## Related documentation
 

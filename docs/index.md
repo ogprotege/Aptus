@@ -215,14 +215,15 @@ generation prove that the emitted adapter can be loaded. They do not prove
 training resume, safety, model quality, performance, production throughput,
 production readiness, or release readiness.
 
-One separate exact SmolLM2 CUDA LoRA single-device workflow reached
-`measured-run-pass` in the [2026-08-06 CUDA acceptance
-record](operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-at source `c12c4d8db0037a2c278a2ad95a0a2cbda4387eed`. It completed the
-five-action ladder, including checkpoint-continuation pilot, full training,
-structural PEFT export, and parent promotion. That one execution does not
-establish repeatability, general CUDA compatibility, quality, performance,
-production readiness, or release readiness.
+The [2026-08-11 Phase 10 CUDA campaign
+certification](operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+is the current aggregate for the separately bounded Ubuntu RTX 3050 campaign.
+It reconciles 149 planned slots to 58 starts, 91
+predeclared-not-started dispositions, 47 qualifying outcomes, and no
+replacement runs. It certifies six exact stable cells, the guarded Phase 8
+frontier, and the Phase 9 endurance/job-control result within their recorded
+identities. It does not establish general CUDA compatibility, quality,
+production safety, cloud or multi-GPU capacity, or release readiness.
 
 The August 5 MLX-LM acceptance supplies current-contract Phase 6 runtime
 evidence at its exact acceptance source only for the pinned Qwen2.5 artifact
@@ -235,5 +236,6 @@ conditional and must pass its own model-data, measured-preflight, and pilot
 gates. The exact `qwen3_moe` MLX-LM QLoRA row remains conditional and has only
 safe-refusal evidence; the recorded 30B attempt stopped before model loading
 when live unified-memory admission failed. CUDA training remains an
-external-host path on this Mac; only the exact separately recorded LoRA
-single-device target-host workflow is qualified.
+external-host path on this Mac; only the exact Phase 10-listed target-host
+scopes are qualified. The campaign ends at Phase 10. Future CUDA work requires
+a new reviewed campaign rather than an implied Phase 11.

@@ -200,15 +200,18 @@ when its evidence, owner, or resolution changes.
   records five of five predeclared SmolLM2 LoRA single-device slots passing the
   frozen stability and integrity contract, with verified off-host copies and
   fresh retrieval. It establishes the exact frozen anchor and Phase 6
-  eligibility, while the remaining campaign and release evidence stay open.
-- **Required result:** Execute the [canonical RTX 3050 CUDA empirical evidence
-  campaign](../operations/cuda-empirical-campaign.md) to publish the reviewed
-  sanitized projection of the privately protected prior records, establish
-  complete capture and retrieval for new attempts, and characterize the
-  remaining admitted single-device methods, model scale, guarded
-  configuration frontiers, endurance, and Ubuntu job control. Add a later
-  multi-GPU campaign for DDP and conditional LoRA FSDP, plus Developer ID signed
-  and notarized desktop evidence for the exact public release commit.
+  eligibility. The later [Phase 10
+  certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+  closes the bounded 149-slot campaign with 58 starts, 91
+  predeclared-not-started dispositions, 47 qualifying outcomes, six listed
+  stable cells, the guarded frontier, the endurance/job-control result, and no
+  replacement runs.
+- **Required result:** Preserve the completed [canonical RTX 3050 CUDA empirical
+  evidence campaign](../operations/cuda-empirical-campaign.md) and its exact
+  claim boundary. Close only the release scopes Aptus intends to claim: semantic CUDA
+  adapter reload, model-quality and production-safety evidence, a separately
+  reviewed multi-GPU campaign for DDP or conditional LoRA FSDP, and Developer
+  ID signed and notarized desktop evidence for the exact public release commit.
 - **Milestones:** Phase 0 raw recovery is privately complete, Phase 1 is frozen,
   Phase 2A source tooling is merged and source-gated, and Phase 2B publication
   is complete and independently reviewed. Phase 3 explicit candidate selection
@@ -227,7 +230,8 @@ when its evidence, owner, or resolution changes.
   job-control cohort are complete and independently reviewed. The Phase 10
   certification now reconciles every frozen slot and closes the bounded
   campaign without replacement or new training.
-  Capability claims change only after the applicable packets merge.
+  Capability claims change only after the applicable packets merge. No Phase
+  11 exists; later CUDA work requires a new campaign.
 - **Blocker:** The intended RTX 3050 host has one GPU and cannot close DDP or
   FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU

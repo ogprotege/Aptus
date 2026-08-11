@@ -2,12 +2,8 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Repository documentation through merged PR #41, the canonical
-> RTX 3050 CUDA campaign integration, the Phase 1 protocol freeze, and the
-> Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, and
-> the two immutable Phase 5 cohort outcomes, the historical and corrected
-> Phase 6 outcomes, the complete Phase 7 outcomes, and the reviewed Phase 8
-> guarded-frontier outcome
+> **Applies to:** Repository documentation through merged Phase 10 PR #82 and
+> the completed, independently reviewed Phase 0–10 RTX 3050 CUDA campaign
 >
 > **Last reviewed:** 2026-08-11
 >
@@ -70,8 +66,8 @@ are implemented without a new top-level contract version. The policy describes
 a reviewed configuration footprint rather than an artifact allowlist. The
 [2026-08-05 Qwen2 MLX-LM exact-source
 refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
-records two fresh, clean, independent current-contract
-`aptus.training-plan.v6` and `aptus.bundle.v3` `measured-run-pass` repetitions
+records two fresh, clean, independent exact-source
+`aptus.training-plan.v5` and `aptus.bundle.v3` `measured-run-pass` repetitions
 for the exact pinned artifact and revision, source commit
 `719255153e3fc7e38e83b5ff826d587e5e58bf80`, source tree
 `be99f5664ccb580f2600471f1ae3241a294b1a7e`, Apple M5 Pro host, Python/MLX
@@ -161,8 +157,9 @@ the selected cell passing three 300-update endurance slots and eight controlled
 job-service exercises without replacement. The reviewed Phase 10 certification
 reconciles all 149 frozen slots, independently verifies the aggregate and
 selected protected custody, and closes the campaign with no new training or
-replacement runs. It does not establish release readiness or authorize Phase
-11.
+replacement runs. It does not establish release readiness. The campaign ends
+at Phase 10; future work requires a new reviewed campaign rather than an
+implicit Phase 11.
 Earlier Phase 6 packets, stopped cohorts, and intervening diagnostics remain
 immutable and separate from the current aggregate.
 
@@ -189,25 +186,25 @@ derive every default, status, and response field from one source.
 | Evidence language | Good | Planning estimates, measured checks, structural export verification, and task quality are kept separate |
 | User workflow coverage | Good | Installation, quickstart, facts, comparison, compilation, validation, execution, recovery, and troubleshooting are present |
 | API and CLI reference | Good | Automated checks cover commands, options, choices, defaults, routes, static API error codes, explicit response models, generated OpenAPI JSON and TypeScript types, the request-correlated typed no-feasible policy chain, strict v2 decision/path/receipt/candidate/binding/report ingress, and maintained client boundaries |
-| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the v5 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, workbench presentation no longer reconstructs policy from topology, the CUDA Phase 1 protocol remains frozen design authority, and the Phase 2 contract separates implemented source tooling and completed recovery publication from pending target-host evidence |
+| Architecture and methodology | Good | Major boundaries and estimator assumptions are documented with versioned contracts; the current v6 plan binds decision provenance and the two-entry portable snapshot digest, installed-host registry currency remains a separate admission check, workbench presentation no longer reconstructs policy from topology, and the completed CUDA campaign retains its frozen protocol and evidence boundaries |
 | Historical separation | Good | Reference intake, superseded v0.1 pages, all ten legacy-audit reports, twelve archived engineering reviews, the immutable drift audit, and the failed Phase 6 diagnostic display explicit status boundaries |
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
-| Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
+| Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; milestone surfaces are reconciled to 2026-08-11 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
 | Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 Phase 10 certification closes the bounded campaign aggregate for its six listed stable cells, guarded frontier, and endurance/job-control outcome; other CUDA coverage, semantic reload, model quality, production safety, release readiness, and public notarized distribution remain open |
 
 ## Freshness and classification
 
-The [documentation inventory](documentation-inventory.md) classifies 130
+The [documentation inventory](documentation-inventory.md) classifies 136
 governed tracked Markdown documents:
 
-- 101 active;
+- 107 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 131 tracked Markdown files in total. The pull-request
+The repository contains 137 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 130 files, including the
+`maintained_documentation()` set covers all other 136 files, including the
 desktop build guide, all legacy reports, and the archived engineering reviews.
 
 The deprecated pages point to current successors. Archived research, legacy,

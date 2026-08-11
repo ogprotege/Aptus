@@ -1,6 +1,6 @@
 # Product Vision
 
-> **Status:** Active | **Authority:** Product direction | **Applies to:** Aptus 0.2 and later | **Audience:** All readers | **Last reviewed:** 2026-08-06 | **Review by:** 2027-01-27 or when product scope changes
+> **Status:** Active | **Authority:** Product direction | **Applies to:** Aptus 0.2 and later | **Audience:** All readers | **Last reviewed:** 2026-08-11 | **Review by:** 2027-01-27 or when product scope changes
 
 Fine-tuning setup consumes time because model, data, hardware, objective,
 precision, quantization, memory, distribution, dependencies, and artifacts must
@@ -42,9 +42,14 @@ contract and its own evidence gate.
 
 V0.2 now contains separate local MLX-LM and external CUDA runtime contracts.
 The dated Apple Silicon acceptance completed two real MLX-LM workflows through
-`measured-run-pass`. One separately dated exact SmolLM2 CUDA LoRA
-single-device workflow also reached `measured-run-pass`; repeatability,
-remaining CUDA coverage, and the later integrations above remain open.
+`measured-run-pass`. The separately reviewed Phase 10 CUDA certification closes
+the Phase 0–10 campaign, which completed
+its bounded 149-slot plan on one exact Ubuntu RTX 3050 host, including exact
+repeatability and stable-cell results, a guarded frontier, and endurance/job
+control. Those outcomes do not transfer beyond their recorded identities.
+Broader CUDA coverage, semantic export, quality, production-safety, multi-GPU,
+remote-provider, and public-release gates remain open as separate work; they
+are not an implicit Phase 11.
 
 ## Related documentation
 

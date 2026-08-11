@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-11 CUDA Phase 7 architecture-breadth amendment](evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
 - [2026-08-11 CUDA Phase 7 same-family stability](evidence/2026-08-11-cuda-phase7-same-family-stability/README.md)
 - [2026-08-10 historical stopped CUDA Phase 7 scale staircase](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 - [2026-08-10 CUDA Phase 6 Full confirmatory stability](evidence/2026-08-10-cuda-phase6-confirmatory-stability/README.md)
@@ -111,9 +112,10 @@ integrity contract at exact merged source `2bc4d9a`. One stable Full cell is
 therefore established and Phase 7 was authorized. A new Phase 7 same-family
 cohort at exact merged source `412095b` then established stable 135M LoRA,
 135M Full, and 360M LoRA cells without replacements. The exact planner left
-360M Full and both 1.7B cells unadmitted and planned-not-started. Architecture
-breadth requires a separately reviewed amendment, and Phase 8 is not
-authorized. Earlier Phase 6 packets, the stopped Phase 7 cohort, and the
+360M Full and both 1.7B cells unadmitted and planned-not-started. The reviewed
+architecture-breadth amendment now admits exactly one later Qwen3-0.6B LoRA
+three-slot exploratory cell and records no breadth runtime result. Phase 8 is
+not authorized. Earlier Phase 6 packets, the stopped Phase 7 cohort, and the
 intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance

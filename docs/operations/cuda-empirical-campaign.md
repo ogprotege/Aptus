@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 6 and the Phase 7 same-family staircase are complete; three planner-admitted Phase 7 cells are stable, architecture breadth awaits a separate reviewed amendment, and Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before architecture-breadth activation, Phase 8 activation, protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 6 and the Phase 7 same-family staircase are complete; three same-family cells are stable and the reviewed architecture-breadth amendment admits one Qwen3-0.6B LoRA cell, whose three-slot cohort has not yet run; Phase 8 is not authorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 outcomes and pre-execution amendment are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before sealing the breadth ledger, Phase 8 activation, another protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -710,8 +710,11 @@ All three planner-admitted cells—135M LoRA, 135M Full, and 360M LoRA—passed
 three of three exploratory slots and the common stability and integrity
 contract without replacements. The nine slots for 360M Full and 1.7B LoRA and
 Full remain `planned-not-started` because their exact candidates were not
-admitted. The same-family ladder is complete and reviewed; architecture breadth
-requires a separate reviewed protocol amendment, and Phase 8 is not authorized.
+admitted. The same-family ladder is complete and reviewed. The separate
+[architecture-breadth amendment](evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
+has now passed independent review and admits exactly one later three-slot
+Qwen3-0.6B LoRA cell. No breadth ledger or run existed during amendment review,
+and Phase 8 is not authorized.
 
 The earlier [stopped Phase 7 cohort](evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. Its second 135M LoRA slot did not activate after the
@@ -745,6 +748,12 @@ inspection explicitly produce a viable CUDA candidate. Do not
 schedule any artifact because its name appears compatible: the exact
 inspection, policy, candidate, revision, license, and target modules must pass
 first. MoE and multimodal artifacts remain outside this campaign.
+
+The reviewed breadth amendment freezes Qwen3-0.6B revision
+`c1899de289a04d12100db370d81485cdf75e47ca` for LoRA only. Gemma3-1B-IT is
+excluded because its manual provider license gate was not accepted, and
+Mistral-7B-v0.3 is excluded because the exact planner admitted no method on the
+frozen host. Neither exclusion creates an informal retry or replacement slot.
 
 Stop a model/method staircase at the first safe admission refusal or
 bounded-pilot runtime capacity failure. Record that point; do not force the next

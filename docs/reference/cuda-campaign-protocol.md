@@ -269,6 +269,28 @@ Their immutable revisions and admitted methods must be added through a reviewed
 protocol amendment before their attempt ledgers are sealed. No favorable or
 unfavorable result may cause an artifact substitution.
 
+The independently reviewed [Phase 7 architecture-breadth
+amendment](../operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
+freezes the following exact dispositions. It becomes execution authority only
+when merged; no breadth attempt ledger or training result existed during its
+review.
+
+| Repository | Immutable revision | Amendment disposition |
+| --- | --- | --- |
+| `Qwen/Qwen3-0.6B` | `c1899de289a04d12100db370d81485cdf75e47ca` | Admit single-device BF16 `lora` only; three exploratory slots with the frozen Phase 7 seeds |
+| `google/gemma-3-1b-it` | `dcc83ea841ab6100d6b47a070329e1ba4cf78752` | Exclude because the operator has not accepted the manual provider license gate; no planner cell or informal retry |
+| `mistralai/Mistral-7B-v0.3` | `caa1feb0e54d415e2df31207e5f4e273e33509b1` | Exclude because no single-device method is planner-admitted on the frozen host; no replacement |
+
+For the admitted Qwen artifact, the amendment binds all seven execution-file
+digests, 1,519,182,365 exact artifact bytes, 751,632,384 exact parameters, all
+seven LoRA target modules across 28 layers, and a 512-row tokenizer manifest.
+The other two repositories retain their exact provider-declared artifact
+inventories as negative admission evidence; their model bytes are not implied
+to have been downloaded or validated locally. Any change to these revisions,
+licenses, artifact selections, hardware capability facts, or admitted methods
+requires another reviewed amendment before a replacement or additional ledger
+exists.
+
 ## Environment and cache controls
 
 Phase 4 freezes clean, separately identified environments for unquantized and

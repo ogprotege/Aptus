@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from aptus.execution import (
+    _CUDA_RUNTIME_PROBE,
     JobPrerequisiteError,
     JobService,
     JobSubmissionFailure,
@@ -1336,6 +1337,14 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertEqual(json.loads(command[-1]), [2])
         self.assertEqual(environment["HF_HOME"], "/managed/cache")
         self.assertEqual(snapshot["free_cuda_bytes"], [1234])
+
+    def test_cuda_runtime_probe_uses_linux_memavailable_before_raw_free(self) -> None:
+        self.assertIn('Path("/proc/meminfo")', _CUDA_RUNTIME_PROBE)
+        self.assertIn('name != "MemAvailable"', _CUDA_RUNTIME_PROBE)
+        self.assertLess(
+            _CUDA_RUNTIME_PROBE.index('name != "MemAvailable"'),
+            _CUDA_RUNTIME_PROBE.index('os.sysconf("SC_AVPHYS_PAGES")'),
+        )
 
     def test_registered_runtime_probe_cannot_initialize_before_callback(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

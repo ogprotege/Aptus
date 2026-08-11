@@ -456,6 +456,30 @@ def runtime_distribution_closure(names: dict[str, str]) -> dict[str, str]:
     return dict(sorted(observed.items()))
 
 
+def linux_available_memory_bytes(
+    meminfo_path: Path = Path("/proc/meminfo"),
+) -> int | None:
+    if platform.system() != "Linux":
+        return None
+    try:
+        lines = meminfo_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        name, separator, raw_value = line.partition(":")
+        if name != "MemAvailable" or not separator:
+            continue
+        fields = raw_value.split()
+        if len(fields) != 2 or fields[1] != "kB":
+            return None
+        try:
+            value = int(fields[0]) * 1024
+        except ValueError:
+            return None
+        return value if value > 0 else None
+    return None
+
+
 def available_host_memory_bytes() -> int:
     if os.name == "nt":
         import ctypes
@@ -478,6 +502,9 @@ def available_host_memory_bytes() -> int:
         if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
             raise RuntimeError("Windows host-memory inspection failed.")
         return int(status.available_physical)
+    linux_available = linux_available_memory_bytes()
+    if linux_available is not None:
+        return linux_available
     if not hasattr(os, "sysconf"):
         raise RuntimeError("Available host-memory inspection is unsupported.")
     try:
@@ -3602,7 +3629,9 @@ def _execute(arguments: argparse.Namespace, parser: argparse.ArgumentParser) -> 
                 else trainer_config.get(
                     "data_order_seed",
                     1_000_000
-                    + trainer_config.get("training_seed", trainer_config.get("seed", 17)),
+                    + trainer_config.get(
+                        "training_seed", trainer_config.get("seed", 17)
+                    ),
                 )
             ),
         )

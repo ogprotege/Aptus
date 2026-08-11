@@ -266,6 +266,7 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 try:
     import torch
@@ -334,6 +335,30 @@ if os.name == "nt":
     if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
         raise SystemExit("Windows host-memory inspection failed")
     host_ram_free_bytes = int(status.available_physical)
+elif sys.platform.startswith("linux"):
+    host_ram_free_bytes = None
+    try:
+        meminfo_lines = Path("/proc/meminfo").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        meminfo_lines = []
+    for line in meminfo_lines:
+        name, separator, raw_value = line.partition(":")
+        if name != "MemAvailable" or not separator:
+            continue
+        fields = raw_value.split()
+        if len(fields) == 2 and fields[1] == "kB":
+            try:
+                measured_available = int(fields[0]) * 1024
+            except ValueError:
+                measured_available = 0
+            if measured_available > 0:
+                host_ram_free_bytes = measured_available
+        break
+    if host_ram_free_bytes is None:
+        try:
+            host_ram_free_bytes = int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_AVPHYS_PAGES"))
+        except (OSError, ValueError) as error:
+            raise SystemExit(f"available host-memory inspection failed: {error}")
 elif hasattr(os, "sysconf"):
     try:
         host_ram_free_bytes = int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_AVPHYS_PAGES"))

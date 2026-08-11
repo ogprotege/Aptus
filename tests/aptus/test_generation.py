@@ -2000,6 +2000,28 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("safetensors==0.8.0", requirements)
         self.assertIn("fsdp_use_orig_params: true", accelerate)
 
+    def test_generated_linux_capacity_uses_kernel_memavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = self._bundle(root)
+            module = self._load_generated(output, "aptus_generated_linux_memory")
+            meminfo = root / "meminfo"
+            meminfo.write_text(
+                "MemTotal: 65536000 kB\n"
+                "MemFree: 1048576 kB\n"
+                "MemAvailable: 50331648 kB\n",
+                encoding="utf-8",
+            )
+            with patch.object(module.platform, "system", return_value="Linux"):
+                self.assertEqual(
+                    module.linux_available_memory_bytes(meminfo),
+                    50331648 * 1024,
+                )
+
+            meminfo.write_text("MemFree: 1048576 kB\n", encoding="utf-8")
+            with patch.object(module.platform, "system", return_value="Linux"):
+                self.assertIsNone(module.linux_available_memory_bytes(meminfo))
+
     def test_trainable_parameter_census_is_exact_stable_and_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = self._bundle(Path(temporary))

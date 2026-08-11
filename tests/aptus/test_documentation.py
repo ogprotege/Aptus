@@ -1010,21 +1010,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 133)
+        self.assertEqual(len(repository_documents), 134)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 132)
-        self.assertEqual(len(active_documents), 103)
+        self.assertEqual(len(governed_documents), 133)
+        self.assertEqual(len(active_documents), 104)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 132)
-        self.assertIn("131 are governed", normalized_inventory)
-        self.assertIn("131 governed", normalized_inventory)
-        self.assertIn("132 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 102 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 133)
+        self.assertIn("132 are governed", normalized_inventory)
+        self.assertIn("132 governed", normalized_inventory)
+        self.assertIn("133 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 103 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -3344,6 +3344,134 @@ class DocumentationTests(unittest.TestCase):
                     [],
                 ),
             ],
+        )
+
+    def test_cuda_phase7_breadth_stability_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-11-cuda-phase7-breadth-stability"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "independent-review.json",
+            "phase7-outcome.json",
+            "sanitization-map.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        self.assertEqual(
+            [relative for _digest, relative in parsed],
+            sorted(relative for _digest, relative in parsed),
+        )
+        self.assertEqual(
+            {relative for _digest, relative in parsed},
+            {f"./{relative}" for relative in expected_files - {"SHA256SUMS"}},
+        )
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        outcome = json.loads((packet / "phase7-outcome.json").read_text())
+        self.assertEqual(outcome["decision"]["phase7_status"], "complete-reviewed")
+        self.assertEqual(
+            outcome["decision"]["phase7_architecture_breadth_status"],
+            "complete-reviewed",
+        )
+        self.assertFalse(outcome["decision"]["phase8_authorized"])
+        self.assertFalse(outcome["decision"]["replacement_allowed"])
+        self.assertFalse(outcome["decision"]["replacement_created"])
+        self.assertFalse(outcome["decision"]["stopped_cohorts_resumed"])
+        self.assertEqual(
+            outcome["model_freeze"]["exact_unique_loaded_parameter_count"],
+            596049920,
+        )
+        self.assertEqual(
+            outcome["model_freeze"]["serialized_state_dict_tensor_elements"],
+            751632384,
+        )
+        self.assertEqual(outcome["configuration"]["training_seeds"], [6101, 6203, 6301])
+        stable = outcome["stable_cell"]
+        self.assertTrue(stable["stable"])
+        self.assertTrue(all(stable["checks"].values()))
+        self.assertEqual(
+            [slot["scheduled_seed"] for slot in stable["slots"]],
+            [6101, 6203, 6301],
+        )
+        self.assertTrue(
+            all(
+                slot["completed_non_skipped_optimizer_steps"] == 128
+                for slot in stable["slots"]
+            )
+        )
+        self.assertEqual(stable["aggregates"]["peak_device_memory_range_bytes"], 0)
+        self.assertEqual(
+            outcome["custody"],
+            {
+                "deeply_verified_sealed_artifacts": 4,
+                "protected_conditioning_artifacts": 1,
+                "protected_exploratory_artifacts": 3,
+                "verified_fresh_restorations": 4,
+                "verified_off_host_copies": 4,
+            },
+        )
+
+        review = json.loads((packet / "independent-review.json").read_text())
+        self.assertEqual(review["review_result"], "passed")
+        self.assertTrue(review["role_separation_verified"])
+        self.assertTrue(all(review["checks"].values()))
+        self.assertFalse(review["phase8_authorized"])
+        for name, digest in (
+            ("README.md", review["inputs"]["readme_sha256"]),
+            ("phase7-outcome.json", review["inputs"]["phase7_outcome_sha256"]),
+            ("sanitization-map.json", review["inputs"]["sanitization_map_sha256"]),
+        ):
+            self.assertEqual(
+                hashlib.sha256((packet / name).read_bytes()).hexdigest(), digest
+            )
+
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8") for name in expected_files
+        )
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+            "GPU-",
+        ):
+            self.assertNotIn(private_marker, public_text)
+
+        packet_link = "evidence/2026-08-11-cuda-phase7-breadth-stability/README.md"
+        for relative in (
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/reference/capability-matrix.md",
+            "docs/reference/cuda-campaign-protocol.md",
+            "docs/product/current-capabilities.md",
+        ):
+            self.assertIn(packet_link, (REPOSITORY / relative).read_text())
+        self.assertIn(
+            "operations/evidence/2026-08-11-cuda-phase7-breadth-stability/README.md",
+            (REPOSITORY / "docs/index.md").read_text(),
         )
 
     def test_cuda_phase7_breadth_parameter_correction_is_bound_and_sanitized(

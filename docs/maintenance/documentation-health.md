@@ -156,10 +156,11 @@ admission-window correction, a new Phase 7 cohort established stable 135M LoRA,
 135M Full, and 360M LoRA cells without replacements. The exact planner left
 360M Full and both 1.7B cells planned-not-started. Architecture breadth then
 completed on the reviewed Qwen3-0.6B LoRA cell. The reviewed Phase 8 packet
-closes all three guarded one-axis frontiers and selects one Phase 9 candidate;
-Phase 9 remains unauthorized. Earlier Phase 6 packets, stopped cohorts, and
-intervening diagnostics remain immutable and separate from the current
-aggregate.
+closes all three guarded one-axis frontiers. The reviewed Phase 9 packet records
+the selected cell passing three 300-update endurance slots and eight controlled
+job-service exercises without replacement; Phase 10 remains unauthorized.
+Earlier Phase 6 packets, stopped cohorts, and intervening diagnostics remain
+immutable and separate from the current aggregate.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release

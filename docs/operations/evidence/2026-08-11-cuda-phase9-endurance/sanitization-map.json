@@ -1,0 +1,41 @@
+{
+  "excluded_protected_classes": [
+    "raw command logs and complete event ledgers",
+    "unredacted telemetry samples and admission observations",
+    "machine, GPU, boot, filesystem, user, network, process, and lease identifiers",
+    "absolute protected, source, cache, bundle, checkpoint, copy, receipt, journal, and restore paths",
+    "protected artifact, experiment-run, job, copy, restore, operation, receipt, and failure-domain identifiers",
+    "model, tokenizer, adapter, checkpoint, archive, and final-export bytes",
+    "raw manifests, seal records, receipt chains, journals, and restored evidence trees"
+  ],
+  "protected_sources": [
+    {
+      "projection": "activation and pre-execution binding digests",
+      "source_kind": "reviewed Phase 9 activation and execution records"
+    },
+    {
+      "projection": "three sanitized slot rows, exact counters, aggregate rates, and resource extrema",
+      "source_kind": "three deeply verified sealed endurance artifacts"
+    },
+    {
+      "projection": "eight named pass results and no-training boundary",
+      "source_kind": "source-bound controlled job-service exercise record"
+    },
+    {
+      "projection": "custody counts, manifested inventory totals, and passing status",
+      "source_kind": "copy-verification and fresh-retrieval receipt chain"
+    },
+    {
+      "projection": "complete-reviewed decision and recomputed totals",
+      "source_kind": "procedurally separate protected Phase 9 independent review"
+    }
+  ],
+  "public_files": [
+    "README.md",
+    "phase9-outcome.json",
+    "independent-review.json",
+    "sanitization-map.json",
+    "SHA256SUMS"
+  ],
+  "schema_version": "aptus.cuda-campaign-phase9-sanitization-map.v1"
+}

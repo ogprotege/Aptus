@@ -1,0 +1,45 @@
+{
+  "checks": {
+    "aggregate_counter_totals_match": true,
+    "aggregate_rates_only_boundary_preserved": true,
+    "aggregate_rates_recompute": true,
+    "all_job_control_exercises_passed": true,
+    "all_three_slots_recompute_as_passed": true,
+    "custody_inventory_recomputes": true,
+    "exact_28800_examples": true,
+    "exact_7200_micro_iterations": true,
+    "exact_900_optimizer_steps": true,
+    "no_cloud_or_external_gpu": true,
+    "no_replacements": true,
+    "phase10_remains_unauthorized": true,
+    "semantic_reload_not_overclaimed": true,
+    "three_restored_seals_deeply_verify": true
+  },
+  "inputs": {
+    "job_control_exercises_sha256": "53f1654e727d2018e45fcd004d3dbb4249b1365195f8eb49c2127430a33890e3",
+    "phase9_outcome_sha256": "b34ea29366bf82bdff9e48fa83ccc748ce5accc6c9d79d6cda734d2b7e3f0a6d",
+    "protected_independent_review_sha256": "e2c6a918798d19d290c42764b28e5c456a894ceb7da2b52e7e7b98916558d4b8",
+    "protected_phase9_aggregate_sha256": "e25f7d0fca6956efd219190cd8f97ba537d1630bce415eac5a21e756084b5818"
+  },
+  "phase10_authorized": false,
+  "phase9_status": "complete-reviewed",
+  "recomputed": {
+    "aggregate_rates": {
+      "examples_per_second": 5.9145858361343615,
+      "non_padding_tokens_per_second": 1180.283122854155,
+      "optimizer_steps_per_second": 0.1848308073791988,
+      "padded_input_elements_per_second": 1467.0357984491566,
+      "supervised_tokens_per_second": 507.5889349867959
+    },
+    "counter_window_duration_ns": 4869318122674,
+    "manifested_bytes_per_layer": 17569834,
+    "manifested_files_per_layer": 129,
+    "slot_count": 3,
+    "total_examples": 28800,
+    "total_micro_iterations": 7200,
+    "total_optimizer_steps": 900
+  },
+  "review_method": "fresh recomputation from three independently restored sealed artifacts and protected job-control evidence",
+  "review_result": "passed",
+  "schema_version": "aptus.cuda-campaign-phase9-independent-review.v1"
+}

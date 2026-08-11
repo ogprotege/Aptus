@@ -1,6 +1,6 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 8 are complete; the guarded sequence, effective-batch, and micro-batch/accumulation frontiers are reviewed; one Phase 9 candidate is selected but Phase 9 remains unauthorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7 and Phase 8 packets are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 9 activation, another protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 9 are complete; the selected guarded configuration passed all three frozen endurance slots and the bounded job-control suite; Phase 10 remains unauthorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7, Phase 8, and Phase 9 packets are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 10 authorization, another protocol amendment, or host/cooling change
 
 This is the one execution plan for the next CUDA evidence campaign. It combines
 the remaining roadmap work, release gates, evidence-packet requirements,
@@ -810,8 +810,9 @@ is right-censored there. The micro-batch/accumulation axis reached a first
 bounded-pilot `CUDA_OOM` at `(16,1)` after passing `(8,2)`. Fourteen of sixteen
 started points passed; no slot was retried or replaced, and no full training
 ran. The frozen headroom walk and ranking select sequence 256, effective batch
-32, micro-batch 4, and accumulation 8 as the candidate pending separate Phase 9
-authorization. Phase 9 has not been activated.
+32, micro-batch 4, and accumulation 8 as the candidate that still required
+separate Phase 9 authorization at that packet's closure. The later authorized
+Phase 9 result is recorded below.
 
 ### Phase 9 — endurance and job control
 
@@ -833,6 +834,15 @@ promotion on Ubuntu with controlled test jobs. Do not sabotage a qualifying
 training result to create recovery evidence. Semantic CUDA export loading or
 generation remains an open gate until its own contract is implemented and
 tested; structural export alone must stay labeled structural.
+
+The independently reviewed [Phase 9 endurance and job-control
+packet](evidence/2026-08-11-cuda-phase9-endurance/README.md) records all three
+predeclared 300-update Qwen3-0.6B LoRA slots passing natively with
+protocol-valid evidence, healthy telemetry, exact counters, valid method
+integrity, complete custody, and no replacement. Eight controlled job-service
+exercises also passed. The packet publishes aggregate counter-window rates only
+and makes no cross-run drift or Phase 5/6 stability-ratio claim. Semantic CUDA
+adapter reload remains open. Phase 10 has not been authorized or performed.
 
 ### Phase 10 — aggregation, review, and publication
 

@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-11 CUDA Phase 9 endurance and job control](evidence/2026-08-11-cuda-phase9-endurance/README.md)
 - [2026-08-11 CUDA Phase 8 guarded configuration frontier](evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
 - [2026-08-11 CUDA Phase 7 architecture-breadth stability](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
 - [2026-08-11 CUDA Phase 7 architecture-breadth amendment](evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
@@ -127,11 +128,13 @@ passed conditioning, all three exploratory slots, and the frozen stability
 contract without replacement. Phase 7 is complete. The separately reviewed
 [Phase 8 guarded-frontier packet](evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
 then closed all three one-axis ladders with sixteen sealed bounded pilots, no
-full training, and no replacements. Its deterministic headroom selection names
-sequence 256, effective batch 32, micro-batch 4, and accumulation 8 as a
-candidate only. Phase 9 remains unauthorized and inactive. Earlier Phase 6
-packets, stopped cohorts, and intervening diagnostics remain separate
-historical evidence.
+full training, and no replacements. Its deterministic headroom selection named
+sequence 256, effective batch 32, micro-batch 4, and accumulation 8. The later
+[Phase 9 endurance packet](evidence/2026-08-11-cuda-phase9-endurance/README.md)
+records all three frozen 300-update slots and all eight controlled job-service
+exercises passing without replacement. Phase 9 is complete and independently
+reviewed; Phase 10 remains unauthorized. Earlier Phase 6 packets, stopped
+cohorts, and intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance
 at exact source `719255153e3fc7e38e83b5ff826d587e5e58bf80`, the original Phase 6

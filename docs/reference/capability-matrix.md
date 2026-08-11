@@ -90,9 +90,12 @@ contract, completing Phase 7. The separately reviewed [Phase 8 guarded-frontier
 packet](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
 closed the three frozen one-axis ladders at exact source `59993d7` with fourteen
 bounded-pilot passes, two controlled bounded-pilot OOM nonpasses, one
-planned-not-started point, complete custody, and no full training. It selects
-sequence 256, effective batch 32, micro-batch 4, and accumulation 8 only as a
-candidate pending separate Phase 9 authorization. Gemma remains
+planned-not-started point, complete custody, and no full training. The later
+[Phase 9 endurance packet](../operations/evidence/2026-08-11-cuda-phase9-endurance/README.md)
+records the selected sequence-256, effective-batch-32, micro-4, accumulation-8
+configuration passing three of three 300-update slots and eight controlled
+job-service exercises without replacement. This remains exact-host bounded
+evidence, not broad capability or model-quality evidence. Gemma remains
 license-excluded and Mistral remains planner-ineligible. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains an immutable historical record.

@@ -59,10 +59,15 @@ conditioning and all three 128-step exploratory slots, then passed the frozen
 stability and integrity contract without replacement. Phase 7 is complete.
 The separately reviewed [Phase 8 guarded-frontier
 packet](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
-closed all three frozen one-axis ladders with bounded pilots only, selected
+closed all three frozen one-axis ladders with bounded pilots only and selected
 sequence 256, effective batch 32, micro-batch 4, and accumulation 8 under the
-frozen numeric headroom rule, and left Phase 9 unauthorized. Gemma remains
-license-excluded and Mistral remains planner-ineligible. The
+frozen numeric headroom rule. The later reviewed [Phase 9 endurance and
+job-control packet](../operations/evidence/2026-08-11-cuda-phase9-endurance/README.md)
+records three of three 300-update slots plus all eight controlled job-service
+exercises passing without replacement at the exact frozen source and host.
+That bounded evidence does not establish model quality, semantic CUDA adapter
+reload, broad CUDA support, or release readiness. Gemma remains license-excluded
+and Mistral remains planner-ineligible. The
 [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. All other CUDA methods, placements, artifacts,

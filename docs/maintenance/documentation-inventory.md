@@ -2,7 +2,7 @@
 
 > **Documentation status:** Active governance
 >
-> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, and the reviewed Phase 8 guarded-frontier outcome
+> **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, the reviewed Phase 8 guarded-frontier outcome, and the reviewed Phase 9 endurance outcome
 >
 > **Last reviewed:** 2026-08-11
 >
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 134 tracked Markdown documents. Of those, 133 are
+The repository tree contains 136 tracked Markdown documents. Of those, 135 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -34,22 +34,24 @@ packet and a separate current same-family stability packet without overwriting
 that first cohort. Architecture breadth adds one reviewed amendment, one
 append-only parameter-semantics correction, and one active final stability
 packet without overwriting the amendment, correction, or stopped cohorts;
-Phase 8 adds one active reviewed guarded-frontier packet while keeping Phase 9
+Phase 8 adds one active reviewed guarded-frontier packet, and Phase 9 adds one
+active reviewed endurance and job-control packet while keeping Phase 10
 inactive.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 104 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 106 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 133 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 135 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 133 governed
-Markdown files plus the root `LICENSE`, for 134 maintained reader documents.
+The automated `maintained_documentation()` set contains the 135 governed
+Markdown files. Together with the root `LICENSE`, that makes 136 maintained
+reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
 engineering-review index, and all twelve archived engineering reviews.
@@ -146,6 +148,7 @@ selectability come from `src/aptus/methods/registry.py`.
 - [Operator checklist](../operations/operator-checklist.md)
 - [Release evidence template](../operations/release-evidence-template.md)
 - [Release gates](../operations/release-gates.md)
+- [2026-08-11 CUDA Phase 9 endurance and job control](../operations/evidence/2026-08-11-cuda-phase9-endurance/README.md), the reviewed three-slot 300-update endurance outcome with exact counters, aggregate rates, complete custody, and eight passing controlled job-service exercises; Phase 10 remains unauthorized
 - [2026-08-11 CUDA Phase 8 guarded configuration frontier](../operations/evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md), the reviewed bounded-pilot frontier outcome with three closed one-axis ladders, complete custody, a deterministic Phase 9 candidate, and no Phase 9 authorization
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](../operations/evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md), independently reviewed recovery-integrity evidence for the protected August 6 records; not target-runtime, performance, repeatability, or release-readiness evidence
 - [2026-08-09 CUDA Phase 5 repeatability-anchor outcome](../operations/evidence/2026-08-09-cuda-phase5-repeatability-anchor/README.md), a target-host conditioning capture failure that applies the frozen no-replacement rule and does not establish repeatability or Phase 6 eligibility
@@ -328,12 +331,12 @@ not a second hand-edited copy source.
 
 ## Workflow-template metadata exemption
 
-The single tracked Markdown file outside the 132-file lifecycle count is
+The single tracked Markdown file outside the 135-file lifecycle count is
 `.github/PULL_REQUEST_TEMPLATE.md`. It is still a governed workflow interface,
 but reader-page metadata would leak into every submitted pull-request body.
 Its fields and review path are instead named by the maintenance policy and
 contributor documentation. This exemption explains the repository-wide total
-of 133 tracked Markdown files.
+of 136 tracked Markdown files.
 
 ## Excluded local and generated material
 

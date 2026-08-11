@@ -223,13 +223,12 @@ when its evidence, owner, or resolution changes.
   exact merged source `412095b` establishes stable 135M LoRA, 135M Full, and
   360M LoRA cells without replacements. The exact planner leaves 360M Full and
   both 1.7B cells planned-not-started. Phase 7 architecture breadth and all
-  three Phase 8 guarded frontiers are now complete and independently reviewed.
-  The frozen headroom calculation selects one Phase 9 candidate, but Phase 9
+  three Phase 8 guarded frontiers and the selected Phase 9 endurance and
+  job-control cohort are now complete and independently reviewed. Phase 10
   remains separately authorized work.
   Capability claims change only after the applicable packets merge.
-- **Blocker:** Phase 9 endurance and target-host job-control evidence remain
-  unexecuted and require separate authorization over the selected frozen
-  candidate. The intended RTX 3050 host has one GPU and cannot close DDP or
+- **Blocker:** Campaign-wide Phase 10 aggregation and publication remain
+  separately authorized work. The intended RTX 3050 host has one GPU and cannot close DDP or
   FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple

@@ -413,6 +413,30 @@ def build_hardware_spec(
     )
 
 
+def _linux_available_memory(
+    meminfo_path: Path = Path("/proc/meminfo"),
+) -> int | None:
+    if platform.system() != "Linux":
+        return None
+    try:
+        lines = meminfo_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        name, separator, raw_value = line.partition(":")
+        if name != "MemAvailable" or not separator:
+            continue
+        fields = raw_value.split()
+        if len(fields) != 2 or fields[1] != "kB":
+            return None
+        try:
+            value = int(fields[0]) * 1024
+        except ValueError:
+            return None
+        return value if value > 0 else None
+    return None
+
+
 def _host_memory() -> tuple[int, int | None]:
     if os.name == "nt":  # pragma: no cover - exercised on Windows hosts.
         import ctypes
@@ -442,6 +466,10 @@ def _host_memory() -> tuple[int, int | None]:
         measured_available = _darwin_available_memory(host_ram)
         if measured_available is not None:
             return host_ram, measured_available
+    if platform.system() == "Linux":
+        measured_available = _linux_available_memory()
+        if measured_available is not None:
+            return host_ram, min(measured_available, host_ram)
     try:
         host_free = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_AVPHYS_PAGES")
     except (ValueError, OSError):

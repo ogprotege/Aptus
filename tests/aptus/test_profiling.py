@@ -14,6 +14,7 @@ from aptus.profiling import (
     _apple_metal_gpu_core_count,
     _bitsandbytes_capabilities,
     _darwin_available_memory,
+    _linux_available_memory,
     _nvidia_smi_devices,
     _probe_mlx_runtime,
     build_hardware_spec,
@@ -135,6 +136,22 @@ class DatasetProfilingTests(unittest.TestCase):
 
 
 class HardwareInspectionTests(unittest.TestCase):
+    def test_linux_host_memory_uses_kernel_memavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            meminfo = Path(temporary) / "meminfo"
+            meminfo.write_text(
+                "MemTotal: 65536000 kB\n"
+                "MemFree: 1048576 kB\n"
+                "MemAvailable: 50331648 kB\n",
+                encoding="utf-8",
+            )
+            with patch("aptus.profiling.platform.system", return_value="Linux"):
+                self.assertEqual(_linux_available_memory(meminfo), 50331648 * 1024)
+
+            meminfo.write_text("MemAvailable: invalid kB\n", encoding="utf-8")
+            with patch("aptus.profiling.platform.system", return_value="Linux"):
+                self.assertIsNone(_linux_available_memory(meminfo))
+
     def test_bitsandbytes_feature_thresholds_are_not_conflated(self) -> None:
         self.assertEqual(_bitsandbytes_capabilities(5, 9), (False, False))
         self.assertEqual(_bitsandbytes_capabilities(6, 0), (True, False))

@@ -477,6 +477,12 @@ endpoint as right-censored rather than claiming an unobserved failure boundary.
 Extending the sequence ladder requires a separately frozen longer fixture and
 reviewed protocol amendment before any result is observed.
 
+Every point uses attempt-slot role `phase8-frontier`. The qualifying harness
+maps that role to the exact pilot-only managed action profile: dependency,
+model-data, measured preflight, and bounded pilot. It must preserve the frontier
+role in retained evidence and must not require, synthesize, or execute a
+confirmed-training action.
+
 ### Phase 9 endurance
 
 Select a point below the frontier only when every qualifying input run has:

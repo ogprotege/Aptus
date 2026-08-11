@@ -796,6 +796,11 @@ prove that every intermediate or larger configuration fails. Adapter rank,
 optimizer, packing, and other absent planner axes require their own
 implementation and review before they can be swept.
 
+Use attempt-slot role `phase8-frontier` for every frontier point. Its qualifying
+managed profile ends after dependency, model-data, measured-preflight, and the
+bounded pilot. Retained evidence keeps that role and contains no confirmed
+training action.
+
 ### Phase 9 — endurance and job control
 
 Select a point below the frontier that meets the Phase 1-predeclared numeric

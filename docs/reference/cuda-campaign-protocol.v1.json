@@ -879,6 +879,7 @@
       "stability_contract": "matrix_contract.common_stability_and_integrity_contract"
     },
     "phase8_guarded_frontiers": {
+      "attempt_slot_role": "phase8-frontier",
       "axis_order": [
         "sequence_length",
         "effective_batch_size",
@@ -899,6 +900,12 @@
         "strategy": "use the frozen valid micro-batch and accumulation realization selected before the axis starts"
       },
       "emergency_deadline_seconds": 1800,
+      "managed_action_profile": [
+        "dependency",
+        "model-data",
+        "preflight",
+        "pilot"
+      ],
       "micro_batch_and_accumulation": {
         "effective_batch_size": 16,
         "ladder": [

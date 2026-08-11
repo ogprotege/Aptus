@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "claim_boundaries_verified": true,
+    "ledger_recomputed": true,
+    "phase8_probe_only_frontier_recomputed": true,
+    "phase9_endurance_recomputed": true,
+    "protected_artifacts_deeply_verified": true,
+    "public_packets_checksum_verified": true,
+    "public_projection_sanitized": true,
+    "stable_cell_statistics_recomputed": true
+  },
+  "counts": {
+    "deeply_verified_protected_artifacts": 68,
+    "verified_prior_public_packets": 13,
+    "verified_stable_cells": 6
+  },
+  "decision": {
+    "campaign_certification_complete": true,
+    "phase11_authorized": false,
+    "release_ready": false,
+    "review_exceptions": []
+  },
+  "review_input_bindings": {
+    "current_protocol_sha256": "005de18e60d8b707986dee6eef4b7199e7e1fecba385ab591ff708671b858335",
+    "phase10_certification_sha256": "30b529ef9bf1e37c3bf45b20c8e009c602dc1c1be76f2baec4357c941132cb31",
+    "protected_aggregate_sha256": "e8ae236f5bd29aeb7f9cd12e0603c3097c486d83c5bace68c93c0c01b113aa4a",
+    "source_commit": "3c56b37799be16d4698b6e75e76c690b4ba8e818",
+    "source_tree": "76d38631026fe55c0015a0608eae6d45500e4f8d"
+  },
+  "schema_version": "aptus.cuda.phase10.independent-review.v1",
+  "status": "complete-reviewed"
+}

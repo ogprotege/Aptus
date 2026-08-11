@@ -1,0 +1,18 @@
+{
+  "excluded_classes": [
+    "absolute local and remote paths",
+    "hostnames and network addresses",
+    "protected artifact and custody identifiers",
+    "raw commands, environments, logs, manifests, receipts, and operation records"
+  ],
+  "included_classes": [
+    "opaque attempt-slot and execution-configuration identifiers",
+    "source, tree, protocol, packet, aggregate, certification, and review digests",
+    "frozen ledger dispositions and bounded numeric measurements",
+    "reviewed capability and release-gate boundaries"
+  ],
+  "projection": "phase10-certification.json, independent-review.json, and phase10-decision.json",
+  "protected_sources": "campaign protected evidence masters and the Phase 10 protected aggregate",
+  "schema_version": "aptus.cuda.phase10.sanitization-map.v1",
+  "verification": "passed"
+}

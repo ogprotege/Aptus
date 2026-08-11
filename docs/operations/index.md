@@ -14,6 +14,7 @@
 
 - [Release gates](release-gates.md)
 - [Release evidence template](release-evidence-template.md)
+- [2026-08-11 CUDA Phase 10 campaign certification](evidence/2026-08-11-cuda-phase10-certification/README.md)
 - [2026-08-11 CUDA Phase 9 endurance and job control](evidence/2026-08-11-cuda-phase9-endurance/README.md)
 - [2026-08-11 CUDA Phase 8 guarded configuration frontier](evidence/2026-08-11-cuda-phase8-guarded-frontier/README.md)
 - [2026-08-11 CUDA Phase 7 architecture-breadth stability](evidence/2026-08-11-cuda-phase7-breadth-stability/README.md)
@@ -133,7 +134,11 @@ sequence 256, effective batch 32, micro-batch 4, and accumulation 8. The later
 [Phase 9 endurance packet](evidence/2026-08-11-cuda-phase9-endurance/README.md)
 records all three frozen 300-update slots and all eight controlled job-service
 exercises passing without replacement. Phase 9 is complete and independently
-reviewed; Phase 10 remains unauthorized. Earlier Phase 6 packets, stopped
+reviewed. The later reviewed [Phase 10 certification](evidence/2026-08-11-cuda-phase10-certification/README.md)
+reconciles all 149 campaign slots, binds 47 qualifying passes, verifies the
+prior public and protected evidence, and closes the campaign without new
+training or replacement runs. It does not establish release readiness or
+authorize Phase 11. Earlier Phase 6 packets, stopped
 cohorts, and intervening diagnostics remain separate historical evidence.
 
 The Apple matrix combines current v5/v3 small-model MLX-LM QLoRA acceptance

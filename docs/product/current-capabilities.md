@@ -65,7 +65,12 @@ frozen numeric headroom rule. The later reviewed [Phase 9 endurance and
 job-control packet](../operations/evidence/2026-08-11-cuda-phase9-endurance/README.md)
 records three of three 300-update slots plus all eight controlled job-service
 exercises passing without replacement at the exact frozen source and host.
-That bounded evidence does not establish model quality, semantic CUDA adapter
+The reviewed [Phase 10 campaign
+certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+reconciles 149 frozen slots to 58 started, 91 planned-not-started, and 47
+native-pass plus protocol-valid results without replacement. It independently
+recomputes the six listed stable-cell summaries, the Phase 8 probe-only
+frontier, and the Phase 9 endurance aggregate. That bounded evidence does not establish model quality, semantic CUDA adapter
 reload, broad CUDA support, or release readiness. Gemma remains license-excluded
 and Mistral remains planner-ineligible. The
 [earlier stopped Phase 7

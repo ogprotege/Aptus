@@ -158,7 +158,11 @@ admission-window correction, a new Phase 7 cohort established stable 135M LoRA,
 completed on the reviewed Qwen3-0.6B LoRA cell. The reviewed Phase 8 packet
 closes all three guarded one-axis frontiers. The reviewed Phase 9 packet records
 the selected cell passing three 300-update endurance slots and eight controlled
-job-service exercises without replacement; Phase 10 remains unauthorized.
+job-service exercises without replacement. The reviewed Phase 10 certification
+reconciles all 149 frozen slots, independently verifies the aggregate and
+selected protected custody, and closes the campaign with no new training or
+replacement runs. It does not establish release readiness or authorize Phase
+11.
 Earlier Phase 6 packets, stopped cohorts, and intervening diagnostics remain
 immutable and separate from the current aggregate.
 
@@ -190,7 +194,7 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; the README review date is reconciled to 2026-08-06 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 packet establishes stable 135M LoRA, 135M Full, and 360M LoRA Phase 7 cells; Phase 0 recovery is privately protected and the independently reviewed Phase 2B supplement establishes only recovery integrity, not target-runtime evidence; architecture breadth, other CUDA coverage, and public notarized distribution remain open, and none is a safety, quality, broad-performance, production-readiness, or release-readiness claim |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 Phase 10 certification closes the bounded campaign aggregate for its six listed stable cells, guarded frontier, and endurance/job-control outcome; other CUDA coverage, semantic reload, model quality, production safety, release readiness, and public notarized distribution remain open |
 
 ## Freshness and classification
 
@@ -514,13 +518,14 @@ target-host coverage or public notarization.
    they are not Ubuntu or empirical evidence.
 3. Preserve the completed Phase 3 selection controls, Phase 4 freeze, and
    independently reviewed Phase 5 repeatability packet.
-4. Continue the [canonical RTX 3050 CUDA empirical evidence
-   campaign](../operations/cuda-empirical-campaign.md) from Phase 6 through its
-   remaining ordered measured phases. Treat every result as evidence for the exact
-   RTX 3050 host and configuration, not Aptus's global, cloud, or multi-GPU
-   ceiling.
-5. Complete the remaining distributed CUDA target-host coverage and public
-   desktop distribution evidence that the single-GPU campaign cannot supply.
+4. Preserve the completed [Phase 10 CUDA campaign
+   certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+   and its exact-host boundaries. Do not resume stopped cohorts, create
+   replacement slots, or treat the result as Aptus's global, cloud, or
+   multi-GPU ceiling.
+5. Authorize and freeze separate work before pursuing distributed CUDA
+   coverage or public desktop distribution evidence that the single-GPU
+   campaign cannot supply.
 6. Revisit the repository-Markdown delivery decision only when versioning,
    search, or a named site owner changes the cost-benefit analysis.
 

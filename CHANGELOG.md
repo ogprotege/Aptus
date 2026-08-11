@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-10 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-11 | **Review by:** Every release
 
 All notable changes are recorded here.
 
@@ -8,6 +8,15 @@ All notable changes are recorded here.
 
 ### Added
 
+- A reviewed CUDA Phase 10 certification that closes the bounded RTX 3050
+  campaign without new training, replacement runs, or external-resource
+  acquisition. It reconciles 149 frozen slots to 58 started, 91
+  planned-not-started, and 47 native-pass plus protocol-valid results;
+  recomputes the six listed stable-cell summaries, Phase 8 probe-only frontier,
+  and Phase 9 endurance aggregate; and independently verifies 13 prior public
+  packets and 68 selected protected artifacts. Release readiness, model
+  quality, semantic CUDA adapter reload, production safety, distributed CUDA,
+  and public notarization remain open.
 - A reviewed CUDA Phase 6 Full confirmatory-stability packet at exact merged
   source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`: all five
   predeclared Full slots passed with protocol-valid evidence, exactly 128

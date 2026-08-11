@@ -437,6 +437,16 @@ environment, model revision, dataset, and configuration. Method-matrix,
 remaining target-host, quality, safety, distribution, and release gates remain
 open.
 
+The independently reviewed [2026-08-11 Phase 10 campaign
+certification](evidence/2026-08-11-cuda-phase10-certification/README.md)
+reconciles all 149 frozen measured, exploratory, frontier, and endurance slots:
+58 started, 91 planned-not-started, and 47 native-pass plus protocol-valid,
+with no replacement runs. It verifies the six listed stable cells, the Phase 8
+probe-only frontier, the three-slot 900-update Phase 9 aggregate, and eight
+bounded job-control exercises. This closes the campaign evidence workflow but
+does not close semantic CUDA adapter reload, DDP, LoRA FSDP, model quality,
+production safety, public notarization, or Aptus 0.2 release readiness.
+
 The [2026-07-27 MLX-LM record](evidence/2026-07-27-mlx-lm-acceptance/README.md)
 remains historical v2/v2 evidence for the same pinned artifact. The
 [2026-07-28 Qwen3 MoE admission record](evidence/2026-07-28-qwen3-moe-admission/README.md)
@@ -452,15 +462,16 @@ verification. That historical record does not bind a later source head. The
 submitted pull request must pass the repeated local gate after its documentation
 commit and the GitHub packaging workflow for the exact synthetic merge commit.
 
-One exact CUDA LoRA single-device pilot and full training sequence has
-completed on the recorded external host. Remaining CUDA method/placement
-coverage and repeatability are open. The local Mac packages are ad-hoc signed,
+The completed CUDA campaign establishes only the exact cells and bounded
+outcomes listed in its Phase 10 certification. Remaining CUDA
+method/placement coverage and the gates named above are open. The local Mac packages are ad-hoc signed,
 not Developer ID signed and notarized public artifacts. Aptus v0.2 remains
 unreleased until every claimed release gate passes.
 
 ## Related documentation
 
 - [RTX 3050 CUDA empirical evidence campaign](cuda-empirical-campaign.md)
+- [CUDA Phase 10 campaign certification](evidence/2026-08-11-cuda-phase10-certification/README.md)
 - [Release evidence template](release-evidence-template.md)
 - [SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)

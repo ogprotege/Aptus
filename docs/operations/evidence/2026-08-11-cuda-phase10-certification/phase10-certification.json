@@ -1,0 +1,1681 @@
+{
+  "aggregation_rules": {
+    "median_absolute_deviation_formula": "median(abs(x_i - median(x)))",
+    "missing_values_imputed": false,
+    "outliers_excluded": false,
+    "phase9_aggregate_rates_only": true,
+    "population_confidence_claimed": false,
+    "replacement_runs_allowed": false,
+    "statistical_significance_claimed": false,
+    "type7_quantiles": true
+  },
+  "bindings": {
+    "current_protocol_sha256": "005de18e60d8b707986dee6eef4b7199e7e1fecba385ab591ff708671b858335",
+    "phase10_source_commit": "3c56b37799be16d4698b6e75e76c690b4ba8e818",
+    "phase10_source_tree": "76d38631026fe55c0015a0608eae6d45500e4f8d",
+    "protocol_lineage_sha256": [
+      "5da86458bc665410a0dfb95d867dfbab99b8eeff7a24274818ea360fc106b8e0",
+      "e29c6798abba847fa19b1b7143a90b075e7955fa33e27c3e0d02358dd5c49f83",
+      "005de18e60d8b707986dee6eef4b7199e7e1fecba385ab591ff708671b858335"
+    ]
+  },
+  "conclusions": {
+    "endurance_and_job_control": "the exact Phase 8-selected Qwen3-0.6B LoRA configuration passed three 300-update slots and all eight bounded job-control exercises",
+    "exact_host_measurements": "six stable exact-host comparison cells and one three-slot endurance cell have bounded measurements at their exact source/model/configuration identities",
+    "failures_and_untested": "capture-invalid, cancelled, failed, planner-ineligible, license-excluded, unsupported quantized, distributed, semantic CUDA reload, model-quality, production-safety, notarization, and release-readiness boundaries remain explicit",
+    "method_comparison": "no confirmatory paired method ranking is available; only Full was promoted in the Phase 6 confirmatory design, and later three-slot method observations are exploratory and confounded",
+    "model_and_configuration_boundaries": "single-device BF16 LoRA and Full evidence exists only for the listed exact cells; Phase 8 records two bounded-pilot CUDA OOM endpoints and one planned-not-started point without using full training to seek failure",
+    "workflow_completion": "47 of 149 frozen measured/exploratory/frontier/endurance slots were native-pass plus protocol-valid; all 149 retain an explicit disposition across immutable cohorts"
+  },
+  "input_packets": [
+    {
+      "packet": "2026-08-06-smollm2-cuda-lora-single-acceptance",
+      "sha256sums_sha256": "f4cd2435d48d2f43bca78ba8e89943f2729a68624eb8627208d01b5ce8347998",
+      "verified_file_count": 14
+    },
+    {
+      "packet": "2026-08-09-cuda-phase5-repeatability-anchor",
+      "sha256sums_sha256": "7f671eaf5d63b98e65b8465d3b5b24309f6cb77f9cabe8ef136314bc3518b6db",
+      "verified_file_count": 2
+    },
+    {
+      "packet": "2026-08-10-cuda-phase5-repeatability-anchor",
+      "sha256sums_sha256": "d46dd419472dbefc44cf090e19e7bab8390271acfb6b28251e0aad7032ab104e",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-10-cuda-phase6-method-matrix",
+      "sha256sums_sha256": "e771e5d2d41987b895c77486dd814c42ce3ec17c327b1aecc72e7627039853c1",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-10-cuda-phase6-remediation-matrix",
+      "sha256sums_sha256": "b8399720f9b0d8fb98158243dc416aec0d786f15a3ab77bcbe35b7ab36cf6ee6",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-10-cuda-phase6-confirmatory-stability",
+      "sha256sums_sha256": "0e5815ba277a4f95309edc22691d707e69c193661b7de2d852133adc2aee0631",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-10-cuda-phase7-scale-staircase",
+      "sha256sums_sha256": "50c521dd0d1f1f7c71d55e04044639ddda7ba6f8d2636ffc2120ed31b2fa7e11",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase7-same-family-stability",
+      "sha256sums_sha256": "bed24372e0861e40c5384ec9418ddf6d07b05eb7a4d0c9687b5c7da4f6e662d8",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase7-breadth-amendment",
+      "sha256sums_sha256": "b1fbf5f9d4034635963f17e8406735aa1ee0c85582cc8e62f7f2385b15a7f192",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase7-breadth-parameter-correction",
+      "sha256sums_sha256": "c8b56622f8f17374ee8ccb747b07f40bd41cf46344ebe0ed195832ef85a8fce1",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase7-breadth-stability",
+      "sha256sums_sha256": "d0ba8335b5eb3e4c0dd159b8edeb3ec9db5e2b7df1df05c16935cbc452a540d3",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase8-guarded-frontier",
+      "sha256sums_sha256": "88d569c56a1d9c60d5a35dea1f4f432ea8a4502509c88cdd89d7980edbacece2",
+      "verified_file_count": 4
+    },
+    {
+      "packet": "2026-08-11-cuda-phase9-endurance",
+      "sha256sums_sha256": "f6d0af27ad4d9ad79ad9bcaba03403a1de0cab2cd98ad4ca410883fdf3b884e0",
+      "verified_file_count": 4
+    }
+  ],
+  "ledger_cohorts": [
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase5-stopped-conditioning-capture",
+      "evidence_statuses": {},
+      "native_outcomes": {},
+      "planned": 5,
+      "planned_not_started": 5,
+      "qualifying_passes": 0,
+      "source": "2026-08-09-cuda-phase5-repeatability-anchor",
+      "started": 0
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase5-repeatability-success",
+      "evidence_statuses": {
+        "protocol-valid": 5
+      },
+      "native_outcomes": {
+        "passed": 5
+      },
+      "planned": 5,
+      "planned_not_started": 0,
+      "qualifying_passes": 5,
+      "source": "2026-08-10-cuda-phase5-repeatability-anchor",
+      "started": 5
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase6-initial-historical",
+      "evidence_statuses": {
+        "capture-invalid": 1,
+        "protocol-valid": 2
+      },
+      "native_outcomes": {
+        "cancelled": 1,
+        "passed": 1,
+        "unknown": 1
+      },
+      "normalization": "activated-not-launched is conservatively retained as started/unknown/capture-invalid",
+      "planned": 32,
+      "planned_not_started": 29,
+      "qualifying_passes": 1,
+      "source": "2026-08-10-cuda-phase6-method-matrix",
+      "started": 3
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase6-remediation-historical",
+      "evidence_statuses": {
+        "protocol-valid": 11
+      },
+      "native_outcomes": {
+        "cancelled": 5,
+        "passed": 6
+      },
+      "planned": 32,
+      "planned_not_started": 21,
+      "qualifying_passes": 6,
+      "source": "2026-08-10-cuda-phase6-remediation-matrix",
+      "started": 11
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase6-source-defect-diagnostic",
+      "evidence_statuses": {
+        "protocol-valid": 1
+      },
+      "native_outcomes": {
+        "cancelled": 1
+      },
+      "planned": 5,
+      "planned_not_started": 4,
+      "qualifying_passes": 0,
+      "source": "2026-08-10-cuda-phase6-confirmatory-stability#prior_nonqualifying_cohort",
+      "started": 1
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase6-full-confirmatory-success",
+      "evidence_statuses": {
+        "protocol-valid": 5
+      },
+      "native_outcomes": {
+        "passed": 5
+      },
+      "planned": 5,
+      "planned_not_started": 0,
+      "qualifying_passes": 5,
+      "source": "2026-08-10-cuda-phase6-confirmatory-stability",
+      "started": 5
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase7-stopped-scale-staircase",
+      "evidence_statuses": {
+        "protocol-valid": 1
+      },
+      "native_outcomes": {
+        "passed": 1
+      },
+      "planned": 18,
+      "planned_not_started": 17,
+      "qualifying_passes": 1,
+      "source": "2026-08-10-cuda-phase7-scale-staircase",
+      "started": 1
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase7-same-family-success",
+      "evidence_statuses": {
+        "protocol-valid": 9
+      },
+      "native_outcomes": {
+        "passed": 9
+      },
+      "planned": 18,
+      "planned_not_started": 9,
+      "qualifying_passes": 9,
+      "source": "2026-08-11-cuda-phase7-same-family-stability",
+      "started": 9
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase7-breadth-parameter-mismatch",
+      "evidence_statuses": {},
+      "native_outcomes": {},
+      "planned": 3,
+      "planned_not_started": 3,
+      "qualifying_passes": 0,
+      "source": "2026-08-11-cuda-phase7-breadth-parameter-correction",
+      "started": 0
+    },
+    {
+      "aggregate_inclusion": false,
+      "cohort": "phase7-breadth-cache-probe-defect",
+      "evidence_statuses": {
+        "protocol-valid": 1
+      },
+      "native_outcomes": {
+        "failed": 1
+      },
+      "planned": 3,
+      "planned_not_started": 2,
+      "qualifying_passes": 0,
+      "source": "2026-08-11-cuda-phase7-breadth-stability#corrected-execution-boundary",
+      "started": 1
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase7-breadth-success",
+      "evidence_statuses": {
+        "protocol-valid": 3
+      },
+      "native_outcomes": {
+        "passed": 3
+      },
+      "planned": 3,
+      "planned_not_started": 0,
+      "qualifying_passes": 3,
+      "source": "2026-08-11-cuda-phase7-breadth-stability",
+      "started": 3
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase8-guarded-frontier",
+      "evidence_statuses": {
+        "protocol-valid": 16
+      },
+      "native_outcomes": {
+        "failed": 2,
+        "passed": 14
+      },
+      "planned": 17,
+      "planned_not_started": 1,
+      "qualifying_passes": 14,
+      "source": "2026-08-11-cuda-phase8-guarded-frontier",
+      "started": 16
+    },
+    {
+      "aggregate_inclusion": true,
+      "cohort": "phase9-endurance",
+      "evidence_statuses": {
+        "protocol-valid": 3
+      },
+      "native_outcomes": {
+        "passed": 3
+      },
+      "planned": 3,
+      "planned_not_started": 0,
+      "qualifying_passes": 3,
+      "source": "2026-08-11-cuda-phase9-endurance",
+      "started": 3
+    }
+  ],
+  "ledger_totals": {
+    "evidence_statuses": {
+      "capture-invalid": 1,
+      "protocol-valid": 57
+    },
+    "native_outcomes": {
+      "cancelled": 7,
+      "failed": 3,
+      "passed": 47,
+      "unknown": 1
+    },
+    "planned": 149,
+    "planned_not_started": 91,
+    "qualifying_passes": 47,
+    "replacement_runs": 0,
+    "started": 58
+  },
+  "phase10_decision": {
+    "campaign_status": "complete-pending-independent-review",
+    "cloud_or_external_gpu_acquisition_performed": false,
+    "new_training_performed": false,
+    "phase11_authorized": false,
+    "release_ready": false
+  },
+  "phase8_frontier_points": [
+    {
+      "attempt_slot_id": "slot_bf8e8cb12b43da06be20",
+      "axis": "sequence_length",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_40036645d8780ce048de",
+      "full_training_executed": false,
+      "label": "sequence-128",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 128
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_b676659084092e7f94a0",
+      "axis": "sequence_length",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_26163d9d0667b12bc66e",
+      "full_training_executed": false,
+      "label": "sequence-256",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_931341094d296bd16646",
+      "axis": "sequence_length",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_46a0f8038b11e74ee8af",
+      "full_training_executed": false,
+      "label": "sequence-512",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 512
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_996781e47051d8a0c877",
+      "axis": "sequence_length",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_39cbfa9aa8e63e37ecf8",
+      "full_training_executed": false,
+      "label": "sequence-1024",
+      "native_outcome": "failed",
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 1024
+      },
+      "reason_code": "CUDA_OOM",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_297760a3876b4c701092",
+      "axis": "sequence_length",
+      "evidence_status": "not-started",
+      "execution_configuration_id": null,
+      "label": "sequence-2048",
+      "native_outcome": null,
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 2048
+      },
+      "reason_code": "PRIOR_STOP_RULE",
+      "slot_status": "planned-not-started"
+    },
+    {
+      "attempt_slot_id": "slot_34d892720d8f14f2cbd3",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_784f4cb6b4dfb352cb32",
+      "full_training_executed": false,
+      "label": "batch-1",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 1,
+        "gradient_accumulation_steps": 1,
+        "micro_batch_size": 1,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_5da0ec30d238cf635ddb",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_b142260f374e2789a6b4",
+      "full_training_executed": false,
+      "label": "batch-2",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 2,
+        "gradient_accumulation_steps": 1,
+        "micro_batch_size": 2,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_d88557aa91c0eece549e",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_8ad3418347f294b8196e",
+      "full_training_executed": false,
+      "label": "batch-4",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 4,
+        "gradient_accumulation_steps": 1,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_b050c4a9242ab7a58dfd",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_dea9e897d08f7b37e9da",
+      "full_training_executed": false,
+      "label": "batch-8",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 8,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_6c73a06030552aac27b4",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_be87886340a3336eb065",
+      "full_training_executed": false,
+      "label": "batch-16",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 4,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_0b8f68c8694c49341330",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_8996a49ba7a9f725d40c",
+      "full_training_executed": false,
+      "label": "batch-32",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 32,
+        "gradient_accumulation_steps": 8,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_0c8d62c4c0e85c4846de",
+      "axis": "effective_batch_size",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_19ca0756c1d1a3439e9d",
+      "full_training_executed": false,
+      "label": "batch-64",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 64,
+        "gradient_accumulation_steps": 16,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_d11e779c555855e8f335",
+      "axis": "micro_batch_and_accumulation",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_31e6096fa82e310dd61a",
+      "full_training_executed": false,
+      "label": "micro-1-accum-16",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 16,
+        "micro_batch_size": 1,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_a5b79c01f16cbb7f44a4",
+      "axis": "micro_batch_and_accumulation",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_fb923ac6f102e0c12e83",
+      "full_training_executed": false,
+      "label": "micro-2-accum-8",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 8,
+        "micro_batch_size": 2,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_49eb86c6d01e2e994292",
+      "axis": "micro_batch_and_accumulation",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_3402bbc26187d0705663",
+      "full_training_executed": false,
+      "label": "micro-4-accum-4",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 4,
+        "micro_batch_size": 4,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_1f8efdd0715aac6e21f0",
+      "axis": "micro_batch_and_accumulation",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_3feddfd984117b3e82ea",
+      "full_training_executed": false,
+      "label": "micro-8-accum-2",
+      "native_outcome": "passed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 2,
+        "micro_batch_size": 8,
+        "sequence_length": 256
+      },
+      "reason_code": "NONE",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    },
+    {
+      "attempt_slot_id": "slot_2850bc8d0944dae19f84",
+      "axis": "micro_batch_and_accumulation",
+      "evidence_status": "protocol-valid",
+      "execution_configuration_id": "exec_3a1c4237ea828bd5dd18",
+      "full_training_executed": false,
+      "label": "micro-16-accum-1",
+      "native_outcome": "failed",
+      "point": {
+        "effective_batch_size": 16,
+        "gradient_accumulation_steps": 1,
+        "micro_batch_size": 16,
+        "sequence_length": 256
+      },
+      "reason_code": "CUDA_OOM",
+      "slot_status": "started",
+      "telemetry_healthy": true
+    }
+  ],
+  "phase9_endurance": {
+    "comparison_cell_id": "cell_6a0aa32e4f2df2a04a88",
+    "frozen_configuration": {
+      "checkpoint_cadence_optimizer_steps": 64,
+      "dataset_fixture_sha256": "6d90599e949bf2698b940e0c159e1fa24f3dc0c162005546bd270fc761aac7f2",
+      "effective_batch_size": 32,
+      "emergency_deadline_seconds": 5400,
+      "gradient_accumulation_steps": 8,
+      "method": "lora",
+      "micro_batch_size": 4,
+      "model_id": "Qwen/Qwen3-0.6B",
+      "model_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "optimizer_step_target": 300,
+      "precision": "bf16",
+      "sequence_length": 256
+    },
+    "individual_slots": [
+      {
+        "aggregate_rates": {
+          "examples_per_second": 5.893569618589892,
+          "non_padding_tokens_per_second": 1175.6431283812922,
+          "optimizer_steps_per_second": 0.1841740505809341,
+          "padded_input_elements_per_second": 1467.2655478981471,
+          "supervised_tokens_per_second": 505.69958286361145
+        },
+        "attempt_slot_id": "slot_92577a18dc25619d0fe0",
+        "counter_window_duration_ns": 1628893967710,
+        "custody_verification": "passed",
+        "data_order_seed": 1009101,
+        "evidence_status": "protocol-valid",
+        "examples_consumed": 9600,
+        "execution_configuration_id": "exec_d633849f0ff6a755a622",
+        "external_training_segment_duration_ns": 1640892161006,
+        "maximum_gpu_power_draw_w": 99.88,
+        "maximum_gpu_temperature_c": 62.0,
+        "maximum_telemetry_gap_seconds": 1.217847672,
+        "micro_iterations": 2400,
+        "minimum_available_ram_bytes": 62123884544,
+        "minimum_free_vram_bytes": 4218421248,
+        "native_outcome": "passed",
+        "non_padding_tokens": 1914998,
+        "optimizer_steps": 300,
+        "ordinal": 1,
+        "padded_input_elements": 2390020,
+        "replacement_created": false,
+        "seed": 9101,
+        "supervised_tokens": 823731,
+        "telemetry_coverage": 1.0
+      },
+      {
+        "aggregate_rates": {
+          "examples_per_second": 5.913244587692586,
+          "non_padding_tokens_per_second": 1180.3735502982113,
+          "optimizer_steps_per_second": 0.1847888933653933,
+          "padded_input_elements_per_second": 1466.5240793783457,
+          "supervised_tokens_per_second": 507.8349888578402
+        },
+        "attempt_slot_id": "slot_5412b5d93036f9a7fe6d",
+        "counter_window_duration_ns": 1623474195534,
+        "custody_verification": "passed",
+        "data_order_seed": 1009203,
+        "evidence_status": "protocol-valid",
+        "examples_consumed": 9600,
+        "execution_configuration_id": "exec_ebe038ba574c7c79b0f1",
+        "external_training_segment_duration_ns": 1635830417929,
+        "maximum_gpu_power_draw_w": 100.52,
+        "maximum_gpu_temperature_c": 63.0,
+        "maximum_telemetry_gap_seconds": 1.200559053,
+        "micro_iterations": 2400,
+        "minimum_available_ram_bytes": 61782233088,
+        "minimum_free_vram_bytes": 4218421248,
+        "native_outcome": "passed",
+        "non_padding_tokens": 1916306,
+        "optimizer_steps": 300,
+        "ordinal": 2,
+        "padded_input_elements": 2380864,
+        "replacement_created": false,
+        "seed": 9203,
+        "supervised_tokens": 824457,
+        "telemetry_coverage": 1.0
+      },
+      {
+        "aggregate_rates": {
+          "examples_per_second": 5.937103955513966,
+          "non_padding_tokens_per_second": 1184.8665995052647,
+          "optimizer_steps_per_second": 0.18553449860981144,
+          "padded_input_elements_per_second": 1467.3181357055548,
+          "supervised_tokens_per_second": 509.24519661095127
+        },
+        "attempt_slot_id": "slot_b8952f87c7167cf46500",
+        "counter_window_duration_ns": 1616949959430,
+        "custody_verification": "passed",
+        "data_order_seed": 1009301,
+        "evidence_status": "protocol-valid",
+        "examples_consumed": 9600,
+        "execution_configuration_id": "exec_1d37d12e6187a2d455e6",
+        "external_training_segment_duration_ns": 1629118306827,
+        "maximum_gpu_power_draw_w": 100.02,
+        "maximum_gpu_temperature_c": 62.0,
+        "maximum_telemetry_gap_seconds": 1.215383766,
+        "micro_iterations": 2400,
+        "minimum_available_ram_bytes": 62119256064,
+        "minimum_free_vram_bytes": 4218421248,
+        "native_outcome": "passed",
+        "non_padding_tokens": 1915870,
+        "optimizer_steps": 300,
+        "ordinal": 3,
+        "padded_input_elements": 2372580,
+        "replacement_created": false,
+        "seed": 9301,
+        "supervised_tokens": 823424,
+        "telemetry_coverage": 1.0
+      }
+    ],
+    "job_controls": {
+      "all_passed": true,
+      "exercise_count": 8,
+      "gpu_training_invoked": false,
+      "labels": [
+        "managed-cancellation",
+        "same-user-global-lease-exclusion",
+        "stale-owner-recovery",
+        "parent-verification-pinned-sink",
+        "parent-verification-after-lock",
+        "parent-verification-after-fsync",
+        "crash-safe-pending-promotion",
+        "unreceipted-promotion-recovery-rejection"
+      ]
+    },
+    "metric_interpretation": {
+      "aggregate_rates_only": true,
+      "cross_run_drift_claim_made": false,
+      "final_export_verification_level": "structural-file-tree",
+      "loss_values_used_as_phase9_pass_condition": false,
+      "phase5_or_phase6_stability_ratio_applied": false
+    },
+    "source_commit": "59993d7d42d478dabdaf5f3b12f27bf0bd79ff11",
+    "status": "complete-reviewed-exact-host-endurance",
+    "totals": {
+      "aggregate_rates": {
+        "examples_per_second": 5.9145858361343615,
+        "non_padding_tokens_per_second": 1180.283122854155,
+        "optimizer_steps_per_second": 0.1848308073791988,
+        "padded_input_elements_per_second": 1467.0357984491566,
+        "supervised_tokens_per_second": 507.5889349867959
+      },
+      "completed_non_skipped_optimizer_steps": 900,
+      "counter_window_duration_ns": 4869318122674,
+      "examples_consumed": 28800,
+      "external_training_segment_duration_ns": 4905840885762,
+      "five_action_duration_ns": 5149858979127,
+      "micro_iterations": 7200,
+      "non_padding_tokens": 5747174,
+      "padded_input_elements": 7143464,
+      "supervised_tokens": 2471612
+    }
+  },
+  "protected_aggregate_sha256": "e8ae236f5bd29aeb7f9cd12e0603c3097c486d83c5bace68c93c0c01b113aa4a",
+  "protected_custody_review": {
+    "all_verifications_passed": true,
+    "deeply_verified_artifacts": 68,
+    "manifested_bytes": 194378917,
+    "manifested_file_count": 2733
+  },
+  "qualifying_stable_cells": [
+    {
+      "cell_label": "phase5-smollm2-135m-lora-repeatability",
+      "comparison_cell_id": "cell_508e489d12a85c50ed1e",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_381e62e48433e52aaaf6",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 3.026155471801758,
+          "execution_configuration_id": "exec_28dbcae896f0febb7082",
+          "externally_observed_training_duration_ns": 75931015115,
+          "ordinal": 1,
+          "runtime_peak_cuda_bytes": 1012389888,
+          "runtime_reserved_cuda_bytes": 1178599424,
+          "scheduled_seed": 101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.064904251,
+          "telemetry_peak_gpu_memory_used_bytes": 1476395008,
+          "train_loss_diagnostic": 3.72257062792778
+        },
+        {
+          "attempt_slot_id": "slot_b2d63889a49cc10025f1",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 3.0331263542175293,
+          "execution_configuration_id": "exec_46a471eebe485330bf10",
+          "externally_observed_training_duration_ns": 77001524308,
+          "ordinal": 2,
+          "runtime_peak_cuda_bytes": 1012389888,
+          "runtime_reserved_cuda_bytes": 1176502272,
+          "scheduled_seed": 211,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.053540087,
+          "telemetry_peak_gpu_memory_used_bytes": 1474297856,
+          "train_loss_diagnostic": 3.708935871720314
+        },
+        {
+          "attempt_slot_id": "slot_565c202c6a23e65378ce",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 3.025509834289551,
+          "execution_configuration_id": "exec_29a37a1e4d74abb4fac8",
+          "externally_observed_training_duration_ns": 76185600925,
+          "ordinal": 3,
+          "runtime_peak_cuda_bytes": 1012389888,
+          "runtime_reserved_cuda_bytes": 1163919360,
+          "scheduled_seed": 307,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.08677872,
+          "telemetry_peak_gpu_memory_used_bytes": 1461714944,
+          "train_loss_diagnostic": 3.7222866266965866
+        },
+        {
+          "attempt_slot_id": "slot_d13ef4eca8dde9593e1b",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 3.028745174407959,
+          "execution_configuration_id": "exec_7d901ca6e3b549d6e40a",
+          "externally_observed_training_duration_ns": 76371491533,
+          "ordinal": 4,
+          "runtime_peak_cuda_bytes": 1012389888,
+          "runtime_reserved_cuda_bytes": 1163919360,
+          "scheduled_seed": 401,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.083793093,
+          "telemetry_peak_gpu_memory_used_bytes": 1461714944,
+          "train_loss_diagnostic": 3.6958814710378647
+        },
+        {
+          "attempt_slot_id": "slot_a08260510d0fec61d6c9",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 3.0272538661956787,
+          "execution_configuration_id": "exec_2d1c93703175462da0bd",
+          "externally_observed_training_duration_ns": 75799436644,
+          "ordinal": 5,
+          "runtime_peak_cuda_bytes": 1012389888,
+          "runtime_reserved_cuda_bytes": 1161822208,
+          "scheduled_seed": 503,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.058970467,
+          "telemetry_peak_gpu_memory_used_bytes": 1459617792,
+          "train_loss_diagnostic": 3.753035679459572
+        }
+      ],
+      "method": "lora",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "planned": 5,
+      "qualifying_passes": 5,
+      "role": "phase5-measured",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "eval_loss": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            3.026155471801758,
+            3.0331263542175293,
+            3.025509834289551,
+            3.028745174407959,
+            3.0272538661956787
+          ],
+          "maximum": 3.0331263542175293,
+          "median": 3.0272538661956787,
+          "median_absolute_deviation": 0.0014913082122802734,
+          "minimum": 3.025509834289551
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            75931015115,
+            77001524308,
+            76185600925,
+            76371491533,
+            75799436644
+          ],
+          "maximum": 77001524308,
+          "median": 76185600925,
+          "median_absolute_deviation": 254585810,
+          "minimum": 75799436644
+        },
+        "runtime_peak_cuda_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1012389888,
+            1012389888,
+            1012389888,
+            1012389888,
+            1012389888
+          ],
+          "maximum": 1012389888,
+          "median": 1012389888,
+          "median_absolute_deviation": 0,
+          "minimum": 1012389888
+        },
+        "runtime_reserved_cuda_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1178599424,
+            1176502272,
+            1163919360,
+            1163919360,
+            1161822208
+          ],
+          "maximum": 1178599424,
+          "median": 1163919360,
+          "median_absolute_deviation": 2097152,
+          "minimum": 1161822208
+        },
+        "telemetry_coverage": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1.064904251,
+            1.053540087,
+            1.08677872,
+            1.083793093,
+            1.058970467
+          ],
+          "maximum": 1.08677872,
+          "median": 1.064904251,
+          "median_absolute_deviation": 0.011364163999999954,
+          "minimum": 1.053540087
+        },
+        "telemetry_peak_gpu_memory_used_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1476395008,
+            1474297856,
+            1461714944,
+            1461714944,
+            1459617792
+          ],
+          "maximum": 1476395008,
+          "median": 1461714944,
+          "median_absolute_deviation": 2097152,
+          "minimum": 1459617792
+        },
+        "train_loss": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            3.72257062792778,
+            3.708935871720314,
+            3.7222866266965866,
+            3.6958814710378647,
+            3.753035679459572
+          ],
+          "maximum": 3.753035679459572,
+          "median": 3.7222866266965866,
+          "median_absolute_deviation": 0.013350754976272583,
+          "minimum": 3.6958814710378647
+        }
+      },
+      "source_commit": "3bfec547d4cffedbaf049426d9713f1ccc25b5a2",
+      "started": 5,
+      "status": "stable-exact-host"
+    },
+    {
+      "cell_label": "phase6-smollm2-135m-full-confirmatory",
+      "comparison_cell_id": "cell_0ae24d305ff5199e58b0",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_315d53a9c7c450cbccf2",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 5.983524799346924,
+          "execution_configuration_id": "exec_fd50493d56026e9c8923",
+          "externally_observed_training_duration_ns": 55570364091,
+          "ordinal": 1,
+          "runtime_peak_cuda_bytes": 1758568960,
+          "runtime_reserved_cuda_bytes": 2084569088,
+          "scheduled_seed": 1009,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.091207036,
+          "telemetry_peak_gpu_memory_used_bytes": 2403336192,
+          "train_loss_diagnostic": 6.163654208183289
+        },
+        {
+          "attempt_slot_id": "slot_85c49516ed47de05bd2d",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 5.996163368225098,
+          "execution_configuration_id": "exec_373ff806566ac6c7f008",
+          "externally_observed_training_duration_ns": 54761500666,
+          "ordinal": 2,
+          "runtime_peak_cuda_bytes": 1758568960,
+          "runtime_reserved_cuda_bytes": 2084569088,
+          "scheduled_seed": 2003,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.091772559,
+          "telemetry_peak_gpu_memory_used_bytes": 2403336192,
+          "train_loss_diagnostic": 6.166970491409302
+        },
+        {
+          "attempt_slot_id": "slot_da6aa658f62a027af80c",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 5.997747421264648,
+          "execution_configuration_id": "exec_e6c7a67d836beaf5379a",
+          "externally_observed_training_duration_ns": 54603235896,
+          "ordinal": 3,
+          "runtime_peak_cuda_bytes": 1758568960,
+          "runtime_reserved_cuda_bytes": 2084569088,
+          "scheduled_seed": 3001,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.0749669,
+          "telemetry_peak_gpu_memory_used_bytes": 2403336192,
+          "train_loss_diagnostic": 6.161987006664276
+        },
+        {
+          "attempt_slot_id": "slot_6ce5aa90a1c94e8483ea",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 5.990910530090332,
+          "execution_configuration_id": "exec_a5f7b29b233bfc27049b",
+          "externally_observed_training_duration_ns": 55147615041,
+          "ordinal": 4,
+          "runtime_peak_cuda_bytes": 1758568960,
+          "runtime_reserved_cuda_bytes": 2084569088,
+          "scheduled_seed": 4001,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.074501596,
+          "telemetry_peak_gpu_memory_used_bytes": 2403336192,
+          "train_loss_diagnostic": 6.162167966365814
+        },
+        {
+          "attempt_slot_id": "slot_2581e83c3b8ab8f08555",
+          "completed_non_skipped_optimizer_steps": 128,
+          "eval_loss_diagnostic": 6.005394458770752,
+          "execution_configuration_id": "exec_f820ec7611d54c06bf9b",
+          "externally_observed_training_duration_ns": 54884619502,
+          "ordinal": 5,
+          "runtime_peak_cuda_bytes": 1758568960,
+          "runtime_reserved_cuda_bytes": 2084569088,
+          "scheduled_seed": 5003,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.088303502,
+          "telemetry_peak_gpu_memory_used_bytes": 2403336192,
+          "train_loss_diagnostic": 6.177386969327927
+        }
+      ],
+      "method": "full",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "planned": 5,
+      "qualifying_passes": 5,
+      "role": "phase6-confirmatory",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "eval_loss": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            5.983524799346924,
+            5.996163368225098,
+            5.997747421264648,
+            5.990910530090332,
+            6.005394458770752
+          ],
+          "maximum": 6.005394458770752,
+          "median": 5.996163368225098,
+          "median_absolute_deviation": 0.005252838134765625,
+          "minimum": 5.983524799346924
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            55570364091,
+            54761500666,
+            54603235896,
+            55147615041,
+            54884619502
+          ],
+          "maximum": 55570364091,
+          "median": 54884619502,
+          "median_absolute_deviation": 262995539,
+          "minimum": 54603235896
+        },
+        "runtime_peak_cuda_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1758568960,
+            1758568960,
+            1758568960,
+            1758568960,
+            1758568960
+          ],
+          "maximum": 1758568960,
+          "median": 1758568960,
+          "median_absolute_deviation": 0,
+          "minimum": 1758568960
+        },
+        "runtime_reserved_cuda_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            2084569088,
+            2084569088,
+            2084569088,
+            2084569088,
+            2084569088
+          ],
+          "maximum": 2084569088,
+          "median": 2084569088,
+          "median_absolute_deviation": 0,
+          "minimum": 2084569088
+        },
+        "telemetry_coverage": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            1.091207036,
+            1.091772559,
+            1.0749669,
+            1.074501596,
+            1.088303502
+          ],
+          "maximum": 1.091772559,
+          "median": 1.088303502,
+          "median_absolute_deviation": 0.0034690569999999976,
+          "minimum": 1.074501596
+        },
+        "telemetry_peak_gpu_memory_used_bytes": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            2403336192,
+            2403336192,
+            2403336192,
+            2403336192,
+            2403336192
+          ],
+          "maximum": 2403336192,
+          "median": 2403336192,
+          "median_absolute_deviation": 0,
+          "minimum": 2403336192
+        },
+        "train_loss": {
+          "count": 5,
+          "individual_values_in_slot_order": [
+            6.163654208183289,
+            6.166970491409302,
+            6.161987006664276,
+            6.162167966365814,
+            6.177386969327927
+          ],
+          "maximum": 6.177386969327927,
+          "median": 6.163654208183289,
+          "median_absolute_deviation": 0.0016672015190124512,
+          "minimum": 6.161987006664276
+        }
+      },
+      "source_commit": "2bc4d9a38f88cb0be1087b6e35a329587d1942bf",
+      "started": 5,
+      "status": "stable-exact-host"
+    },
+    {
+      "cell_label": "phase7-135m-lora-exploratory",
+      "comparison_cell_id": "cell_e66306f4925636527c84",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_0fbf0115972d5489d3dd",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_980467014c4add47b0ac",
+          "externally_observed_training_duration_ns": 76013306915,
+          "peak_device_memory_used_bytes": 1472200704,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.082064223
+        },
+        {
+          "attempt_slot_id": "slot_20d39b9a2c71f0d5088c",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_98f99f72b176911ea983",
+          "externally_observed_training_duration_ns": 75948138933,
+          "peak_device_memory_used_bytes": 1472200704,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.077581564
+        },
+        {
+          "attempt_slot_id": "slot_ebe93685d3fa655204be",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_e1128419d6ed923c43ee",
+          "externally_observed_training_duration_ns": 75890722992,
+          "peak_device_memory_used_bytes": 1474297856,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.040169513
+        }
+      ],
+      "method": "lora",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "planned": 3,
+      "qualifying_passes": 3,
+      "role": "phase7-exploratory",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            76013306915,
+            75948138933,
+            75890722992
+          ],
+          "maximum": 76013306915,
+          "median": 75948138933,
+          "median_absolute_deviation": 57415941,
+          "minimum": 75890722992
+        },
+        "peak_device_memory_used_bytes": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1472200704,
+            1472200704,
+            1474297856
+          ],
+          "maximum": 1474297856,
+          "median": 1472200704,
+          "median_absolute_deviation": 0,
+          "minimum": 1472200704
+        },
+        "telemetry_coverage": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.082064223,
+            1.077581564,
+            1.040169513
+          ],
+          "maximum": 1.082064223,
+          "median": 1.077581564,
+          "median_absolute_deviation": 0.004482659,
+          "minimum": 1.040169513
+        }
+      },
+      "source_commit": "412095bd66618fee9d3e1936e79b90da12a4c61b",
+      "started": 3,
+      "status": "stable-exact-host-exploratory"
+    },
+    {
+      "cell_label": "phase7-135m-full-exploratory",
+      "comparison_cell_id": "cell_57d01fa38b0c6969a2ad",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_b2a5573bc7e3c728ae1d",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_b98f9b62912d9c303f97",
+          "externally_observed_training_duration_ns": 55094512614,
+          "peak_device_memory_used_bytes": 2298478592,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.093516958
+        },
+        {
+          "attempt_slot_id": "slot_c42d462fb6b1eab0b5af",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_69a48c32ecad82463e3c",
+          "externally_observed_training_duration_ns": 54902125720,
+          "peak_device_memory_used_bytes": 2380267520,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.076289779
+        },
+        {
+          "attempt_slot_id": "slot_c34e10b4da00e5c4b4ef",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_5c26639969dcaf449d63",
+          "externally_observed_training_duration_ns": 54904845458,
+          "peak_device_memory_used_bytes": 2418016256,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.092953834
+        }
+      ],
+      "method": "full",
+      "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "planned": 3,
+      "qualifying_passes": 3,
+      "role": "phase7-exploratory",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            55094512614,
+            54902125720,
+            54904845458
+          ],
+          "maximum": 55094512614,
+          "median": 54904845458,
+          "median_absolute_deviation": 2719738,
+          "minimum": 54902125720
+        },
+        "peak_device_memory_used_bytes": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            2298478592,
+            2380267520,
+            2418016256
+          ],
+          "maximum": 2418016256,
+          "median": 2380267520,
+          "median_absolute_deviation": 37748736,
+          "minimum": 2298478592
+        },
+        "telemetry_coverage": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.093516958,
+            1.076289779,
+            1.092953834
+          ],
+          "maximum": 1.093516958,
+          "median": 1.092953834,
+          "median_absolute_deviation": 0.0005631239999999149,
+          "minimum": 1.076289779
+        }
+      },
+      "source_commit": "412095bd66618fee9d3e1936e79b90da12a4c61b",
+      "started": 3,
+      "status": "stable-exact-host-exploratory"
+    },
+    {
+      "cell_label": "phase7-360m-lora-exploratory",
+      "comparison_cell_id": "cell_eefcb1151b1c37e40646",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_54567d501a6dc1ab828e",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_bcadea560879f5b4049b",
+          "externally_observed_training_duration_ns": 125225359258,
+          "peak_device_memory_used_bytes": 2067791872,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.064649161
+        },
+        {
+          "attempt_slot_id": "slot_ffadddbfb2587c9f04b7",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_43eb74c076ead52182ab",
+          "externally_observed_training_duration_ns": 124400956191,
+          "peak_device_memory_used_bytes": 2065694720,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.053771959
+        },
+        {
+          "attempt_slot_id": "slot_03973c71421d4f1732f1",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_a15cea89289192c80164",
+          "externally_observed_training_duration_ns": 124156800328,
+          "peak_device_memory_used_bytes": 2067791872,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.107246711
+        }
+      ],
+      "method": "lora",
+      "model_id": "HuggingFaceTB/SmolLM2-360M-Instruct",
+      "model_revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "planned": 3,
+      "qualifying_passes": 3,
+      "role": "phase7-exploratory",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            125225359258,
+            124400956191,
+            124156800328
+          ],
+          "maximum": 125225359258,
+          "median": 124400956191,
+          "median_absolute_deviation": 244155863,
+          "minimum": 124156800328
+        },
+        "peak_device_memory_used_bytes": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            2067791872,
+            2065694720,
+            2067791872
+          ],
+          "maximum": 2067791872,
+          "median": 2067791872,
+          "median_absolute_deviation": 0,
+          "minimum": 2065694720
+        },
+        "telemetry_coverage": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.064649161,
+            1.053771959,
+            1.107246711
+          ],
+          "maximum": 1.107246711,
+          "median": 1.064649161,
+          "median_absolute_deviation": 0.010877201999999864,
+          "minimum": 1.053771959
+        }
+      },
+      "source_commit": "412095bd66618fee9d3e1936e79b90da12a4c61b",
+      "started": 3,
+      "status": "stable-exact-host-exploratory"
+    },
+    {
+      "cell_label": "phase7-qwen3-0p6b-lora-breadth-exploratory",
+      "comparison_cell_id": "cell_15f277311503bc76c6b0",
+      "individual_slots": [
+        {
+          "attempt_slot_id": "slot_cd0f19ed032e29ff0020",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_d7b238400e0ff33eaa9a",
+          "externally_observed_training_duration_ns": 188273142250,
+          "peak_device_memory_used_bytes": 4003463168,
+          "runtime_peak_cuda_bytes": 3302564352,
+          "scheduled_seed": 6101,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.075989702
+        },
+        {
+          "attempt_slot_id": "slot_9397157a59f82b2b5c1b",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_98042ce7a77e07cd176e",
+          "externally_observed_training_duration_ns": 186851072999,
+          "peak_device_memory_used_bytes": 4003463168,
+          "runtime_peak_cuda_bytes": 3302564352,
+          "scheduled_seed": 6203,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.061874589
+        },
+        {
+          "attempt_slot_id": "slot_cc3c04b47071c7ea69d8",
+          "completed_non_skipped_optimizer_steps": 128,
+          "execution_configuration_id": "exec_bea457a74581ad83a1e8",
+          "externally_observed_training_duration_ns": 186284788036,
+          "peak_device_memory_used_bytes": 4003463168,
+          "runtime_peak_cuda_bytes": 3302564352,
+          "scheduled_seed": 6301,
+          "telemetry_coverage": 1.0,
+          "telemetry_maximum_gap_seconds": 1.081517922
+        }
+      ],
+      "method": "lora",
+      "model_id": "Qwen/Qwen3-0.6B",
+      "model_revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "planned": 3,
+      "qualifying_passes": 3,
+      "role": "phase7-exploratory",
+      "scalar_summaries": {
+        "completed_non_skipped_optimizer_steps": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            128,
+            128,
+            128
+          ],
+          "maximum": 128,
+          "median": 128,
+          "median_absolute_deviation": 0,
+          "minimum": 128
+        },
+        "externally_observed_training_duration_ns": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            188273142250,
+            186851072999,
+            186284788036
+          ],
+          "maximum": 188273142250,
+          "median": 186851072999,
+          "median_absolute_deviation": 566284963,
+          "minimum": 186284788036
+        },
+        "peak_device_memory_used_bytes": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            4003463168,
+            4003463168,
+            4003463168
+          ],
+          "maximum": 4003463168,
+          "median": 4003463168,
+          "median_absolute_deviation": 0,
+          "minimum": 4003463168
+        },
+        "runtime_peak_cuda_bytes": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            3302564352,
+            3302564352,
+            3302564352
+          ],
+          "maximum": 3302564352,
+          "median": 3302564352,
+          "median_absolute_deviation": 0,
+          "minimum": 3302564352
+        },
+        "telemetry_coverage": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maximum": 1.0,
+          "median": 1.0,
+          "median_absolute_deviation": 0.0,
+          "minimum": 1.0
+        },
+        "telemetry_maximum_gap_seconds": {
+          "count": 3,
+          "individual_values_in_slot_order": [
+            1.075989702,
+            1.061874589,
+            1.081517922
+          ],
+          "maximum": 1.081517922,
+          "median": 1.075989702,
+          "median_absolute_deviation": 0.005528219999999973,
+          "minimum": 1.061874589
+        }
+      },
+      "source_commit": "a41ae4941661867789034eaa63bb968f2e137aba",
+      "started": 3,
+      "status": "stable-exact-host-exploratory"
+    }
+  ],
+  "release_gate_mapping": {
+    "aptus_v0_2_release_readiness": "not-established",
+    "cuda_ddp": "untested-requires-multi-gpu-campaign",
+    "cuda_exact_cell_observed_completion": "passed-for-listed-exact-cells",
+    "cuda_lora_fsdp": "untested-requires-multi-gpu-campaign",
+    "cuda_model_quality": "open-no-task-quality-evaluation",
+    "cuda_repeated_time_and_resource_evidence": "passed-for-listed-stable-cells",
+    "cuda_semantic_adapter_reload": "open",
+    "developer_id_notarized_distribution": "open-outside-cuda-campaign",
+    "full_and_quantized_fsdp": "unsupported",
+    "managed_job_control": "passed-exact-host-bounded-suite",
+    "production_safety": "open-exact-host-bounded-evidence-only"
+  },
+  "schema_version": "aptus.cuda-campaign-phase10-certification.v1"
+}

@@ -224,11 +224,11 @@ when its evidence, owner, or resolution changes.
   360M LoRA cells without replacements. The exact planner leaves 360M Full and
   both 1.7B cells planned-not-started. Phase 7 architecture breadth and all
   three Phase 8 guarded frontiers and the selected Phase 9 endurance and
-  job-control cohort are now complete and independently reviewed. Phase 10
-  remains separately authorized work.
+  job-control cohort are complete and independently reviewed. The Phase 10
+  certification now reconciles every frozen slot and closes the bounded
+  campaign without replacement or new training.
   Capability claims change only after the applicable packets merge.
-- **Blocker:** Campaign-wide Phase 10 aggregation and publication remain
-  separately authorized work. The intended RTX 3050 host has one GPU and cannot close DDP or
+- **Blocker:** The intended RTX 3050 host has one GPU and cannot close DDP or
   FSDP; its local boundaries are
   not Aptus's cloud or multi-GPU ceiling. Those rows require approved multi-GPU
   access. Public notarization also requires the corresponding Apple

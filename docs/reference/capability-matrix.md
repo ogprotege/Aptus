@@ -71,9 +71,12 @@ binds a new cohort at exact merged source
 `412095bd66618fee9d3e1936e79b90da12a4c61b`. The 135M LoRA, 135M Full, and
 360M LoRA cells each passed three of three 128-step exploratory slots and the
 frozen stability and integrity contract without replacements. The exact planner
-left 360M Full and both 1.7B cells unadmitted and planned-not-started. This
-evidence does not qualify another artifact or host, establish architecture
-breadth, or authorize Phase 8. The [earlier stopped Phase 7
+left 360M Full and both 1.7B cells unadmitted and planned-not-started. A
+separate reviewed [architecture-breadth
+amendment](../operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md)
+admits one later Qwen3-0.6B LoRA three-slot exploratory cell but supplies no
+runtime result. Gemma remains license-excluded, Mistral remains
+planner-ineligible, and Phase 8 remains unauthorized. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains an immutable historical record.
 

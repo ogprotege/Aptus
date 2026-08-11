@@ -1,0 +1,29 @@
+{
+  "excluded_private_classes": [
+    "downloaded model and tokenizer bytes",
+    "home and working paths",
+    "hostnames, usernames, addresses, and GPU identifiers",
+    "operator scripts and command transcripts",
+    "provider cache metadata",
+    "raw machine state"
+  ],
+  "producer_role_id": "phase7-breadth-amendment-public-projector",
+  "projections": [
+    {
+      "private_inputs": ["amendment-input.json", "SEAL.json"],
+      "public_output": "amendment.json",
+      "retained": ["immutable revisions", "provider-declared artifact digests", "license decisions", "inspection dispositions", "planner admissions", "frozen schedule and phase boundary"]
+    },
+    {
+      "private_inputs": ["qwen3-artifact-verification.json", "qwen3-token-manifest.json", "ARTIFACT-SEAL.json"],
+      "public_output": "amendment.json",
+      "retained": ["local SHA-256 digests", "exact bytes and parameters", "target-module counts", "token-manifest digest and row count"]
+    },
+    {
+      "private_inputs": ["INDEPENDENT-REVIEW.json"],
+      "public_output": "independent-review.json",
+      "retained": ["role separation", "review checks", "admitted-cell decision", "private input digests"]
+    }
+  ],
+  "schema_version": "aptus.cuda-campaign-sanitization-map.v1"
+}

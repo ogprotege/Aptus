@@ -1,0 +1,36 @@
+{
+  "checks": {
+    "artifact_digests_are_exact_and_algorithm_labeled": true,
+    "gemma_license_gate_failed_closed": true,
+    "mistral_nonadmission_has_no_replacement": true,
+    "moe_and_multimodal_remain_excluded": true,
+    "no_attempt_ledger_or_training_predates_review": true,
+    "phase8_remains_unauthorized": true,
+    "provider_revisions_are_immutable": true,
+    "public_projection_contains_no_private_host_identity": true,
+    "quantized_capability_was_not_inferred_from_installed_software": true,
+    "qwen_artifact_and_target_modules_were_locally_verified": true,
+    "qwen_lora_is_the_only_admitted_cell": true,
+    "same_family_review_precedes_breadth": true,
+    "three_slots_and_frozen_seed_order_are_preserved": true
+  },
+  "decision": {
+    "admitted_cells_after_merge": [
+      "qwen3-0p6b:lora"
+    ],
+    "phase8_authorized": false,
+    "planned_exploratory_slots_after_merge": 3,
+    "replacement_allowed": false
+  },
+  "inputs": {
+    "amendment_sha256": "4c23b15b0fcde4ee14879bce4d2a55fe5e2f6492905b4925c134b7f5996cfc94",
+    "private_review_sha256": "2094ce1281c59be17ea1526a7c09ca4c2241af2e4637a9657dc83ad34e1976c0",
+    "readme_sha256": "d3225559a048da6e1a1eb26a69c498b639e03632f568b15252dda8d48667aea5",
+    "sanitization_map_sha256": "8ebb1b469f35587f7645433c5e18ac62838d731694ebce1b86d2c099771e47eb"
+  },
+  "producer_role_id": "phase7-breadth-amendment-public-projector",
+  "review_result": "passed",
+  "reviewer_role_id": "phase7-breadth-amendment-public-reviewer",
+  "role_separation_verified": true,
+  "schema_version": "aptus.cuda-campaign-phase7-breadth-amendment-public-review.v1"
+}

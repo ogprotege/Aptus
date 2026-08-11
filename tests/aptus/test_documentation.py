@@ -1010,17 +1010,17 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 131)
+        self.assertEqual(len(repository_documents), 132)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 130)
-        self.assertEqual(len(active_documents), 101)
+        self.assertEqual(len(governed_documents), 131)
+        self.assertEqual(len(active_documents), 102)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 130)
+        self.assertEqual(len(maintained_documentation()), 131)
         self.assertIn("130 are governed", normalized_inventory)
         self.assertIn("130 governed", normalized_inventory)
         self.assertIn("131 tracked Markdown", normalized_inventory)
@@ -3157,6 +3157,193 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(
             "operations/evidence/2026-08-11-cuda-phase7-same-family-stability/README.md",
             (REPOSITORY / "docs/index.md").read_text(),
+        )
+
+    def test_cuda_phase7_breadth_amendment_is_bound_and_sanitized(self) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-11-cuda-phase7-breadth-amendment"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "amendment.json",
+            "independent-review.json",
+            "sanitization-map.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        checksum_paths = [relative for _digest, relative in parsed]
+        self.assertEqual(checksum_paths, sorted(checksum_paths))
+        self.assertEqual(
+            set(checksum_paths),
+            {f"./{relative}" for relative in expected_files - {"SHA256SUMS"}},
+        )
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        amendment = json.loads((packet / "amendment.json").read_text())
+        self.assertEqual(amendment["decision"]["review_status"], "passed")
+        self.assertEqual(
+            amendment["decision"]["admitted_cells_after_merge"],
+            ["qwen3-0p6b:lora"],
+        )
+        self.assertEqual(
+            amendment["decision"]["planned_exploratory_slots_after_merge"], 3
+        )
+        self.assertFalse(amendment["decision"]["attempt_ledger_created_before_review"])
+        self.assertFalse(amendment["decision"]["training_started_before_review"])
+        self.assertFalse(amendment["decision"]["replacement_allowed"])
+        self.assertFalse(amendment["decision"]["phase8_authorized"])
+        self.assertEqual(
+            amendment["frozen_contract"]["method_order"],
+            ["lora", "full", "int8-lora", "qlora"],
+        )
+        self.assertEqual(
+            amendment["frozen_contract"]["training_seeds"], [6101, 6203, 6301]
+        )
+
+        models = {item["label"]: item for item in amendment["models"]}
+        self.assertEqual(
+            {
+                label: (item["model_id"], item["revision"])
+                for label, item in models.items()
+            },
+            {
+                "qwen3-0p6b": (
+                    "Qwen/Qwen3-0.6B",
+                    "c1899de289a04d12100db370d81485cdf75e47ca",
+                ),
+                "gemma3-1b-it": (
+                    "google/gemma-3-1b-it",
+                    "dcc83ea841ab6100d6b47a070329e1ba4cf78752",
+                ),
+                "mistral-7b-v0p3": (
+                    "mistralai/Mistral-7B-v0.3",
+                    "caa1feb0e54d415e2df31207e5f4e273e33509b1",
+                ),
+            },
+        )
+        qwen = models["qwen3-0p6b"]
+        self.assertEqual(qwen["artifact"]["exact_execution_artifact_bytes"], 1519182365)
+        self.assertEqual(qwen["artifact"]["exact_parameter_count"], 751632384)
+        self.assertEqual(len(qwen["artifact"]["files"]), 7)
+        self.assertEqual(
+            sum(item["size_bytes"] for item in qwen["artifact"]["files"]),
+            qwen["artifact"]["exact_execution_artifact_bytes"],
+        )
+        self.assertEqual(
+            set(qwen["artifact"]["target_module_tensor_counts"].values()), {28}
+        )
+        self.assertEqual(
+            [
+                item["method"]
+                for item in qwen["method_dispositions"]
+                if item["admitted"]
+            ],
+            ["lora"],
+        )
+        self.assertEqual(
+            models["gemma3-1b-it"]["disposition"], "excluded-license-not-accepted"
+        )
+        self.assertEqual(
+            models["mistral-7b-v0p3"]["disposition"], "planner-not-admitted"
+        )
+        self.assertTrue(
+            all(
+                not method["admitted"]
+                for label in ("gemma3-1b-it", "mistral-7b-v0p3")
+                for method in models[label]["method_dispositions"]
+            )
+        )
+
+        review = json.loads((packet / "independent-review.json").read_text())
+        self.assertEqual(review["review_result"], "passed")
+        self.assertTrue(review["role_separation_verified"])
+        self.assertTrue(all(review["checks"].values()))
+        for name, digest in (
+            ("README.md", review["inputs"]["readme_sha256"]),
+            ("amendment.json", review["inputs"]["amendment_sha256"]),
+            ("sanitization-map.json", review["inputs"]["sanitization_map_sha256"]),
+        ):
+            self.assertEqual(
+                hashlib.sha256((packet / name).read_bytes()).hexdigest(), digest
+            )
+
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8") for name in expected_files
+        )
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+            "GPU-",
+        ):
+            self.assertNotIn(private_marker, public_text)
+
+        packet_link = "evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md"
+        for relative in (
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/reference/capability-matrix.md",
+            "docs/product/current-capabilities.md",
+        ):
+            self.assertIn(packet_link, (REPOSITORY / relative).read_text())
+        self.assertIn(
+            "operations/evidence/2026-08-11-cuda-phase7-breadth-amendment/README.md",
+            (REPOSITORY / "docs/index.md").read_text(),
+        )
+
+        protocol = json.loads(
+            (REPOSITORY / "docs/reference/cuda-campaign-protocol.v1.json").read_text()
+        )
+        breadth = protocol["matrix_contract"]["phase7_scale_staircase"][
+            "architecture_breadth_amendment"
+        ]
+        self.assertEqual(breadth["review_status"], "passed")
+        self.assertFalse(breadth["phase8_authorized"])
+        self.assertEqual(
+            [
+                (item["model_id"], item["revision"], item["admitted_methods"])
+                for item in breadth["models"]
+            ],
+            [
+                (
+                    "Qwen/Qwen3-0.6B",
+                    "c1899de289a04d12100db370d81485cdf75e47ca",
+                    ["lora"],
+                ),
+                (
+                    "google/gemma-3-1b-it",
+                    "dcc83ea841ab6100d6b47a070329e1ba4cf78752",
+                    [],
+                ),
+                (
+                    "mistralai/Mistral-7B-v0.3",
+                    "caa1feb0e54d415e2df31207e5f4e273e33509b1",
+                    [],
+                ),
+            ],
         )
 
     def test_cuda_phase5_retention_addendum_is_bound_and_sanitized(self) -> None:

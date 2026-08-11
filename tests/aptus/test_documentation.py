@@ -911,7 +911,7 @@ class DocumentationTests(unittest.TestCase):
             release_gates,
         )
         self.assertIn(
-            "One exact CUDA LoRA single-device pilot and full training sequence has",
+            "The completed CUDA campaign establishes only the exact cells and bounded",
             release_gates,
         )
 
@@ -1010,21 +1010,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 136)
+        self.assertEqual(len(repository_documents), 137)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 135)
-        self.assertEqual(len(active_documents), 106)
+        self.assertEqual(len(governed_documents), 136)
+        self.assertEqual(len(active_documents), 107)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 135)
-        self.assertIn("135 are governed", normalized_inventory)
-        self.assertIn("135 governed", normalized_inventory)
-        self.assertIn("136 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 106 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 136)
+        self.assertIn("136 are governed", normalized_inventory)
+        self.assertIn("136 governed", normalized_inventory)
+        self.assertIn("137 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 107 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -1033,7 +1033,7 @@ class DocumentationTests(unittest.TestCase):
         campaign = campaign_path.read_text(encoding="utf-8")
         normalized_campaign = " ".join(campaign.split())
         for required in (
-            "Canonical operational plan for bounded CUDA evidence",
+            "Canonical operational plan and completed record for bounded CUDA evidence",
             "Phase 0 — forensic recovery before host changes",
             "Phase 3 — explicit method selection and measurement contracts",
             "exactly five predeclared measured attempts",
@@ -3792,6 +3792,185 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn(packet_link, (REPOSITORY / relative).read_text())
         self.assertIn(
             "operations/evidence/2026-08-11-cuda-phase9-endurance/README.md",
+            (REPOSITORY / "docs/index.md").read_text(),
+        )
+
+    def test_cuda_phase10_certification_is_bound_reviewed_and_sanitized(
+        self,
+    ) -> None:
+        packet = (
+            REPOSITORY
+            / "docs/operations/evidence/2026-08-11-cuda-phase10-certification"
+        )
+        expected_files = {
+            "README.md",
+            "SHA256SUMS",
+            "independent-review.json",
+            "phase10-certification.json",
+            "phase10-decision.json",
+            "sanitization-map.json",
+        }
+        actual_files = {
+            path.relative_to(packet).as_posix()
+            for path in packet.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        checksum_pattern = re.compile(r"^([a-f0-9]{64})  (\./[^\n]+)$")
+        parsed = []
+        for line in (packet / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            match = checksum_pattern.fullmatch(line)
+            self.assertIsNotNone(match, line)
+            assert match is not None
+            parsed.append((match.group(1), match.group(2)))
+        self.assertEqual(
+            [relative for _digest, relative in parsed],
+            sorted(relative for _digest, relative in parsed),
+        )
+        self.assertEqual(
+            {relative for _digest, relative in parsed},
+            {f"./{relative}" for relative in expected_files - {"SHA256SUMS"}},
+        )
+        for expected_digest, relative in parsed:
+            self.assertEqual(
+                hashlib.sha256(
+                    (packet / relative.removeprefix("./")).read_bytes()
+                ).hexdigest(),
+                expected_digest,
+            )
+
+        certification = json.loads(
+            (packet / "phase10-certification.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            certification["bindings"]["phase10_source_commit"],
+            "3c56b37799be16d4698b6e75e76c690b4ba8e818",
+        )
+        self.assertEqual(
+            certification["bindings"]["phase10_source_tree"],
+            "76d38631026fe55c0015a0608eae6d45500e4f8d",
+        )
+        self.assertEqual(
+            certification["bindings"]["current_protocol_sha256"],
+            "005de18e60d8b707986dee6eef4b7199e7e1fecba385ab591ff708671b858335",
+        )
+        self.assertEqual(
+            certification["ledger_totals"],
+            {
+                "evidence_statuses": {"capture-invalid": 1, "protocol-valid": 57},
+                "native_outcomes": {
+                    "cancelled": 7,
+                    "failed": 3,
+                    "passed": 47,
+                    "unknown": 1,
+                },
+                "planned": 149,
+                "planned_not_started": 91,
+                "qualifying_passes": 47,
+                "replacement_runs": 0,
+                "started": 58,
+            },
+        )
+        self.assertEqual(len(certification["qualifying_stable_cells"]), 6)
+        self.assertEqual(len(certification["phase8_frontier_points"]), 17)
+        started_frontier = [
+            point
+            for point in certification["phase8_frontier_points"]
+            if point["slot_status"] == "started"
+        ]
+        self.assertEqual(len(started_frontier), 16)
+        self.assertTrue(
+            all(point["full_training_executed"] is False for point in started_frontier)
+        )
+        self.assertEqual(
+            sum(point["native_outcome"] == "passed" for point in started_frontier),
+            14,
+        )
+        self.assertEqual(
+            sum(point["reason_code"] == "CUDA_OOM" for point in started_frontier),
+            2,
+        )
+        endurance = certification["phase9_endurance"]
+        self.assertEqual(
+            endurance["totals"]["completed_non_skipped_optimizer_steps"], 900
+        )
+        self.assertEqual(endurance["job_controls"]["exercise_count"], 8)
+        self.assertTrue(endurance["job_controls"]["all_passed"])
+        self.assertFalse(endurance["job_controls"]["gpu_training_invoked"])
+        self.assertEqual(
+            certification["release_gate_mapping"]["aptus_v0_2_release_readiness"],
+            "not-established",
+        )
+        self.assertFalse(certification["phase10_decision"]["new_training_performed"])
+        self.assertFalse(
+            certification["phase10_decision"][
+                "cloud_or_external_gpu_acquisition_performed"
+            ]
+        )
+
+        review = json.loads(
+            (packet / "independent-review.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(review["status"], "complete-reviewed")
+        self.assertTrue(all(review["checks"].values()))
+        self.assertEqual(
+            review["counts"],
+            {
+                "deeply_verified_protected_artifacts": 68,
+                "verified_prior_public_packets": 13,
+                "verified_stable_cells": 6,
+            },
+        )
+        self.assertEqual(
+            review["review_input_bindings"]["phase10_certification_sha256"],
+            hashlib.sha256(
+                (packet / "phase10-certification.json").read_bytes()
+            ).hexdigest(),
+        )
+
+        decision = json.loads(
+            (packet / "phase10-decision.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(decision["status"], "complete-reviewed")
+        self.assertTrue(decision["decision"]["campaign_certification_complete"])
+        self.assertFalse(decision["decision"]["release_ready"])
+        self.assertFalse(decision["decision"]["phase11_authorized"])
+        self.assertEqual(
+            decision["bindings"]["independent_review_sha256"],
+            hashlib.sha256(
+                (packet / "independent-review.json").read_bytes()
+            ).hexdigest(),
+        )
+
+        public_text = "\n".join(
+            (packet / name).read_text(encoding="utf-8") for name in expected_files
+        )
+        for private_marker in (
+            "/home/",
+            "/Users/",
+            "Sherminator",
+            "192.168.",
+            "fd21:",
+            "wts@",
+            "GPU-",
+            "artifact_",
+            "receipt_",
+            "operation_",
+        ):
+            self.assertNotIn(private_marker, public_text)
+
+        packet_link = "evidence/2026-08-11-cuda-phase10-certification/README.md"
+        for relative in (
+            "docs/operations/index.md",
+            "docs/operations/cuda-empirical-campaign.md",
+            "docs/operations/release-gates.md",
+            "docs/reference/capability-matrix.md",
+            "docs/product/current-capabilities.md",
+        ):
+            self.assertIn(packet_link, (REPOSITORY / relative).read_text())
+        self.assertIn(
+            "operations/evidence/2026-08-11-cuda-phase10-certification/README.md",
             (REPOSITORY / "docs/index.md").read_text(),
         )
 

@@ -1,12 +1,12 @@
 # RTX 3050 CUDA Empirical Evidence Campaign
 
-> **Status:** Phases 0 through 9 are complete; the selected guarded configuration passed all three frozen endurance slots and the bounded job-control suite; Phase 10 remains unauthorized | **Authority:** Canonical operational plan for bounded CUDA evidence; reviewed Phase 7, Phase 8, and Phase 9 packets are linked below; non-normative for current capability | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before Phase 10 authorization, another protocol amendment, or host/cooling change
+> **Status:** Phases 0 through 10 are complete; the campaign certification is independently reviewed and closed | **Authority:** Canonical operational plan and completed record for bounded CUDA evidence; the Phase 10 certification packet is linked below; non-normative for current capability where the packet retains an open gate | **Applies to:** Aptus 0.2 single-device CUDA characterization on the intended Ubuntu RTX 3050 host | **Audience:** Operators, maintainers, and evidence reviewers | **Owner:** CUDA runtime and release evidence | **Last reviewed:** 2026-08-11 | **Review by:** Before any new CUDA campaign, protocol amendment, or host/cooling change
 
-This is the one execution plan for the next CUDA evidence campaign. It combines
-the remaining roadmap work, release gates, evidence-packet requirements,
-storage rules, operator procedure, calibration methodology, and fair-comparison
-guidance into one ordered program without taking authority away from those
-documents.
+This is the one execution plan and completed record for the bounded CUDA
+evidence campaign. It combines the roadmap work, release gates, evidence-packet
+requirements, storage rules, operator procedure, calibration methodology, and
+fair-comparison guidance into one ordered program without taking authority away
+from those documents.
 
 The plan schedules work; it does not assert that a scheduled run passed. Only a
 reviewed, dated, checksum-covered record under [`evidence/`](evidence/) can
@@ -842,7 +842,8 @@ protocol-valid evidence, healthy telemetry, exact counters, valid method
 integrity, complete custody, and no replacement. Eight controlled job-service
 exercises also passed. The packet publishes aggregate counter-window rates only
 and makes no cross-run drift or Phase 5/6 stability-ratio claim. Semantic CUDA
-adapter reload remains open. Phase 10 has not been authorized or performed.
+adapter reload remains open. The later Phase 10 certification preserves those
+boundaries.
 
 ### Phase 10 — aggregation, review, and publication
 
@@ -877,7 +878,24 @@ dated packet merges may current-capability, capability-matrix, claim-language,
 changelog, or release-gate result text broaden. A later multi-GPU campaign is
 still required for DDP and conditional LoRA FSDP.
 
-## Immediate next actions
+The independently reviewed [Phase 10 certification
+packet](evidence/2026-08-11-cuda-phase10-certification/README.md) completes this
+procedure. Across immutable measured, exploratory, frontier, and endurance
+cohorts, it reconciles 149 planned slots to 58 started and 91
+planned-not-started. Forty-seven started slots are both native-pass and
+protocol-valid; 7 are cancelled, 3 are bounded failures, and 1 is
+conservatively retained as unknown/capture-invalid. There were no replacement
+runs. The reviewer recomputed the ledger and scalar summaries, verified 13
+prior checksum-bound public packets, and deeply verified 68 selected protected
+artifacts. Phase 10 performed no training or external-resource acquisition.
+
+The certification establishes only its listed exact-host stable cells, the
+probe-only Phase 8 frontier, and the Phase 9 endurance/job-control outcome. It
+does not establish release readiness, task quality, production safety,
+semantic CUDA adapter reload, DDP, LoRA FSDP, public notarization, or a
+confirmatory paired method ranking. Phase 11 is not authorized.
+
+## Closed-campaign preservation rules
 
 1. Preserve the frozen Phase 1 protocol and its machine-readable companion as
    design authority. They authorize no runtime execution.
@@ -890,10 +908,12 @@ still required for DDP and conditional LoRA FSDP.
    freeze, host/environment bindings, fixtures, and frozen run order.
 5. Preserve the independently reviewed successful Phase 5 packet and its
    separate immutable stopped-cohort history.
-6. Merge the reviewed Qwen parameter-semantics correction, then seal and review
-   a fresh Phase 7 breadth cohort before any further execution. Do not resume
-   the stopped cohort or create a replacement slot.
-7. Publish Phase 10 packets and update claims only to the exact evidence boundary.
+6. Preserve all stopped, failed, capture-invalid, and planned-not-started
+   dispositions without replacement or retrospective relabeling.
+7. Preserve the reviewed [Phase 10 certification
+   packet](evidence/2026-08-11-cuda-phase10-certification/README.md) and do not
+   broaden its exact-host claims. Any later phase or campaign requires separate
+   authorization and a newly frozen protocol.
 
 ## Related documentation
 
@@ -911,3 +931,4 @@ still required for DDP and conditional LoRA FSDP.
 - [Model-policy snapshot](../reference/model-policy-snapshot.md)
 - [Capability matrix](../reference/capability-matrix.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+- [2026-08-11 CUDA Phase 10 campaign certification](evidence/2026-08-11-cuda-phase10-certification/README.md)

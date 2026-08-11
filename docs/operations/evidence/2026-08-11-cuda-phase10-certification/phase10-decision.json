@@ -1,0 +1,31 @@
+{
+  "bindings": {
+    "current_protocol_sha256": "005de18e60d8b707986dee6eef4b7199e7e1fecba385ab591ff708671b858335",
+    "independent_review_sha256": "81fbced7da83e47bed517a88b2fc93befa24eb0563b3eb5a5c2c175e9edd2275",
+    "phase10_certification_sha256": "30b529ef9bf1e37c3bf45b20c8e009c602dc1c1be76f2baec4357c941132cb31",
+    "phase10_source_commit": "3c56b37799be16d4698b6e75e76c690b4ba8e818",
+    "phase10_source_tree": "76d38631026fe55c0015a0608eae6d45500e4f8d"
+  },
+  "campaign_ledger": {
+    "planned": 149,
+    "planned_not_started": 91,
+    "qualifying_passes": 47,
+    "replacement_runs": 0,
+    "started": 58
+  },
+  "decision": {
+    "campaign_certification_complete": true,
+    "cloud_or_external_gpu_acquisition_performed": false,
+    "new_training_performed": false,
+    "phase11_authorized": false,
+    "release_ready": false,
+    "review_exceptions": []
+  },
+  "evidence_review": {
+    "deeply_verified_protected_artifacts": 68,
+    "verified_prior_public_packets": 13,
+    "verified_stable_cells": 6
+  },
+  "schema_version": "aptus.cuda.phase10.decision.v1",
+  "status": "complete-reviewed"
+}

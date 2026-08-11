@@ -94,7 +94,11 @@ planned-not-started point, complete custody, and no full training. The later
 [Phase 9 endurance packet](../operations/evidence/2026-08-11-cuda-phase9-endurance/README.md)
 records the selected sequence-256, effective-batch-32, micro-4, accumulation-8
 configuration passing three of three 300-update slots and eight controlled
-job-service exercises without replacement. This remains exact-host bounded
+job-service exercises without replacement. The reviewed [Phase 10 campaign
+certification](../operations/evidence/2026-08-11-cuda-phase10-certification/README.md)
+then reconciles every frozen campaign disposition, recomputes the published
+statistics, and closes the campaign with 149 planned, 58 started, 91
+planned-not-started, and 47 qualifying passes. This remains exact-host bounded
 evidence, not broad capability or model-quality evidence. Gemma remains
 license-excluded and Mistral remains planner-ineligible. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)

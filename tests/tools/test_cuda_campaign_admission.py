@@ -540,6 +540,36 @@ class AdmissionGateTests(unittest.TestCase):
         self.assertFalse(result.admitted)
         self.assertEqual(result.decision["reason_codes"], ["MISSING_REQUIRED_EVIDENCE"])
 
+    def test_later_contiguous_window_remains_bound_to_full_acquisition(self) -> None:
+        context = _context()
+        authority = InjectedAdmissionAuthority(lambda: dict(context.phase4_binding))
+        observations = _observations(context, authority)
+        offset_seconds = 60
+        offset_ns = offset_seconds * NANOSECONDS_PER_SECOND
+        for observation in observations:
+            observation["sequence"] += offset_seconds
+            observation["scheduled_slot"] += offset_seconds
+            observation["scheduled_monotonic_ns"] += offset_ns
+            observation["observed_monotonic_ns"] += offset_ns
+            observation["watchdog"]["heartbeat_monotonic_ns"] += offset_ns
+
+        result = _evaluate(
+            context,
+            authority,
+            observations,
+            finished_seconds=offset_seconds + 119,
+        )
+
+        self.assertTrue(result.admitted, result.decision["reason_codes"])
+        self.assertEqual(
+            result.decision["summary"]["window_start_offset_seconds"],
+            offset_seconds,
+        )
+        self.assertEqual(
+            result.decision["acquisition_duration_ns"],
+            (offset_seconds + 119) * NANOSECONDS_PER_SECOND,
+        )
+
     def test_swap_warning_uses_complete_rolling_ten_second_window(self) -> None:
         context = _context()
         authority = InjectedAdmissionAuthority(lambda: dict(context.phase4_binding))
@@ -932,6 +962,131 @@ class ActivationTests(unittest.TestCase):
                 )
                 self.assertTrue(verified.production_qualifying)
                 self.assertTrue(verified.authorized_for_qualifying_harness())
+
+    def test_production_collector_continues_after_first_invalid_window(self) -> None:
+        context = _context()
+
+        class TestWatchdog:
+            def __init__(self, _lease_active) -> None:
+                self.index = 0
+
+            def start(self) -> None:
+                return None
+
+            def snapshot(self) -> dict[str, object]:
+                heartbeat = self.index * NANOSECONDS_PER_SECOND
+                self.index += 1
+                return {
+                    "healthy": True,
+                    "heartbeat_monotonic_ns": heartbeat,
+                    "ownership_certain": True,
+                }
+
+            def stop(self) -> None:
+                return None
+
+        monotonic_values = [0]
+        for index in range(121):
+            monotonic_values.extend([index * NANOSECONDS_PER_SECOND] * 3)
+        monotonic_values.append(120 * NANOSECONDS_PER_SECOND)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            os.chmod(root, 0o700)
+            service = JobService(root / "jobs", runtime_environment={})
+            authority = Phase4CurrentAuthority(
+                directory=root / "phase4",
+                repository_root=root,
+                campaign=context.campaign,
+                comparison_cohort=context.comparison_cohort,
+                comparison_cell=context.comparison_cell,
+            )
+            probe = lambda: _probe(  # noqa: E731 - exact callable test seam.
+                mem_available_bytes=64 * GIB,
+                filesystem_free_bytes=100 * GIB,
+            )
+            with (
+                patch.object(
+                    Phase4CurrentAuthority,
+                    "snapshot",
+                    return_value=dict(context.phase4_binding),
+                ),
+                patch.object(admission_module.sys, "platform", "linux"),
+                patch.object(
+                    admission_module,
+                    "_AdmissionOwnershipWatchdog",
+                    TestWatchdog,
+                ),
+                patch.object(
+                    admission_module,
+                    "_real_sleep_until",
+                    return_value=True,
+                ),
+                patch.object(
+                    admission_module,
+                    "_validate_idle_gate",
+                    side_effect=[
+                        (("THERMAL_WARNING_SUSTAINED",), {}),
+                        ((), {}),
+                    ],
+                ),
+                patch.object(
+                    admission_module,
+                    "utc_now",
+                    return_value="2026-08-08T12:00:00+00:00",
+                ),
+                patch(
+                    "tools.cuda_campaign.monitoring.resolve_trusted_nvidia_smi",
+                    return_value=SimpleNamespace(path="/usr/bin/nvidia-smi"),
+                ),
+                patch(
+                    "tools.cuda_campaign.monitoring.detect_nvidia_thermal_limit_authority",
+                    return_value=SimpleNamespace(provider=None),
+                ),
+                patch(
+                    "tools.cuda_campaign.monitoring.LinuxNvidiaHostProbe",
+                    return_value=probe,
+                ),
+                patch(
+                    "tools.cuda_campaign.monitoring.LinuxNvidiaJournalEventProvider.production",
+                    return_value=SimpleNamespace(snapshot=lambda: {}),
+                ),
+                patch(
+                    "tools.cuda_campaign.monitoring.StatvfsDiskGrowthProvider.production",
+                    return_value=lambda: 0,
+                ),
+                patch.object(
+                    admission_module.time,
+                    "monotonic_ns",
+                    side_effect=monotonic_values,
+                ),
+            ):
+                batch = collect_production_admission_observations(
+                    context,
+                    authority=authority,
+                    filesystem_path=root,
+                    job_service=service,
+                )
+
+            with patch.object(
+                Phase4CurrentAuthority,
+                "snapshot",
+                return_value=dict(context.phase4_binding),
+            ):
+                result = evaluate_pre_slot_admission(
+                    context,
+                    batch,
+                    authority=authority,
+                )
+            self.assertTrue(result.admitted, result.decision["reason_codes"])
+            self.assertEqual(result.decision["observation_count"], 120)
+            self.assertEqual(
+                result.decision["summary"]["window_start_offset_seconds"], 1
+            )
+            self.assertEqual(
+                [item["sequence"] for item in result.observations],
+                list(range(1, 121)),
+            )
 
     def test_imported_verifier_internals_cannot_brand_an_activation(self) -> None:
         self.assertFalse(hasattr(admission_module, "_VERIFIED_ACTIVATION_TOKEN"))

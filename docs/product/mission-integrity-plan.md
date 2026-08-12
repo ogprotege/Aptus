@@ -689,11 +689,12 @@ docs/operations/evidence/YYYY-MM-DD-path-alpha-mlx-.../README.md
 
 #### M3.5 Fix only path blockers
 
+No path blockers required for Alpha acceptance (ladder green).
 If a step fails:
 
-- [x] Classify: operator error / aptus bug / env bug / capacity refuse  
-- [x] If aptus bug: regression test → fix → restart ladder from clean state  
-- [x] If capacity refuse: document as trustworthy no; either shrink config within Path Alpha freeze or revise M0 Alpha with Section 12  
+- [ ] Classify: operator error / aptus bug / env bug / capacity refuse  
+- [ ] If aptus bug: regression test → fix → restart ladder from clean state  
+- [ ] If capacity refuse: document as trustworthy no; either shrink config within Path Alpha freeze or revise M0 Alpha with Section 12  
 
 #### M3.6 Workbench path walk
 

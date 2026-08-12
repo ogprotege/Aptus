@@ -60,6 +60,21 @@
     "operating_system": "Ubuntu 24.04.4 LTS",
     "torch_visible_vram_bytes": 8220573696
   },
+  "m4_4_job_control_smoke": {
+    "cancel_reason_code": "M4_4_CANCEL_SMOKE",
+    "exercise": "m4.4-owned-process-group-cancellation",
+    "final_state": "cancelled",
+    "job_id": "job_70d112ebc3fc4e1f808f91ec0e0cd548",
+    "pass_criteria": {
+      "cancel_milestones_present": true,
+      "job_does_not_report_success": true,
+      "nonzero_or_signal_return_code": true,
+      "reason_code_bound": true,
+      "state_is_cancelled": true
+    },
+    "passed": true,
+    "return_code": -15
+  },
   "model": {
     "architecture": "LlamaForCausalLM",
     "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",

@@ -1,15 +1,16 @@
 # Mission program status
 
-- **Updated:** 2026-08-12 (M5.2 implementation)
-- **Current phase:** **M5** Correction loop — **IN PROGRESS** (M5.2 code on branch)
-- **Last completed:** M0–M4 on `main` (`f26fe66`)
-- **M5.1:** APPROVED
-- **M5.2:** correction module + API + OpenAPI + web types (this branch)
-- **Next:** M5.3 Compare UI panel, M5.4 CLI block, M5.5 docs
-- **SSH:** not required
+- **Updated:** 2026-08-12 (M5 complete on branch — pending PR)
+- **Current phase:** M5 Correction loop — **COMPLETE (pending PR merge)**
+- **Last completed on main:** M0–M4 (`f26fe66`)
+- **Next after merge:** M6 optional (public Mac dist); or stop for private use
+- **SSH:** not required for M5
 
-## M5 workspace
+## Progress stack
 
-- Spec: `M5-correction-spec.md` (approved)
-- Module: `src/aptus/correction.py`
-- Tests: `tests/aptus/test_correction.py`
+| PR | Phase | Status |
+| --- | --- | --- |
+| #84–#87 | M0–M3 | merged |
+| #88 | M4 Path Beta | merged |
+| #89 | M3.6 / M4.4 loose ends | merged |
+| (open) | M5 correction loop | branch `feat/mission-m5-correction` |

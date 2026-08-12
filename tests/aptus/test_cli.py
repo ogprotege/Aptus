@@ -262,12 +262,27 @@ class CliIntegrationTests(unittest.TestCase):
                 ),
                 0,
             )
-            self.assertEqual(
-                main(
-                    ["spec-plan", *fact_arguments(dataset), "--output", str(plan_path)]
-                ),
-                0,
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                self.assertEqual(
+                    main(
+                        [
+                            "spec-plan",
+                            *fact_arguments(dataset),
+                            "--output",
+                            str(plan_path),
+                        ]
+                    ),
+                    0,
+                )
+            plan_payload = json.loads(plan_path.read_text())
+            self.assertNotIn(
+                "correction",
+                plan_payload,
+                "correction is presentation-only and must not enter plan JSON",
             )
+            self.assertIn("Aptus correction", stderr.getvalue())
+            self.assertIn("select-candidate", stderr.getvalue())
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(
                     main(
@@ -277,7 +292,7 @@ class CliIntegrationTests(unittest.TestCase):
                 )
             self.assertTrue(profile_path.is_file())
             self.assertEqual(
-                json.loads(plan_path.read_text())["schema_version"],
+                plan_payload["schema_version"],
                 "aptus.training-plan.v6",
             )
             self.assertIsNone(

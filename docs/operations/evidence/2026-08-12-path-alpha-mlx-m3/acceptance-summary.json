@@ -1,0 +1,250 @@
+{
+  "adapters_byte_identical_across_runs": true,
+  "claim_boundary": {
+    "does_not_support": [
+      "other Qwen2 artifacts matching the configuration footprint only",
+      "CUDA",
+      "multi-GPU",
+      "model quality or safety",
+      "throughput/performance guarantees",
+      "public release readiness / notarization",
+      "MLX resume"
+    ],
+    "supports": [
+      "exact model id+revision",
+      "exact dataset digest",
+      "exact plan_id/candidate_id/artifact fingerprint at acceptance source",
+      "Python 3.12.13 + mlx 0.31.2 + mlx-lm 0.31.3",
+      "Apple M5 Pro 64 GiB class host measured here",
+      "two clean dependency\u2192train ladders to measured-run-pass"
+    ]
+  },
+  "compiled_input": {
+    "artifact_fingerprint": "ace50ce8b4defc2a3a871e4031a358e0942fb114980e487acac07c66f766ce14",
+    "bundle_schema_version": "aptus.bundle.v3",
+    "candidate_id": "cand_bec6f029a7417259d49c",
+    "compiler_id": "mlx-lm.qlora.v1",
+    "method": "qlora",
+    "plan_id": "plan_b3630466fb9a25f6b08c",
+    "plan_schema_version": "aptus.training-plan.v6",
+    "plan_sha256": "53080286f843d68783054225cd374867c2e7f8dadb1d5ef6c71009a3d8febaa6",
+    "two_manifests_same_fingerprint": true
+  },
+  "completed_clean_repetitions": 2,
+  "dataset": {
+    "path": "examples/support-sft.jsonl",
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44"
+  },
+  "deterministic_adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+  "historical_anchor": {
+    "adapter_matches_historical": true,
+    "historical_adapter_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+    "historical_bundle_fingerprint": "ca2548cf8469fb9867f1558428803b1c9f7c19f48cba754fdb602643f23d1919",
+    "note": "Identity freeze source; historical fingerprint not transferred to this compile",
+    "packet": "../2026-08-05-qwen2-mlx-lm-exact-source-refresh/"
+  },
+  "host": {
+    "chip": "Apple M5 Pro",
+    "machine": "arm64",
+    "macos_build": "25G76",
+    "macos_version": "26.6.1",
+    "unified_memory_bytes": 68719476736
+  },
+  "model": {
+    "id": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    "model_safetensors_bytes": 278064920,
+    "revision": "53a32aee5e9447773fd2b85988395066aef3700a"
+  },
+  "path_id": "path-alpha-mlx-qlora-v1",
+  "policy": {
+    "path_id": "mlx-lm.qlora.single.dense-causal-lm.v1",
+    "policy_id": "model.qwen2-24l.mlx-qlora",
+    "policy_version": "1.0.0",
+    "snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8"
+  },
+  "recorded_at": "2026-08-12T01:24:23.860944+00:00",
+  "required_clean_repetitions": 2,
+  "runs": [
+    {
+      "bindings": {
+        "bundle": "ace50ce8b4defc2a3a871e4031a358e0942fb114980e487acac07c66f766ce14",
+        "candidate_id": "cand_bec6f029a7417259d49c",
+        "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+        "model_data_evidence": "87dec0df6b390d385baa5c9970fb56421eebe61a37267c9c1d4ad5aff1167aba",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "pilot_metrics": "3cd3ab745797a86333aa51f9c77886b9d95c1e1546295522b48dacf537b9b4ff",
+        "plan_id": "plan_b3630466fb9a25f6b08c",
+        "preflight_metrics": "31b937a1649d7985baf10b87728b2b8b37cfec4c0aacc4d447f7358c3b8c9529"
+      },
+      "final_export": {
+        "adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+        "artifact_manifest_sha256": "0767ec63305f3d64525b8957fe32527fdc4e789ff96ba7b999789b96299530cb",
+        "reload_evidence_sha256": "417441c22c7fd21677de2758f6bddc792ad8a99ef3de24a2fd01b10b32e12d48",
+        "total_bytes": 17633530
+      },
+      "jobs": [
+        {
+          "action": "dependency",
+          "finished_at": "2026-08-12T01:21:05.037387+00:00",
+          "job_id": "job_0f4b92cb6f0c48e2abba9f6b4f5d05bd",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:21:03.350626+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "model-data",
+          "finished_at": "2026-08-12T01:21:16.091208+00:00",
+          "job_id": "job_9701ba16ae254d938571bdd2483436c3",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:21:08.242111+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "preflight",
+          "finished_at": "2026-08-12T01:21:30.920476+00:00",
+          "job_id": "job_46e581f65fe64ff1b7eff8e60ad5f550",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:21:19.475922+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "pilot",
+          "finished_at": "2026-08-12T01:21:41.079084+00:00",
+          "job_id": "job_7460cfe287e247e6b8ec12ba2ac995b2",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:21:34.264643+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "train",
+          "finished_at": "2026-08-12T01:21:49.657976+00:00",
+          "job_id": "job_275d82e923644e12af2ec7e443fdb204",
+          "return_code": 0,
+          "run_id": "run_275d82e923644e12af2ec7e443fdb204",
+          "started_at": "2026-08-12T01:21:45.181202+00:00",
+          "state": "completed"
+        }
+      ],
+      "measured_run": {
+        "candidate_id": "cand_bec6f029a7417259d49c",
+        "completed_optimizer_updates": 3,
+        "distribution": "single",
+        "execution_semantics": "uninterrupted",
+        "global_step": 3,
+        "measured_peak_bytes": 582062200,
+        "metrics_sha256": "3aaad2ac89443943ba16396e7dc0b01dd518a78bb5a403f253df767860178601",
+        "output_dir": "/Users/biscuit/Aptus/.aptus-m3-work/bundle-alpha/runs/run_275d82e923644e12af2ec7e443fdb204",
+        "plan_id": "plan_b3630466fb9a25f6b08c",
+        "resume_supported": false,
+        "training_runtime": "mlx-lm",
+        "world_size": 1
+      },
+      "ordinal": 1,
+      "pilot_metrics_sha256": "3cd3ab745797a86333aa51f9c77886b9d95c1e1546295522b48dacf537b9b4ff",
+      "preflight_metrics_sha256": "31b937a1649d7985baf10b87728b2b8b37cfec4c0aacc4d447f7358c3b8c9529",
+      "state": "measured-run-pass"
+    },
+    {
+      "bindings": {
+        "bundle": "ace50ce8b4defc2a3a871e4031a358e0942fb114980e487acac07c66f766ce14",
+        "candidate_id": "cand_bec6f029a7417259d49c",
+        "dataset": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+        "model_data_evidence": "2b14200101abe5977462789b3643a365276795f84008943271041322f497ceb2",
+        "model_revision": "53a32aee5e9447773fd2b85988395066aef3700a",
+        "pilot_metrics": "a3c6a25c51b203de922e622ef546721bcbd91a737741978c16dfef0a8b264f1f",
+        "plan_id": "plan_b3630466fb9a25f6b08c",
+        "preflight_metrics": "0b3459ae3619a14e577fb1548853a67e1dbcc5c20855b870ba94fc67de5b3a05"
+      },
+      "final_export": {
+        "adapter_weights_sha256": "4717543bb38f084573a6f1ea2fa0638d71c1a1a38b1b2103545951e052d5f31b",
+        "artifact_manifest_sha256": "4ba7e61cfc910a16e9fac26b91766ae7f827750b2e0c8bb607d9622ad4f25899",
+        "reload_evidence_sha256": "799a2587968dc930832e64a23878fdbc0473c678b80d403927bfc7d01fa5ed6d",
+        "total_bytes": 17633543
+      },
+      "jobs": [
+        {
+          "action": "dependency",
+          "finished_at": "2026-08-12T01:23:04.040999+00:00",
+          "job_id": "job_8814da6e8ce4476a9c1126c02e44b790",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:23:02.452330+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "model-data",
+          "finished_at": "2026-08-12T01:23:15.867224+00:00",
+          "job_id": "job_4ff983036d0a41e1af4fe8ab7af0d968",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:23:07.987788+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "preflight",
+          "finished_at": "2026-08-12T01:23:23.288032+00:00",
+          "job_id": "job_d59441ff03524d0e97f82f712e823edb",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:23:19.262137+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "pilot",
+          "finished_at": "2026-08-12T01:23:33.008501+00:00",
+          "job_id": "job_ea89a94569e440bcb2125d34cb19c784",
+          "return_code": 0,
+          "run_id": null,
+          "started_at": "2026-08-12T01:23:26.392390+00:00",
+          "state": "completed"
+        },
+        {
+          "action": "train",
+          "finished_at": "2026-08-12T01:23:41.845065+00:00",
+          "job_id": "job_db8f237cae9c4d47a21bdc770617b27c",
+          "return_code": 0,
+          "run_id": "run_db8f237cae9c4d47a21bdc770617b27c",
+          "started_at": "2026-08-12T01:23:37.486128+00:00",
+          "state": "completed"
+        }
+      ],
+      "measured_run": {
+        "candidate_id": "cand_bec6f029a7417259d49c",
+        "completed_optimizer_updates": 3,
+        "distribution": "single",
+        "execution_semantics": "uninterrupted",
+        "global_step": 3,
+        "measured_peak_bytes": 582029576,
+        "metrics_sha256": "ff7def7aa0e8e54a4b4263572704fc4e15db9c1388089f159aa94abebe1cfaa7",
+        "output_dir": "/Users/biscuit/Aptus/.aptus-m3-work/bundle-alpha-r2/runs/run_db8f237cae9c4d47a21bdc770617b27c",
+        "plan_id": "plan_b3630466fb9a25f6b08c",
+        "resume_supported": false,
+        "training_runtime": "mlx-lm",
+        "world_size": 1
+      },
+      "ordinal": 2,
+      "pilot_metrics_sha256": "a3c6a25c51b203de922e622ef546721bcbd91a737741978c16dfef0a8b264f1f",
+      "preflight_metrics_sha256": "0b3459ae3619a14e577fb1548853a67e1dbcc5c20855b870ba94fc67de5b3a05",
+      "state": "measured-run-pass"
+    }
+  ],
+  "runtime": {
+    "external_environment": true,
+    "mlx": "0.31.2",
+    "mlx_lm": "0.31.3",
+    "mlx_metal": "0.31.2",
+    "python": "3.12.13"
+  },
+  "schema_version": "aptus.path-alpha-m3-acceptance.v1",
+  "source": {
+    "acceptance_commit": "f4775c01e6b8f932e11c2d665e90859d6aedbe04",
+    "acceptance_tree": "eba49709fe58ed72329813909048c00f1330d875",
+    "aptus_version": "0.2.0",
+    "working_tree_dirty_for_docs_only_at_record": true
+  },
+  "state": "measured-run-pass"
+}

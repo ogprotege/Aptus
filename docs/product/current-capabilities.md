@@ -1,8 +1,20 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-12 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
+[2026-08-12 Path Alpha MLX QLoRA acceptance
+record](../operations/evidence/2026-08-12-path-alpha-mlx-m3/README.md) binds
+two fresh, clean `aptus.training-plan.v6` / `aptus.bundle.v3` managed ladders
+through `measured-run-pass` at source commit
+`f4775c01e6b8f932e11c2d665e90859d6aedbe04`, tree
+`eba49709fe58ed72329813909048c00f1330d875`, and artifact fingerprint
+`ace50ce8b4defc2a3a871e4031a358e0942fb114980e487acac07c66f766ce14` for the
+exact Path Alpha identity (`mlx-community/Qwen2.5-0.5B-Instruct-4bit` @
+`53a32aee5e9447773fd2b85988395066aef3700a`, synthetic
+`examples/support-sft.jsonl`, Apple M5 Pro host class, mlx 0.31.2 / mlx-lm
+0.31.3). Operator procedure:
+[Path Alpha runbook](../guides/path-alpha-mlx-operator.md). The earlier
 [2026-08-05 Qwen2 MLX-LM current-contract evidence at exact source
 record](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 binds two fresh, clean v5-plan and v3-bundle repetitions through
@@ -13,7 +25,9 @@ binds two fresh, clean v5-plan and v3-bundle repetitions through
 It supplies current-contract Phase 6 runtime evidence at the exact acceptance
 source only for the recorded Qwen2.5
 artifact, immutable revision, Apple M5 Pro host, Python and MLX-LM runtime,
-four-row synthetic dataset, plan, bundle, and policy snapshot. The Qwen2 policy remains a
+four-row synthetic dataset, plan, bundle, and policy snapshot. That Phase 6
+packet remains the historical exact-source refresh baseline; it is not replaced
+by the Path Alpha v6 packet above. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
 artifact remains conditional on its own runtime gates. One separate exact
 SmolLM2 CUDA LoRA single-device workflow reached `measured-run-pass` in the

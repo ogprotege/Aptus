@@ -1,16 +1,15 @@
 # Mission program status
 
 - **Updated:** 2026-08-12
-- **Current phase:** M3 Path Alpha — **NOT STARTED**
-- **Last completed phase:** **M2** Trust the “no” — `M2-COMPLETION.md`
-- **Also complete:** M0, M1
-- **Next allowed action:** Open M3 only after explicit measured-run authorization (model download / train)
-- **Blocked on:** none for planning work
-- **Anti-rush:** M3/M4 measured work **not** started — **yes**
-- **SSH / Linux host:** not required until M4
+- **Current phase:** M4 Path Beta — **NOT STARTED**
+- **Last completed phase:** **M3** Path Alpha — `M3-COMPLETION.md`
+- **Also complete:** M0, M1, M2
+- **Next allowed action:** M4 only with CUDA host + cost authorization
+- **Anti-rush:** M4 not started — **yes**
+- **SSH / Linux:** required for M4 only
 
-## Suite snapshot (M2 exit)
+## Path Alpha measured result
 
-- Python: **951 OK**
-- Web: **134 OK**
-- Ruff / typecheck: pass
+- Two `measured-run-pass` ladders at source `f4775c0…`
+- Fingerprint `ace50ce8…`
+- Evidence: `docs/operations/evidence/2026-08-12-path-alpha-mlx-m3/`

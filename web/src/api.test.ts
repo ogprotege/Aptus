@@ -1362,6 +1362,30 @@ describe("typed API client", () => {
             model_policy_decision: decision,
             model_policy_decision_source: "user-attested",
             inspection_receipt: null,
+            correction: {
+              schema_version: "aptus.plan-correction.v1",
+              kind: "no-path",
+              summary: "No supported training path fits these facts.",
+              primary_reason_codes: ["infeasible_memory"],
+              recommended_candidate_id: null,
+              recommended_status: null,
+              pilot_required: false,
+              ranking_objective: "memory",
+              fact_hints: [{
+                fact: "target.sequence_length",
+                direction: "decrease",
+                why: "Estimated memory exceeds usable device capacity.",
+                source_reason_codes: ["infeasible_memory"],
+              }],
+              disallowed_suggestions: [{
+                code: "no_new_method",
+                message: "Do not invent a training method outside Full/LoRA/int8-LoRA/QLoRA.",
+              }],
+              operator_next_step: {
+                action: "change-facts",
+                label: "Change facts and replan",
+              },
+            },
             candidates: [{
               candidate_id: candidateId,
               model_policy_decision_id: decision.decision_id,
@@ -1410,6 +1434,30 @@ describe("typed API client", () => {
       model_policy_decision: decision,
       model_policy_decision_source: "user-attested",
       inspection_receipt: null,
+            correction: {
+              schema_version: "aptus.plan-correction.v1",
+              kind: "no-path",
+              summary: "No supported training path fits these facts.",
+              primary_reason_codes: ["infeasible_memory"],
+              recommended_candidate_id: null,
+              recommended_status: null,
+              pilot_required: false,
+              ranking_objective: "memory",
+              fact_hints: [{
+                fact: "target.sequence_length",
+                direction: "decrease",
+                why: "Estimated memory exceeds usable device capacity.",
+                source_reason_codes: ["infeasible_memory"],
+              }],
+              disallowed_suggestions: [{
+                code: "no_new_method",
+                message: "Do not invent a training method outside Full/LoRA/int8-LoRA/QLoRA.",
+              }],
+              operator_next_step: {
+                action: "change-facts",
+                label: "Change facts and replan",
+              },
+            },
       candidates: [{
         candidate_id: `cand_${"9".repeat(20)}`,
         model_policy_decision_id: decision.decision_id,
@@ -1526,6 +1574,22 @@ describe("typed API client", () => {
       model_policy_decision: requestReceipt.decision,
       model_policy_decision_source: "provider-inspection",
       inspection_receipt: requestReceipt,
+      correction: {
+        schema_version: "aptus.plan-correction.v1" as const,
+        kind: "no-path" as const,
+        summary: "No supported training path fits these facts.",
+        primary_reason_codes: ["infeasible_memory"],
+        recommended_candidate_id: null,
+        recommended_status: null,
+        pilot_required: false,
+        ranking_objective: "memory" as const,
+        fact_hints: [],
+        disallowed_suggestions: [],
+        operator_next_step: {
+          action: "change-facts" as const,
+          label: "Change facts and replan",
+        },
+      },
     };
     const wrongModel = structuredClone(requestReceipt);
     wrongModel.model_id = "other/model";
@@ -1580,6 +1644,30 @@ describe("typed API client", () => {
           model_policy_decision: success.model_policy_decision,
           model_policy_decision_source: "user-attested",
           inspection_receipt: null,
+            correction: {
+              schema_version: "aptus.plan-correction.v1",
+              kind: "no-path",
+              summary: "No supported training path fits these facts.",
+              primary_reason_codes: ["infeasible_memory"],
+              recommended_candidate_id: null,
+              recommended_status: null,
+              pilot_required: false,
+              ranking_objective: "memory",
+              fact_hints: [{
+                fact: "target.sequence_length",
+                direction: "decrease",
+                why: "Estimated memory exceeds usable device capacity.",
+                source_reason_codes: ["infeasible_memory"],
+              }],
+              disallowed_suggestions: [{
+                code: "no_new_method",
+                message: "Do not invent a training method outside Full/LoRA/int8-LoRA/QLoRA.",
+              }],
+              operator_next_step: {
+                action: "change-facts",
+                label: "Change facts and replan",
+              },
+            },
         }), {
           status: 422,
           headers: { "content-type": "application/json" },

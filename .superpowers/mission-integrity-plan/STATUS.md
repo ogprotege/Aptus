@@ -1,21 +1,15 @@
 # Mission program status
 
-- **Updated:** 2026-08-12 (M5 started — M5.1 spec freeze draft)
-- **Current phase:** **M5** Correction loop — **IN PROGRESS** (M5.1 awaiting owner approve)
-- **Last completed:** M0–M4 on `main` (PR #88 M4, PR #89 loose ends)
-- **main tip:** `f26fe66`
-- **Next allowed action:** Owner approves `M5-correction-spec.md`, then M5.2 TDD
-- **Anti-rush:** No M5.2 code until M5.1 APPROVED — **yes**
-- **SSH:** not required for M5
-
-## Progress stack on main
-
-| PR | Phase | Merge |
-| --- | --- | --- |
-| #84–#87 | M0–M3 | yes |
-| #88 | M4 Path Beta + CUDA pin fix | yes |
-| #89 | M3.6 / M4.4 loose ends | yes |
+- **Updated:** 2026-08-12 (M5.2 implementation)
+- **Current phase:** **M5** Correction loop — **IN PROGRESS** (M5.2 code on branch)
+- **Last completed:** M0–M4 on `main` (`f26fe66`)
+- **M5.1:** APPROVED
+- **M5.2:** correction module + API + OpenAPI + web types (this branch)
+- **Next:** M5.3 Compare UI panel, M5.4 CLI block, M5.5 docs
+- **SSH:** not required
 
 ## M5 workspace
 
-- Spec draft: `M5-correction-spec.md` (awaiting approval)
+- Spec: `M5-correction-spec.md` (approved)
+- Module: `src/aptus/correction.py`
+- Tests: `tests/aptus/test_correction.py`

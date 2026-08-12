@@ -17,6 +17,7 @@ import type {
   ModelPolicyBindingSource,
   ModelPolicyDecision,
   NoFeasibleComparisonPlan,
+  PlanCorrection,
   PlanRequest,
   ProjectDetail,
   ProjectRecoveryResponse,
@@ -875,6 +876,7 @@ function normalizeNoFeasibleComparison(
       "model_policy_decision_source",
       "inspection_receipt",
       "model",
+      "correction",
     ],
     "No-feasible-plan response",
   );
@@ -954,6 +956,7 @@ function normalizeNoFeasibleComparison(
     recommendation_rationale: [
       "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
     ],
+    correction: normalizePlanCorrection(payload.correction),
   };
 }
 
@@ -1051,7 +1054,89 @@ function normalizePlan(
     warnings: Array.isArray(payload.warnings) ? payload.warnings as string[] : [],
     rationale,
     recommendation_rationale: rationale,
+    correction: normalizePlanCorrection(payload.correction),
   } as TrainingPlan;
+}
+
+function normalizePlanCorrection(value: unknown): PlanCorrection | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.plan-correction.v1") {
+    return null;
+  }
+  if (value.kind !== "select-candidate" && value.kind !== "no-path") {
+    return null;
+  }
+  const next = value.operator_next_step;
+  if (!isRecord(next) || typeof next.action !== "string" || typeof next.label !== "string") {
+    return null;
+  }
+  if (
+    next.action !== "compile-recommended"
+    && next.action !== "confirm-pilot-then-train"
+    && next.action !== "change-facts"
+  ) {
+    return null;
+  }
+  return {
+    schema_version: "aptus.plan-correction.v1",
+    kind: value.kind,
+    summary: typeof value.summary === "string" ? value.summary : "",
+    primary_reason_codes: Array.isArray(value.primary_reason_codes)
+      ? value.primary_reason_codes.filter((item): item is string => typeof item === "string")
+      : [],
+    recommended_candidate_id:
+      typeof value.recommended_candidate_id === "string"
+        ? value.recommended_candidate_id
+        : null,
+    recommended_status:
+      value.recommended_status === "feasible" || value.recommended_status === "conditional"
+        ? value.recommended_status
+        : null,
+    pilot_required: value.pilot_required === true,
+    ranking_objective:
+      value.ranking_objective === "quality"
+      || value.ranking_objective === "memory"
+      || value.ranking_objective === "speed"
+        ? value.ranking_objective
+        : null,
+    fact_hints: Array.isArray(value.fact_hints)
+      ? value.fact_hints.flatMap((item) => {
+        if (!isRecord(item) || typeof item.fact !== "string" || typeof item.why !== "string") {
+          return [];
+        }
+        if (
+          item.direction !== "decrease"
+          && item.direction !== "increase"
+          && item.direction !== "set"
+          && item.direction !== "review"
+        ) {
+          return [];
+        }
+        return [{
+          fact: item.fact,
+          direction: item.direction,
+          why: item.why,
+          source_reason_codes: Array.isArray(item.source_reason_codes)
+            ? item.source_reason_codes.filter((code): code is string => typeof code === "string")
+            : [],
+        }];
+      })
+      : [],
+    disallowed_suggestions: Array.isArray(value.disallowed_suggestions)
+      ? value.disallowed_suggestions.flatMap((item) => {
+        if (!isRecord(item) || typeof item.code !== "string" || typeof item.message !== "string") {
+          return [];
+        }
+        return [{ code: item.code, message: item.message }];
+      })
+      : [],
+    operator_next_step: {
+      action: next.action,
+      label: next.label,
+    },
+  };
 }
 
 export class ApiError extends Error {

@@ -2092,6 +2092,16 @@
             "title": "Candidates",
             "type": "array"
           },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanCorrectionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "error": {
             "const": "no_feasible_plan",
             "title": "Error",
@@ -2215,6 +2225,201 @@
           "runtime_contract"
         ],
         "title": "PlanCandidateResponse",
+        "type": "object"
+      },
+      "PlanCorrectionDisallowedSuggestionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "PlanCorrectionDisallowedSuggestionResponse",
+        "type": "object"
+      },
+      "PlanCorrectionFactHintResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "decrease",
+              "increase",
+              "set",
+              "review"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "fact": {
+            "minLength": 1,
+            "title": "Fact",
+            "type": "string"
+          },
+          "source_reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Reason Codes",
+            "type": "array"
+          },
+          "why": {
+            "minLength": 1,
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fact",
+          "direction",
+          "why",
+          "source_reason_codes"
+        ],
+        "title": "PlanCorrectionFactHintResponse",
+        "type": "object"
+      },
+      "PlanCorrectionNextStepResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "compile-recommended",
+              "confirm-pilot-then-train",
+              "change-facts"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "label"
+        ],
+        "title": "PlanCorrectionNextStepResponse",
+        "type": "object"
+      },
+      "PlanCorrectionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "disallowed_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/PlanCorrectionDisallowedSuggestionResponse"
+            },
+            "title": "Disallowed Suggestions",
+            "type": "array"
+          },
+          "fact_hints": {
+            "items": {
+              "$ref": "#/components/schemas/PlanCorrectionFactHintResponse"
+            },
+            "title": "Fact Hints",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "select-candidate",
+              "no-path"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "operator_next_step": {
+            "$ref": "#/components/schemas/PlanCorrectionNextStepResponse"
+          },
+          "pilot_required": {
+            "title": "Pilot Required",
+            "type": "boolean"
+          },
+          "primary_reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Primary Reason Codes",
+            "type": "array"
+          },
+          "ranking_objective": {
+            "anyOf": [
+              {
+                "enum": [
+                  "quality",
+                  "memory",
+                  "speed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ranking Objective"
+          },
+          "recommended_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Candidate Id"
+          },
+          "recommended_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "feasible",
+                  "conditional"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Status"
+          },
+          "schema_version": {
+            "const": "aptus.plan-correction.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "kind",
+          "summary",
+          "primary_reason_codes",
+          "recommended_candidate_id",
+          "recommended_status",
+          "pilot_required",
+          "ranking_objective",
+          "fact_hints",
+          "disallowed_suggestions",
+          "operator_next_step"
+        ],
+        "title": "PlanCorrectionResponse",
         "type": "object"
       },
       "PlanModelPolicyBindingResponse": {
@@ -3624,6 +3829,16 @@
             "minItems": 1,
             "title": "Candidates",
             "type": "array"
+          },
+          "correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanCorrectionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "inspection_receipt": {
             "anyOf": [

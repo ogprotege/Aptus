@@ -1,9 +1,9 @@
 # M5 — Correction object specification (freeze)
 
-> **Status:** DRAFT for owner approval (M5.1)  
+> **Status:** APPROVED 2026-08-12 (owner: M5.1 approved — implement M5.2)  
 > **Path:** Server-owned structured correction on plan outcomes  
 > **Authority:** Mission integrity plan §12  
-> **Does not implement:** Until owner marks APPROVED below  
+> **Implementation:** M5.2 in progress on branch `feat/mission-m5-correction`
 
 ## 1. Goal (one sentence)
 
@@ -267,12 +267,12 @@ Forbidden:
 
 | Decision | Owner |
 | --- | --- |
-| Schema `aptus.plan-correction.v1` as above | ☐ Approve / ☐ Change request |
-| Identity exclusion (presentation-only) | ☐ Approve / ☐ Change request |
-| Three situations mapping | ☐ Approve / ☐ Change request |
-| Proceed to M5.2 implementation | ☐ Yes / ☐ Not yet |
+| Schema `aptus.plan-correction.v1` as above | ☑ Approve |
+| Identity exclusion (presentation-only) | ☑ Approve |
+| Three situations mapping | ☑ Approve |
+| Proceed to M5.2 implementation | ☑ Yes |
 
-**Approval recorded:** _(date / chat authorization)_
+**Approval recorded:** 2026-08-12 owner chat: “M5.1 approved — implement M5.2”
 
 ---
 

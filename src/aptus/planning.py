@@ -67,6 +67,7 @@ class NoFeasiblePlanError(ValueError):
         model_policy_decision: ModelPolicyDecision,
         model_policy_decision_source: ModelPolicyBindingSource,
         inspection_receipt: ModelInspectionReceipt | None,
+        ranking_objective: str | None = None,
     ) -> None:
         if not isinstance(model, ModelSpec):
             raise TypeError("No-feasible-plan errors require a model subject.")
@@ -134,6 +135,7 @@ class NoFeasiblePlanError(ValueError):
         self.model_policy_decision = model_policy_decision
         self.model_policy_decision_source = model_policy_decision_source
         self.inspection_receipt = inspection_receipt
+        self.ranking_objective = ranking_objective
         reasons = sorted(
             {reason for item in candidates for reason in item.rejection_reasons}
         )
@@ -1108,6 +1110,7 @@ def plan_training(
             model_policy_decision=policy_decision,
             model_policy_decision_source=policy_source,
             inspection_receipt=inspection_receipt,
+            ranking_objective=target.objective.value,
         )
     ordered = sorted(viable, key=lambda item: _rank_key(item, target))
     ranked_ids = {item.candidate_id: index for index, item in enumerate(ordered)}

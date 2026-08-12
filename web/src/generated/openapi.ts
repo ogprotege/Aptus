@@ -1110,6 +1110,7 @@ export interface components {
         NoFeasiblePlanResponse: {
             /** Candidates */
             candidates: components["schemas"]["PlanCandidateResponse"][];
+            correction?: components["schemas"]["PlanCorrectionResponse"] | null;
             /**
              * Error
              * @constant
@@ -1150,6 +1151,67 @@ export interface components {
             target_modules: string[];
         } & {
             [key: string]: unknown;
+        };
+        /** PlanCorrectionDisallowedSuggestionResponse */
+        PlanCorrectionDisallowedSuggestionResponse: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+        };
+        /** PlanCorrectionFactHintResponse */
+        PlanCorrectionFactHintResponse: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "decrease" | "increase" | "set" | "review";
+            /** Fact */
+            fact: string;
+            /** Source Reason Codes */
+            source_reason_codes: string[];
+            /** Why */
+            why: string;
+        };
+        /** PlanCorrectionNextStepResponse */
+        PlanCorrectionNextStepResponse: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "compile-recommended" | "confirm-pilot-then-train" | "change-facts";
+            /** Label */
+            label: string;
+        };
+        /** PlanCorrectionResponse */
+        PlanCorrectionResponse: {
+            /** Disallowed Suggestions */
+            disallowed_suggestions: components["schemas"]["PlanCorrectionDisallowedSuggestionResponse"][];
+            /** Fact Hints */
+            fact_hints: components["schemas"]["PlanCorrectionFactHintResponse"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "select-candidate" | "no-path";
+            operator_next_step: components["schemas"]["PlanCorrectionNextStepResponse"];
+            /** Pilot Required */
+            pilot_required: boolean;
+            /** Primary Reason Codes */
+            primary_reason_codes: string[];
+            /** Ranking Objective */
+            ranking_objective: ("quality" | "memory" | "speed") | null;
+            /** Recommended Candidate Id */
+            recommended_candidate_id: string | null;
+            /** Recommended Status */
+            recommended_status: ("feasible" | "conditional") | null;
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.plan-correction.v1";
+            /** Summary */
+            summary: string;
         };
         /** PlanModelPolicyBindingResponse */
         PlanModelPolicyBindingResponse: {
@@ -1670,6 +1732,7 @@ export interface components {
         TrainingPlanResponse: {
             /** Candidates */
             candidates: components["schemas"]["PlanCandidateResponse"][];
+            correction?: components["schemas"]["PlanCorrectionResponse"] | null;
             inspection_receipt: components["schemas"]["ModelInspectionReceiptResponse"] | null;
             model: components["schemas"]["PlanModelSubjectResponse"];
             model_policy_decision: components["schemas"]["InspectedModelPolicyDecisionResponse"];

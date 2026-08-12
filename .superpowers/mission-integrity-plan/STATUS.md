@@ -1,23 +1,21 @@
 # Mission program status
 
-- **Updated:** 2026-08-12 (loose ends: PR #88 merge, M4.4 cancel, M3.6 UI walk, plan checkboxes)
-- **Current phase:** M5 Correction loop — **NOT STARTED** (await owner auth)
-- **Last completed:** M4 Path Beta merged (`11769fb` PR #88) + M4.4 cancel smoke + M3.6 UI walk
-- **Also complete:** M0–M3
-- **main tip:** `11769fb` Merge pull request #88
-- **Next:** M5 only with explicit owner authorization
-- **SSH:** not required for M5 by default
+- **Updated:** 2026-08-12 (M5 started — M5.1 spec freeze draft)
+- **Current phase:** **M5** Correction loop — **IN PROGRESS** (M5.1 awaiting owner approve)
+- **Last completed:** M0–M4 on `main` (PR #88 M4, PR #89 loose ends)
+- **main tip:** `f26fe66`
+- **Next allowed action:** Owner approves `M5-correction-spec.md`, then M5.2 TDD
+- **Anti-rush:** No M5.2 code until M5.1 APPROVED — **yes**
+- **SSH:** not required for M5
 
 ## Progress stack on main
 
 | PR | Phase | Merge |
 | --- | --- | --- |
 | #84–#87 | M0–M3 | yes |
-| #88 | M4 Path Beta + CUDA pin fix | **yes** (`11769fb`) |
+| #88 | M4 Path Beta + CUDA pin fix | yes |
+| #89 | M3.6 / M4.4 loose ends | yes |
 
-## Loose ends closed 2026-08-12
+## M5 workspace
 
-1. PR #88 merged after Ruff format fix
-2. M4.4 cancel smoke pass on Sherminator (`cancelled`, rc -15)
-3. M3.6 workbench UI walk — no P1 dead ends (`M3.6-UI-WALK.md`)
-4. Mission plan §10/§11 checkboxes updated to match reality
+- Spec draft: `M5-correction-spec.md` (awaiting approval)

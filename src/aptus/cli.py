@@ -49,6 +49,40 @@ def _write_json(value: Any, output: Path | None) -> None:
         output.write_text(text, encoding="utf-8")
 
 
+def _print_plan_refusal_summary(plan: Any) -> None:
+    """Print operator-facing what/why/what-can-change guidance to stderr.
+
+    Plan JSON on disk stays identity-pure; this summary is presentation only.
+    """
+
+    from .refusal import format_candidate_refusal_block
+
+    candidates = getattr(plan, "candidates", ())
+    if not candidates:
+        return
+    lines = ["Aptus refusal guidance (presentation only; plan JSON unchanged):"]
+    for candidate in candidates:
+        status = getattr(candidate, "status", None)
+        status_value = getattr(status, "value", status) or "unknown"
+        reasons = getattr(candidate, "rejection_reasons", ()) or ()
+        if status_value in {"feasible"} and not reasons:
+            continue
+        method = getattr(candidate, "method", None)
+        method_value = getattr(method, "value", method)
+        distribution = getattr(candidate, "distribution", None)
+        distribution_value = getattr(distribution, "value", distribution)
+        header = f"- {method_value} / {distribution_value}"
+        block = format_candidate_refusal_block(
+            status=str(status_value),
+            reasons=tuple(reasons),
+        )
+        if block:
+            lines.append(header)
+            lines.extend(f"  {line}" for line in block.splitlines())
+    if len(lines) > 1:
+        print("\n".join(lines), file=sys.stderr)
+
+
 def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--model-id", required=True, help="Provider repository ID, such as org/model."
@@ -713,10 +747,12 @@ def _run(arguments: argparse.Namespace) -> int:
         plan = _make_plan(arguments)
         if arguments.command == "spec-plan":
             _write_json(plan, arguments.output)
+            _print_plan_refusal_summary(plan)
         else:
             if arguments.plan_output:
                 _write_json(plan, arguments.plan_output)
             _write_json(_compile(plan, arguments.output), None)
+            _print_plan_refusal_summary(plan)
         return 0
     if arguments.command == "compile":
         try:

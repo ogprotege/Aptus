@@ -198,15 +198,15 @@ derive every default, status, and response field from one source.
 The [documentation inventory](documentation-inventory.md) classifies 136
 governed tracked Markdown documents:
 
-- 108 active;
+- 110 active;
 - 2 deprecated;
 - 27 archived.
 
-The repository contains 138 tracked Markdown files in total. The pull-request
+The repository contains 140 tracked Markdown files in total. The pull-request
 template is the only metadata-exempt workflow interface. The automated
-`maintained_documentation()` set covers all other 137 files, including the
-desktop build guide, all legacy reports, the archived engineering reviews, and
-the mission integrity program plan.
+`maintained_documentation()` set covers all other 139 files, including the
+desktop build guide, all legacy reports, the archived engineering reviews, the
+mission integrity program plan, and the Path Alpha operator/evidence pages.
 
 The deprecated pages point to current successors. Archived research, legacy,
 diagnostic, and engineering-review records carry visible warnings before their

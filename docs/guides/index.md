@@ -15,6 +15,7 @@ interface and schema details.
 ## Compile and execute
 
 - [Compile, validate, and run](compile-validate-run.md)
+- [Path Alpha MLX QLoRA operator runbook](path-alpha-mlx-operator.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [Recovery and resume boundary](resume-recover.md)
 - [Troubleshooting](troubleshooting.md)

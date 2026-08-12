@@ -1,0 +1,148 @@
+{
+  "acceptance_status": "passed",
+  "claim_boundary": {
+    "does_not_support": [
+      "semantic CUDA adapter reload / fresh-process generation",
+      "DDP/FSDP/multi-GPU",
+      "model quality or safety",
+      "throughput/performance guarantees",
+      "all CUDA cards beyond measured host class",
+      "public release readiness",
+      "historical fingerprint transfer"
+    ],
+    "supports": [
+      "exact Path Beta model id+revision",
+      "exact dataset digest",
+      "exact plan/candidate/fingerprint at measurement source with pin fix",
+      "Ubuntu 24.04.4 + RTX 3050 host class",
+      "clean-env torch 2.13.0+cu130 stack",
+      "one ordered five-job ladder to measured-run-pass with structural export verification"
+    ]
+  },
+  "compiled_input": {
+    "artifact_fingerprint": "1a41e586511cff2cf68b1e0794a9b1b57395601a072fc4661bf0ebff140bf855",
+    "candidate_id": "cand_2fe2c0a05360293358f6",
+    "compiler_id": "transformers.peft-lora.v2",
+    "distribution": "single",
+    "export_kind": "peft-adapter-safetensors",
+    "method": "lora",
+    "plan_id": "plan_6870eaf879c843dd0ede",
+    "plan_schema_version": "aptus.training-plan.v6",
+    "plan_sha256": "4c95442d40d2d537ab4a490db7a4c1e6fa3f7c67a0f7487f267331606cf17942",
+    "policy_snapshot_sha256": "c2ae989c8b68df6e984dc7c8670397e791ff30e1f5ce82129e25c1c2b93268d8",
+    "precision": "bf16"
+  },
+  "dataset": {
+    "logical_path": "examples/support-sft.jsonl",
+    "rows": 4,
+    "sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44"
+  },
+  "final_export": {
+    "adapter_model_safetensors_bytes": 19593064,
+    "adapter_model_safetensors_sha256": "5aab8b259824a1dc81613c01e6ea49cb2d757e9601d5f080c009aabef9eafffa",
+    "manifest_sha256": "95664d8b60bbcd8d89808d7aa4a9fcdb72e0c94ad6cb3be2af7e8ddbdd2c59ed",
+    "semantic_adapter_reload_claimed": false,
+    "total_bytes": 23123132,
+    "verification": "structural PEFT adapter tree; parent verified-at-completion"
+  },
+  "historical_anchor": {
+    "historical_adapter_sha256": "fd3eb151acf70ab072eb8a60186df782370fa182b74dd92f8630591ba7a9dba5",
+    "historical_bundle_fingerprint": "296fb7b710f60345a590748f053eb15f9b5b4f4b3fec539ae3a705e31d6a640b",
+    "note": "Historical identity freeze; this packet re-proves Path Beta at current HEAD. Fingerprint and adapter digests are not transferred.",
+    "packet": "../2026-08-06-smollm2-cuda-lora-single-acceptance/"
+  },
+  "host": {
+    "compute_capability": "8.6",
+    "driver_version": "595.84",
+    "gpu": "NVIDIA GeForce RTX 3050",
+    "host_ram_class": "62 GiB class",
+    "logical_host_label": "Sherminator",
+    "operating_system": "Ubuntu 24.04.4 LTS",
+    "torch_visible_vram_bytes": 8220573696
+  },
+  "model": {
+    "architecture": "LlamaForCausalLM",
+    "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "parameter_count": 134515008,
+    "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac"
+  },
+  "path_id": "path-beta-cuda-lora-single-v1",
+  "product_fix_included": {
+    "fix": "Compare PEP 440 public versions in cuda preflight require_dependencies",
+    "issue": "CUDA dependency gate rejected torch 2.13.0+cu130 against pin torch==2.13.0"
+  },
+  "qualifying_workflow": {
+    "jobs": {
+      "dependency": {
+        "artifact_integrity_status": null,
+        "finished_at": "2026-08-12T14:14:04.487017+00:00",
+        "job_id": "job_354b87c1746a4988b67d126a88a52c98",
+        "return_code": 0,
+        "started_at": "2026-08-12T14:14:04.116378+00:00",
+        "state": "completed"
+      },
+      "model-data": {
+        "artifact_integrity_status": null,
+        "finished_at": "2026-08-12T14:14:09.392137+00:00",
+        "job_id": "job_7e135284319d422f8d94543e6d6d09cc",
+        "return_code": 0,
+        "started_at": "2026-08-12T14:14:04.712815+00:00",
+        "state": "completed"
+      },
+      "pilot": {
+        "artifact_integrity_status": null,
+        "finished_at": "2026-08-12T14:14:35.751711+00:00",
+        "job_id": "job_f232b5a638a94a4a87dc711d098fff87",
+        "return_code": 0,
+        "started_at": "2026-08-12T14:14:17.678681+00:00",
+        "state": "completed"
+      },
+      "preflight": {
+        "artifact_integrity_status": null,
+        "finished_at": "2026-08-12T14:14:17.534184+00:00",
+        "job_id": "job_b89b263bbc4b458bb8865a40ccb2f540",
+        "return_code": 0,
+        "started_at": "2026-08-12T14:14:09.568558+00:00",
+        "state": "completed"
+      },
+      "train": {
+        "artifact_integrity_status": "verified-at-completion",
+        "finished_at": "2026-08-12T14:14:44.988672+00:00",
+        "job_id": "job_54ee79cb3ddc43c3908d691e73527beb",
+        "return_code": 0,
+        "started_at": "2026-08-12T14:14:37.390730+00:00",
+        "state": "completed"
+      }
+    },
+    "order": [
+      "dependency",
+      "model-data",
+      "preflight",
+      "pilot",
+      "train"
+    ]
+  },
+  "recorded_at": "2026-08-12T14:16:16.227096+00:00",
+  "result": {
+    "artifact_integrity_status": "verified-at-completion",
+    "global_step": 3,
+    "measured_run_completed_at": "2026-08-12T14:14:44.967035+00:00",
+    "optimizer_updates": 3,
+    "state": "measured-run-pass"
+  },
+  "runtime": {
+    "accelerate": "1.14.0",
+    "clean_env": true,
+    "interpreter": "/home/wts/aptus-m4/runtime-env/bin/python",
+    "peft": "0.19.1",
+    "python": "3.12.3",
+    "safetensors": "0.8.0",
+    "torch": "2.13.0+cu130",
+    "transformers": "5.14.1"
+  },
+  "schema_version": "aptus.path-beta-acceptance-summary.v1",
+  "source": {
+    "base_commit": "93d69f63c7d3c1147ce186e810c355cdcf1a1b9c",
+    "note": "Measurement used base main tip plus CUDA PEP 440 local-label dependency pin fix in src/aptus/_bundle_programs/cuda/preflight.py (included in this PR)."
+  }
+}

@@ -69,6 +69,18 @@ def require_static() -> None:
         ast.parse((ROOT / relative).read_text(encoding="utf-8"), filename=relative)
 
 
+def _public_version(value: str) -> str:
+    """Return the PEP 440 public version (strip local labels like ``+cu130``).
+
+    Bundle pins record public versions (for example ``torch==2.13.0``). Official
+    CUDA wheels publish local labels (``2.13.0+cu130``). Matching the public
+    segment keeps the pin fail-closed on wrong releases while accepting the
+    intended CUDA builds.
+    """
+
+    return value.split("+", 1)[0].strip()
+
+
 def require_dependencies() -> None:
     for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -78,7 +90,7 @@ def require_dependencies() -> None:
             actual = version(name)
         except PackageNotFoundError as error:
             raise RuntimeError(f"Missing dependency: {name}=={expected}") from error
-        if actual != expected:
+        if _public_version(actual) != _public_version(expected):
             raise RuntimeError(
                 f"Dependency mismatch for {name}: expected {expected}, found {actual}"
             )

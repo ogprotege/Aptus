@@ -2619,6 +2619,43 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("policy_snapshot.py", completed.stderr)
         self.assertIn("SyntaxError", completed.stderr)
 
+    def test_cuda_dependency_pins_accept_pep440_local_labels(self) -> None:
+        """CUDA wheels report local labels (2.13.0+cu130); pins stay public."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._bundle(Path(temporary))
+            module = self._load_generated_path(
+                output, "preflight.py", "aptus_generated_preflight_local_versions"
+            )
+            self.assertEqual(module._public_version("2.13.0+cu130"), "2.13.0")
+            self.assertEqual(module._public_version("2.13.0"), "2.13.0")
+
+            requirements = (output / "requirements.txt").read_text(encoding="utf-8")
+            pinned = {
+                line.split("==", 1)[0]: line.split("==", 1)[1]
+                for line in requirements.splitlines()
+                if line.strip() and "==" in line
+            }
+
+            def fake_version(name: str) -> str:
+                base = pinned[name]
+                if name == "torch":
+                    return f"{base}+cu130"
+                return base
+
+            with patch.object(module, "version", side_effect=fake_version):
+                module.require_dependencies()
+
+            def wrong_torch(name: str) -> str:
+                base = pinned[name]
+                if name == "torch":
+                    return "2.12.0+cu130"
+                return base
+
+            with patch.object(module, "version", side_effect=wrong_torch):
+                with self.assertRaisesRegex(RuntimeError, "Dependency mismatch for torch"):
+                    module.require_dependencies()
+
     def test_pilot_retention_deletes_only_marked_aptus_roots(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = self._bundle(Path(temporary))

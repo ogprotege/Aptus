@@ -941,7 +941,11 @@ class DocumentationTests(unittest.TestCase):
             opening_boundary,
         )
         self.assertIn(
-            "One separate exact SmolLM2 CUDA LoRA single-device workflow reached",
+            "2026-08-12-path-beta-cuda-lora-m4/README.md",
+            opening_boundary,
+        )
+        self.assertIn(
+            "One earlier exact SmolLM2 CUDA LoRA single-device workflow reached",
             opening_boundary,
         )
 
@@ -1010,21 +1014,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 140)
+        self.assertEqual(len(repository_documents), 142)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 139)
-        self.assertEqual(len(active_documents), 110)
+        self.assertEqual(len(governed_documents), 141)
+        self.assertEqual(len(active_documents), 112)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 139)
-        self.assertIn("139 are governed", normalized_inventory)
-        self.assertIn("139 governed", normalized_inventory)
-        self.assertIn("140 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 110 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 141)
+        self.assertIn("141 are governed", normalized_inventory)
+        self.assertIn("141 governed", normalized_inventory)
+        self.assertIn("142 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 112 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 

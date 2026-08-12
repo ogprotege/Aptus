@@ -44,6 +44,16 @@ Neither number is a measured peak. The preflight and pilot produce host-specific
 observations for the selected candidate. Train admission uses the measured pilot
 peak, not the analytic point estimate, for its current free-VRAM check.
 
+## Plan-level correction
+
+Alongside the candidate table, Aptus publishes one **correction** summary
+(`aptus.plan-correction.v1`): what to do next, whether a pilot is required, and
+(when no path is viable) which facts to change. CLI prints it on stderr after
+`spec-plan`; the Compare stage shows a “Next action” panel with a single CTA.
+Correction is presentation-only and is **not** optimality, quality, or a license
+to invent unsupported methods. See [Troubleshooting — When Aptus refuses or
+corrects](troubleshooting.md#when-aptus-refuses-or-corrects).
+
 ## Ranking
 
 The target objective can favor quality, memory, or speed. Ranking is deterministic

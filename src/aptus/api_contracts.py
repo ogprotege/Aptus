@@ -631,6 +631,41 @@ def _require_receipt_model_subject(
         )
 
 
+class PlanCorrectionFactHintResponse(ClosedResponseModel):
+    fact: str = Field(min_length=1)
+    direction: Literal["decrease", "increase", "set", "review"]
+    why: str = Field(min_length=1)
+    source_reason_codes: list[str]
+
+
+class PlanCorrectionDisallowedSuggestionResponse(ClosedResponseModel):
+    code: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+
+
+class PlanCorrectionNextStepResponse(ClosedResponseModel):
+    action: Literal[
+        "compile-recommended",
+        "confirm-pilot-then-train",
+        "change-facts",
+    ]
+    label: str = Field(min_length=1)
+
+
+class PlanCorrectionResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.plan-correction.v1"]
+    kind: Literal["select-candidate", "no-path"]
+    summary: str = Field(min_length=1, max_length=240)
+    primary_reason_codes: list[str]
+    recommended_candidate_id: str | None
+    recommended_status: Literal["feasible", "conditional"] | None
+    pilot_required: bool
+    ranking_objective: Literal["quality", "memory", "speed"] | None
+    fact_hints: list[PlanCorrectionFactHintResponse]
+    disallowed_suggestions: list[PlanCorrectionDisallowedSuggestionResponse]
+    operator_next_step: PlanCorrectionNextStepResponse
+
+
 class TrainingPlanResponse(ResponseModel):
     schema_version: Literal["aptus.training-plan.v6"]
     plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")
@@ -645,6 +680,7 @@ class TrainingPlanResponse(ResponseModel):
     inspection_receipt: ModelInspectionReceiptResponse | None
     project_id: str | None = None
     project_revision_id: str | None = None
+    correction: PlanCorrectionResponse | None = None
 
     @model_validator(mode="after")
     def require_complete_policy_chain(self) -> Self:
@@ -713,6 +749,7 @@ class NoFeasiblePlanResponse(ClosedResponseModel):
     model_policy_decision: InspectedModelPolicyDecisionResponse
     model_policy_decision_source: Literal["provider-inspection", "user-attested"]
     inspection_receipt: ModelInspectionReceiptResponse | None
+    correction: PlanCorrectionResponse | None = None
 
     @model_validator(mode="after")
     def require_complete_policy_chain(self) -> Self:

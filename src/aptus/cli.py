@@ -49,6 +49,62 @@ def _write_json(value: Any, output: Path | None) -> None:
         output.write_text(text, encoding="utf-8")
 
 
+def _print_plan_correction(plan: Any) -> None:
+    """Print plan-level correction (presentation only) to stderr."""
+
+    from .correction import build_plan_correction
+
+    try:
+        correction = build_plan_correction(plan)
+    except (TypeError, ValueError):
+        return
+    _emit_correction_block(correction.to_primitive())
+
+
+def _print_no_path_correction(error: Any) -> None:
+    """Print no-path correction for a NoFeasiblePlanError."""
+
+    from .correction import build_no_path_correction
+
+    correction = build_no_path_correction(
+        error.candidates,
+        ranking_objective=getattr(error, "ranking_objective", None),
+    )
+    _emit_correction_block(correction.to_primitive())
+
+
+def _emit_correction_block(payload: Mapping[str, Any]) -> None:
+    lines = [
+        "Aptus correction (presentation only; plan JSON identity unchanged):",
+        f"  kind: {payload.get('kind')}",
+        f"  summary: {payload.get('summary')}",
+    ]
+    codes = payload.get("primary_reason_codes") or []
+    if codes:
+        lines.append(
+            "  primary_reason_codes: " + ", ".join(str(item) for item in codes)
+        )
+    recommended_id = payload.get("recommended_candidate_id")
+    if recommended_id:
+        lines.append(f"  recommended_candidate_id: {recommended_id}")
+    if payload.get("pilot_required"):
+        lines.append("  pilot_required: true")
+    next_step = payload.get("operator_next_step") or {}
+    if isinstance(next_step, Mapping):
+        lines.append(f"  next: {next_step.get('action')} — {next_step.get('label')}")
+    for hint in payload.get("fact_hints") or []:
+        if not isinstance(hint, Mapping):
+            continue
+        lines.append(
+            f"  fact_hint: {hint.get('fact')} ({hint.get('direction')}) — {hint.get('why')}"
+        )
+    for item in payload.get("disallowed_suggestions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"  do_not: {item.get('message')}")
+    print("\n".join(lines), file=sys.stderr)
+
+
 def _print_plan_refusal_summary(plan: Any) -> None:
     """Print operator-facing what/why/what-can-change guidance to stderr.
 
@@ -744,14 +800,27 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         return 0
     if arguments.command in {"spec-plan", "plan", "build"}:
-        plan = _make_plan(arguments)
+        from .planning import NoFeasiblePlanError
+
+        try:
+            plan = _make_plan(arguments)
+        except NoFeasiblePlanError as error:
+            # Presentation-only correction; no plan JSON is written.
+            _print_no_path_correction(error)
+            _print_plan_refusal_summary(
+                type("NoPathPlan", (), {"candidates": error.candidates})()
+            )
+            print(f"Aptus error: {error}", file=sys.stderr)
+            return 2
         if arguments.command == "spec-plan":
             _write_json(plan, arguments.output)
+            _print_plan_correction(plan)
             _print_plan_refusal_summary(plan)
         else:
             if arguments.plan_output:
                 _write_json(plan, arguments.plan_output)
             _write_json(_compile(plan, arguments.output), None)
+            _print_plan_correction(plan)
             _print_plan_refusal_summary(plan)
         return 0
     if arguments.command == "compile":

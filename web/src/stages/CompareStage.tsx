@@ -1,4 +1,4 @@
-import type { CandidatePlan, EvidenceRecord, PlanView } from "../types";
+import type { CandidatePlan, EvidenceRecord, PlanCorrection, PlanView } from "../types";
 import { CandidateComparison } from "../components/CandidateComparison";
 import { EmptyStage } from "../components/EmptyStage";
 import { ModelPolicyPanel } from "../components/ModelPolicyPanel";
@@ -56,6 +56,7 @@ export function CompareStage({
   }
 
   const recommended = plan.recommended;
+  const correction = plan.correction ?? null;
   const upper = upperMemory(recommended);
   const limit = memoryLimit(recommended);
   const headroom = upper !== null && limit !== null ? limit - upper : null;
@@ -68,6 +69,7 @@ export function CompareStage({
     (plan.evidence_records ?? []).map((record) => [record.evidence_id, record]),
   );
   const recommendedMemoryLanguage = candidateMemoryLanguage(recommended);
+  const primaryCta = correctionPrimaryAction(correction, Boolean(recommended));
 
   return (
     <>
@@ -82,6 +84,8 @@ export function CompareStage({
         <ModelPolicyPanel presentation={modelPolicyPresentation} />
       ) : null}
 
+      {correction ? <CorrectionPanel correction={correction} /> : null}
+
       {recommended ? (
         <section className="recommendation-panel" aria-labelledby="recommendation-title">
           <div className="recommendation-main">
@@ -91,7 +95,7 @@ export function CompareStage({
               <span>{recommended.precision ?? "precision unknown"}</span>
               <span>{recommended.quantization ?? "no quantization"}</span>
             </h2>
-            <p>{rationale[0] ?? "Aptus returned this candidate as the recommended viable plan."}</p>
+            <p>{correction?.summary ?? rationale[0] ?? "Aptus returned this candidate as the recommended viable plan."}</p>
           </div>
           <dl className="recommendation-metrics">
             <div>
@@ -118,7 +122,10 @@ export function CompareStage({
         <section className="blocked-panel" role="alert">
           <StatusBadge state="infeasible" label="No viable strategy" />
           <h2>Aptus did not find a safe plan.</h2>
-          <p>Review each rejected candidate below. Change the target or hardware facts, then compare again.</p>
+          <p>
+            {correction?.summary
+              ?? "Review each rejected candidate below. Change the target or hardware facts, then compare again."}
+          </p>
         </section>
       )}
 
@@ -225,8 +232,19 @@ export function CompareStage({
 
       <div className="sticky-actions">
         <div>
-          <strong>{recommended ? "Recommended plan ready to compile" : "Compilation blocked"}</strong>
-          <span>{recommended ? "Select an inspected viable alternative to create a new bound plan, or compile the selected recommendation." : "A recommended viable candidate is required."}</span>
+          <strong>
+            {primaryCta.kind === "change-facts"
+              ? "Change facts and replan"
+              : recommended
+                ? "Recommended plan ready to compile"
+                : "Compilation blocked"}
+          </strong>
+          <span>
+            {correction?.summary
+              ?? (recommended
+                ? "Select an inspected viable alternative to create a new bound plan, or compile the selected recommendation."
+                : "A recommended viable candidate is required.")}
+          </span>
         </div>
         <div className="action-buttons">
           <button type="button" className="button button-quiet" onClick={onReturnToFacts}>Edit facts</button>
@@ -240,11 +258,104 @@ export function CompareStage({
               {busy === "select-candidate" ? "Selecting…" : "Select complete candidate"}
             </button>
           ) : null}
-          <button type="button" className="button button-primary" disabled={!recommended || busy !== null || demoMode} onClick={() => void onCompile()}>
-            {busy === "compile" ? "Compiling…" : "Compile recommended bundle"}
-          </button>
+          {primaryCta.kind === "change-facts" ? (
+            <button type="button" className="button button-primary" onClick={onReturnToFacts}>
+              {primaryCta.label}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button button-primary"
+              disabled={!recommended || busy !== null || demoMode}
+              onClick={() => void onCompile()}
+            >
+              {busy === "compile" ? "Compiling…" : primaryCta.label}
+            </button>
+          )}
         </div>
       </div>
     </>
   );
+}
+
+function CorrectionPanel({ correction }: { correction: PlanCorrection }) {
+  return (
+    <section
+      className={correction.kind === "no-path" ? "correction-panel correction-panel-blocked" : "correction-panel"}
+      aria-labelledby="correction-title"
+    >
+      <p className="eyebrow">Next action</p>
+      <h2 id="correction-title">
+        {correction.kind === "no-path" ? "No supported path" : "Recommended correction"}
+      </h2>
+      <p className="correction-summary">{correction.summary}</p>
+      {correction.pilot_required ? (
+        <p className="correction-meta">Pilot required before a measured full-train claim.</p>
+      ) : null}
+      {correction.ranking_objective ? (
+        <p className="correction-meta">
+          Ranking objective: <code>{correction.ranking_objective}</code>
+          {correction.recommended_candidate_id ? (
+            <>
+              {" "}· candidate <code>{correction.recommended_candidate_id}</code>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {correction.fact_hints.length ? (
+        <div className="correction-hints">
+          <strong>What to change</strong>
+          <ul className="plain-list">
+            {correction.fact_hints.map((hint) => (
+              <li key={`${hint.fact}-${hint.direction}`}>
+                <code>{hint.fact}</code>
+                {" "}
+                (
+                {hint.direction}
+                ):
+                {" "}
+                {hint.why}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {correction.disallowed_suggestions.length ? (
+        <div className="correction-disallowed">
+          <strong>Do not</strong>
+          <ul className="plain-list amber-list">
+            {correction.disallowed_suggestions.map((item) => (
+              <li key={item.code}>{item.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <p className="correction-claim">
+        Correction is not optimality or model quality — only the best action within the
+        enumerated candidate set for these facts.
+      </p>
+    </section>
+  );
+}
+
+function correctionPrimaryAction(
+  correction: PlanCorrection | null | undefined,
+  hasRecommended: boolean,
+): { kind: "compile" | "change-facts"; label: string } {
+  if (correction?.operator_next_step.action === "change-facts" || (!hasRecommended && correction?.kind === "no-path")) {
+    return {
+      kind: "change-facts",
+      label: correction?.operator_next_step.label ?? "Change facts and replan",
+    };
+  }
+  if (correction?.operator_next_step.action === "confirm-pilot-then-train") {
+    return {
+      kind: "compile",
+      label: correction.operator_next_step.label,
+    };
+  }
+  return {
+    kind: "compile",
+    label: correction?.operator_next_step.label ?? "Compile recommended bundle",
+  };
 }

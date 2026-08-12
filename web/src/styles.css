@@ -2041,6 +2041,53 @@ code {
   color: var(--muted);
 }
 
+.correction-panel {
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  border: 1px solid color-mix(in srgb, var(--circuit-teal) 34%, var(--porcelain));
+  border-radius: 12px;
+  background: var(--porcelain);
+  box-shadow: var(--shadow);
+}
+
+.correction-panel-blocked {
+  border-color: color-mix(in srgb, var(--fault-red) 38%, var(--porcelain));
+  background: var(--red-soft);
+}
+
+.correction-panel h2 {
+  margin: 4px 0 10px;
+  font-size: 1.35rem;
+}
+
+.correction-summary {
+  margin-bottom: 10px;
+  color: var(--ink);
+  font-size: 1.02rem;
+}
+
+.correction-meta {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.correction-hints,
+.correction-disallowed {
+  margin-top: 12px;
+}
+
+.correction-hints ul,
+.correction-disallowed ul {
+  margin-top: 6px;
+}
+
+.correction-claim {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .comparison-section,
 .candidate-gate-panel,
 .artifact-tree,

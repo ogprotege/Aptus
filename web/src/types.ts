@@ -311,6 +311,38 @@ export interface EvidenceRecord {
   revision?: string | null;
 }
 
+export interface PlanCorrectionFactHint {
+  fact: string;
+  direction: "decrease" | "increase" | "set" | "review";
+  why: string;
+  source_reason_codes: string[];
+}
+
+export interface PlanCorrectionDisallowedSuggestion {
+  code: string;
+  message: string;
+}
+
+export interface PlanCorrectionNextStep {
+  action: "compile-recommended" | "confirm-pilot-then-train" | "change-facts";
+  label: string;
+}
+
+/** Presentation-only plan correction (aptus.plan-correction.v1); not plan identity. */
+export interface PlanCorrection {
+  schema_version: "aptus.plan-correction.v1";
+  kind: "select-candidate" | "no-path";
+  summary: string;
+  primary_reason_codes: string[];
+  recommended_candidate_id: string | null;
+  recommended_status: "feasible" | "conditional" | null;
+  pilot_required: boolean;
+  ranking_objective: "quality" | "memory" | "speed" | null;
+  fact_hints: PlanCorrectionFactHint[];
+  disallowed_suggestions: PlanCorrectionDisallowedSuggestion[];
+  operator_next_step: PlanCorrectionNextStep;
+}
+
 export interface TrainingPlan {
   schema_version: "aptus.training-plan.v6";
   plan_id: string;
@@ -332,6 +364,7 @@ export interface TrainingPlan {
   dataset?: Record<string, unknown>;
   hardware?: Record<string, unknown>;
   target?: Record<string, unknown>;
+  correction?: PlanCorrection | null;
   example?: boolean;
   [key: string]: unknown;
 }
@@ -352,6 +385,7 @@ export interface NoFeasibleComparisonPlan {
   evidence_records?: EvidenceRecord[];
   project_id?: string;
   project_revision_id?: string;
+  correction?: PlanCorrection | null;
 }
 
 export type PlanView = TrainingPlan | NoFeasibleComparisonPlan;

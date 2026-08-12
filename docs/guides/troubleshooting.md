@@ -15,16 +15,35 @@ JSON before sending it:
 aptus diagnostics --state-dir .aptus-state --output aptus-diagnostics.zip
 ```
 
-After `aptus spec-plan`, read the JSON candidates and the **stderr refusal
-guidance** block (what / why / what can change). The Compare stage shows the
-same three-question structure for the inspected candidate.
+After `aptus spec-plan`, read three layers of guidance:
+
+1. **Plan JSON** — candidates and (when present on API responses) the
+   presentation-only `correction` object (`aptus.plan-correction.v1`). Plan
+   identity digests do **not** include `correction`.
+2. **stderr correction block** — one plan-level next action (`select-candidate`
+   or `no-path`), fact hints, and explicit “do not” suggestions.
+3. **stderr refusal guidance** — per-candidate what / why / what can change
+   (M2 catalog). The Compare stage shows the same candidate-level structure for
+   the inspected row, plus the plan-level correction panel and CTA.
+
+### When Aptus refuses or corrects
+
+| Outcome | Correction kind | Operator next step |
+| --- | --- | --- |
+| Recommended feasible or conditional candidate | `select-candidate` | Compile recommended (pilot still required when status is conditional or the runtime contract is pilot-required) |
+| HTTP 422 / CLI exit 2 `no_feasible_plan` | `no-path` | Change listed facts and replan — not invent methods |
+
+**Claim language:** correction is **not** optimality or model quality. It is the
+best action within the enumerated candidate set for these facts. Do not treat
+FSDP, multi-GPU on one device, packing, or a fifth training method as a “fix.”
 
 ## No feasible candidate
 
-Read every candidate's unsupported reason. Common causes are missing BF16,
-unsupported backend, insufficient upper-envelope VRAM, insufficient host RAM, an
-unsupported distribution, or an invalid pinned model fact. Aptus will not
-silently change sequence length, effective batch size, method, or hardware.
+Read every candidate's unsupported reason **and** the plan-level correction
+hints. Common causes are missing BF16, unsupported backend, insufficient
+upper-envelope VRAM, insufficient host RAM, an unsupported distribution, or an
+invalid pinned model fact. Aptus will not silently change sequence length,
+effective batch size, method, or hardware.
 
 ### High-frequency plan refusals (what → why → what can change)
 

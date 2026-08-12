@@ -70,6 +70,11 @@ from .plan_contract import (
     validate_bundle_manifest,
     validate_plan_payload,
 )
+from .correction import (
+    attach_correction,
+    build_no_path_correction,
+    build_plan_correction,
+)
 from .planning import NoFeasiblePlanError, plan_training, select_candidate
 from .profiling import (
     build_hardware_spec,
@@ -687,6 +692,10 @@ def create_app(
     async def no_feasible_plan(
         _request: Any, error: NoFeasiblePlanError
     ) -> JSONResponse:
+        correction = build_no_path_correction(
+            error.candidates,
+            ranking_objective=error.ranking_objective,
+        )
         payload = NoFeasiblePlanResponse.model_validate(
             {
                 "error": "no_feasible_plan",
@@ -698,6 +707,7 @@ def create_app(
                     error.model_policy_decision_source.value
                 ),
                 "inspection_receipt": to_primitive(error.inspection_receipt),
+                "correction": correction.to_primitive(),
             }
         )
         return JSONResponse(
@@ -1490,11 +1500,14 @@ def create_app(
             ),
             plan=plan_payload,
         )
-        return {
-            **plan_payload,
-            "project_id": project_id,
-            "project_revision_id": revision["revision_id"],
-        }
+        return attach_correction(
+            {
+                **plan_payload,
+                "project_id": project_id,
+                "project_revision_id": revision["revision_id"],
+            },
+            build_plan_correction(result),
+        )
 
     @app.get("/api/v1/plans/{plan_id}", response_model=TrainingPlanResponse)
     def get_plan(plan_id: str) -> dict[str, Any]:
@@ -1523,7 +1536,7 @@ def create_app(
             raise HTTPException(
                 status_code=404, detail={"error": "plan_not_found", "plan_id": plan_id}
             )
-        return to_primitive(result)
+        return attach_correction(to_primitive(result), build_plan_correction(result))
 
     @app.post("/api/v1/plans/select", response_model=TrainingPlanResponse)
     def select_plan_candidate(request: SelectCandidateRequest) -> dict[str, Any]:
@@ -1584,11 +1597,14 @@ def create_app(
             validation={},
             job_ids=[],
         )
-        return {
-            **selected_payload,
-            "project_id": request.project_id,
-            "project_revision_id": revision["revision_id"],
-        }
+        return attach_correction(
+            {
+                **selected_payload,
+                "project_id": request.project_id,
+                "project_revision_id": revision["revision_id"],
+            },
+            build_plan_correction(selected_plan),
+        )
 
     @app.post("/api/v1/compile", response_model=CompileResponse)
     def compile_artifacts(request: CompileRequest) -> dict[str, Any]:

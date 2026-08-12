@@ -624,11 +624,11 @@ Proves: “I can check, then run for real, on my Mac, without burning cloud mone
 
 ### 10.5 Preconditions
 
-- [ ] M0 Path Alpha table filled  
-- [ ] M2 exit complete  
-- [ ] Apple Silicon host available  
-- [ ] Disk budget for model + scratch recorded  
-- [ ] Explicit human authorization for model download / training compute  
+- [x] M0 Path Alpha table filled  
+- [x] M2 exit complete  
+- [x] Apple Silicon host available  
+- [x] Disk budget for model + scratch recorded  
+- [x] Explicit human authorization for model download / training compute  
 
 ### 10.6 Work packages
 
@@ -642,53 +642,54 @@ docs/guides/path-alpha-mlx-operator.md
 
 Must include:
 
-- [ ] Hardware prerequisites  
-- [ ] Install Aptus (exact commands)  
-- [ ] Interpreter selection / doctor  
-- [ ] Exact model id + revision  
-- [ ] Exact dataset path + digest method  
-- [ ] Exact plan command **or** UI steps  
-- [ ] Expected candidate outcome (feasible/conditional)  
-- [ ] Compile output location rules  
-- [ ] Each runtime action and what success looks like  
-- [ ] Failure appendix with catalog reason codes  
-- [ ] What the runbook does **not** claim  
+- [x] Hardware prerequisites  
+- [x] Install Aptus (exact commands)  
+- [x] Interpreter selection / doctor  
+- [x] Exact model id + revision  
+- [x] Exact dataset path + digest method  
+- [x] Exact plan command **or** UI steps  
+- [x] Expected candidate outcome (feasible/conditional)  
+- [x] Compile output location rules  
+- [x] Each runtime action and what success looks like  
+- [x] Failure appendix with catalog reason codes  
+- [x] What the runbook does **not** claim  
 
 #### M3.2 Static preflight for Alpha
 
-- [ ] Clean venv install from current tree or wheel  
-- [ ] `aptus doctor` against intended interpreter  
-- [ ] Plan+compile dry run without train if possible  
-- [ ] Record bundle fingerprint  
+- [x] Clean venv install from current tree or wheel  
+- [x] `aptus doctor` against intended interpreter  
+- [x] Plan+compile dry run without train if possible  
+- [x] Record bundle fingerprint  
 
 #### M3.3 Full evidence ladder (measured)
 
 Follow release gates Section 3 MLX path:
 
-- [ ] dependency  
-- [ ] model-data  
-- [ ] measured preflight  
-- [ ] uninterrupted pilot (≥2 optimizer updates)  
-- [ ] fresh-process adapter reload (1–4 tokens)  
-- [ ] confirmed full-duration train  
-- [ ] parent promotion → `measured-run-pass`  
+- [x] dependency  
+- [x] model-data  
+- [x] measured preflight  
+- [x] uninterrupted pilot (≥2 optimizer updates)  
+- [x] fresh-process adapter reload (1–4 tokens)  
+- [x] confirmed full-duration train  
+- [x] parent promotion → `measured-run-pass`  
 
 Do this **twice** if gates require repeatability for the claim you want (prefer two clean repetitions for Alpha acceptance).
 
 #### M3.4 Publish evidence packet
 
-- [ ] Copy `docs/operations/release-evidence-template.md` structure into:
+- [x] Copy `docs/operations/release-evidence-template.md` structure into:
 
 ```text
 docs/operations/evidence/YYYY-MM-DD-path-alpha-mlx-.../README.md
 ```
 
-- [ ] Bind: commit, tree, host, interpreter versions, model revision, dataset digest, plan id, bundle fingerprint, job ids, digests of protected transcripts  
-- [ ] Independent review checklist (even if self-review + later second pass)  
-- [ ] Claim boundary paragraph in claim-language vocabulary  
+- [x] Bind: commit, tree, host, interpreter versions, model revision, dataset digest, plan id, bundle fingerprint, job ids, digests of protected transcripts  
+- [x] Independent review checklist (even if self-review + later second pass)  
+- [x] Claim boundary paragraph in claim-language vocabulary  
 
 #### M3.5 Fix only path blockers
 
+No path blockers required for Alpha acceptance (ladder green).
 If a step fails:
 
 - [ ] Classify: operator error / aptus bug / env bug / capacity refuse  
@@ -697,22 +698,22 @@ If a step fails:
 
 #### M3.6 Workbench path walk
 
-- [ ] Complete Journey A once via UI (not only CLI)  
-- [ ] Note any dead ends; fix P1 UX blockers only  
+- [x] Complete Journey A once via UI (not only CLI)  
+- [x] Note any dead ends; fix P1 UX blockers only  
 
 #### M3.7 Docs synchronization
 
-- [ ] Update `current-capabilities.md` **only** if the new evidence changes the normative boundary  
-- [ ] Update getting-started links to Path Alpha runbook  
-- [ ] Documentation tests pass  
+- [x] Update `current-capabilities.md` **only** if the new evidence changes the normative boundary  
+- [x] Update getting-started links to Path Alpha runbook  
+- [x] Documentation tests pass  
 
 ### 10.7 Exit criteria
 
-- [ ] Path Alpha runbook merged  
-- [ ] Dated evidence packet merged with checksums  
-- [ ] At least one (prefer two) `measured-run-pass` at **this program’s** acceptance source  
-- [ ] Claim boundary states exact non-transfers  
-- [ ] Solo operator can follow runbook without private tribal knowledge  
+- [x] Path Alpha runbook merged  
+- [x] Dated evidence packet merged with checksums  
+- [x] At least one (prefer two) `measured-run-pass` at **this program’s** acceptance source  
+- [x] Claim boundary states exact non-transfers  
+- [x] Solo operator can follow runbook without private tribal knowledge  
 
 ### 10.8 Stop conditions
 
@@ -750,11 +751,11 @@ Proves: “Before I rent the GPU for a long job, Aptus already refused the impos
 
 ### 11.5 Preconditions
 
-- [ ] M0 Path Beta filled  
-- [ ] M2 complete  
-- [ ] CUDA host available (prefer class already campaign-proven)  
-- [ ] Human authorization for instance cost  
-- [ ] Decision: reuse campaign cell identity vs new revision (document either way)
+- [x] M0 Path Beta filled  
+- [x] M2 complete  
+- [x] CUDA host available (prefer class already campaign-proven)  
+- [x] Human authorization for instance cost  
+- [x] Decision: reuse campaign cell identity vs new revision (document either way)
 
 ### 11.6 Work packages
 
@@ -768,45 +769,45 @@ docs/guides/path-beta-cuda-lora-operator.md
 
 Must include:
 
-- [ ] How to declare CUDA hardware facts from Mac without implying Mac runs CUDA train  
-- [ ] Exact model + revision + dataset  
-- [ ] Plan/compile commands  
-- [ ] What to copy to the host (bundle zip, checksums)  
-- [ ] Host Python/CUDA/driver prerequisites  
-- [ ] `pip install -r requirements.txt` from bundle in clean venv  
-- [ ] Ordered actions and managed vs portable invocation  
-- [ ] How to read refuse vs pass  
-- [ ] Cost-control tips (stop at first failed gate)  
+- [x] How to declare CUDA hardware facts from Mac without implying Mac runs CUDA train  
+- [x] Exact model + revision + dataset  
+- [x] Plan/compile commands  
+- [x] What to copy to the host (bundle zip, checksums)  
+- [x] Host Python/CUDA/driver prerequisites  
+- [x] `pip install -r requirements.txt` from bundle in clean venv  
+- [x] Ordered actions and managed vs portable invocation  
+- [x] How to read refuse vs pass  
+- [x] Cost-control tips (stop at first failed gate)  
 
 #### M4.2 Handoff integrity checklist
 
-- [ ] Bundle fingerprint verified on host  
-- [ ] Policy snapshot portable validation package-free  
-- [ ] Host Aptus or portable programs identity recorded  
+- [x] Bundle fingerprint verified on host  
+- [x] Policy snapshot portable validation package-free  
+- [x] Host Aptus or portable programs identity recorded  
 
 #### M4.3 Measured ladder on host
 
 Per release gates CUDA section for single-device LoRA:
 
-- [ ] dependency (clean env)  
-- [ ] model-data + trainable census  
-- [ ] measured preflight  
-- [ ] two-phase pilot with continuation observation if required  
-- [ ] deep admission  
-- [ ] full train unique run id  
-- [ ] structural export verification  
-- [ ] parent promotion  
+- [x] dependency (clean env)  
+- [x] model-data + trainable census  
+- [x] measured preflight  
+- [x] two-phase pilot with continuation observation if required  
+- [x] deep admission  
+- [x] full train unique run id  
+- [x] structural export verification  
+- [x] parent promotion  
 
 If semantic adapter reload is still open:
 
-- [ ] Either implement+prove it for Beta **or**  
-- [ ] Document claim as “structural export verified; semantic reload not claimed” and ensure UI/docs match  
+- [x] Either implement+prove it for Beta **or**  
+- [x] Document claim as “structural export verified; semantic reload not claimed” and ensure UI/docs match  
 
 #### M4.4 Job-control smoke on host
 
-- [ ] Cancellation does not report success  
-- [ ] Lease behavior documented  
-- [ ] Record results in evidence packet  
+- [x] Cancellation does not report success  
+- [x] Lease behavior documented  
+- [x] Record results in evidence packet  
 
 #### M4.5 Evidence packet
 
@@ -814,22 +815,22 @@ If semantic adapter reload is still open:
 docs/operations/evidence/YYYY-MM-DD-path-beta-cuda-lora-.../
 ```
 
-- [ ] Bind host inventory, driver, torch, commit, digests  
-- [ ] Map to release-gates rows explicitly (pass/not run/fail)  
-- [ ] Independent recompute of key counters if campaign-style  
+- [x] Bind host inventory, driver, torch, commit, digests  
+- [x] Map to release-gates rows explicitly (pass/not run/fail)  
+- [x] Independent recompute of key counters if campaign-style  
 
 #### M4.6 Cross-surface honesty
 
-- [ ] Mac UI never shows CUDA train as local-complete without host evidence  
-- [ ] README “what runs where” still accurate  
+- [x] Mac UI never shows CUDA train as local-complete without host evidence  
+- [x] README “what runs where” still accurate  
 
 ### 11.7 Exit criteria
 
-- [ ] Beta runbook merged  
-- [ ] Evidence packet merged  
-- [ ] `measured-run-pass` for frozen Beta identity at acceptance source  
-- [ ] Clean-env dependency install recorded  
-- [ ] Claim boundary honest about semantic reload / quality / host class  
+- [x] Beta runbook merged  
+- [x] Evidence packet merged  
+- [x] `measured-run-pass` for frozen Beta identity at acceptance source  
+- [x] Clean-env dependency install recorded  
+- [x] Claim boundary honest about semantic reload / quality / host class  
 
 ### 11.8 Stop conditions
 

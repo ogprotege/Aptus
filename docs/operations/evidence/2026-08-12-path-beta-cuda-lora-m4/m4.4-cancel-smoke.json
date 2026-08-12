@@ -1,0 +1,22 @@
+{
+  "action": "pilot",
+  "artifact_integrity_status": null,
+  "cancel_reason_code": "M4_4_CANCEL_SMOKE",
+  "cancel_requested_monotonic_ns": 13231735292197,
+  "completion_attestation_state": null,
+  "exercise": "m4.4-owned-process-group-cancellation",
+  "final_state": "cancelled",
+  "job_id": "job_70d112ebc3fc4e1f808f91ec0e0cd548",
+  "lease_reconciled_monotonic_ns": 13231821993914,
+  "note": "Bundle may retain a prior measured-run-pass validation-report.json from the M4 ladder; job-level success is judged from job record fields only.",
+  "pass_criteria": {
+    "cancel_milestones_present": true,
+    "job_does_not_report_success": true,
+    "nonzero_or_signal_return_code": true,
+    "reason_code_bound": true,
+    "state_is_cancelled": true
+  },
+  "passed": true,
+  "process_group_terminated_monotonic_ns": 13231801162252,
+  "return_code": -15
+}

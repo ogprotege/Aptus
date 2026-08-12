@@ -61,6 +61,23 @@ The first dependency attempt failed because official CUDA wheels report
 **PEP 440 public versions** in the CUDA portable dependency gate so local labels
 are accepted when the release pin matches. Wrong public versions still fail closed.
 
+## M4.4 Job-control cancel smoke
+
+Owned process-group cancellation on the same host/class (pilot job) recorded in
+[`m4.4-cancel-smoke.json`](m4.4-cancel-smoke.json):
+
+| Field | Value |
+| --- | --- |
+| Job | `job_70d112ebc3fc4e1f808f91ec0e0cd548` |
+| Final state | **`cancelled`** (not `completed`) |
+| Return code | `-15` (SIGTERM) |
+| Cancel reason | `M4_4_CANCEL_SMOKE` |
+| Milestones | cancel_requested → process_group_terminated → lease_reconciled |
+| Parent success claim | none (`artifact_integrity_status` null; no completion attestation) |
+
+Cancellation does **not** report success. Host-global lease was reconciled after
+process-group termination.
+
 ## Claim boundary
 
 **Supports only** the exact tuple above (source + pin fix, host class measured

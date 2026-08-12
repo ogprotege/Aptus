@@ -29,7 +29,7 @@
 - Five-job ordered ladder: **yes**
 - Structural export + parent `verified-at-completion`: **yes**
 - Claim boundary non-transfers: **yes**
-- Job-control cancel smoke (M4.4): **not run** this session (optional follow-up)
+- Job-control cancel smoke (M4.4): **pass** (`job_70d112eb…` → `cancelled`, rc `-15`, lease reconciled; see evidence `m4.4-cancel-smoke.json`)
 
 ## Next
 

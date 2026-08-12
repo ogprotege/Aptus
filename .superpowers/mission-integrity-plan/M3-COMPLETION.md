@@ -26,7 +26,7 @@
 - Exact Path Alpha identity: **yes**
 - Claim boundary non-transfers: **yes**
 - PR merged to main: **yes** (`93d69f6`)
-- M3.6 workbench UI walk: **not done** (optional follow-up)
+- M3.6 workbench UI walk: **done** (2026-08-12; stage rail + host scan + form surfaces; no P1 dead ends; full measured ladder remains CLI evidence)
 - Second-run offline-only attempt failed (HF offline API list); retry with warm cache online list succeeded — documented as operator note
 
 ## Next

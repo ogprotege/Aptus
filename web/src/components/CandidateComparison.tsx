@@ -7,6 +7,7 @@ import {
   formatMethod,
   upperMemory,
 } from "../lib/plan";
+import { fitStatusLabel } from "../lib/refusal";
 import { StatusBadge } from "./StatusBadge";
 
 interface CandidateComparisonProps {
@@ -82,7 +83,12 @@ export function CandidateComparison({
                       </small>
                     </button>
                   </th>
-                  <td><StatusBadge state={candidateStatus(candidate)} /></td>
+                  <td>
+                    <StatusBadge
+                      state={candidateStatus(candidate)}
+                      label={fitStatusLabel(candidateStatus(candidate))}
+                    />
+                  </td>
                   <td className="mono-cell">
                     {formatBytes(expectedMemory(candidate))}
                     <small>{formatBytes(upperMemory(candidate))} heuristic upper</small>
@@ -119,7 +125,10 @@ export function CandidateComparison({
             >
               <span className="candidate-card-title">
                 <strong>{formatMethod(candidate.method)}</strong>
-                <StatusBadge state={candidateStatus(candidate)} />
+                <StatusBadge
+                  state={candidateStatus(candidate)}
+                  label={fitStatusLabel(candidateStatus(candidate))}
+                />
               </span>
               {isRecommended ? <span className="recommended-label">Recommended</span> : null}
               <dl>

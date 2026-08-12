@@ -75,3 +75,17 @@ Template:
 - **Explicitly will not do:** Open NG-* items without a new DECISION entry
 - **Evidence / links:** `M0-NONGOALS-FREEZE.md`
 - **Owner:** accepted by owner 2026-08-11 (chat authorization)
+
+---
+
+## DECISION-20260812-01
+
+- **Date:** 2026-08-12
+- **Phase:** M2
+- **Question:** How should structured refusal guidance attach without breaking plan identity?
+- **Options:** (a) embed in plan/candidate identity payload (b) presentation-only module + CLI stderr + web mapping
+- **Choice:** (b) — `aptus.refusal` + web `lib/refusal.ts`; plan JSON digests unchanged
+- **Mission justification:** Trust-when-no without inventing new plan schema churn mid-path
+- **Explicitly will not do:** OpenAPI refusal_guidance field in M2; AutoML “fix” generators
+- **Evidence / links:** `src/aptus/refusal.py`, `M2-COMPLETION.md`
+- **Owner:** program execution 2026-08-12

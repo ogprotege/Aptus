@@ -1,6 +1,6 @@
 # Troubleshooting
 
-> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or after a new failure class
+> **Status:** Active | **Authority:** Operational troubleshooting guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-12 | **Review by:** 2026-11-01 or after a new failure class
 
 Begin with the read-only report:
 
@@ -15,12 +15,35 @@ JSON before sending it:
 aptus diagnostics --state-dir .aptus-state --output aptus-diagnostics.zip
 ```
 
+After `aptus spec-plan`, read the JSON candidates and the **stderr refusal
+guidance** block (what / why / what can change). The Compare stage shows the
+same three-question structure for the inspected candidate.
+
 ## No feasible candidate
 
 Read every candidate's unsupported reason. Common causes are missing BF16,
 unsupported backend, insufficient upper-envelope VRAM, insufficient host RAM, an
 unsupported distribution, or an invalid pinned model fact. Aptus will not
 silently change sequence length, effective batch size, method, or hardware.
+
+### High-frequency plan refusals (what → why → what can change)
+
+| Symptom / free text cue | Meaning | What can change | What not to try |
+| --- | --- | --- | --- |
+| Full-parameter FP16 fail-closed | Full training needs BF16 devices | Use BF16 GPUs, or choose LoRA / int8-LoRA / QLoRA | Forcing FP16 full |
+| `ddp`/`fsdp` requires at least two GPUs | Multi-GPU row kept visible but **unsupported** on one GPU | Add GPUs, or keep `single` | Treating “planner-supported DDP” as ready on one card |
+| Full-parameter FSDP fail-closed | Full FSDP not in verified matrix | `single`/`ddp` when multi-GPU, or non-full method | Enabling full FSDP |
+| int8/QLoRA with FSDP outside matrix | Quantized FSDP closed | `single`/`ddp`, or LoRA FSDP (still pilot-required) | Quantized FSDP |
+| Even the point estimate exceeds usable memory | Hard memory infeasible | Lower seq/batch, smaller method, more free VRAM/RAM | Ignoring upper/point distinction |
+| Point fits but upper envelope exceeds | **Conditional** memory risk | Same levers; still requires pilot | Treating conditional as measured fit |
+| MLX-LM support is pilot-required | Every MLX path is evidence-gated | None in catalog — run the pilot ladder | Claiming measured fit from plan alone |
+| Sequence length exceeds model context | Seq > context | Lower `sequence_length` or longer-context model | Packing (also closed) |
+| Qwen3 MoE near-match / only attention QLoRA | MoE policy path is exact | Match reviewed layout/topology; only single MLX QLoRA attention | Prefix “Qwen3” hope or CUDA MoE |
+| No registered full compiler on mps | Full not compiled for Apple runtimes | LoRA/QLoRA on MLX, or CUDA full on CUDA host | PyTorch MPS full training |
+
+When guidance says **no supported correction exists in the current Aptus
+catalog**, believe it: the product cannot invent an unsupported method to
+“fix” the plan.
 
 ## Hardware scan unavailable
 

@@ -15,6 +15,7 @@ import {
   upperMemory,
 } from "../lib/plan";
 import type { ModelPolicyPresentation } from "../lib/modelPolicy";
+import { guideRejectionReason, whatCanChange } from "../lib/refusal";
 
 interface CompareStageProps {
   plan: PlanView | null;
@@ -152,11 +153,25 @@ export function CompareStage({
             </div>
           ) : null}
           {rejectionReasons.length ? (
-            <ul className="plain-list warning-list">
-              {rejectionReasons.map((reason, index) => <li key={`${reason}-${index}`}>{reason}</li>)}
+            <ul className="plain-list warning-list" aria-label="Refusal guidance">
+              {rejectionReasons.map((reason, index) => {
+                const guided = guideRejectionReason(reason);
+                return (
+                  <li key={`${guided.reasonCode}-${index}`}>
+                    <strong>{guided.title}</strong>
+                    <div>Why: {guided.explanation}</div>
+                    <div>What can change: {whatCanChange(guided)}</div>
+                    <small>{guided.sourceReason}</small>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
-            <p>No hard-gate rejection was returned for this candidate.</p>
+            <p>
+              {candidateStatus(inspected) === "conditional"
+                ? "No hard rejection. Status is conditional — pilot-required before a measured run claim."
+                : "No hard-gate rejection was returned for this candidate."}
+            </p>
           )}
         </section>
       ) : null}

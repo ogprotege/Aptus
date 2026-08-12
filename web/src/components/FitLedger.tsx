@@ -1,4 +1,5 @@
 import type { CandidatePlan } from "../types";
+import { fitStatusLabel } from "../lib/refusal";
 import {
   candidateStatus,
   candidateMemoryLanguage,
@@ -46,7 +47,12 @@ export function FitLedger({ candidate, example = false, compact = false }: FitLe
           <p className="eyebrow">{memoryLanguage.eyebrow}</p>
           <h2 id={compact ? "compact-fit-title" : "fit-title"}>The Fit Ledger</h2>
         </div>
-        {candidate ? <StatusBadge state={candidateStatus(candidate)} /> : null}
+        {candidate ? (
+          <StatusBadge
+            state={candidateStatus(candidate)}
+            label={fitStatusLabel(candidateStatus(candidate))}
+          />
+        ) : null}
       </header>
 
       {example ? (

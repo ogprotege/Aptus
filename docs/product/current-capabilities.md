@@ -29,13 +29,26 @@ four-row synthetic dataset, plan, bundle, and policy snapshot. That Phase 6
 packet remains the historical exact-source refresh baseline; it is not replaced
 by the Path Alpha v6 packet above. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
-artifact remains conditional on its own runtime gates. One separate exact
+artifact remains conditional on its own runtime gates. The [2026-08-12 Path Beta CUDA LoRA acceptance
+record](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
+re-proves the frozen Path Beta identity at current HEAD (base
+`93d69f63c7d3c1147ce186e810c355cdcf1a1b9c` plus the CUDA public-version pin fix)
+with artifact fingerprint
+`1a41e586511cff2cf68b1e0794a9b1b57395601a072fc4661bf0ebff140bf855` for
+`HuggingFaceTB/SmolLM2-135M-Instruct` @
+`12fd25f77366fa6b3b4b768ec3050bf629380bac`, synthetic
+`examples/support-sft.jsonl`, Ubuntu 24.04.4 / RTX 3050 host class, and Torch
+2.13.0+cu130 clean-env stack through one managed ladder to `measured-run-pass`
+with structural PEFT export verification (semantic CUDA adapter reload not
+claimed). Operator procedure:
+[Path Beta runbook](../guides/path-beta-cuda-lora-operator.md). One earlier exact
 SmolLM2 CUDA LoRA single-device workflow reached `measured-run-pass` in the
 [2026-08-06 CUDA acceptance
 record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md).
-It qualifies only its recorded source, Ubuntu/RTX 3050 host, runtime, immutable
-model revision, synthetic dataset, plan, policy, bundle, and five-job sequence;
-that individual record is not repeatability. A separate [five-slot Phase 5
+It remains the historical identity freeze baseline and qualifies only its
+recorded source, Ubuntu/RTX 3050 host, runtime, immutable model revision,
+synthetic dataset, plan, policy, bundle, and five-job sequence; that individual
+record is not current-HEAD and is not repeatability. A separate [five-slot Phase 5
 cohort](../operations/evidence/2026-08-10-cuda-phase5-repeatability-anchor/README.md)
 subsequently established exact-host SmolLM2 LoRA single-device repeatability
 under the frozen stability and integrity contract at source

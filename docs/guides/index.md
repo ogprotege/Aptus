@@ -16,6 +16,7 @@ interface and schema details.
 
 - [Compile, validate, and run](compile-validate-run.md)
 - [Path Alpha MLX QLoRA operator runbook](path-alpha-mlx-operator.md)
+- [Path Beta CUDA LoRA operator runbook](path-beta-cuda-lora-operator.md)
 - [Operator checklist](../operations/operator-checklist.md)
 - [Recovery and resume boundary](resume-recover.md)
 - [Troubleshooting](troubleshooting.md)

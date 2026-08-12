@@ -15,4 +15,6 @@ Program authority:
 
 ## Current recommended step
 
-**Phase M0 only:** fill Path Alpha and Path Beta identity tables in the plan and sign off. No code.
+**M0–M4 complete locally (M4 pending PR).** M3 is on `main` (PR #87). M4 Path Beta measured on Sherminator — see `M4-COMPLETION.md`.
+
+**Next:** Open/merge M4 PR, then Phase **M5** KISS correction loop (design first; no rush).

@@ -28,6 +28,7 @@
 - [2026-08-10 historical CUDA Phase 6 same-model method matrix](evidence/2026-08-10-cuda-phase6-method-matrix/README.md)
 - [2026-08-10 CUDA Phase 5 retention addendum](evidence/2026-08-10-cuda-phase5-repeatability-retention.json)
 - [2026-08-09 Phase 2B sanitized Phase 0 recovery supplement](evidence/2026-08-09-cuda-phase0-recovery-supplement/README.md)
+- [2026-08-12 Path Beta CUDA LoRA current-HEAD acceptance (M4)](evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
 - [2026-08-06 SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)

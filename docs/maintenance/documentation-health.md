@@ -110,13 +110,16 @@ baseline, only manifested operator `README.md` and `runbook.md` changed;
 runtime programs and requirements remained byte-identical. The two fresh runs
 independently qualify the new fingerprint.
 
-The [2026-08-06 CUDA
-record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
-adds one exact SmolLM2 LoRA single-device workflow through
+The [2026-08-12 Path Beta CUDA
+record](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
+re-proves SmolLM2 LoRA single-device at current HEAD on Ubuntu/RTX 3050 through
 `measured-run-pass`, including a two-phase checkpoint-continuation pilot, full
-training, structural PEFT export, and parent promotion. It is bound to its
-exact source, host, runtime, model, dataset, plan, policy, and bundle. It does
-not establish repeatability or general CUDA compatibility.
+training, structural PEFT export, and parent promotion. Semantic CUDA adapter
+reload remains unclaimed. The earlier [2026-08-06 CUDA
+record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
+remains the historical identity freeze. It is bound to its exact source, host,
+runtime, model, dataset, plan, policy, and bundle. It does not establish
+repeatability, current-HEAD re-proof, or general CUDA compatibility.
 
 On 2026-08-08, campaign Phase 0 completed in the protected private evidence
 layer with a complete disposition, two verified copies in separate failure

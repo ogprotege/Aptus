@@ -2653,7 +2653,9 @@ class BundleGenerationTests(unittest.TestCase):
                 return base
 
             with patch.object(module, "version", side_effect=wrong_torch):
-                with self.assertRaisesRegex(RuntimeError, "Dependency mismatch for torch"):
+                with self.assertRaisesRegex(
+                    RuntimeError, "Dependency mismatch for torch"
+                ):
                     module.require_dependencies()
 
     def test_pilot_retention_deletes_only_marked_aptus_roots(self) -> None:

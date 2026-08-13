@@ -272,7 +272,9 @@ They must never satisfy a training-runtime field or evidence gate.
 
 On completion, display the unique run output directory, report state, completion
 attestation, final export manifest location, and artifact-integrity status. Label
-the export check as structural. Do not imply benchmark quality.
+the export check as structural. Do not imply benchmark quality. Train loss,
+split evaluation loss, and `evaluation_fraction` must never be labeled an
+evaluation pass. An eval pass requires `aptus.evaluation-result.v1`.
 
 ## Active-job behavior
 

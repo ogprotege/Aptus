@@ -107,6 +107,8 @@ has no application authentication. The caller owns its security boundary.
 | `POST /api/v1/inference/generate` | Generate through one explicit local inference service | Local inference request |
 | `POST /api/v1/models/inspect` | Inspect provider metadata | Bounded provider requests |
 | `POST /api/v1/profile` | Profile a local dataset | Reads and hashes the source |
+| `POST /api/v1/evaluations/contracts` | Bind a gold JSONL into an evaluation contract | Reads and hashes the gold file |
+| `POST /api/v1/evaluations` | Score predictions against a bound contract | Reads gold and prediction files |
 | `POST /api/v1/plan` | Create and persist a plan | Writes `STATE_DIR/plans/{plan_id}.json` |
 | `GET /api/v1/plans/{plan_id}` | Load a persisted plan | None |
 | `POST /api/v1/compile` | Compile and archive a plan | Writes bundle, ZIP, and current-bundle reference |
@@ -444,6 +446,40 @@ if their normalized family has a dense policy.
 Profiling reads every source row, calculates a SHA-256 digest, validates schema,
 counts supported and empty rows, and computes totals. The sample limit applies
 only to deterministic reservoir statistics. It does not truncate compilation.
+
+### `POST /api/v1/evaluations/contracts`
+
+| Field | Type | Required | Default or constraint |
+| --- | --- | ---: | --- |
+| `dataset_path` | string | Yes | Local gold JSONL visible to the service process |
+| `claim` | string | Yes | One bounded claim the contract can support |
+| `threshold` | number | Yes | Finite value in `[0, 1]` |
+| `metric` | string | No | `exact_match` only |
+| `gold_field` | string | No | `completion`, `output`, or `gold` |
+| `id_field` | string or null | No | `id`; ignored when no row has that field |
+| `casefold` | boolean | No | False |
+| `plan_id` | string or null | No | Optional artifact binding |
+| `candidate_id` | string or null | No | Optional artifact binding |
+| `job_id` | string or null | No | Optional artifact binding |
+| `export_digest` | string or null | No | SHA-256 of the adapter or final export |
+| `export_kind` | string or null | No | `adapter` or `final-export` |
+
+The response is `aptus.evaluation-contract.v1`. The local gold path is not
+contract identity. This endpoint does not start a job and does not change
+validation state.
+
+### `POST /api/v1/evaluations`
+
+| Field | Type | Required | Default or constraint |
+| --- | --- | ---: | --- |
+| `contract` | object | Yes | A previously built `aptus.evaluation-contract.v1` |
+| `gold_path` | string | Yes | Gold JSONL; digest must match the contract |
+| `predictions_path` | string | Yes | Predictions JSONL supplied by the operator |
+| `export_digest` | string or null | Required when the contract binds one | Must match the contract binding; abstain if missing or different |
+
+The response is `aptus.evaluation-result.v1`. Aptus does not generate
+predictions. `decision` is `pass`, `fail`, or `abstain`. Training finished is
+not this decision.
 
 ## Planning
 

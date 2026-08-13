@@ -73,6 +73,8 @@ did not change the serialized contract shapes: the plan remains
 | `warnings` | string array | Plan-wide limitations and inferred assumptions |
 | `recommendation_rationale` | string array | Human-readable ranking explanation |
 | `evidence_records` | array | Resolved evidence objects cited by candidates |
+| `correction` | object or absent | Presentation-only `aptus.plan-correction.v1`; excluded from `plan_id` |
+| `evaluation_contract` | object or absent | Presentation-only `aptus.evaluation-contract.v1`; excluded from `plan_id` |
 
 ## Model object
 

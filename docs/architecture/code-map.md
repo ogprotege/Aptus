@@ -52,6 +52,8 @@ that protect it.
 | [`api_contracts.py`](../../src/aptus/api_contracts.py) | Explicit response models and `aptus.api.v1` identity | Client generation or request handling |
 | [`api.py`](../../src/aptus/api.py) | Strict FastAPI request models, endpoints, persistence context, and packaged SPA serving | A secure multi-user boundary |
 | [`diagnostics.py`](../../src/aptus/diagnostics.py) | Read-only environment doctor and privacy-bounded support archive | Package installation or secret collection |
+| [`correction.py`](../../src/aptus/correction.py) | Presentation-only plan correction summaries | Plan identity or new methods |
+| [`evaluation.py`](../../src/aptus/evaluation.py) | Optional exact-match evaluation contract and scoring | Model quality, safety, or human preference |
 | [`cli.py`](../../src/aptus/cli.py) | Command parsing and orchestration over the same core contracts | Alternate planning or validation semantics |
 | [`desktop.py`](../../src/aptus/desktop.py) | Ephemeral loopback binding and private desktop-service readiness | Native UI state or a public network service |
 

@@ -237,7 +237,7 @@ state.
 
 This does not prove that a model meets a user quality target. MMLU, HellaSwag,
 GSM8K, TruthfulQA, custom task metrics, safety evaluations, regression
-baselines, and contamination checks are future evaluation contracts. The
+baselines, and contamination checks remain outside the v1 exact-match contract. The
 benchmark names in the removed staging sketch are interface ideas only; their
 disposition is preserved in the
 [reconciliation ledger](../research/reference-and-to-review-reconciliation.md).

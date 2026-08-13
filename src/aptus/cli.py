@@ -567,6 +567,109 @@ def _parser() -> argparse.ArgumentParser:
         "hardware",
         help="Inspect local CUDA hardware or fail-closed Apple Silicon inventory.",
     )
+    eval_contract = commands.add_parser(
+        "eval-contract",
+        help="Write an optional exact-match evaluation contract from a gold JSONL.",
+    )
+    eval_contract.add_argument(
+        "--dataset",
+        required=True,
+        type=Path,
+        help="Gold JSONL used to bind the evaluation dataset digest.",
+    )
+    eval_contract.add_argument(
+        "--claim",
+        required=True,
+        help="One bounded claim this contract can support.",
+    )
+    eval_contract.add_argument(
+        "--threshold",
+        required=True,
+        type=float,
+        help="Minimum exact-match rate in [0, 1].",
+    )
+    eval_contract.add_argument(
+        "--metric",
+        choices=("exact_match",),
+        default="exact_match",
+        help="v1 supports only exact_match (default: exact_match).",
+    )
+    eval_contract.add_argument(
+        "--gold-field",
+        choices=("completion", "output", "gold"),
+        default="completion",
+        help="Gold text field (default: completion).",
+    )
+    eval_contract.add_argument(
+        "--id-field",
+        default="id",
+        help="Optional row identity field (default: id; omitted when no row has it).",
+    )
+    eval_contract.add_argument(
+        "--casefold",
+        action="store_true",
+        help="Casefold both sides before exact match.",
+    )
+    eval_contract.add_argument("--plan-id", help="Optional plan_id to bind.")
+    eval_contract.add_argument("--candidate-id", help="Optional candidate_id to bind.")
+    eval_contract.add_argument("--job-id", help="Optional job_id to bind.")
+    eval_contract.add_argument(
+        "--export-digest",
+        help="Optional SHA-256 of the adapter or final-export artifact.",
+    )
+    eval_contract.add_argument(
+        "--export-kind",
+        choices=("adapter", "final-export"),
+        help="Kind of bound export digest.",
+    )
+    eval_contract.add_argument(
+        "--output",
+        type=Path,
+        help="Write the contract JSON here instead of standard output.",
+    )
+    eval_contract.add_argument(
+        "--attach-plan",
+        type=Path,
+        help="Optional persisted plan JSON to copy with a presentation-only contract.",
+    )
+    eval_contract.add_argument(
+        "--plan-output",
+        type=Path,
+        help="Required with --attach-plan; new plan JSON path (no overwrite).",
+    )
+
+    evaluate = commands.add_parser(
+        "eval",
+        help="Score operator-supplied predictions against an evaluation contract.",
+    )
+    evaluate.add_argument(
+        "--contract",
+        required=True,
+        type=Path,
+        help="aptus.evaluation-contract.v1 JSON.",
+    )
+    evaluate.add_argument(
+        "--gold",
+        required=True,
+        type=Path,
+        help="Gold JSONL; its digest must match the contract.",
+    )
+    evaluate.add_argument(
+        "--predictions",
+        required=True,
+        type=Path,
+        help="Predictions JSONL with prediction, output, or completion text.",
+    )
+    evaluate.add_argument(
+        "--export-digest",
+        help="Optional SHA-256 to compare with the contract artifact binding.",
+    )
+    evaluate.add_argument(
+        "--output",
+        type=Path,
+        help="Write the result JSON here instead of standard output.",
+    )
+
     inspect = commands.add_parser(
         "inspect", help="Inspect local hardware or bounded provider model facts."
     )
@@ -980,7 +1083,87 @@ def _run(arguments: argparse.Namespace) -> int:
         )
         _write_json(value, None)
         return 0 if value["status"] == "ok" else 2
+    if arguments.command == "eval-contract":
+        return _eval_contract(arguments)
+    if arguments.command == "eval":
+        return _eval(arguments)
     raise AssertionError(f"Unhandled command: {arguments.command}")
+
+
+def _refuse_existing(path: Path | None, label: str) -> None:
+    if path is not None and path.exists():
+        raise FileExistsError(f"{label} already exists: {path}")
+
+
+def _eval_contract(arguments: argparse.Namespace) -> int:
+    from .evaluation import attach_evaluation_contract, build_evaluation_contract
+
+    _refuse_existing(arguments.output, "Evaluation contract output")
+    if arguments.attach_plan is not None and arguments.plan_output is None:
+        raise ValueError("--attach-plan requires --plan-output.")
+    if arguments.plan_output is not None and arguments.attach_plan is None:
+        raise ValueError("--plan-output requires --attach-plan.")
+    _refuse_existing(arguments.plan_output, "Attached plan output")
+    contract = build_evaluation_contract(
+        dataset_path=arguments.dataset,
+        claim=arguments.claim,
+        threshold=arguments.threshold,
+        metric=arguments.metric,
+        gold_field=arguments.gold_field,
+        id_field=arguments.id_field,
+        casefold=arguments.casefold,
+        plan_id=arguments.plan_id,
+        candidate_id=arguments.candidate_id,
+        job_id=arguments.job_id,
+        export_digest=arguments.export_digest,
+        export_kind=arguments.export_kind,
+    )
+    payload = contract.to_primitive()
+    _write_json(payload, arguments.output)
+    if arguments.attach_plan is not None:
+        try:
+            plan_value = json.loads(arguments.attach_plan.read_text(encoding="utf-8"))
+        except (OSError, RecursionError, ValueError):
+            raise ValueError("Plan is unreadable or invalid JSON.") from None
+        if not isinstance(plan_value, dict):
+            raise ValueError("Plan must be a JSON object.")
+        attached = attach_evaluation_contract(plan_value, contract)
+        _write_json(attached, arguments.plan_output)
+    print(
+        "Aptus evaluation contract is optional and is not a training-finished claim.",
+        file=sys.stderr,
+    )
+    return 0
+
+
+def _eval(arguments: argparse.Namespace) -> int:
+    from .evaluation import (
+        evaluate_predictions,
+        evaluation_contract_from_primitive,
+    )
+
+    _refuse_existing(arguments.output, "Evaluation result output")
+    try:
+        contract_value = json.loads(arguments.contract.read_text(encoding="utf-8"))
+    except (OSError, RecursionError, ValueError):
+        raise ValueError("Evaluation contract is unreadable or invalid JSON.") from None
+    contract = evaluation_contract_from_primitive(contract_value)
+    result = evaluate_predictions(
+        contract,
+        arguments.gold,
+        arguments.predictions,
+        expected_export_digest=arguments.export_digest,
+    )
+    payload = result.to_primitive()
+    _write_json(payload, arguments.output)
+    print(
+        "Aptus evaluation: "
+        f"decision={result.decision} score={result.score} "
+        f"threshold={result.threshold}. "
+        "Training finished is not an evaluation pass.",
+        file=sys.stderr,
+    )
+    return 0 if result.decision == "pass" else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:

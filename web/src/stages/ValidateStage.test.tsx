@@ -82,6 +82,7 @@ describe("ValidateStage", () => {
     expect(screen.getByText("phase-two-digest")).toBeInTheDocument();
     expect(screen.getByText("Measured synthetic preflight")).toBeInTheDocument();
     expect(screen.getAllByText("cand_bound").length).toBeGreaterThan(0);
+    expect(screen.getByText("Training finished is not an evaluation pass.")).toBeInTheDocument();
     expect(screen.getByText("nf4-double-quant")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GiB").length).toBeGreaterThan(0);
   });

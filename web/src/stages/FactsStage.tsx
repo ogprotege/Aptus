@@ -581,7 +581,8 @@ export function FactsStage({
             <div className="field-row">
               <div className="field">
                 <label htmlFor="evaluation-fraction">Evaluation fraction</label>
-                <input id="evaluation-fraction" type="number" required min="0" max="0.99" step="0.01" value={draft.target.evaluation_fraction} onChange={(event) => updateTarget("evaluation_fraction", Number(event.target.value))} />
+                <input id="evaluation-fraction" type="number" required min="0" max="0.99" step="0.01" value={draft.target.evaluation_fraction} onChange={(event) => updateTarget("evaluation_fraction", Number(event.target.value))} aria-describedby="evaluation-fraction-help" />
+                <small id="evaluation-fraction-help">Train/validation split only. This is not a quality-evaluation contract and does not decide eval pass.</small>
               </div>
               <div className="field">
                 <label htmlFor="checkpoint-steps">Checkpoint interval</label>

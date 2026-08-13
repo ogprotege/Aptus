@@ -147,8 +147,10 @@ invalid-input condition, not a replanning condition.
 
 `measured-run-pass` means the exact run's metrics and structural export tree
 passed parent verification. Review output under the recorded `run_output_dir`.
-Use a separate, explicit evaluation process before making quality or deployment
-claims.
+Use a separate, explicit evaluation contract before making a task-metric claim.
+`aptus eval-contract` binds a gold JSONL digest, metric, and threshold.
+`aptus eval` scores operator-supplied predictions. A `measured-run-pass` or a
+finite train loss is not that decision.
 
 ## Related documentation
 

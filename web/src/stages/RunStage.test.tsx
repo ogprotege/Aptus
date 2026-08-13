@@ -316,7 +316,13 @@ describe("RunStage", () => {
       completion_attestation: {
         state: "measured-run-pass",
         measured_run_completed_at: "2026-07-21T13:00:00Z",
-        measured_run: { global_step: 100, distribution: "single", world_size: 1 },
+        measured_run: {
+          global_step: 100,
+          distribution: "single",
+          world_size: 1,
+          train_loss: 2.1,
+          eval_loss: 2.4,
+        },
         final_export: {
           path: "/tmp/bundle/runs/run_complete/final",
           total_bytes: 2 * 1024 ** 3,
@@ -355,5 +361,11 @@ describe("RunStage", () => {
     expect(screen.getByText("Submit-time capacity admission")).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("exact direct package pins");
     expect(screen.getByRole("note")).toHaveTextContent("not a complete transitive lock");
+    expect(screen.getByText("Train loss")).toBeInTheDocument();
+    expect(screen.getByText("Split evaluation loss")).toBeInTheDocument();
+    expect(screen.queryByText(/^Eval loss$/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Train loss and split evaluation loss are not an evaluation pass/i),
+    ).toBeInTheDocument();
   });
 });

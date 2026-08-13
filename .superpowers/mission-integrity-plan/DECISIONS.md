@@ -19,6 +19,20 @@ Template:
 
 ---
 
+## DECISION-20260813-03
+
+- **Date:** 2026-08-13
+- **Phase:** M8
+- **Question:** What is the first evaluation contract, and does scoring require GPU generation?
+- **Options:** (a) GPU eval job that generates then scores (b) operator-supplied predictions + deterministic exact-match (c) LLM-as-judge
+- **Choice:** (b) — `aptus.evaluation-contract.v1` / `aptus.evaluation-result.v1` with `exact_match` only. Optional post-train scoring, not a JobService ladder step, not `plan_id` material.
+- **Mission justification:** Training finished must stay distinct from eval pass. Generating tokens would be runtime-affecting and would invite quality claims Aptus cannot support. Exact match is checkable and fail-closed.
+- **Explicitly will not do:** Leaderboards; default red-team; human-preference claims without labels; treat split `evaluation_fraction` or train loss as this decision.
+- **Evidence / links:** `docs/product/mission-integrity-plan.md` §15; `M8-eval-spec.md`
+- **Owner:** Wilson (authorized M8 after M7 merge green)
+
+---
+
 ## DECISION-20260813-02
 
 - **Date:** 2026-08-13

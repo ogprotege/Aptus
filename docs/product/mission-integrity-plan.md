@@ -1039,9 +1039,9 @@ Allow “training finished” and “meets evaluation target” to be distinct, 
 
 ### 15.4 Exit criteria
 
-- [ ] Operator can attach an eval contract  
-- [ ] UI never equates loss curves with eval pass  
-- [ ] Docs use claim language  
+- [x] Operator can attach an eval contract
+- [x] UI never equates loss curves with eval pass
+- [x] Docs use claim language
 
 ---
 

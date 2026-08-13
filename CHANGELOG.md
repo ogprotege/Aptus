@@ -8,6 +8,13 @@ All notable changes are recorded here.
 
 ### Added
 
+- An optional exact-match evaluation contract (`aptus.evaluation-contract.v1`)
+  and result (`aptus.evaluation-result.v1`). Operators attach a gold JSONL
+  digest, threshold, and optional export digest, then score supplied
+  predictions with `aptus eval-contract` / `aptus eval` or
+  `POST /api/v1/evaluations*`. Training finished, train loss, and
+  `measured-run-pass` are not an evaluation pass. This is not general quality,
+  safety, or human preference.
 - A second CUDA model on the Path Beta runtime:
   `HuggingFaceTB/SmolLM2-360M-Instruct` @ `a10cc151…` LoRA single reached
   `measured-run-pass` on Sherminator. Evidence:

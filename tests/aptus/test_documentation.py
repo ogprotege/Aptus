@@ -223,6 +223,8 @@ class DocumentationTests(unittest.TestCase):
             "/api/v1/projects",
             "/api/v1/projects/{project_id}/recover",
             "/api/v1/jobs/{job_id}",
+            "/api/v1/evaluations/contracts",
+            "/api/v1/evaluations",
         ):
             self.assertIn(path, schema["paths"])
         for name in (

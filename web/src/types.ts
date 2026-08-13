@@ -328,6 +328,42 @@ export interface PlanCorrectionNextStep {
   label: string;
 }
 
+/** Optional exact-match evaluation contract (aptus.evaluation-contract.v1); not plan identity. */
+export interface EvaluationContract {
+  schema_version: "aptus.evaluation-contract.v1";
+  claim: string;
+  dataset: {
+    sha256: string;
+    format: "jsonl";
+    gold_field: "completion" | "output" | "gold";
+    row_count: number;
+    id_field: string | null;
+    path?: string | null;
+  };
+  metric: {
+    name: "exact_match";
+    direction: "higher_is_better";
+    implementation_version: "aptus.exact-match.v1";
+    normalization: {
+      strip: boolean;
+      collapse_whitespace: boolean;
+      casefold: boolean;
+    };
+  };
+  threshold: {
+    minimum: number;
+    comparison: "gte";
+  };
+  artifact_binding: {
+    plan_id: string | null;
+    candidate_id: string | null;
+    job_id: string | null;
+    export_digest: string | null;
+    export_kind: "adapter" | "final-export" | null;
+  };
+  non_claims: string[];
+}
+
 /** Presentation-only plan correction (aptus.plan-correction.v1); not plan identity. */
 export interface PlanCorrection {
   schema_version: "aptus.plan-correction.v1";
@@ -365,6 +401,7 @@ export interface TrainingPlan {
   hardware?: Record<string, unknown>;
   target?: Record<string, unknown>;
   correction?: PlanCorrection | null;
+  evaluation_contract?: EvaluationContract | null;
   example?: boolean;
   [key: string]: unknown;
 }

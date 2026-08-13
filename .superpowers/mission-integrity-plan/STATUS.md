@@ -1,11 +1,11 @@
 # Mission program status
 
 - **Updated:** 2026-08-13
-- **Current phase:** M6 Public Mac distribution — **COMPLETE locally (pending PR)**
-- **Last completed on main:** M0–M5 (`db59ed9`)
-- **M6 source:** `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`
-- **Next after merge:** M7 only with an explicit one-axis choice; or stop
-- **SSH:** not required
+- **Current phase:** M7-C semantic CUDA adapter reload — **COMPLETE locally (pending PR)**
+- **M7 remaining:** A (second model) and B (second host)
+- **Last completed on main:** M0–M6 (`36bef48`)
+- **M7 choice:** C first (A and B later, not mixed)
+- **SSH:** Sherminator `wts@192.168.1.12`
 
 ## Progress stack
 

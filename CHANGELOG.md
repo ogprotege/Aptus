@@ -8,6 +8,11 @@ All notable changes are recorded here.
 
 ### Added
 
+- A Path Beta fresh-process CUDA PEFT adapter reload (1–4 tokens) bound to
+  compile `36bef48d6ca3c0b11bf39da823ae4bc24f4c94fb` and fingerprint
+  `cf7858e5…`. Evidence:
+  `docs/operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/`. CUDA
+  `measured-run-pass` still does not require that gate.
 - A Developer ID signed, notarized, and stapled arm64 Mac app and DMG bound to
   source `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`. Gatekeeper assessed both
   artifacts as Notarized Developer ID. The identity, hashes, and notary IDs

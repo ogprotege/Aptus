@@ -1,0 +1,20 @@
+{
+    "adapter_export_sha256": "74da5f07655eb7ef34c6c78a49b66ca4692c904d0acceaa02e3be21472be9e89",
+    "candidate_id": "cand_11ef673a72fe27410ea3",
+    "compute_backend": "cuda",
+    "dataset_sha256": "bf2dca3d6398d639f47a883203920e1f52b0981becac96734147054e53f8aa44",
+    "fresh_process_observed": true,
+    "generation_max_tokens": 4,
+    "generation_text_sha256": "33857045b46c5a893c8f634bcde5a158fbb8a12feebfcb91589ffdbb09faaeb3",
+    "generation_tokens": 4,
+    "measured_peak_bytes": 297857024,
+    "method": "lora",
+    "model_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+    "parent_pid": 10973,
+    "plan_id": "plan_5eb5d3e3a0675a62a326",
+    "resume_supported": false,
+    "schema_version": "aptus.cuda-reload-evidence.v1",
+    "training_runtime": "transformers-peft-cuda",
+    "verified_at": "2026-08-13T18:12:39.716473+00:00",
+    "verifier_pid": 10974
+}

@@ -19,6 +19,20 @@ Template:
 
 ---
 
+## DECISION-20260813-01
+
+- **Date:** 2026-08-13
+- **Phase:** M7-C
+- **Question:** Which one M7 axis first, and what does “semantic CUDA adapter reload” mean?
+- **Options:** (a) M7-A second model (b) M7-B second host (c) M7-C reload (d) all three as one mixed claim
+- **Choice:** (c) first. Owner wants A/B/C sequenced later. Reload = fresh-process PEFT load of the Path Beta adapter + 1–4 generated tokens, schema `aptus.cuda-reload-evidence.v1`. CUDA `measured-run-pass` stays structural-export until a later explicit contract bump.
+- **Mission justification:** Closes the named CUDA honesty gap without widening model or host claims.
+- **Explicitly will not do:** M7-A or M7-B in this packet; treat reload as quality; require reload for all historical CUDA campaign cells.
+- **Evidence / links:** `M7-C-IDENTITY-FREEZE.md`
+- **Owner:** Wilson (boot Sherminator + “you can begin”)
+
+---
+
 ## DECISION-20260811-01
 
 - **Date:** 2026-08-11

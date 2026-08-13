@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 143 tracked Markdown documents. Of those, 142 are
+The repository tree contains 144 tracked Markdown documents. Of those, 143 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -48,20 +48,22 @@ evidence packet README
 `docs/operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md`.
 M6 adds the public Mac packaging packet
 `docs/operations/evidence/2026-08-13-desktop-public-release/README.md`.
+M7-C adds
+`docs/operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 113 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 114 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 142 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 143 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 142 governed
-Markdown files. Together with the root `LICENSE`, that makes 143 maintained
+The automated `maintained_documentation()` set contains the 143 governed
+Markdown files. Together with the root `LICENSE`, that makes 144 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the

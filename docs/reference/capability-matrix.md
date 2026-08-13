@@ -110,7 +110,10 @@ does not transfer to later commits. Pull-request CI rebuilds and packages the
 exact GitHub-tested merge commit and records it in `COMMIT`. One Developer ID signed notarized arm64 Mac identity passed its packaging
 gate at `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`
 ([2026-08-13 packet](../operations/evidence/2026-08-13-desktop-public-release/README.md)).
-That identity does not transfer to other commits. Neither the one
+That identity does not transfer to other commits. One Path Beta CUDA
+fresh-process adapter reload is recorded in the
+[2026-08-13 M7-C packet](../operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md)
+and does not transfer to other cells. Neither the one
 exact CUDA acceptance nor the MLX-LM acceptance establishes model quality,
 production throughput, broad runtime support, or release readiness. Aptus
 v0.2 remains unreleased.

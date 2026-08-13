@@ -1012,6 +1012,7 @@ After Alpha+Beta+correction, expand **one axis only**.
 ### 14.4 Exit criteria
 
 - [ ] One new evidence-bound claim, no silent generalization  
+  M7-C measured: [2026-08-13 Path Beta CUDA reload](../operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md). M7-A and M7-B remain open.
 
 ---
 

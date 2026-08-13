@@ -262,7 +262,7 @@ transfers to another artifact, source tree, host, or runtime configuration.
 | **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints and treating one matching configuration as artifact-wide runtime acceptance |
 | **Data** | JSON, JSONL, CSV and text with common SFT row shapes | Sequence packing; tasks other than SFT. Whole-text rows do not compile for `mlx-lm` |
 | **Recovery** | Named projects with immutable content-hashed revisions | Crash resume for MLX-LM or CUDA full runs |
-| **Distribution** | Source build and ad-hoc-signed CI artifacts | A notarized public download |
+| **Distribution** | Source build, ad-hoc-signed CI artifacts, and one Developer ID signed notarized arm64 DMG at `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` ([2026-08-13 packet](docs/operations/evidence/2026-08-13-desktop-public-release/README.md)) | Any other commit, Intel Macs, App Store distribution, or treating the 2026-07-27 ad-hoc 10× gate as that public identity |
 
 Aptus also provides runtime-bound plans with separate compute, compiler,
 estimator, evidence, and export identities; Apple platform discovery for chip,
@@ -532,10 +532,12 @@ Ten consecutive clean local desktop engineering builds passed at implementation
 commit `1038ecdd13103418ef1135e1ced634c10370a961`. That record is historical
 evidence for that exact commit. Pull-request CI rebuilds and packages GitHub's
 exact tested merge commit and records it in `COMMIT`. The default Mac build is
-ad-hoc signed; public distribution still requires a Developer ID identity and
-notarization. **The bounded CUDA campaign is complete through Phase 10. No
+ad-hoc signed. One Developer ID signed notarized arm64 identity is recorded
+for `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` in the
+[2026-08-13 public Mac packet](docs/operations/evidence/2026-08-13-desktop-public-release/README.md).
+**The bounded CUDA campaign is complete through Phase 10. No
 Phase 11 is defined; broader method, placement, host, semantic-export,
-model-quality, production-safety, and public-distribution gates stay open.**
+model-quality, and production-safety gates stay open.**
 
 The first MoE compatibility slice is exact and fail-closed. It recognizes
 `qwen3_moe` checkpoints with `Qwen3MoeForCausalLM` only when they use the

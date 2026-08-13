@@ -110,8 +110,11 @@ remains the unchanged historical baseline. A separate local desktop gate complet
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`.
 Broader CUDA target-host coverage, semantic CUDA adapter reload, model-quality
-and production-safety evidence, multi-GPU execution, and public Developer ID
-signed and notarized desktop-distribution gates remain open. No Phase 11 is
+and production-safety evidence, and multi-GPU execution remain open. One
+Developer ID signed notarized arm64 desktop identity exists for source
+`edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` in the
+[2026-08-13 public Mac packet](../operations/evidence/2026-08-13-desktop-public-release/README.md);
+it does not transfer to other commits. No Phase 11 is
 defined; future CUDA work requires a separately reviewed campaign.
 The exact Qwen3 30B-A3B MoE attempt passed dependency validation but stopped
 before model loading because live unified memory was 18.932 GiB below the
@@ -435,8 +438,9 @@ is the current aggregate for the exact RTX 3050 campaign: 149 planned, 58
 started, 91 predeclared-not-started, 47 qualifying, and no replacement runs.
 Its six stable cells, guarded frontier, and endurance/job-control result do not
 transfer to unlisted CUDA configurations. The
-default Mac artifact is ad-hoc signed, not a Developer ID signed and notarized
-public distribution.
+default `desktop/macos/build.sh` artifact and CI packages remain ad-hoc signed.
+One exact Developer ID signed notarized arm64 identity is recorded in the
+[2026-08-13 public Mac packet](../operations/evidence/2026-08-13-desktop-public-release/README.md).
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 proves exact plan, compile, dependency, packed-checkpoint, and live-memory
 admission behavior. It does not prove 30B model loading or training speed.

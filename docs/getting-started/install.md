@@ -69,7 +69,9 @@ desktop/macos/build.sh
 
 The build submits and staples both the app and DMG, validates their tickets,
 and runs Gatekeeper assessment. Do not claim public readiness unless those
-commands succeed with real Apple credentials.
+commands succeed with real Apple credentials. One exact notarized arm64
+identity is recorded in the
+[2026-08-13 public Mac packet](../operations/evidence/2026-08-13-desktop-public-release/README.md).
 
 The Mac app runs supported local MLX-LM gates and shows an explicit target-host
 handoff for CUDA bundles. It does not run CUDA on macOS.

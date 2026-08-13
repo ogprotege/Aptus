@@ -125,7 +125,12 @@ Remaining release work:
   fallback.
 - Obtain a Developer ID Application identity, notarize and staple the app and
   DMG, and pass Gatekeeper assessment before public distribution.
+  Recorded for `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` in
+  [docs/operations/evidence/2026-08-13-desktop-public-release/README.md](docs/operations/evidence/2026-08-13-desktop-public-release/README.md);
+  other commits still need their own packet.
 - Publish a release evidence record for the exact released commit and artifacts.
+  The 2026-08-13 packet binds that one notarized identity; Aptus 0.2 product
+  release remains open.
 
 Full-parameter FSDP remains unsupported during v0.2. LoRA FSDP remains
 conditional until its runtime gate is complete.

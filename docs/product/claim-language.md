@@ -162,6 +162,9 @@ Use:
 - “pull-request CI rebuilt and packaged GitHub's exact tested merge commit,” but
   only after that workflow has completed successfully;
 - “the default desktop artifact is ad-hoc signed for review and testing”;
+- “source `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` has one Developer ID
+  signed notarized arm64 app and DMG”, only with the 2026-08-13 packet
+  hashes and notary IDs;
 - “the exact Phase 6 Qwen2 fixture passed two current-contract v5/v3 MLX-LM
   ladders at the recorded acceptance source”;
 - “five of five predeclared SmolLM2 CUDA LoRA single-device slots passed the

@@ -168,9 +168,9 @@ immutable and separate from the current aggregate.
 
 The exact Qwen3 30B MLX-LM attempt remains safe-refusal evidence: it stopped
 before model loading. It is not a passing pilot or training result. The release
-itself remains blocked until the remaining CUDA target-host evidence and a
-Developer ID signed and notarized public desktop distribution exist for the
-capabilities being claimed. The July MLX-LM acceptance and local 10-build
+itself remains blocked until the remaining CUDA target-host evidence exists
+for the capabilities being claimed. One Developer ID signed notarized arm64
+desktop identity is recorded for `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`. The July MLX-LM acceptance and local 10-build
 desktop engineering gate and original Phase 6 acceptance remain historical at
 their recorded commits; the August 5 refresh is bounded current-contract
 MLX-LM evidence at its exact acceptance source. The exact CUDA LoRA
@@ -194,7 +194,7 @@ derive every default, status, and response field from one source.
 | Discoverability | Good | The central and archive indexes expose current journeys, desktop implementation guidance, legacy evidence, and historical engineering reviews |
 | Freshness metadata | Good | Every governed Markdown page identifies status, review date, and a review trigger; milestone surfaces are reconciled to 2026-08-11 |
 | Automation | Good | Tests cover links, anchors, fences, navigation reachability, metadata, structured CLI parser parity, API routes and static errors, all 11 executable generated-operator-document rows, method overlap, stale contracts, model-policy provenance, all six snapshot finding codes, plan-ID snapshot binding, portable-integrity versus host-currency semantics, Phase 4 surfaces, Phase 5 request/candidate/report ingress, Phase 6 two-policy claims, mutation parity, exact-source evidence pointers, evidence-packet checksums and sanitization including the Phase 2B inventory, dispositions, independent review, and publication decision, exact bundle comparison, distinct validation/admission presentation, bundle-environment safety, the 2026-07-28 audit closeout, strict maintained React response normalization, and all four native HTTP response boundaries checked against OpenAPI required and closed fields |
-| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 Phase 10 certification closes the bounded campaign aggregate for its six listed stable cells, guarded frontier, and endurance/job-control outcome; other CUDA coverage, semantic reload, model quality, production safety, release readiness, and public notarized distribution remain open |
+| Release evidence | Partial | The August 5 refresh records two fresh current-contract MLX-LM repetitions at their exact acceptance source, the August 6 packet records one exact CUDA LoRA single-device `measured-run-pass`, the August 10 packets establish the exact five-slot CUDA LoRA repeatability anchor and one stable Phase 6 Full cell, and the August 11 Phase 10 certification closes the bounded campaign aggregate for its six listed stable cells, guarded frontier, and endurance/job-control outcome; other CUDA coverage, semantic reload, model quality, production safety, and product release readiness remain open. One exact notarized arm64 desktop identity is recorded in the 2026-08-13 packet |
 
 ## Freshness and classification
 

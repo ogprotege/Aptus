@@ -968,16 +968,17 @@ If (and only if) you want strangers to download Aptus for Mac, close packaging t
 
 ### 13.4 Work packages
 
-- [ ] Obtain/confirm signing identity and notary profile  
-- [ ] `APTUS_REQUIRE_CLEAN_CHECKOUT=1` release build  
+- [x] Obtain/confirm signing identity and notary profile  
+- [x] `APTUS_REQUIRE_CLEAN_CHECKOUT=1` release build  
 - [ ] `tools/repeat_desktop_release_gate.zsh` if required by gates  
-- [ ] Notarize app + DMG  
-- [ ] Record in dated release evidence  
-- [ ] Update README distribution claims  
+- [x] Notarize app + DMG  
+- [x] Record in dated release evidence  
+- [x] Update README distribution claims  
 
 ### 13.5 Exit criteria
 
-- [ ] Gatekeeper-clean public artifact **or** explicit decision to remain private/ad-hoc only  
+- [x] Gatekeeper-clean public artifact **or** explicit decision to remain private/ad-hoc only  
+  Evidence: [2026-08-13 desktop public Mac packet](../operations/evidence/2026-08-13-desktop-public-release/README.md) at `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`. Ten notarized repetitions were not run; the 2026-07-27 ad-hoc 10× gate remains historical stability only.
 
 ### 13.6 Stop conditions
 

@@ -1014,21 +1014,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 142)
+        self.assertEqual(len(repository_documents), 143)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 141)
-        self.assertEqual(len(active_documents), 112)
+        self.assertEqual(len(governed_documents), 142)
+        self.assertEqual(len(active_documents), 113)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 141)
-        self.assertIn("141 are governed", normalized_inventory)
-        self.assertIn("141 governed", normalized_inventory)
-        self.assertIn("142 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 112 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 142)
+        self.assertIn("142 are governed", normalized_inventory)
+        self.assertIn("142 governed", normalized_inventory)
+        self.assertIn("143 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 113 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 

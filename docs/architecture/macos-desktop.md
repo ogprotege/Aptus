@@ -155,7 +155,9 @@ and tests the web assets, creates a relocatable arm64 Python sidecar with
 PyInstaller, generates the Xcode project, and runs native tests. It assembles
 the app, creates the icon set, signs nested code and the outer bundle, runs an
 authenticated launch probe, and emits `Aptus.app`, `Aptus.app.zip`, a DMG,
-`SHA256SUMS`, and `COMMIT`. Local builds are ad-hoc signed by default.
+`SHA256SUMS`, and `COMMIT`. Local builds are ad-hoc signed by default. One
+exact notarized identity is recorded in
+[the 2026-08-13 public Mac packet](../operations/evidence/2026-08-13-desktop-public-release/README.md).
 
 Set `APTUS_REQUIRE_CLEAN_CHECKOUT=1` to reject a dirty release checkout. For a
 public artifact, set `APTUS_CODESIGN_IDENTITY` to a Developer ID Application

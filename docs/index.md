@@ -32,6 +32,7 @@ The current portable contract uses `aptus.training-plan.v6`,
 | Inspect the current-contract MLX acceptance | [2026-08-05 Phase 6 MLX-LM evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect the original Phase 6 MLX baseline | [2026-08-05 original acceptance](operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) | [Current-contract evidence at exact source](operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md) |
 | Inspect the historical MLX acceptance | [2026-07-27 MLX-LM evidence](operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) | [Apple Silicon pilot matrix](operations/apple-silicon-pilot.md) |
+| Inspect Path Beta second-model 360M LoRA | [2026-08-13 M7-A evidence](operations/evidence/2026-08-13-path-beta-360m-lora-m7a/README.md) | [Path Beta runbook](guides/path-beta-cuda-lora-operator.md) |
 | Inspect Path Beta CUDA adapter reload | [2026-08-13 M7-C reload evidence](operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md) | [Path Beta runbook](guides/path-beta-cuda-lora-operator.md) |
 | Inspect the notarized public Mac identity | [2026-08-13 desktop public Mac evidence](operations/evidence/2026-08-13-desktop-public-release/README.md) | [Release gates](operations/release-gates.md) |
 | Inspect desktop build stability | [2026-07-27 desktop evidence](operations/evidence/2026-07-27-desktop-release/README.md) | [Release gates](operations/release-gates.md) |

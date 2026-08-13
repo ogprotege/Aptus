@@ -8,6 +8,10 @@ All notable changes are recorded here.
 
 ### Added
 
+- A second CUDA model on the Path Beta runtime:
+  `HuggingFaceTB/SmolLM2-360M-Instruct` @ `a10cc151…` LoRA single reached
+  `measured-run-pass` on Sherminator. Evidence:
+  `docs/operations/evidence/2026-08-13-path-beta-360m-lora-m7a/`.
 - A Path Beta fresh-process CUDA PEFT adapter reload (1–4 tokens) bound to
   compile `36bef48d6ca3c0b11bf39da823ae4bc24f4c94fb` and fingerprint
   `cf7858e5…`. Evidence:

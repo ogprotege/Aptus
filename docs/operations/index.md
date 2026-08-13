@@ -33,6 +33,7 @@
 - [2026-08-05 Phase 6 Qwen2 MLX-LM exact-source acceptance](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [2026-08-05 original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
 - [2026-07-27 MLX-LM target-host acceptance](evidence/2026-07-27-mlx-lm-acceptance/README.md)
+- [2026-08-13 Path Beta runtime second model 360M LoRA (M7-A)](evidence/2026-08-13-path-beta-360m-lora-m7a/README.md)
 - [2026-08-13 Path Beta CUDA adapter reload (M7-C)](evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md)
 - [2026-08-13 desktop public Mac distribution](evidence/2026-08-13-desktop-public-release/README.md)
 - [2026-07-27 desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)

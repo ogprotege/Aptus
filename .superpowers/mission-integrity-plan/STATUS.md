@@ -1,8 +1,8 @@
 # Mission program status
 
 - **Updated:** 2026-08-13
-- **Current phase:** M7-C semantic CUDA adapter reload — **COMPLETE locally (pending PR)**
-- **M7 remaining:** A (second model) and B (second host)
+- **Current phase:** M7-A + M7-C complete locally (PR #92). **M7-B blocked** — no second CUDA host class.
+- **M7 remaining:** B only (needs a different host than Sherminator / RTX 3050)
 - **Last completed on main:** M0–M6 (`36bef48`)
 - **M7 choice:** C first (A and B later, not mixed)
 - **SSH:** Sherminator `wts@192.168.1.12`

@@ -109,6 +109,10 @@ remains the unchanged historical baseline. A separate local desktop gate complet
 10 of 10 clean engineering builds at implementation commit
 `1038ecdd13103418ef1135e1ced634c10370a961`. Pull-request CI rebuilds and
 packages GitHub's exact tested merge commit and records it in `COMMIT`.
+A second CUDA model on the Path Beta runtime,
+`HuggingFaceTB/SmolLM2-360M-Instruct` @ `a10cc151…` LoRA single, reached
+`measured-run-pass` in the
+[2026-08-13 M7-A packet](../operations/evidence/2026-08-13-path-beta-360m-lora-m7a/README.md).
 Broader CUDA target-host coverage, model-quality and production-safety
 evidence, and multi-GPU execution remain open. One Path Beta fresh-process
 PEFT adapter reload (1–4 tokens) is recorded in the

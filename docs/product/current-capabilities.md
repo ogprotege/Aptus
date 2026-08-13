@@ -402,8 +402,11 @@ acceptance remain open.
 
 ## Not implemented
 
-- First-class evaluation datasets, metrics, thresholds, or baseline gates.
-- General quality evaluation and CUDA semantic export load validation. MLX pilot
+- General quality evaluation, leaderboards, human-preference labels, or
+  LLM-as-judge scoring. The optional `aptus.evaluation-contract.v1` binds a gold
+  digest, `exact_match` threshold, and export digest only; it is not a quality
+  guarantee.
+- CUDA semantic export load validation as a parent completion gate. MLX pilot
   and full runs perform only a bounded fresh-process adapter generation check.
 - Exporter plugin contracts for merged or deployment-specific artifacts.
 - Cloud runners, provider provisioning, or cost selection.

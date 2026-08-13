@@ -26,6 +26,16 @@ aptus jobs --id JOB_ID
 Use the `bundle_dir`, `log`, `run_id`, and `run_output_dir` values from the job
 record. Do not infer paths from timestamps or directory order.
 
+An optional evaluation contract and result live outside that ladder:
+
+```bash
+aptus eval-contract --dataset GOLD.jsonl --claim "..." --threshold 1 --output contract.json
+aptus eval --contract contract.json --gold GOLD.jsonl --predictions PRED.jsonl --output result.json
+```
+
+`decision: pass` is only exact-match against the bound gold digest. It is not
+train-loss success, `measured-run-pass`, general quality, or release readiness.
+
 ## 1. Re-read the selected decision
 
 Confirm that `plan.json`, `decision-report.md`, and the job all name the same

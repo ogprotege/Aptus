@@ -32,6 +32,8 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `hardware` | Inspect local hardware | Local probe | None |
 | `inspect hardware` | Alias for `hardware` | Local probe | None |
 | `inspect model` | Inspect bounded provider metadata | 10-second timeout | Provider network requests only |
+| `eval-contract` | Bind a gold JSONL into `aptus.evaluation-contract.v1` | `exact_match` | Optional contract JSON and optional presentation-only plan copy |
+| `eval` | Score predictions against a bound contract | Write result JSON | Optional result JSON; does not start a training job |
 | `serve` | Serve an authenticated API and packaged workbench | `127.0.0.1:8787` | Per-launch workbench handoff, bearer token, state, and job records |
 
 ## Machine-readable parser contract
@@ -105,7 +107,7 @@ types, validation rules, side effects, and operational meaning.
   },
   "commands": {
     "aptus": {
-      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "inspect"], "default": null}
+      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "eval-contract", "eval", "inspect"], "default": null}
     },
     "aptus profile": {
       "--dataset": {"default": null},
@@ -169,6 +171,30 @@ types, validation rules, side effects, and operational meaning.
       "--allow-non-loopback": {"default": false}
     },
     "aptus hardware": {},
+    "aptus eval-contract": {
+      "--dataset": {"default": null},
+      "--claim": {"default": null},
+      "--threshold": {"default": null},
+      "--metric": {"choices": ["exact_match"], "default": "exact_match"},
+      "--gold-field": {"choices": ["completion", "output", "gold"], "default": "completion"},
+      "--id-field": {"default": "id"},
+      "--casefold": {"default": false},
+      "--plan-id": {"default": null},
+      "--candidate-id": {"default": null},
+      "--job-id": {"default": null},
+      "--export-digest": {"default": null},
+      "--export-kind": {"choices": ["adapter", "final-export"], "default": null},
+      "--output": {"default": null},
+      "--attach-plan": {"default": null},
+      "--plan-output": {"default": null}
+    },
+    "aptus eval": {
+      "--contract": {"default": null},
+      "--gold": {"default": null},
+      "--predictions": {"default": null},
+      "--export-digest": {"default": null},
+      "--output": {"default": null}
+    },
     "aptus inspect": {
       "<inspect_command>": {"choices": ["hardware", "model"], "default": null}
     },
@@ -497,6 +523,37 @@ compatibility-subject and observed-planning-facts digests. Either save the whole
 inspection output or extract its `inspection_receipt` object for a later
 `--inspection-receipt` planning argument.
 
+## `aptus eval-contract`
+
+```bash
+aptus eval-contract --dataset GOLD.jsonl --claim TEXT --threshold 1.0 \
+  [--metric exact_match] [--gold-field completion] [--id-field id] \
+  [--casefold] [--plan-id PLAN_ID] [--candidate-id CANDIDATE_ID] \
+  [--job-id JOB_ID] [--export-digest HEX] [--export-kind {adapter,final-export}] \
+  [--output CONTRACT.json] [--attach-plan PLAN.json --plan-output PLAN-WITH-EVAL.json]
+```
+
+This writes `aptus.evaluation-contract.v1`. The gold file digest, row count,
+metric implementation, and threshold are the binding. A local gold path is an
+operator hint and is not contract identity. `--attach-plan` copies a persisted
+plan and adds a presentation-only `evaluation_contract` field; `plan_id` does
+not change. Contract and attached-plan outputs refuse to overwrite existing
+files. Training finished is not an evaluation pass.
+
+## `aptus eval`
+
+```bash
+aptus eval --contract CONTRACT.json --gold GOLD.jsonl \
+  --predictions PRED.jsonl [--export-digest HEX] [--output RESULT.json]
+```
+
+This scores operator-supplied predictions against the bound gold digest using
+`aptus.exact-match.v1`. Aptus does not generate predictions. The command writes
+`aptus.evaluation-result.v1` and exits `0` only for `pass`. `fail` and
+`abstain` exit `1`. Missing or extra prediction identities, a gold-digest
+mismatch, or an export-digest mismatch abstain. This is not a managed training
+job and does not change validation state.
+
 ## `aptus serve`
 
 ```bash
@@ -539,8 +596,8 @@ isolation.
 
 | Status | Meaning |
 | ---: | --- |
-| `0` | Command succeeded, report was not invalid, or managed job completed |
-| `1` | Validation report is `invalid`, or managed job ended outside `completed` |
+| `0` | Command succeeded, report was not invalid, managed job completed, or eval passed |
+| `1` | Validation report is `invalid`, managed job ended outside `completed`, or eval failed/abstained |
 | `2` | Argument, input, inspection, JSON, filesystem, command error, or doctor action required |
 | `130` | The CLI handled an interrupt by requesting job cancellation |
 

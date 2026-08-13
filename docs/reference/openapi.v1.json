@@ -451,6 +451,541 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EvaluationArtifactBindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "export_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Digest"
+          },
+          "export_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "adapter",
+                  "final-export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Kind"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          }
+        },
+        "required": [
+          "plan_id",
+          "candidate_id",
+          "job_id",
+          "export_digest",
+          "export_kind"
+        ],
+        "title": "EvaluationArtifactBindingResponse",
+        "type": "object"
+      },
+      "EvaluationContractRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "casefold": {
+            "default": false,
+            "title": "Casefold",
+            "type": "boolean"
+          },
+          "claim": {
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "dataset_path": {
+            "minLength": 1,
+            "title": "Dataset Path",
+            "type": "string"
+          },
+          "export_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Digest"
+          },
+          "export_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "adapter",
+                  "final-export"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Kind"
+          },
+          "gold_field": {
+            "default": "completion",
+            "enum": [
+              "completion",
+              "output",
+              "gold"
+            ],
+            "title": "Gold Field",
+            "type": "string"
+          },
+          "id_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "id",
+            "title": "Id Field"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "metric": {
+            "const": "exact_match",
+            "default": "exact_match",
+            "title": "Metric",
+            "type": "string"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "threshold": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dataset_path",
+          "claim",
+          "threshold"
+        ],
+        "title": "EvaluationContractRequest",
+        "type": "object"
+      },
+      "EvaluationContractResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_binding": {
+            "$ref": "#/components/schemas/EvaluationArtifactBindingResponse"
+          },
+          "claim": {
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/EvaluationDatasetBindingResponse"
+          },
+          "metric": {
+            "$ref": "#/components/schemas/EvaluationMetricResponse"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "aptus.evaluation-contract.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/EvaluationThresholdResponse"
+          }
+        },
+        "required": [
+          "schema_version",
+          "claim",
+          "dataset",
+          "metric",
+          "threshold",
+          "artifact_binding",
+          "non_claims"
+        ],
+        "title": "EvaluationContractResponse",
+        "type": "object"
+      },
+      "EvaluationDatasetBindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "jsonl",
+            "title": "Format",
+            "type": "string"
+          },
+          "gold_field": {
+            "enum": [
+              "completion",
+              "output",
+              "gold"
+            ],
+            "title": "Gold Field",
+            "type": "string"
+          },
+          "id_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id Field"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "row_count": {
+            "exclusiveMinimum": 0.0,
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256",
+          "format",
+          "gold_field",
+          "row_count",
+          "id_field"
+        ],
+        "title": "EvaluationDatasetBindingResponse",
+        "type": "object"
+      },
+      "EvaluationMetricResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "const": "higher_is_better",
+            "title": "Direction",
+            "type": "string"
+          },
+          "implementation_version": {
+            "const": "aptus.exact-match.v1",
+            "title": "Implementation Version",
+            "type": "string"
+          },
+          "name": {
+            "const": "exact_match",
+            "title": "Name",
+            "type": "string"
+          },
+          "normalization": {
+            "$ref": "#/components/schemas/EvaluationNormalizationResponse"
+          }
+        },
+        "required": [
+          "name",
+          "direction",
+          "implementation_version",
+          "normalization"
+        ],
+        "title": "EvaluationMetricResponse",
+        "type": "object"
+      },
+      "EvaluationNormalizationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "casefold": {
+            "title": "Casefold",
+            "type": "boolean"
+          },
+          "collapse_whitespace": {
+            "title": "Collapse Whitespace",
+            "type": "boolean"
+          },
+          "strip": {
+            "title": "Strip",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "strip",
+          "collapse_whitespace",
+          "casefold"
+        ],
+        "title": "EvaluationNormalizationResponse",
+        "type": "object"
+      },
+      "EvaluationResultResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_binding": {
+            "$ref": "#/components/schemas/EvaluationArtifactBindingResponse"
+          },
+          "contract_sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Contract Sha256",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "pass",
+              "fail",
+              "abstain"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "decision_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Decision Reasons",
+            "type": "array"
+          },
+          "evaluated_at": {
+            "minLength": 1,
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "gold_sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Gold Sha256",
+            "type": "string"
+          },
+          "metric": {
+            "const": "exact_match",
+            "title": "Metric",
+            "type": "string"
+          },
+          "n_extra": {
+            "minimum": 0.0,
+            "title": "N Extra",
+            "type": "integer"
+          },
+          "n_gold": {
+            "minimum": 0.0,
+            "title": "N Gold",
+            "type": "integer"
+          },
+          "n_missing": {
+            "minimum": 0.0,
+            "title": "N Missing",
+            "type": "integer"
+          },
+          "n_predictions": {
+            "minimum": 0.0,
+            "title": "N Predictions",
+            "type": "integer"
+          },
+          "n_scored": {
+            "minimum": 0.0,
+            "title": "N Scored",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "predictions_sha256": {
+            "pattern": "^[0-9a-fA-F]{64}$",
+            "title": "Predictions Sha256",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "aptus.evaluation-result.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "threshold": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "schema_version",
+          "contract_sha256",
+          "gold_sha256",
+          "predictions_sha256",
+          "artifact_binding",
+          "metric",
+          "score",
+          "threshold",
+          "n_gold",
+          "n_predictions",
+          "n_scored",
+          "n_missing",
+          "n_extra",
+          "decision",
+          "decision_reasons",
+          "non_claims",
+          "evaluated_at"
+        ],
+        "title": "EvaluationResultResponse",
+        "type": "object"
+      },
+      "EvaluationScoreRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "contract": {
+            "$ref": "#/components/schemas/EvaluationContractResponse"
+          },
+          "export_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Digest"
+          },
+          "gold_path": {
+            "minLength": 1,
+            "title": "Gold Path",
+            "type": "string"
+          },
+          "predictions_path": {
+            "minLength": 1,
+            "title": "Predictions Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contract",
+          "gold_path",
+          "predictions_path"
+        ],
+        "title": "EvaluationScoreRequest",
+        "type": "object"
+      },
+      "EvaluationThresholdResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison": {
+            "const": "gte",
+            "title": "Comparison",
+            "type": "string"
+          },
+          "minimum": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Minimum",
+            "type": "number"
+          }
+        },
+        "required": [
+          "minimum",
+          "comparison"
+        ],
+        "title": "EvaluationThresholdResponse",
+        "type": "object"
+      },
       "EvidenceRequirement": {
         "enum": [
           "pilot-required",
@@ -4326,6 +4861,202 @@
           }
         },
         "summary": "Compile Artifacts"
+      }
+    },
+    "/api/v1/evaluations": {
+      "post": {
+        "operationId": "score_evaluation_api_v1_evaluations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Score Evaluation"
+      }
+    },
+    "/api/v1/evaluations/contracts": {
+      "post": {
+        "operationId": "create_evaluation_contract_api_v1_evaluations_contracts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationContractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationContractResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Create Evaluation Contract"
       }
     },
     "/api/v1/hardware": {

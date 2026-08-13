@@ -2,15 +2,17 @@
 
 > **Status:** Active | **Audience:** Fine-tuning practitioners and researchers | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Evaluation research | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22
 
-Aptus 0.2 does not implement a first-class quality-evaluation contract. It can
+Aptus 0.2 can attach an optional first-class evaluation contract
+(`aptus.evaluation-contract.v1`) and score operator-supplied predictions
+(`aptus.evaluation-result.v1`) with deterministic exact match. It can also
 verify training work, finite losses, runtime-specific pilot behavior, bindings,
 and structural exports. MLX also verifies bounded fresh-process adapter
-generation. None of those proves that the adapted model is better for the
-target task.
+generation. None of those proves that the adapted model is better in general.
 
-Use this guide to define an external evaluation before training. Keep its data
-and decisions separate from the training bundle until Aptus has a versioned
-evaluation feature.
+Use this guide to write the claim first. Keep the gold set and predictions
+outside the compiler-managed bundle. Training finished is not an evaluation
+pass. `target.evaluation_fraction` is a train/validation split, not this
+contract.
 
 ## Write the claim first
 
@@ -129,9 +131,10 @@ Preserve:
 - pass, fail, or abstain decision with reasons;
 - known limitations and excluded claims.
 
-Do not write this packet into a compiler-managed bundle path. Store it as a
-separate immutable evaluation artifact until Aptus defines an evaluation
-manifest and verifier.
+Do not write this packet into a compiler-managed bundle path. Store the
+contract and result as separate artifacts. `aptus eval-contract` and
+`aptus eval` emit those artifacts; attaching a contract to a plan JSON is
+presentation-only and does not change `plan_id`.
 
 Maintain a small deterministic CI subset for contract and regression checks.
 Promote production failures into a versioned regression intake with provenance,

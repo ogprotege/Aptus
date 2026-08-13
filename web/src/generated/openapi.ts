@@ -38,6 +38,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score Evaluation */
+        post: operations["score_evaluation_api_v1_evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluations/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Evaluation Contract */
+        post: operations["create_evaluation_contract_api_v1_evaluations_contracts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hardware": {
         parameters: {
             query?: never;
@@ -581,6 +615,190 @@ export interface components {
             message?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /** EvaluationArtifactBindingResponse */
+        EvaluationArtifactBindingResponse: {
+            /** Candidate Id */
+            candidate_id: string | null;
+            /** Export Digest */
+            export_digest: string | null;
+            /** Export Kind */
+            export_kind: ("adapter" | "final-export") | null;
+            /** Job Id */
+            job_id: string | null;
+            /** Plan Id */
+            plan_id: string | null;
+        };
+        /** EvaluationContractRequest */
+        EvaluationContractRequest: {
+            /** Candidate Id */
+            candidate_id?: string | null;
+            /**
+             * Casefold
+             * @default false
+             */
+            casefold: boolean;
+            /** Claim */
+            claim: string;
+            /** Dataset Path */
+            dataset_path: string;
+            /** Export Digest */
+            export_digest?: string | null;
+            /** Export Kind */
+            export_kind?: ("adapter" | "final-export") | null;
+            /**
+             * Gold Field
+             * @default completion
+             * @enum {string}
+             */
+            gold_field: "completion" | "output" | "gold";
+            /**
+             * Id Field
+             * @default id
+             */
+            id_field: string | null;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Metric
+             * @default exact_match
+             * @constant
+             */
+            metric: "exact_match";
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Threshold */
+            threshold: number;
+        };
+        /** EvaluationContractResponse */
+        EvaluationContractResponse: {
+            artifact_binding: components["schemas"]["EvaluationArtifactBindingResponse"];
+            /** Claim */
+            claim: string;
+            dataset: components["schemas"]["EvaluationDatasetBindingResponse"];
+            metric: components["schemas"]["EvaluationMetricResponse"];
+            /** Non Claims */
+            non_claims: string[];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.evaluation-contract.v1";
+            threshold: components["schemas"]["EvaluationThresholdResponse"];
+        };
+        /** EvaluationDatasetBindingResponse */
+        EvaluationDatasetBindingResponse: {
+            /**
+             * Format
+             * @constant
+             */
+            format: "jsonl";
+            /**
+             * Gold Field
+             * @enum {string}
+             */
+            gold_field: "completion" | "output" | "gold";
+            /** Id Field */
+            id_field: string | null;
+            /** Path */
+            path?: string | null;
+            /** Row Count */
+            row_count: number;
+            /** Sha256 */
+            sha256: string;
+        };
+        /** EvaluationMetricResponse */
+        EvaluationMetricResponse: {
+            /**
+             * Direction
+             * @constant
+             */
+            direction: "higher_is_better";
+            /**
+             * Implementation Version
+             * @constant
+             */
+            implementation_version: "aptus.exact-match.v1";
+            /**
+             * Name
+             * @constant
+             */
+            name: "exact_match";
+            normalization: components["schemas"]["EvaluationNormalizationResponse"];
+        };
+        /** EvaluationNormalizationResponse */
+        EvaluationNormalizationResponse: {
+            /** Casefold */
+            casefold: boolean;
+            /** Collapse Whitespace */
+            collapse_whitespace: boolean;
+            /** Strip */
+            strip: boolean;
+        };
+        /** EvaluationResultResponse */
+        EvaluationResultResponse: {
+            artifact_binding: components["schemas"]["EvaluationArtifactBindingResponse"];
+            /** Contract Sha256 */
+            contract_sha256: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pass" | "fail" | "abstain";
+            /** Decision Reasons */
+            decision_reasons: string[];
+            /** Evaluated At */
+            evaluated_at: string;
+            /** Gold Sha256 */
+            gold_sha256: string;
+            /**
+             * Metric
+             * @constant
+             */
+            metric: "exact_match";
+            /** N Extra */
+            n_extra: number;
+            /** N Gold */
+            n_gold: number;
+            /** N Missing */
+            n_missing: number;
+            /** N Predictions */
+            n_predictions: number;
+            /** N Scored */
+            n_scored: number;
+            /** Non Claims */
+            non_claims: string[];
+            /** Predictions Sha256 */
+            predictions_sha256: string;
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.evaluation-result.v1";
+            /** Score */
+            score: number | null;
+            /** Threshold */
+            threshold: number;
+        };
+        /** EvaluationScoreRequest */
+        EvaluationScoreRequest: {
+            contract: components["schemas"]["EvaluationContractResponse"];
+            /** Export Digest */
+            export_digest?: string | null;
+            /** Gold Path */
+            gold_path: string;
+            /** Predictions Path */
+            predictions_path: string;
+        };
+        /** EvaluationThresholdResponse */
+        EvaluationThresholdResponse: {
+            /**
+             * Comparison
+             * @constant
+             */
+            comparison: "gte";
+            /** Minimum */
+            minimum: number;
         };
         /**
          * EvidenceRequirement
@@ -1947,6 +2165,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompileResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    score_evaluation_api_v1_evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationScoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResultResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_evaluation_contract_api_v1_evaluations_contracts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationContractRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationContractResponse"];
                 };
             };
             /** @description Bad Request */

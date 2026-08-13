@@ -212,6 +212,16 @@ export function ValidateStage({
         </section>
       )}
 
+      <section className="evaluation-contract-panel" aria-labelledby="evaluation-contract-title">
+        <p className="eyebrow">Optional evaluation contract</p>
+        <h2 id="evaluation-contract-title">Training finished is not an evaluation pass.</h2>
+        <p>
+          Train loss, validation loss from the split, and <code>measured-run-pass</code> are operational
+          evidence. They do not decide task quality. Attach <code>aptus.evaluation-contract.v1</code> and
+          score operator-supplied predictions with <code>aptus eval</code> before claiming an eval pass.
+        </p>
+      </section>
+
       <section className="validation-controls" aria-labelledby="validation-controls-title">
         <div>
           <p className="eyebrow">Next validation claim</p>

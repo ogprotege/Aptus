@@ -347,7 +347,7 @@ consumption. Distributed ranks must agree on digest, assignments, and counts.
 | Checkpoint interval | Positive steps |
 | Packing | False only |
 | Maximum wall time | No enforced value |
-| Quality metric or threshold | Not implemented |
+| Quality metric or threshold | Optional `aptus.evaluation-contract.v1` exact-match only; not plan identity |
 
 The `quality` objective is a deterministic method-fidelity ordering. It does not
 predict downstream model quality.
@@ -429,8 +429,10 @@ Explicitly unsupported:
 
 MLX-LM crash resume, full-parameter MLX, DoRA, a PyTorch MPS compiler, ROCm, CPU
 training, cloud runners, provider provisioning, automated cost selection,
-evaluation policies, exporter plugins, experiment-tracker integration, and MCP
-adapters are outside the current support contract.
+leaderboards and LLM-judge evaluation policies, exporter plugins,
+experiment-tracker integration, and MCP adapters are outside the current
+support contract. Optional exact-match scoring is documented separately and
+does not promote run completion into quality.
 
 ## Related documentation
 

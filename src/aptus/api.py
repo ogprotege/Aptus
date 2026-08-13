@@ -19,6 +19,8 @@ from .api_contracts import (
     BootstrapResponse,
     CompileResponse,
     ErrorResponse,
+    EvaluationContractResponse,
+    EvaluationResultResponse,
     HardwareProbeResponse,
     HealthResponse,
     InferenceGenerateResponse,
@@ -242,6 +244,28 @@ class ProfileRequest(StrictModel):
     dataset_path: str
     sample_limit: int | None = Field(default=512, gt=0)
     sequence_length: int | None = Field(default=None, gt=0)
+
+
+class EvaluationContractRequest(StrictModel):
+    dataset_path: str = Field(min_length=1)
+    claim: str = Field(min_length=1)
+    threshold: float = Field(ge=0, le=1)
+    metric: Literal["exact_match"] = "exact_match"
+    gold_field: Literal["completion", "output", "gold"] = "completion"
+    id_field: str | None = "id"
+    casefold: bool = False
+    plan_id: str | None = None
+    candidate_id: str | None = None
+    job_id: str | None = None
+    export_digest: str | None = None
+    export_kind: Literal["adapter", "final-export"] | None = None
+
+
+class EvaluationScoreRequest(StrictModel):
+    contract: EvaluationContractResponse
+    gold_path: str = Field(min_length=1)
+    predictions_path: str = Field(min_length=1)
+    export_digest: str | None = None
 
 
 class PlanRequest(StrictModel):
@@ -1468,6 +1492,47 @@ def create_app(
                 sequence_length=request.sequence_length,
             )
         )
+
+    @app.post(
+        "/api/v1/evaluations/contracts",
+        response_model=EvaluationContractResponse,
+    )
+    def create_evaluation_contract(
+        request: EvaluationContractRequest,
+    ) -> dict[str, Any]:
+        from .evaluation import build_evaluation_contract
+
+        return build_evaluation_contract(
+            dataset_path=Path(request.dataset_path),
+            claim=request.claim,
+            threshold=request.threshold,
+            metric=request.metric,
+            gold_field=request.gold_field,
+            id_field=request.id_field,
+            casefold=request.casefold,
+            plan_id=request.plan_id,
+            candidate_id=request.candidate_id,
+            job_id=request.job_id,
+            export_digest=request.export_digest,
+            export_kind=request.export_kind,
+        ).to_primitive()
+
+    @app.post("/api/v1/evaluations", response_model=EvaluationResultResponse)
+    def score_evaluation(request: EvaluationScoreRequest) -> dict[str, Any]:
+        from .evaluation import (
+            evaluate_predictions,
+            evaluation_contract_from_primitive,
+        )
+
+        contract = evaluation_contract_from_primitive(
+            request.contract.model_dump(mode="json")
+        )
+        return evaluate_predictions(
+            contract,
+            Path(request.gold_path),
+            Path(request.predictions_path),
+            expected_export_digest=request.export_digest,
+        ).to_primitive()
 
     @app.post(
         "/api/v1/plan",

@@ -68,10 +68,10 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
           ) : null}
 
           {measuredRun || finalExport ? (
-            <dl className="run-evidence-grid" aria-label="Final run metrics">
+            <dl className="run-evidence-grid" aria-label="Final run metrics" aria-describedby="run-evaluation-claim">
               {numberMetric(measuredRun, "global_step") !== null ? <div><dt>Global step</dt><dd>{numberMetric(measuredRun, "global_step")}</dd></div> : null}
               {numberMetric(measuredRun, "train_loss") !== null ? <div><dt>Train loss</dt><dd>{numberMetric(measuredRun, "train_loss")}</dd></div> : null}
-              {numberMetric(measuredRun, "eval_loss") !== null ? <div><dt>Evaluation loss</dt><dd>{numberMetric(measuredRun, "eval_loss")}</dd></div> : null}
+              {numberMetric(measuredRun, "eval_loss") !== null ? <div><dt>Split evaluation loss</dt><dd>{numberMetric(measuredRun, "eval_loss")}</dd></div> : null}
               {stringMetric(measuredRun, "distribution") ? <div><dt>Distribution</dt><dd>{stringMetric(measuredRun, "distribution")}</dd></div> : null}
               {numberMetric(measuredRun, "world_size") !== null ? <div><dt>World size</dt><dd>{numberMetric(measuredRun, "world_size")}</dd></div> : null}
               {peakCudaMetric(measuredRun, "measured_peak_cuda_bytes") !== null ? <div><dt>Peak CUDA allocated</dt><dd>{formatBytes(peakCudaMetric(measuredRun, "measured_peak_cuda_bytes"))}</dd></div> : null}
@@ -86,6 +86,11 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
               {completion?.measured_run_completed_at ? <div><dt>Verified at</dt><dd>{completion.measured_run_completed_at}</dd></div> : null}
             </dl>
           ) : null}
+          <p className="evaluation-claim" id="run-evaluation-claim">
+            Train loss and split evaluation loss are not an evaluation pass. Bind
+            {" "}<code>aptus.evaluation-contract.v1</code>{" "}
+            and score predictions before claiming a task-metric result.
+          </p>
 
           {capacity ? (
             <div className="capacity-record">

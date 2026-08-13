@@ -364,4 +364,12 @@ describe("FactsStage", () => {
     await waitFor(() => expect(bridge.pickDataset).toHaveBeenCalledOnce());
     expect(screen.getByLabelText("Dataset path")).toHaveValue(originalPath);
   });
+
+  it("does not present evaluation fraction as a quality contract", () => {
+    render(<FactsHarness />);
+    const field = screen.getByLabelText("Evaluation fraction");
+    expect(field).toHaveAccessibleDescription(/Train\/validation split only/i);
+    expect(field).toHaveAccessibleDescription(/does not decide eval pass/i);
+    expect(screen.queryByRole("heading", { name: /eval pass/i })).not.toBeInTheDocument();
+  });
 });

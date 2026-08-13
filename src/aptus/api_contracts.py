@@ -666,6 +666,71 @@ class PlanCorrectionResponse(ClosedResponseModel):
     operator_next_step: PlanCorrectionNextStepResponse
 
 
+class EvaluationNormalizationResponse(ClosedResponseModel):
+    strip: bool
+    collapse_whitespace: bool
+    casefold: bool
+
+
+class EvaluationDatasetBindingResponse(ClosedResponseModel):
+    sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    format: Literal["jsonl"]
+    gold_field: Literal["completion", "output", "gold"]
+    row_count: Annotated[int, Field(strict=True, gt=0)]
+    id_field: str | None
+    path: str | None = None
+
+
+class EvaluationMetricResponse(ClosedResponseModel):
+    name: Literal["exact_match"]
+    direction: Literal["higher_is_better"]
+    implementation_version: Literal["aptus.exact-match.v1"]
+    normalization: EvaluationNormalizationResponse
+
+
+class EvaluationThresholdResponse(ClosedResponseModel):
+    minimum: float = Field(ge=0, le=1)
+    comparison: Literal["gte"]
+
+
+class EvaluationArtifactBindingResponse(ClosedResponseModel):
+    plan_id: str | None
+    candidate_id: str | None
+    job_id: str | None
+    export_digest: str | None
+    export_kind: Literal["adapter", "final-export"] | None
+
+
+class EvaluationContractResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.evaluation-contract.v1"]
+    claim: str = Field(min_length=1)
+    dataset: EvaluationDatasetBindingResponse
+    metric: EvaluationMetricResponse
+    threshold: EvaluationThresholdResponse
+    artifact_binding: EvaluationArtifactBindingResponse
+    non_claims: list[str]
+
+
+class EvaluationResultResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.evaluation-result.v1"]
+    contract_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    gold_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    predictions_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    artifact_binding: EvaluationArtifactBindingResponse
+    metric: Literal["exact_match"]
+    score: float | None
+    threshold: float = Field(ge=0, le=1)
+    n_gold: Annotated[int, Field(strict=True, ge=0)]
+    n_predictions: Annotated[int, Field(strict=True, ge=0)]
+    n_scored: Annotated[int, Field(strict=True, ge=0)]
+    n_missing: Annotated[int, Field(strict=True, ge=0)]
+    n_extra: Annotated[int, Field(strict=True, ge=0)]
+    decision: Literal["pass", "fail", "abstain"]
+    decision_reasons: list[str]
+    non_claims: list[str]
+    evaluated_at: str = Field(min_length=1)
+
+
 class TrainingPlanResponse(ResponseModel):
     schema_version: Literal["aptus.training-plan.v6"]
     plan_id: str = Field(pattern=r"^plan_[0-9a-f]{20}$")

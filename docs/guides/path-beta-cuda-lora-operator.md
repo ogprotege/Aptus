@@ -196,8 +196,36 @@ time.
 After a green ladder you may claim: **this exact Path Beta tuple reached
 `measured-run-pass` on this host class with structural PEFT export verification.**
 
-You may **not** claim: semantic adapter reload, quality, multi-GPU, other cards,
-or release readiness without separate evidence.
+You may **not** claim: quality, multi-GPU, other cards, or release readiness
+without separate evidence.
+
+### Semantic adapter reload (M7-C)
+
+After a `measured-run-pass` export exists, a **fresh child process** can load
+the pinned base plus `final/` and generate 1–4 tokens:
+
+```bash
+python - <<'PY'
+import os, subprocess, sys
+from pathlib import Path
+run = Path("$BUNDLE/runs/<run_id>")
+cmd = [
+    sys.executable,
+    "src/aptus/_bundle_programs/cuda/reload.py",
+    "--bundle-root", str(Path("$BUNDLE").resolve()),
+    "--adapter-path", str(run / "final"),
+    "--final-export", str(run / "final-export.json"),
+    "--output", str(run / "reload-evidence.json"),
+    "--expected-parent-pid", str(os.getpid()),
+]
+raise SystemExit(subprocess.call(cmd))
+PY
+```
+
+That proves inference from the saved adapter for the recorded identity. It
+does not restore the optimizer and is not yet required for CUDA
+`measured-run-pass`. Evidence:
+[`2026-08-13 Path Beta CUDA reload`](../operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md).
 
 ## Evidence
 

@@ -165,6 +165,11 @@ Use:
 - “source `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` has one Developer ID
   signed notarized arm64 app and DMG”, only with the 2026-08-13 packet
   hashes and notary IDs;
+- “Path Beta LoRA single on the recorded RTX 3050 host reloaded its PEFT
+  adapter in a fresh process and generated 1–4 tokens”, only with the
+  2026-08-13 M7-C packet;
+- “SmolLM2-360M-Instruct LoRA single reached `measured-run-pass` on the
+  recorded RTX 3050 host”, only with the 2026-08-13 M7-A packet;
 - “the exact Phase 6 Qwen2 fixture passed two current-contract v5/v3 MLX-LM
   ladders at the recorded acceptance source”;
 - “five of five predeclared SmolLM2 CUDA LoRA single-device slots passed the

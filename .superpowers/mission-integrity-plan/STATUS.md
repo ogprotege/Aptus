@@ -1,11 +1,11 @@
 # Mission program status
 
 - **Updated:** 2026-08-13
-- **Current phase:** M6 Public Mac distribution — **COMPLETE locally (pending PR)**
-- **Last completed on main:** M0–M5 (`db59ed9`)
-- **M6 source:** `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`
-- **Next after merge:** M7 only with an explicit one-axis choice; or stop
-- **SSH:** not required
+- **Current phase:** M7 closed as **A + C**; **B skipped** (no second CUDA instance)
+- **Last completed on main:** M0–M6 (`36bef48`)
+- **Open PR:** #92 (M7-A + M7-C)
+- **Next:** M8 eval contract only if owner wants it; else stop
+- **SSH:** not required unless a new CUDA host appears
 
 ## Progress stack
 
@@ -15,4 +15,5 @@
 | #88 | M4 Path Beta | merged |
 | #89 | M3.6 / M4.4 loose ends | merged |
 | #90 | M5 correction loop | merged |
-| pending | M6 public Mac | branch `feat/m6-packaged-workbench-refresh` |
+| #91 | M6 public Mac | merged (`36bef48`) |
+| #92 | M7-A + M7-C | open; B skipped |

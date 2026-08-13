@@ -111,7 +111,9 @@ Remaining release work:
   placements, and its local fit or refusal boundaries are not Aptus's cloud or
   multi-GPU ceiling.
 - Complete semantic adapter reload and bounded-generation verification for
-  every CUDA path intended for a release claim.
+  every CUDA path intended for a release claim. Path Beta LoRA single on the
+  RTX 3050 host now has a measured M7-C packet; CUDA `measured-run-pass` still
+  does not require reload.
 - Establish model-quality and production-safety evidence independently from
   the completed execution campaign.
 - Extend MLX-LM acceptance beyond the exact recorded M5 Pro, Qwen QLoRA, and

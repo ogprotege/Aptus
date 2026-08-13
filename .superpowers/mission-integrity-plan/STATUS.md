@@ -18,4 +18,4 @@
 | #90 | M5 correction loop | merged |
 | #91 | M6 public Mac | merged (`36bef48`) |
 | #92 | M7-A + M7-C | merged (`027f1a3`); B skipped |
-| (open) | M8 eval contract | implementing / PR next |
+| #93 | M8 eval contract | open (`f750f0d`) |

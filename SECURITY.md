@@ -25,8 +25,11 @@ rooted in the original [SmolLM2 CUDA LoRA single-device
 acceptance](docs/operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 and the later immutable campaign packets. It is
 not broad CUDA, safety, quality, multi-GPU, remote-provider, production, or
-release-readiness evidence. Public Developer ID signing and notarization remain
-open. Report vulnerabilities privately to
+release-readiness evidence. One Developer ID signed notarized arm64 desktop
+identity is recorded for
+`edc6cfdec48daeb17af8cae7dbb9fde0d8112a81` in
+[docs/operations/evidence/2026-08-13-desktop-public-release/README.md](docs/operations/evidence/2026-08-13-desktop-public-release/README.md);
+CI and unsigned local builds remain ad-hoc. Report vulnerabilities privately to
 [aptus-security@proton.me](mailto:aptus-security@proton.me) before sharing
 technical details. Do not include credentials, private datasets, model tokens,
 exploit details, or unredacted logs in a public issue.

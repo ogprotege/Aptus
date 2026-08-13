@@ -107,8 +107,10 @@ remains an immutable historical record.
 A separate local desktop gate passed 10 of 10 clean engineering builds at
 implementation commit `1038ecdd13103418ef1135e1ced634c10370a961`. That result
 does not transfer to later commits. Pull-request CI rebuilds and packages the
-exact GitHub-tested merge commit and records it in `COMMIT`. No Developer ID
-signed and notarized public Mac artifact has passed its gate. Neither the one
+exact GitHub-tested merge commit and records it in `COMMIT`. One Developer ID signed notarized arm64 Mac identity passed its packaging
+gate at `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`
+([2026-08-13 packet](../operations/evidence/2026-08-13-desktop-public-release/README.md)).
+That identity does not transfer to other commits. Neither the one
 exact CUDA acceptance nor the MLX-LM acceptance establishes model quality,
 production throughput, broad runtime support, or release readiness. Aptus
 v0.2 remains unreleased.

@@ -98,8 +98,10 @@ generated binaries out of Git history without leaving the desktop deliverable
 on one developer's machine.
 
 Workflow artifacts use the default ad-hoc signature and are intended for
-review and testing. Developer ID signing and notarization remain required for
-a public release.
+review and testing. One exact Developer ID signed notarized arm64 identity is
+recorded in
+[`docs/operations/evidence/2026-08-13-desktop-public-release/README.md`](../../docs/operations/evidence/2026-08-13-desktop-public-release/README.md).
+That packet does not make later CI artifacts public.
 
 The default build creates an isolated Python 3.12 environment under the build
 directory, installs `requirements-build.lock`, then installs the local Aptus

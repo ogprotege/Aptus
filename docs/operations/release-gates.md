@@ -480,9 +480,10 @@ commit and the GitHub packaging workflow for the exact synthetic merge commit.
 
 The completed CUDA campaign establishes only the exact cells and bounded
 outcomes listed in its Phase 10 certification. Remaining CUDA
-method/placement coverage and the gates named above are open. The local Mac packages are ad-hoc signed,
-not Developer ID signed and notarized public artifacts. Aptus v0.2 remains
-unreleased until every claimed release gate passes.
+method/placement coverage and the gates named above are open. Default local and CI Mac packages remain ad-hoc signed. One exact Developer ID
+signed notarized arm64 identity is recorded in the
+[2026-08-13 public Mac packet](evidence/2026-08-13-desktop-public-release/README.md).
+Aptus v0.2 remains unreleased until every claimed release gate passes.
 
 ## Related documentation
 
@@ -492,6 +493,7 @@ unreleased until every claimed release gate passes.
 - [SmolLM2 CUDA LoRA single-device acceptance](evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 - [Phase 6 Qwen2 MLX-LM current-contract evidence at exact source](evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 - [Original Phase 6 Qwen2 MLX-LM acceptance baseline](evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md)
+- [Desktop public Mac distribution](evidence/2026-08-13-desktop-public-release/README.md)
 - [Desktop engineering acceptance](evidence/2026-07-27-desktop-release/README.md)
 - [Qwen3 MoE admission evidence](evidence/2026-07-28-qwen3-moe-admission/README.md)
 - [Current capabilities](../product/current-capabilities.md)

@@ -8,6 +8,12 @@ All notable changes are recorded here.
 
 ### Added
 
+- A Developer ID signed, notarized, and stapled arm64 Mac app and DMG bound to
+  source `edc6cfdec48daeb17af8cae7dbb9fde0d8112a81`. Gatekeeper assessed both
+  artifacts as Notarized Developer ID. The identity, hashes, and notary IDs
+  live in
+  `docs/operations/evidence/2026-08-13-desktop-public-release/`. Default and CI
+  builds remain ad-hoc. This is not Aptus 0.2 product release.
 - A reviewed CUDA Phase 10 certification that closes the bounded RTX 3050
   campaign without new training, replacement runs, or external-resource
   acquisition. It reconciles 149 frozen slots to 58 started, 91
@@ -16,7 +22,8 @@ All notable changes are recorded here.
   and Phase 9 endurance aggregate; and independently verifies 13 prior public
   packets and 68 selected protected artifacts. Release readiness, model
   quality, semantic CUDA adapter reload, production safety, distributed CUDA,
-  and public notarization remain open.
+  remain open. Public notarization of one later arm64 desktop identity is
+  recorded separately in the 2026-08-13 packet.
 - A reviewed CUDA Phase 6 Full confirmatory-stability packet at exact merged
   source `2bc4d9a38f88cb0be1087b6e35a329587d1942bf`: all five
   predeclared Full slots passed with protocol-valid evidence, exactly 128

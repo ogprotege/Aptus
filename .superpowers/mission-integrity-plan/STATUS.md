@@ -19,4 +19,4 @@
 | #91 | M6 public Mac | merged (`36bef48`) |
 | #92 | M7-A + M7-C | merged (`027f1a3`); B skipped |
 | #93 | M8 eval contract | merged (`fc5186b`) |
-| (open) | M9 sustain audit | this branch |
+| #94 | M9 sustain audit | open (`0eb76ca`) |

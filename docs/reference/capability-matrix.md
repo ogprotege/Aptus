@@ -15,6 +15,13 @@ requires static, dependency, model-data, measured-preflight, and pilot evidence.
 MLX-LM uses the same state ladder with a runtime-specific uninterrupted pilot.
 A current `pilot-pass` can authorize explicit full-duration adapter training.
 
+Mission-path packets remain exact-source records, not live-HEAD transfers:
+[Path Alpha M3](../operations/evidence/2026-08-12-path-alpha-mlx-m3/README.md),
+[Path Beta M4](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md),
+[M7-A 360M LoRA](../operations/evidence/2026-08-13-path-beta-360m-lora-m7a/README.md),
+and [M7-C CUDA reload](../operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md).
+M7-B (second host class) was skipped.
+
 Support also depends on the installed host's current model-policy registry. A
 package-free bundle can prove the integrity and decision parity of its embedded
 frozen snapshot, but that result does not establish policy currency. Installed

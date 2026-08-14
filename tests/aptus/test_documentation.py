@@ -4908,6 +4908,27 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertEqual(unreachable, [], "Maintained docs are missing from navigation")
 
+    def test_mission_sustain_checklist_is_in_the_pull_request_template(self) -> None:
+        template = (REPOSITORY / ".github/PULL_REQUEST_TEMPLATE.md").read_text(
+            encoding="utf-8"
+        )
+        for required in (
+            "This change makes a false “yes” less likely",
+            "Claim language still matches evidence",
+            "No rejection was hidden",
+            "No method was added without a compiler and gates",
+            "Stop list still holds",
+        ):
+            self.assertIn(required, template)
+        readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
+        self.assertIn("`aptus eval-contract`", readme)
+        self.assertIn("`aptus eval`", readme)
+        self.assertIn("Training finished is not an eval pass", readme)
+        capabilities = (REPOSITORY / "docs/product/current-capabilities.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("Path Beta identity at current HEAD", capabilities)
+
     def test_cli_reference_matches_parser_choices_and_defaults(self) -> None:
         reference = (REPOSITORY / "docs/reference/cli.md").read_text(encoding="utf-8")
         self.assertEqual(

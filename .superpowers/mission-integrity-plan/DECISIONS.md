@@ -19,6 +19,20 @@ Template:
 
 ---
 
+## DECISION-20260813-04
+
+- **Date:** 2026-08-13
+- **Phase:** M9
+- **Question:** What does executing M9 mean after M0–M8?
+- **Options:** (a) re-prove Path Alpha/Beta at live HEAD (b) audit what shipped and make the standing checklist durable (c) skip
+- **Choice:** (b) — owner asked for a check on work already done. No new method, host, or measured ladder.
+- **Mission justification:** Evidence rot is named in the risk register. Rewriting “current HEAD” as recorded source is honest. Re-running training to relabel HEAD is a new measured program, not M9.
+- **Explicitly will not do:** Invent a current-HEAD transfer; reopen M7-B; add methods; treat eval pass as quality.
+- **Evidence / links:** `M9-AUDIT.md`
+- **Owner:** Wilson (authorized M9 as an audit)
+
+---
+
 ## DECISION-20260813-03
 
 - **Date:** 2026-08-13

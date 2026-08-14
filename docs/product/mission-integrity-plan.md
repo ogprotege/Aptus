@@ -1053,11 +1053,11 @@ Keep the mission intact after success.
 
 ### 16.2 Standing checklist (every PR)
 
-- [ ] Does this make false-yes more or less likely?  
-- [ ] Does claim language still match evidence?  
-- [ ] Did we hide a rejection?  
-- [ ] Did we add a method without compiler + gates?  
-- [ ] Did we expand a claim without a packet?  
+- [x] Does this make false-yes more or less likely?
+- [x] Does claim language still match evidence?
+- [x] Did we hide a rejection?
+- [x] Did we add a method without compiler + gates?
+- [x] Did we expand a claim without a packet?
 
 ### 16.3 Standing stop list (do not build without new program)
 

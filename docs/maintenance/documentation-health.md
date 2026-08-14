@@ -112,7 +112,7 @@ independently qualify the new fingerprint.
 
 The [2026-08-12 Path Beta CUDA
 record](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
-re-proves SmolLM2 LoRA single-device at current HEAD on Ubuntu/RTX 3050 through
+re-proves SmolLM2 LoRA single-device at its recorded M4 source on Ubuntu/RTX 3050 through
 `measured-run-pass`, including a two-phase checkpoint-continuation pilot, full
 training, structural PEFT export, and parent promotion. Semantic CUDA adapter
 reload remains unclaimed. The earlier [2026-08-06 CUDA

@@ -71,6 +71,21 @@ readiness, and they do not qualify CUDA. The 2026-07-27
 v2-plan and v2-bundle runs remain historical evidence for their older exact
 scope.
 
+The separate [2026-08-12 Path Alpha MLX
+packet](../operations/evidence/2026-08-12-path-alpha-mlx-m3/README.md) supports
+this exact wording: “two fresh v6-plan / v3-bundle MLX QLoRA ladders reached
+`measured-run-pass` for the frozen Path Alpha identity at recorded source
+`f4775c01e6b8f932e11c2d665e90859d6aedbe04`.” Do not call that current HEAD or
+every Apple Silicon host.
+
+The [2026-08-12 Path Beta CUDA
+packet](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
+supports this exact wording: “one managed Path Beta LoRA ladder reached
+`measured-run-pass` with structural PEFT export on the recorded Ubuntu / RTX
+3050 host at recorded source
+`93d69f63c7d3c1147ce186e810c355cdcf1a1b9c` plus the CUDA public-version pin
+fix.” Do not call that current HEAD or a second host class.
+
 The separate [2026-08-06 CUDA LoRA single-device
 record](../operations/evidence/2026-08-06-smollm2-cuda-lora-single-acceptance/README.md)
 supports this exact wording: “one exact SmolLM2 CUDA LoRA single-device

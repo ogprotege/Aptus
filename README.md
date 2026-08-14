@@ -26,7 +26,7 @@
   <a href="docs/index.md">Documentation</a>
 </p>
 
-> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-11 · **Review by:** 2026-11-01 or when the support contract changes
+> **Status:** Engineering preview · **Applies to:** Aptus 0.2 · **Last reviewed:** 2026-08-13 · **Review by:** 2026-11-01 or when the support contract changes
 
 ---
 
@@ -221,6 +221,8 @@ old revision creates a *new* revision and never restores training authorization.
 | `aptus serve` | Serve the local API and built React app from one origin. |
 | `aptus hardware` | Inspect local CUDA hardware or fail-closed Apple Silicon inventory. |
 | `aptus inspect` | Inspect local hardware or bounded provider model facts. |
+| `aptus eval-contract` | Bind a gold JSONL into an optional exact-match evaluation contract. |
+| `aptus eval` | Score operator-supplied predictions against that contract. Training finished is not an eval pass. |
 
 `python -m aptus` is equivalent to `aptus`. Full flags are in the
 [CLI reference](docs/reference/cli.md).
@@ -342,6 +344,11 @@ before committing compute time.
 | Qwen3 30B MoE live admission | 47.759 GiB required, 28.827 GiB available, **18.932 GiB shortfall** |
 | Real MLX synthetic MoE forward | 0.877 ms median, small unquantized two-layer probe |
 | Ten clean desktop builds at `1038ecdd` | 58.1 s mean, 55–63 s range |
+| Path Alpha MLX QLoRA at `f4775c01` | Two v6/v3 ladders to `measured-run-pass` for the frozen Qwen2.5 4-bit identity |
+| Path Beta CUDA LoRA (M4 recorded source) | One five-job ladder to `measured-run-pass` plus structural PEFT on Ubuntu/RTX 3050 |
+| Notarized arm64 Mac at `edc6cfd` | One Developer ID signed, notarized ZIP/DMG; not Aptus 0.2 product release |
+| Path Beta 360M LoRA (M7-A) | One `measured-run-pass` on the same RTX 3050 host class; not a second host |
+| Path Beta CUDA adapter reload (M7-C) | Fresh-process PEFT 1–4 tokens; not a CUDA parent completion gate |
 
 These are acceptance telemetry for exact recorded host, runtime, model,
 dataset, source, plan, and bundle bindings. The Phase 5 result is an exact-host
@@ -390,7 +397,12 @@ Full records: [Phase 10 CUDA campaign certification](docs/operations/evidence/20
 [Original Phase 6 acceptance baseline](docs/operations/evidence/2026-08-05-qwen2-mlx-lm-acceptance/README.md) ·
 [Historical MLX-LM acceptance](docs/operations/evidence/2026-07-27-mlx-lm-acceptance/README.md) ·
 [Desktop stability](docs/operations/evidence/2026-07-27-desktop-release/README.md) ·
-[Qwen3 MoE admission](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
+[Qwen3 MoE admission](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md) ·
+[Path Alpha MLX M3](docs/operations/evidence/2026-08-12-path-alpha-mlx-m3/README.md) ·
+[Path Beta CUDA M4](docs/operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md) ·
+[Public Mac M6](docs/operations/evidence/2026-08-13-desktop-public-release/README.md) ·
+[360M LoRA M7-A](docs/operations/evidence/2026-08-13-path-beta-360m-lora-m7a/README.md) ·
+[CUDA reload M7-C](docs/operations/evidence/2026-08-13-path-beta-cuda-reload-m7c/README.md)
 
 ---
 

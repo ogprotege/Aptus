@@ -31,8 +31,8 @@ by the Path Alpha v6 packet above. The Qwen2 policy remains a
 configuration footprint rather than an artifact allowlist, so every other
 artifact remains conditional on its own runtime gates. The [2026-08-12 Path Beta CUDA LoRA acceptance
 record](../operations/evidence/2026-08-12-path-beta-cuda-lora-m4/README.md)
-re-proves the frozen Path Beta identity at current HEAD (base
-`93d69f63c7d3c1147ce186e810c355cdcf1a1b9c` plus the CUDA public-version pin fix)
+re-proves the frozen Path Beta identity at recorded source
+`93d69f63c7d3c1147ce186e810c355cdcf1a1b9c` plus the CUDA public-version pin fix
 with artifact fingerprint
 `1a41e586511cff2cf68b1e0794a9b1b57395601a072fc4661bf0ebff140bf855` for
 `HuggingFaceTB/SmolLM2-135M-Instruct` @

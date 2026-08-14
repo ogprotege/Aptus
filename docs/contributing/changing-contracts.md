@@ -35,6 +35,8 @@ compatible. Decide the semantic effect before editing code.
 | MLX final export | `aptus.mlx-final-export.v1` | generated MLX runtime and parent verifier |
 | MLX reload evidence | `aptus.mlx-reload-evidence.v1` | fresh reload process and parent verifier |
 | CUDA reload evidence | `aptus.cuda-reload-evidence.v1` | measured M7-C fresh-process PEFT reload; not a CUDA parent gate |
+| Evaluation contract | `aptus.evaluation-contract.v1` | `evaluation.py`; presentation-only; not `plan_id` material |
+| Evaluation result | `aptus.evaluation-result.v1` | `evaluation.py`; exact-match only; not general quality |
 | MLX artifact manifest | `aptus.mlx-artifact-manifest.v1` | generated MLX action owner and parent verifier |
 | Model architecture contract | `aptus.model-architecture-contract.v1` | `plan_contract.py` and generated MLX runtime |
 | MLX model load binding | `aptus.mlx-model-load-binding.v3` | generated MLX runtime and parent verifier |

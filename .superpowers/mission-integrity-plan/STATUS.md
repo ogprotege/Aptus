@@ -1,12 +1,12 @@
 # Mission program status
 
 - **Updated:** 2026-08-13
-- **HEAD:** `027f1a313c2f6da2c0e8f55a143474a126367fe2` plus uncommitted M8 work on `feat/mission-m8-eval-contract`
-- **Current phase:** M8 Evaluation contract — COMPLETE (pending PR)
-- **Last completed on main:** M0–M7 (`027f1a3`, PR #92)
-- **Next allowed action:** Open/merge M8 PR; M9 only if owner asks
+- **HEAD:** `fc5186b843ba5ab8f432df2bb3697d58f308018e` plus M9 work on `feat/mission-m9-sustain`
+- **Current phase:** M9 Sustain — COMPLETE (pending PR)
+- **Last completed on main:** M0–M8 (`fc5186b`, PR #93)
+- **Next allowed action:** Merge M9 PR; then stop the mission program
 - **Blocked on:** none
-- **Anti-rush:** M9 NOT started
+- **Anti-rush:** no M10
 
 ## Progress stack
 
@@ -18,4 +18,5 @@
 | #90 | M5 correction loop | merged |
 | #91 | M6 public Mac | merged (`36bef48`) |
 | #92 | M7-A + M7-C | merged (`027f1a3`); B skipped |
-| #93 | M8 eval contract | open (`f750f0d`) |
+| #93 | M8 eval contract | merged (`fc5186b`) |
+| #94 | M9 sustain audit | open (`0eb76ca`) |

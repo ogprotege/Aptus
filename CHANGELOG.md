@@ -8,6 +8,9 @@ All notable changes are recorded here.
 
 ### Added
 
+- A standing mission-sustain checklist on every pull request (M9). It does not
+  add a method or a measured ladder. Path Beta “current HEAD” wording is
+  replaced with the recorded M4 source.
 - An optional exact-match evaluation contract (`aptus.evaluation-contract.v1`)
   and result (`aptus.evaluation-result.v1`). Operators attach a gold JSONL
   digest, threshold, and optional export digest, then score supplied

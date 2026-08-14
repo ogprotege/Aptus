@@ -9,6 +9,14 @@ Describe the user-visible outcome and the contract that changed.
 - [ ] Unsupported and unknown cases remain fail-closed with explicit reasons.
 - [ ] Estimates, measurements, structural checks, and quality claims remain distinct.
 
+## Mission sustain (M9 — every PR)
+
+- [ ] This change makes a false “yes” less likely, or does not change that risk.
+- [ ] Claim language still matches evidence; no claim expanded without a packet.
+- [ ] No rejection was hidden.
+- [ ] No method was added without a compiler and gates.
+- [ ] Stop list still holds: no undocumented universal recommendation, silent install, MLX resume, unauthenticated multi-user jobs, or ladder-bypassing agent train.
+
 ## Verification
 
 List exact commands and results. Include target hardware, model revision, and

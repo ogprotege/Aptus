@@ -1748,4 +1748,39 @@ describe("typed API client", () => {
     expect(plan.recommended?.memory?.limit_bytes).toBe(20 * GiB);
     expect(plan.recommended?.memory?.device_total_bytes).toBe(24 * GiB);
   });
+
+  it("does not invent a Fit Ledger limit when any bound device omits free memory", async () => {
+    const GiB = 1024 ** 3;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify(trainingPlanResponse({
+            plan_id: `plan_${"9".repeat(20)}`,
+            hardware: {
+              reserve_per_device_bytes: 2 * GiB,
+              devices: [
+                { total_vram_bytes: 24 * GiB, free_vram_bytes: 22 * GiB },
+                { total_vram_bytes: 16 * GiB, free_vram_bytes: null },
+              ],
+            },
+            recommended: {
+              candidate_id: `cand_${"9".repeat(20)}`,
+              method: "lora",
+              status: "feasible",
+              device_indices: [0, 1],
+              memory: { point_estimate_bytes: 4 * GiB, upper_estimate_bytes: 5 * GiB },
+            },
+            candidates: [],
+          })),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    const plan = await api.plan(EXAMPLE_DRAFT);
+
+    expect(plan.recommended?.memory?.limit_bytes).toBeUndefined();
+    expect(plan.recommended?.memory?.device_total_bytes).toBeUndefined();
+  });
 });

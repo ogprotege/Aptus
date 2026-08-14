@@ -280,17 +280,17 @@ total must equal their sum. The user reserve is not a usage component.
 
 ## Device budget and fit
 
-For CUDA total VRAM $V_d$, user reserve $R_d$, and optional measured free VRAM
+For CUDA total VRAM $V_d$, user reserve $R_d$, and measured free VRAM
 $V_d^{free}$, define available VRAM as:
 
 $$
-B_d = \max\left(0,
-\begin{cases}
-V_d^{free}-R_d, & \text{when measured free VRAM exists} \\
-V_d-R_d, & \text{otherwise}
-\end{cases}
-\right)
+B_d = \max\left(0, V_d^{free}-R_d\right)
 $$
+
+when $V_d^{free}$ is measured. If free VRAM is unknown, the candidate is
+infeasible. Aptus does not substitute $V_d$ for $V_d^{free}$. Apple Silicon
+MLX usable memory is $B = \max(0, H^{free}-R)$ from measured host RAM free;
+unknown host RAM free is infeasible.
 
 Load and runtime transients are already named usage components in the point and
 upper envelopes. The user reserve remains a separate reduction in the fit

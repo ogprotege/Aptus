@@ -969,26 +969,34 @@ function normalizePlan(
   const devices = hardware?.devices as Array<Record<string, unknown>> | undefined;
   const reserveValue = hardware?.reserve_per_device_bytes;
   const reserveBytes = typeof reserveValue === "number" ? reserveValue : 0;
-  const capacities = (devices ?? []).flatMap((device, index) => {
-      const total = typeof device.total_vram_bytes === "number"
-        ? device.total_vram_bytes
-        : undefined;
-      const free = typeof device.free_vram_bytes === "number"
-        ? device.free_vram_bytes
-        : total;
-      return free === undefined
-        ? []
-        : [{ index, total, limit: free - reserveBytes }];
-    });
-  const limitingDevice = capacities.reduce<{ index: number; total?: number; limit: number } | undefined>(
-      (current, device) =>
-        current === undefined || device.limit < current.limit
-          ? device
-          : current,
+  const deviceCapacities = (devices ?? []).map((device, index) => ({
+    index,
+    total: typeof device.total_vram_bytes === "number"
+      ? device.total_vram_bytes
+      : undefined,
+    free: typeof device.free_vram_bytes === "number"
+      ? device.free_vram_bytes
+      : undefined,
+  }));
+
+  const capacityFor = (indices: Set<number> | null) => {
+    const selected = indices
+      ? deviceCapacities.filter((device) => indices.has(device.index))
+      : deviceCapacities;
+    if (!selected.length || selected.some((device) => device.free === undefined)) {
+      return undefined;
+    }
+    return selected.reduce<{ total?: number; limit: number } | undefined>(
+      (current, device) => {
+        const limit = device.free as number - reserveBytes;
+        return current === undefined || limit < current.limit
+          ? { total: device.total, limit }
+          : current;
+      },
       undefined,
     );
-  const totalBytes = limitingDevice?.total;
-  const limitBytes = limitingDevice?.limit;
+  };
+  const inventoryCapacity = capacityFor(null);
 
   const normalizeCandidate = (value: unknown): CandidatePlan => {
     if (!isRecord(value) || typeof value.candidate_id !== "string") {
@@ -1005,13 +1013,9 @@ function normalizePlan(
     const selectedIndices = Array.isArray(candidate.device_indices)
       ? new Set(candidate.device_indices)
       : null;
-    const selectedCapacities = selectedIndices
-      ? capacities.filter((device) => selectedIndices.has(device.index))
-      : [];
-    const candidateLimit = selectedCapacities.reduce<typeof limitingDevice>(
-      (current, device) => current === undefined || device.limit < current.limit ? device : current,
-      undefined,
-    ) ?? limitingDevice;
+    const candidateCapacity = capacityFor(selectedIndices) ?? (
+      selectedIndices ? undefined : inventoryCapacity
+    );
     return {
       ...candidate,
       id: candidate.id ?? candidate.candidate_id,
@@ -1024,8 +1028,8 @@ function normalizePlan(
         ...memory,
         expected_bytes: memory.expected_bytes ?? memory.point_estimate_bytes ?? memory.estimated_peak_bytes,
         upper_bytes: memory.upper_bytes ?? memory.upper_estimate_bytes,
-        limit_bytes: memory.limit_bytes ?? candidateLimit?.limit ?? limitBytes,
-        device_total_bytes: memory.device_total_bytes ?? candidateLimit?.total ?? totalBytes,
+        limit_bytes: memory.limit_bytes ?? candidateCapacity?.limit,
+        device_total_bytes: memory.device_total_bytes ?? candidateCapacity?.total,
       },
     };
   };

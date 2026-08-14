@@ -792,6 +792,10 @@ def _compile_into(plan: TrainingPlan, root: Path) -> TrainingPlan:
     )
     mlx_train = mlx_valid = None
     if is_mlx:
+        if portable.target.evaluation_fraction == 0:
+            raise ValueError(
+                "MLX-LM compilation refuses evaluation_fraction=0; it does not invent a validation hold-out."
+            )
         if portable.dataset.example_count < 2:
             raise ValueError(
                 "MLX-LM compilation requires at least two usable rows for disjoint train and validation files."

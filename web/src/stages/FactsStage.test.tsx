@@ -365,6 +365,19 @@ describe("FactsStage", () => {
     expect(screen.getByLabelText("Dataset path")).toHaveValue(originalPath);
   });
 
+  it("labels the ranking objective as method fidelity, not model quality", () => {
+    render(<FactsHarness />);
+    expect(screen.getByRole("radio", { name: /prefer higher-fidelity/i })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /^quality$/i })).not.toBeInTheDocument();
+  });
+
+  it("does not advertise a 4 × hidden intermediate-size fallback", () => {
+    render(<FactsHarness />);
+    const field = screen.getByLabelText("Intermediate size");
+    expect(field).toHaveAttribute("placeholder", expect.stringMatching(/required for MLP/i));
+    expect(field.getAttribute("placeholder") ?? "").not.toMatch(/4\s*×\s*hidden/i);
+  });
+
   it("does not present evaluation fraction as a quality contract", () => {
     render(<FactsHarness />);
     const field = screen.getByLabelText("Evaluation fraction");

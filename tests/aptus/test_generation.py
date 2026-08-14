@@ -987,6 +987,14 @@ class BundleGenerationTests(unittest.TestCase):
             ],
         )
 
+    def test_mlx_compile_refuses_zero_evaluation_fraction(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            plan = make_qwen2_runtime_footprint_plan(root)
+            plan = replace(plan, target=replace(plan.target, evaluation_fraction=0.0))
+            with self.assertRaisesRegex(ValueError, "evaluation_fraction=0"):
+                generate_bundle(plan, root / "mlx-zero-eval")
+
     def test_generated_plan_contract_recomputes_qwen3_moe_memory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

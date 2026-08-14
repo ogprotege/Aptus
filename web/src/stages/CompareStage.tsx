@@ -121,7 +121,7 @@ export function CompareStage({
       ) : (
         <section className="blocked-panel" role="alert">
           <StatusBadge state="infeasible" label="No viable strategy" />
-          <h2>Aptus did not find a safe plan.</h2>
+          <h2>Aptus did not find a viable strategy under these facts.</h2>
           <p>
             {correction?.summary
               ?? "Review each rejected candidate below. Change the target or hardware facts, then compare again."}
@@ -144,7 +144,16 @@ export function CompareStage({
             <div><dt>World size</dt><dd>{inspected.world_size ?? "Not supplied"}</dd></div>
             <div><dt>Rank / alpha</dt><dd>{inspected.rank ?? "N/A"} / {inspected.alpha ?? "N/A"}</dd></div>
             <div><dt>Learning rate</dt><dd>{inspected.learning_rate ?? "Not supplied"}</dd></div>
-            <div><dt>Pareto frontier</dt><dd>{inspected.pareto_frontier === true ? "Yes" : "No"}</dd></div>
+            <div>
+              <dt>Ranking frontier (enumerated set, not optimal)</dt>
+              <dd>
+                {inspected.pareto_frontier === true
+                  ? "Yes"
+                  : inspected.pareto_frontier === false
+                    ? "No"
+                    : "Not supplied"}
+              </dd>
+            </div>
             <div><dt>Required host RAM</dt><dd>{formatBytes(inspected.required_host_ram_bytes)}</dd></div>
             <div><dt>Required disk</dt><dd>{formatBytes(inspected.required_disk_bytes)}</dd></div>
             <div><dt>Checkpoint retention</dt><dd>{formatBytes(inspected.checkpoint_retention_bytes)}</dd></div>

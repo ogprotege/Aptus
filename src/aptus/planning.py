@@ -153,10 +153,17 @@ def _adapter_parameter_count(
         raise ValueError(
             "Expert adapter targets require a topology-aware cardinality contract."
         )
-    intermediate = model.intermediate_size or model.hidden_size * 4
+    if model.intermediate_size is None and any(
+        module in _MLP_ADAPTER_TARGETS for module in modules
+    ):
+        raise ValueError(
+            "Model intermediate_size is required for MLP adapter targets; "
+            "Aptus will not invent 4 × hidden_size."
+        )
+    intermediate = model.intermediate_size or 0
     per_layer = 0
     for module in modules:
-        if module in {"gate_proj", "up_proj", "down_proj"}:
+        if module in _MLP_ADAPTER_TARGETS:
             per_layer += model.hidden_size + intermediate
         else:
             per_layer += model.hidden_size * 2
@@ -389,13 +396,17 @@ def _distributions() -> tuple[Distribution, ...]:
     return Distribution.SINGLE, Distribution.DDP, Distribution.FSDP
 
 
-def _usable_vram_bytes(hardware: HardwareSpec, device_index: int) -> int:
+_MLP_ADAPTER_TARGETS = frozenset({"gate_proj", "up_proj", "down_proj"})
+
+
+def _usable_vram_bytes(hardware: HardwareSpec, device_index: int) -> int | None:
     device = hardware.devices[device_index]
-    capacity = device.free_vram_bytes or device.total_vram_bytes
-    if device.backend == Backend.MPS and hardware.host_ram_free_bytes is not None:
-        # Apple unified memory is one live pool. Keep the host measurement
-        # explicit instead of copying it into a fictional free-VRAM field.
-        capacity = min(capacity, hardware.host_ram_free_bytes)
+    if device.backend == Backend.MPS:
+        capacity = hardware.host_ram_free_bytes
+    else:
+        capacity = device.free_vram_bytes
+    if capacity is None:
+        return None
     return capacity - hardware.reserve_per_device_bytes
 
 
@@ -437,7 +448,11 @@ def _participating_device_indices(
         return (0,)
     selected_index = max(
         selection_pool,
-        key=lambda index: (_usable_vram_bytes(hardware, index), -index),
+        key=lambda index: (
+            _usable_vram_bytes(hardware, index) is not None,
+            _usable_vram_bytes(hardware, index) or 0,
+            -index,
+        ),
     )
     return (selected_index,)
 
@@ -508,6 +523,16 @@ def _estimate_candidate_with_policy(
     except ValueError as error:
         target_modules = ()
         unsupported.append(str(error))
+    missing_mlp_width = (
+        method != Method.FULL
+        and model.intermediate_size is None
+        and any(item in _MLP_ADAPTER_TARGETS for item in target_modules)
+    )
+    ledger_modules = (
+        tuple(item for item in target_modules if item not in _MLP_ADAPTER_TARGETS)
+        if missing_mlp_width
+        else target_modules
+    )
 
     devices = hardware.devices
     device_indices = _participating_device_indices(
@@ -523,6 +548,13 @@ def _estimate_candidate_with_policy(
         target=target,
         devices=participating_devices,
     )
+    if (
+        runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+        and target.evaluation_fraction == 0
+    ):
+        infeasible.append(
+            "MLX-LM compilation refuses evaluation_fraction=0; it does not invent a validation hold-out."
+        )
     policy_path = matching_model_policy_path(
         policy_decision,
         method=method,
@@ -712,8 +744,14 @@ def _estimate_candidate_with_policy(
                 if selected_device.backend == Backend.CUDA
                 else "usable unified memory"
             )
+            usable = _usable_vram_bytes(hardware, selected_index)
+            usable_text = (
+                "unknown free memory"
+                if usable is None
+                else f"{usable} bytes after reserve"
+            )
             policy_assumptions.append(
-                f"Single-device placement binds {selected_device.backend.value} device index {selected_index} ({selected_device.name}), the method-compatible device with the greatest {capacity_label} ({_usable_vram_bytes(hardware, selected_index)} bytes after reserve)."
+                f"Single-device placement binds {selected_device.backend.value} device index {selected_index} ({selected_device.name}), the method-compatible device with the greatest {capacity_label} ({usable_text})."
             )
     elif distribution != Distribution.SINGLE and participating_devices:
         policy_assumptions.append(
@@ -752,10 +790,11 @@ def _estimate_candidate_with_policy(
             )
         )
         if model.intermediate_size is None and any(
-            item in {"gate_proj", "up_proj", "down_proj"} for item in target_modules
+            item in _MLP_ADAPTER_TARGETS for item in target_modules
         ):
-            policy_assumptions.append(
-                "Model intermediate_size was not supplied; adapter parameter estimates use the explicit 4*hidden_size fallback."
+            infeasible.append(
+                "Model intermediate_size is required for MLP adapter targets; "
+                "Aptus will not invent 4 × hidden_size."
             )
 
     selected_micro = micro_batches[-1]
@@ -766,21 +805,31 @@ def _estimate_candidate_with_policy(
         world_size=world_size,
         model=model,
         target=target,
-        target_modules=target_modules,
+        target_modules=ledger_modules,
         rank=rank,
         micro_batch_size=selected_micro,
     )
-    usable_vram = (
-        min(
-            _usable_vram_bytes(hardware, device_index)
-            for device_index in device_indices
-            if device_index < len(hardware.devices)
-        )
-        if participating_devices
-        else 0
+    usable_samples = [
+        _usable_vram_bytes(hardware, device_index)
+        for device_index in device_indices
+        if device_index < len(hardware.devices)
+    ]
+    usable_unknown = participating_devices and any(
+        sample is None for sample in usable_samples
     )
+    usable_vram = (
+        0
+        if not participating_devices
+        else None
+        if usable_unknown
+        else min(sample for sample in usable_samples if sample is not None)
+    )
+    if usable_unknown:
+        infeasible.append(
+            "Usable per-device memory is unknown; Aptus will not treat total capacity as free."
+        )
     point_fit = upper_fit = False
-    if not unsupported:
+    if not unsupported and usable_vram is not None:
         for micro in micro_batches:
             memory = _memory_for_runtime(
                 training_runtime=runtime_contract.training_runtime,
@@ -789,7 +838,7 @@ def _estimate_candidate_with_policy(
                 world_size=world_size,
                 model=model,
                 target=target,
-                target_modules=target_modules,
+                target_modules=ledger_modules,
                 rank=rank,
                 micro_batch_size=micro,
             )
@@ -840,7 +889,7 @@ def _estimate_candidate_with_policy(
     trainable_parameters = (
         model.parameters
         if method == Method.FULL
-        else _adapter_parameter_count(model, rank, target_modules)
+        else _adapter_parameter_count(model, rank, ledger_modules)
     )
     checkpoint_unit = round(
         trainable_parameters * (10 if method == Method.FULL else 12)
@@ -862,16 +911,18 @@ def _estimate_candidate_with_policy(
         + final_export
         + pilot_checkpoint_workspace
     )
-    available_host = hardware.host_ram_free_bytes or hardware.host_ram_bytes
-    if (
-        runtime_contract.training_runtime != TrainingRuntime.MLX_LM
-        and available_host < required_host
-    ):
-        infeasible.append("Host RAM is below the minimum model-loading heuristic.")
-    if (
-        hardware.disk_free_bytes is not None
-        and hardware.disk_free_bytes < required_disk
-    ):
+    if runtime_contract.training_runtime != TrainingRuntime.MLX_LM:
+        if hardware.host_ram_free_bytes is None:
+            infeasible.append(
+                "Host RAM free is unknown; Aptus will not treat total host RAM as free."
+            )
+        elif hardware.host_ram_free_bytes < required_host:
+            infeasible.append("Host RAM is below the minimum model-loading heuristic.")
+    if hardware.disk_free_bytes is None:
+        infeasible.append(
+            "Free disk is unknown; Aptus will not assume enough staging space."
+        )
+    elif hardware.disk_free_bytes < required_disk:
         infeasible.append(
             "Free disk is below the compiled staging, bounded-pilot, and three-checkpoint retention estimate."
         )
@@ -1146,7 +1197,7 @@ def plan_training(
             )
             + (
                 (
-                    "Model intermediate_size was not supplied. Adapter estimates for MLP targets use the explicit 4*hidden_size fallback.",
+                    "Model intermediate_size was not supplied. MLP adapter targets stay infeasible until that width is declared.",
                 )
                 if model.intermediate_size is None
                 else ()

@@ -196,7 +196,7 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--intermediate-size",
         type=int,
-        help="Optional MLP intermediate width; planner fallback is 4x hidden size.",
+        help="MLP intermediate width. Required for MLP adapter targets; Aptus will not invent 4x hidden size.",
     )
     parser.add_argument(
         "--moe-expert-count",
@@ -291,7 +291,7 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--free-vram-gib",
         type=float,
-        help="Optional current free memory per device in GiB.",
+        help="Current free memory per device in GiB. Omit to fail closed; Aptus will not treat total as free.",
     )
     parser.add_argument(
         "--bf16", action="store_true", help="Declare BF16 support on every device."
@@ -312,7 +312,7 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--host-ram-free-gib",
         type=float,
-        help="Optional current free host memory in GiB.",
+        help="Current free host memory in GiB. Omit to fail closed; Apple Silicon uses this as unified headroom.",
     )
     parser.add_argument(
         "--reserve-gib",
@@ -323,7 +323,7 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--disk-free-gib",
         type=float,
-        help="Optional current free staging and output disk in GiB.",
+        help="Current free staging and output disk in GiB. Omit to fail closed.",
     )
     parser.add_argument(
         "--objective",

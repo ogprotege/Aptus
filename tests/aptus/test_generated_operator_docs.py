@@ -116,10 +116,12 @@ def _cuda_plan(root: Path, case: CudaPlanCase):
         backend=Backend.CUDA,
         gpu_count=2,
         vram_gib=case.vram_gib,
+        free_vram_gib=case.vram_gib,
         supports_bf16=True,
         supports_4bit=case.supports_4bit,
         supports_8bit=case.supports_8bit,
         host_ram_gib=128,
+        host_ram_free_gib=120,
         reserve_gib=0.1,
         disk_free_gib=500,
     )

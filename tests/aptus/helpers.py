@@ -67,9 +67,11 @@ def make_plan(
         backend=Backend.CUDA,
         gpu_count=gpu_count,
         vram_gib=vram_gib,
+        free_vram_gib=vram_gib,
         supports_bf16=True,
         supports_4bit=True,
         host_ram_gib=host_ram_gib,
+        host_ram_free_gib=host_ram_gib,
         reserve_gib=2,
         disk_free_gib=disk_free_gib,
     )

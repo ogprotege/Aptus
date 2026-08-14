@@ -1753,9 +1753,17 @@ def _mlx_adapter_parameter_count(
     if not _positive_int(rank):
         raise ValueError("MLX memory recomputation requires a positive adapter rank.")
     intermediate_size = model.get("intermediate_size")
+    if intermediate_size is None and any(
+        module in {"gate_proj", "up_proj", "down_proj"} for module in target_modules
+    ):
+        raise ValueError(
+            "MLX memory recomputation refuses invented 4 × hidden_size for MLP adapters."
+        )
     if intermediate_size is None:
-        intermediate_size = hidden_size * 4
-    if not _positive_int(intermediate_size):
+        intermediate_size = 0
+    if not _positive_int(intermediate_size) and any(
+        module in {"gate_proj", "up_proj", "down_proj"} for module in target_modules
+    ):
         raise ValueError(
             "MLX memory recomputation requires a positive intermediate dimension."
         )
@@ -2975,15 +2983,30 @@ def _validate_plan_payload_impl(
                     and selected_devices
                     and isinstance(reserve, int)
                 ):
-                    capacities = [
-                        item.get("free_vram_bytes") or item.get("total_vram_bytes", 0)
-                        for item in selected_devices
-                    ]
-                    if runtime_backend == "mps" and _positive_int(host_free):
-                        capacities = [
-                            min(capacity, host_free) for capacity in capacities
+                    if runtime_backend == "mps":
+                        if not _positive_int(host_free):
+                            errors.append(
+                                f"{name} viable MLX status requires measured host RAM free."
+                            )
+                            capacities = []
+                        else:
+                            capacities = [host_free]
+                    else:
+                        frees = [
+                            item.get("free_vram_bytes") for item in selected_devices
                         ]
-                    usable = min(capacity - reserve for capacity in capacities)
+                        if any(not _positive_int(value) for value in frees):
+                            errors.append(
+                                f"{name} viable status requires measured free per-device memory."
+                            )
+                            capacities = []
+                        else:
+                            capacities = [int(value) for value in frees]
+                    usable = (
+                        min(capacity - reserve for capacity in capacities)
+                        if capacities
+                        else 0
+                    )
                     if point > usable:
                         errors.append(
                             f"{name} viable status exceeds usable per-device memory at its point estimate."

@@ -300,9 +300,14 @@ class HardwareSpec:
     def limiting_vram_bytes(self) -> int:
         if not self.devices:
             return 0
+        if all(device.backend == Backend.MPS for device in self.devices):
+            if self.host_ram_free_bytes is None:
+                return 0
+            return self.host_ram_free_bytes - self.reserve_per_device_bytes
+        if any(device.free_vram_bytes is None for device in self.devices):
+            return 0
         return min(
-            (device.free_vram_bytes or device.total_vram_bytes)
-            - self.reserve_per_device_bytes
+            int(device.free_vram_bytes) - self.reserve_per_device_bytes
             for device in self.devices
         )
 
@@ -1218,6 +1223,7 @@ class ValidationReport:
     measured_run: Mapping[str, Any] | None = None
     measured_run_completed_at: str | None = None
     latest_recheck: Mapping[str, Any] | None = None
+    parent_promotion: Mapping[str, Any] | None = None
 
 
 def to_primitive(value: Any) -> Any:

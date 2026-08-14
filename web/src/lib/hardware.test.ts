@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_DRAFT } from "../demo";
-import { summarizeHardwareProbe } from "./hardware";
+import { restoredAvailabilityGiB, summarizeHardwareProbe } from "./hardware";
 
 describe("summarizeHardwareProbe", () => {
   it("keeps unmeasured Apple unified-memory availability unknown", () => {
@@ -65,5 +65,11 @@ describe("summarizeHardwareProbe", () => {
     expect(summary.devices[0].free_vram_gib).toBeNull();
     expect(summary.devices[0].supports_4bit).toBe(false);
     expect(summary.reserve_per_device_gib).toBe(0);
+  });
+
+  it("does not invent free memory from a partial multi-device restore", () => {
+    expect(restoredAvailabilityGiB([null, 20])).toBeNull();
+    expect(restoredAvailabilityGiB([18, 20])).toBe(18);
+    expect(restoredAvailabilityGiB([])).toBeNull();
   });
 });

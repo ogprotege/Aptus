@@ -43,10 +43,14 @@ def fact_arguments(dataset: Path) -> list[str]:
         "1",
         "--vram-gib",
         "24",
+        "--free-vram-gib",
+        "22",
         "--bf16",
         "--four-bit",
         "--host-ram-gib",
         "64",
+        "--host-ram-free-gib",
+        "56",
         "--disk-free-gib",
         "500",
         "--objective",
@@ -480,6 +484,7 @@ class CliIntegrationTests(unittest.TestCase):
                 "--context-length": "40960",
                 "--vram-gib": "64",
                 "--host-ram-gib": "64",
+                "--host-ram-free-gib": "56",
                 "--prefer-method": "qlora",
             }
             for flag, value in replacements.items():
@@ -554,6 +559,7 @@ class CliIntegrationTests(unittest.TestCase):
                 "--context-length": "32768",
                 "--vram-gib": "64",
                 "--host-ram-gib": "64",
+                "--host-ram-free-gib": "56",
                 "--effective-batch-size": "1",
             }
             for flag, value in replacements.items():

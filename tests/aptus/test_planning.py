@@ -7,7 +7,9 @@ from unittest.mock import patch
 from aptus.domain import (
     Backend,
     CandidateStatus,
+    DeviceSpec,
     Distribution,
+    HardwareSpec,
     Method,
     ModelPolicyBindingSource,
     Objective,
@@ -1023,6 +1025,230 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "usable per-device memory" in reason
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_unknown_cuda_free_vram_is_infeasible_not_treated_as_total(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.CUDA,
+                gpu_count=1,
+                vram_gib=80,
+                supports_bf16=True,
+                supports_4bit=True,
+                host_ram_gib=64,
+                host_ram_free_gib=56,
+                reserve_gib=2,
+                disk_free_gib=500,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(hardware.devices[0].free_vram_bytes)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "unknown" in reason.lower() and "total" in reason.lower()
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_unknown_host_ram_free_is_infeasible_not_treated_as_total(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.CUDA,
+                gpu_count=1,
+                vram_gib=24,
+                free_vram_gib=22,
+                supports_bf16=True,
+                supports_4bit=True,
+                host_ram_gib=64,
+                reserve_gib=2,
+                disk_free_gib=500,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(hardware.host_ram_free_bytes)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "host ram" in reason.lower() and "unknown" in reason.lower()
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_unknown_disk_free_is_infeasible_not_assumed_sufficient(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.CUDA,
+                gpu_count=1,
+                vram_gib=24,
+                free_vram_gib=22,
+                supports_bf16=True,
+                supports_4bit=True,
+                host_ram_gib=64,
+                host_ram_free_gib=56,
+                reserve_gib=2,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(hardware.disk_free_bytes)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "disk" in reason.lower() and "unknown" in reason.lower()
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_unknown_apple_unified_free_is_infeasible_without_using_total(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(hardware.host_ram_free_bytes)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any("unknown" in reason.lower() for reason in candidate.rejection_reasons)
+        )
+        self.assertFalse(
+            any(
+                "exceeds usable per-device memory" in reason
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_mixed_known_and_unknown_cuda_free_selects_known_device(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = HardwareSpec(
+                devices=(
+                    DeviceSpec(
+                        "GPU 0",
+                        Backend.CUDA,
+                        gibibytes(24),
+                        True,
+                        True,
+                        False,
+                        gibibytes(22),
+                    ),
+                    DeviceSpec("GPU 1", Backend.CUDA, gibibytes(24), True, True),
+                ),
+                host_ram_bytes=gibibytes(64),
+                host_ram_free_bytes=gibibytes(56),
+                reserve_per_device_bytes=gibibytes(2),
+                disk_free_bytes=gibibytes(500),
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertEqual(candidate.device_indices, (0,))
+        self.assertNotEqual(candidate.status, CandidateStatus.INFEASIBLE)
+
+    def test_mlx_zero_evaluation_fraction_is_infeasible_before_compile(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            hardware = build_hardware_spec(
+                backend=Backend.MPS,
+                gpu_count=1,
+                vram_gib=64,
+                supports_bf16=False,
+                supports_4bit=False,
+                host_ram_gib=64,
+                host_ram_free_gib=56,
+                reserve_gib=8,
+                disk_free_gib=500,
+            )
+            target = replace(base.target, evaluation_fraction=0.0)
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=base.model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=target,
+            )
+
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "evaluation_fraction=0" in reason
+                for reason in candidate.rejection_reasons
+            )
+        )
+
+    def test_missing_intermediate_size_refuses_mlp_adapter_estimate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = make_plan(Path(temporary))
+            model = replace(base.model, intermediate_size=None)
+            hardware = build_hardware_spec(
+                backend=Backend.CUDA,
+                gpu_count=1,
+                vram_gib=24,
+                free_vram_gib=22,
+                supports_bf16=True,
+                supports_4bit=True,
+                host_ram_gib=64,
+                host_ram_free_gib=56,
+                reserve_gib=2,
+                disk_free_gib=500,
+            )
+            candidate = estimate_candidate(
+                method=Method.LORA,
+                model=model,
+                dataset=base.dataset,
+                hardware=hardware,
+                target=base.target,
+            )
+
+        self.assertIsNone(model.intermediate_size)
+        self.assertEqual(candidate.status, CandidateStatus.INFEASIBLE)
+        self.assertTrue(
+            any(
+                "intermediate_size" in reason and "4" in reason
                 for reason in candidate.rejection_reasons
             )
         )

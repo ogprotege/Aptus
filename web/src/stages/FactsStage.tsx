@@ -341,7 +341,7 @@ export function FactsStage({
             </div>
             <div className="field full-field">
               <label htmlFor="intermediate-size">Intermediate size</label>
-              <input id="intermediate-size" type="number" min="1" value={draft.model.intermediate_size ?? ""} onChange={(event) => updateModel("intermediate_size", numberValue(event.target.value))} placeholder="Optional. Planner fallback: 4 × hidden size" />
+              <input id="intermediate-size" type="number" min="1" value={draft.model.intermediate_size ?? ""} onChange={(event) => updateModel("intermediate_size", numberValue(event.target.value))} placeholder="Required for MLP adapter targets" />
             </div>
             <div className="field full-field">
               <label htmlFor="license-name">License</label>
@@ -496,10 +496,14 @@ export function FactsStage({
             <fieldset className="choice-fieldset">
               <legend>Primary objective</legend>
               <div className="segmented-control">
-                {(["quality", "memory", "speed"] as const).map((objective) => (
+                {([
+                  ["quality", "Prefer higher-fidelity methods (full → LoRA → …)"],
+                  ["memory", "Prefer lower memory"],
+                  ["speed", "Prefer fewer steps / faster setups"],
+                ] as const).map(([objective, label]) => (
                   <label key={objective}>
                     <input type="radio" name="objective" value={objective} checked={draft.target.objective === objective} onChange={() => updateTarget("objective", objective)} />
-                    <span>{objective}</span>
+                    <span>{label}</span>
                   </label>
                 ))}
               </div>

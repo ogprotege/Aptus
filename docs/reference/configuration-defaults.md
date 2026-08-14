@@ -52,13 +52,13 @@ limit rows copied into a compiled bundle.
 | `--sample-limit` | `512` | Profiling-statistics sample bound |
 | `--backend` | `cuda` | Declared device backend |
 | `--training-runtime` | `null` | Infer the runtime from backend and method |
-| `--free-vram-gib` | `null` | Planner uses total device memory as the available-memory fact |
+| `--free-vram-gib` | `null` | Omitted CUDA free memory is infeasible; Aptus will not treat total as free |
 | `--bf16` | False | BF16 capability is not assumed |
 | `--four-bit` | False | Four-bit kernel capability is not assumed |
 | `--eight-bit` | False | Eight-bit kernel capability is not assumed |
-| `--host-ram-free-gib` | `null` | Planner uses total host RAM as the available-memory fact |
+| `--host-ram-free-gib` | `null` | Omitted free host RAM is infeasible; Apple Silicon uses this as unified headroom |
 | `--reserve-gib` | `2.0` | GiB excluded from the fit budget on each device |
-| `--disk-free-gib` | `null` | Analytic disk rejection is skipped; runtime disk checks still apply |
+| `--disk-free-gib` | `null` | Omitted free disk is infeasible; Aptus will not assume staging space |
 | `--objective` | `memory` | Rank viable candidates by the memory policy |
 | `--effective-batch-size` | `16` | Required exact global batch |
 | `--epochs` | `3` | Maximum full-run epochs |

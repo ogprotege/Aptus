@@ -1074,6 +1074,11 @@ def _read_report(path: Path) -> ValidationReport | None:
                 if isinstance(value.get("latest_recheck"), dict)
                 else None
             ),
+            parent_promotion=(
+                value.get("parent_promotion")
+                if isinstance(value.get("parent_promotion"), dict)
+                else None
+            ),
         )
     except (
         KeyError,

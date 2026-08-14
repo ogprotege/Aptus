@@ -323,15 +323,15 @@ Each device contains:
 
 For a distributed row, fit uses the least usable participating device. For a
 single row, the candidate records the selected method-compatible device index.
-When free VRAM is null, planning uses total memory, then subtracts the reserve.
-Runtime admission later requires a current measurement.
+When CUDA `free_vram_bytes` is null, the candidate is infeasible. Aptus will
+not treat total device memory as free. Runtime admission still requires a
+current measurement on the selected device.
 
 For a discovered Apple Silicon device, `total_vram_bytes` is a compatibility
 capacity from the Metal recommended working set when measurable, otherwise the
 unified-memory capacity. It is not dedicated VRAM. `free_vram_bytes` remains
-null. When `host_ram_free_bytes` is present, MLX planning uses the lesser of
-that live available-memory value and the compatibility capacity, then subtracts
-the reserve.
+null. MLX planning uses measured `host_ram_free_bytes` minus reserve as usable
+unified memory. When `host_ram_free_bytes` is null, the candidate is infeasible.
 
 ## Target object
 
@@ -343,7 +343,7 @@ the reserve.
 | `max_epochs` | integer | Positive full-run epoch count |
 | `method_preference` | string or null | Optional executable-method preference |
 | `task` | string | Only `sft` is supported |
-| `evaluation_fraction` | number | In `[0, 1)` |
+| `evaluation_fraction` | number | In `[0, 1)`. `0` is a true empty CUDA split; MLX candidates with `0` are infeasible because compile will not invent a validation hold-out |
 | `packing` | boolean | Must remain false in v0.2 |
 | `checkpoint_steps` | integer | Positive CUDA checkpoint and evaluation interval; retained as a plan fact for MLX, whose generated runtime uses non-resumable adapter weight snapshots |
 | `max_wall_time_minutes` | integer or null | Positive when present, but any value is fail-closed in v0.2 |

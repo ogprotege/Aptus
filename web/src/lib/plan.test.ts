@@ -43,6 +43,11 @@ describe("plan memory normalization", () => {
     },
   };
 
+  it("labels omitted planning quantities as not supplied", () => {
+    expect(formatBytes(null)).toBe("Not supplied");
+    expect(formatBytes(undefined)).toBe("Not supplied");
+  });
+
   it("reads v2 point and upper estimates without combining them", () => {
     expect(expectedMemory(candidate)).toBe(10 * 1024 ** 3);
     expect(upperMemory(candidate)).toBe(12 * 1024 ** 3);

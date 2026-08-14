@@ -27,13 +27,38 @@ class DomainContractTests(unittest.TestCase):
     def test_hardware_uses_limiting_per_device_vram_minus_user_reserve(self) -> None:
         hardware = HardwareSpec(
             devices=(
-                DeviceSpec("GPU 0", Backend.CUDA, gibibytes(24), True, True),
-                DeviceSpec("GPU 1", Backend.CUDA, gibibytes(16), True, True),
+                DeviceSpec(
+                    "GPU 0",
+                    Backend.CUDA,
+                    gibibytes(24),
+                    True,
+                    True,
+                    False,
+                    gibibytes(24),
+                ),
+                DeviceSpec(
+                    "GPU 1",
+                    Backend.CUDA,
+                    gibibytes(16),
+                    True,
+                    True,
+                    False,
+                    gibibytes(16),
+                ),
             ),
             host_ram_bytes=gibibytes(64),
             reserve_per_device_bytes=gibibytes(2),
         )
         self.assertEqual(hardware.limiting_vram_bytes, gibibytes(14))
+
+    def test_limiting_vram_does_not_treat_unknown_free_as_total(self) -> None:
+        hardware = HardwareSpec(
+            devices=(DeviceSpec("GPU 0", Backend.CUDA, gibibytes(24), True, True),),
+            host_ram_bytes=gibibytes(64),
+            reserve_per_device_bytes=gibibytes(2),
+        )
+        self.assertIsNone(hardware.devices[0].free_vram_bytes)
+        self.assertEqual(hardware.limiting_vram_bytes, 0)
 
     def test_model_requires_positive_named_facts_and_immutable_revision(self) -> None:
         common = dict(

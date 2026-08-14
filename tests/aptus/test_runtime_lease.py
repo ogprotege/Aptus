@@ -6,9 +6,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 import aptus.runtime_lease as runtime_lease
+from aptus.execution import JobService
 from aptus.runtime_lease import (
     LEASE_ENV,
     _lease_paths,
+    default_lease_parent,
+    default_lease_root,
     portable_execution_lease,
     require_execution_lease,
     run_with_lease,
@@ -163,6 +166,42 @@ class RuntimeLeaseTests(unittest.TestCase):
                 os.environ.pop(LEASE_ENV, None)
                 if inherited is not None:
                     os.environ[LEASE_ENV] = inherited
+
+    def test_default_lease_root_is_not_under_world_writable_tmp(self) -> None:
+        world_writable = {
+            Path("/tmp").resolve(),
+            Path("/private/tmp").resolve(),
+            Path("/var/tmp").resolve(),
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary) / "home"
+            home.mkdir()
+            with patch.dict(
+                os.environ, {"HOME": str(home), "XDG_RUNTIME_DIR": ""}, clear=False
+            ):
+                root, _lease_path, _lock_path = _lease_paths()
+                service = JobService(Path(temporary) / "jobs")
+                expected = default_lease_root()
+        resolved = root.resolve()
+        self.assertTrue(world_writable.isdisjoint({resolved, *resolved.parents}))
+        self.assertEqual(service._lease_root, root)
+        self.assertEqual(root, expected)
+
+    def test_world_writable_or_relative_xdg_runtime_dir_is_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary) / "home"
+            home.mkdir()
+            expected = home / ".aptus" / "run"
+            for value in ("/tmp", "/private/tmp", "/var/tmp", "relative-run"):
+                with (
+                    self.subTest(xdg=value),
+                    patch.dict(
+                        os.environ,
+                        {"HOME": str(home), "XDG_RUNTIME_DIR": value},
+                        clear=False,
+                    ),
+                ):
+                    self.assertEqual(default_lease_parent(), expected)
 
 
 if __name__ == "__main__":

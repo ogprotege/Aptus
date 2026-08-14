@@ -2,8 +2,11 @@ import json
 import unittest
 from urllib.error import URLError
 
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request
+
 from aptus.inspection import (
     _compatibility_subject,
+    _fetch_json,
     inspect_huggingface_model,
 )
 from aptus.model_compatibility import (
@@ -652,6 +655,81 @@ class ModelInspectionTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "unavailable")
         self.assertIn("offline", result["error"])
+
+    def test_rejects_non_repository_model_ids_before_any_fetch(self) -> None:
+        transport = SequenceTransport([])
+        for model_id in (
+            "https://evil.example/org/model",
+            "org/../model",
+            "org/model.git",
+            "org/model--ssrf",
+            "../../etc/passwd",
+            " org/model",
+            "org/model\n",
+        ):
+            with self.subTest(model_id=model_id):
+                with self.assertRaisesRegex(
+                    ValueError, "provider repository identifier"
+                ):
+                    inspect_huggingface_model(model_id, "main", transport=transport)
+        self.assertEqual(transport.requests, [])
+
+    def test_default_opener_disables_proxies_and_blocks_cross_host_redirects(
+        self,
+    ) -> None:
+        from aptus import inspection
+
+        self.assertIsInstance(inspection._INSPECT_PROXY_HANDLER, ProxyHandler)
+        self.assertEqual(inspection._INSPECT_PROXY_HANDLER.proxies, {})
+        self.assertFalse(
+            any(
+                isinstance(handler, ProxyHandler) and handler.proxies
+                for handler in inspection._INSPECT_OPENER.handlers
+            )
+        )
+
+        redirect_handlers = [
+            handler
+            for handler in inspection._INSPECT_OPENER.handlers
+            if isinstance(handler, HTTPRedirectHandler)
+        ]
+        self.assertTrue(redirect_handlers)
+        request = Request("https://huggingface.co/org/model/resolve/main/config.json")
+        blocked = None
+        allowed = None
+        for handler in redirect_handlers:
+            blocked = handler.redirect_request(
+                request,
+                None,
+                307,
+                "Temporary Redirect",
+                {},
+                "https://evil.example/config.json",
+            )
+            allowed = handler.redirect_request(
+                request,
+                None,
+                307,
+                "Temporary Redirect",
+                {},
+                "https://huggingface.co/api/resolve-cache/models/org/model/config.json",
+            )
+        self.assertIsNone(blocked)
+        self.assertIsNotNone(allowed)
+
+    def test_fetch_json_rejects_response_that_left_huggingface_origin(self) -> None:
+        class RedirectedResponse(FakeResponse):
+            def geturl(self) -> str:
+                return "https://evil.example/config.json"
+
+        with self.assertRaisesRegex(ValueError, "Hugging Face"):
+            _fetch_json(
+                "https://huggingface.co/org/model/resolve/main/config.json",
+                timeout=10.0,
+                transport=lambda _request, timeout: RedirectedResponse(
+                    {"model_type": "llama"}
+                ),
+            )
 
 
 if __name__ == "__main__":

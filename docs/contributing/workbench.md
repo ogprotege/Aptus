@@ -263,11 +263,12 @@ For focused test-driven work, a third terminal can keep Vitest in watch mode:
 npm --prefix web run test:watch
 ```
 
-The command prints a per-launch authenticated workbench URL and bearer token.
-Open the printed backend URL once. Its query handoff sets an HttpOnly, SameSite
-Strict cookie and returns `303` without the token query. The static application
-and health routes are public, but bootstrap and every other product API require
-the cookie or bearer header. Uvicorn access logs are disabled by this command.
+The command prints a per-launch workbench origin without the session token,
+plus a bearer token. The static application and health routes are public, but
+bootstrap and every other product API require the cookie or
+`Authorization: Bearer TOKEN`. An optional query handoff still exists if you
+append `?aptus_session_token=TOKEN`. Uvicorn access logs are disabled by this
+command.
 
 The Vite development configuration uses `127.0.0.1:4173` and proxies `/api` to
 `http://127.0.0.1:8787` by default. `APTUS_API_ORIGIN` can select another local

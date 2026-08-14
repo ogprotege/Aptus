@@ -4,8 +4,13 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.parse import quote, urlsplit
+from urllib.request import (
+    HTTPRedirectHandler,
+    ProxyHandler,
+    Request,
+    build_opener,
+)
 
 from . import __version__
 from .catalog import (
@@ -20,6 +25,7 @@ from .domain import (
     QuantizationLayout,
     QuantizationOverride,
     to_primitive,
+    validate_provider_model_id,
 )
 from .model_compatibility import (
     compatibility_response_v1,
@@ -85,15 +91,51 @@ def _catalog_family(model_type: Any, architecture: Any) -> tuple[Any, str | None
     )
 
 
+def _huggingface_origin(url: str) -> bool:
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").lower()
+    return (
+        parsed.scheme == "https"
+        and hostname == "huggingface.co"
+        and parsed.username is None
+        and parsed.password is None
+        and parsed.port is None
+    )
+
+
+class _HuggingFaceRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        if not _huggingface_origin(newurl):
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+# Empty proxies replace urllib's default env-proxy handler. The empty handler
+# may not appear in opener.handlers, but the default ProxyHandler is skipped.
+_INSPECT_PROXY_HANDLER = ProxyHandler({})
+_INSPECT_OPENER = build_opener(_INSPECT_PROXY_HANDLER, _HuggingFaceRedirects())
+
+
+def _default_inspect_transport(request: Request, *, timeout: float) -> Any:
+    return _INSPECT_OPENER.open(request, timeout=timeout)
+
+
 def _fetch_json(
     url: str, *, timeout: float, transport: Transport | None
 ) -> tuple[dict[str, Any], str | None]:
+    if not _huggingface_origin(url):
+        raise ValueError("Provider inspection only fetches https://huggingface.co.")
     request = Request(
         url,
         headers={"Accept": "application/json", "User-Agent": f"aptus/{__version__}"},
     )
-    response = (transport or urlopen)(request, timeout=timeout)
+    response = (transport or _default_inspect_transport)(request, timeout=timeout)
     with response:
+        final_url = response.geturl() if hasattr(response, "geturl") else url
+        if not _huggingface_origin(final_url):
+            raise ValueError(
+                "Provider inspection refused a response that left Hugging Face."
+            )
         content_length = response.headers.get("Content-Length")
         if content_length is not None and int(content_length) > MAX_RESPONSE_BYTES:
             raise ValueError("Provider response exceeds the Aptus inspection bound.")
@@ -396,11 +438,12 @@ def inspect_huggingface_model(
 ) -> dict[str, Any]:
     """Resolve bounded provider-declared facts without guessing permission or size."""
 
-    if not model_id.strip() or not revision.strip():
+    if not revision.strip():
         raise ValueError("model_id and revision are required.")
+    model_id = validate_provider_model_id(model_id)
     if not 0 < timeout <= 30:
         raise ValueError("timeout must be in (0, 30].")
-    model_path = quote(model_id.strip(), safe="/")
+    model_path = quote(model_id, safe="/")
     revision_path = quote(revision.strip(), safe="")
     config_url = (
         f"https://huggingface.co/{model_path}/resolve/{revision_path}/config.json"

@@ -551,6 +551,7 @@ def create_app(
     allowed_hosts: tuple[str, ...] | None = None,
     session_token: str | None = None,
     execution_enabled: bool = True,
+    allow_unauthenticated: bool = False,
 ) -> Any:
     try:
         from fastapi import FastAPI, HTTPException
@@ -563,6 +564,11 @@ def create_app(
         raise RuntimeError(
             "Install Aptus with the 'server' extra to use the API."
         ) from error
+
+    if session_token is None and not allow_unauthenticated:
+        raise ValueError(
+            "create_app requires session_token unless allow_unauthenticated=True."
+        )
 
     from .generation import bundle_files, create_bundle_archive, generate_bundle
     from .inspection import inspect_huggingface_model

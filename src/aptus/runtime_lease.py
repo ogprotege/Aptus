@@ -28,23 +28,63 @@ except ImportError:  # pragma: no cover - POSIX only.
 
 LEASE_ENV = "APTUS_GPU_LEASE_TOKEN"
 _THREAD_LOCK = threading.RLock()
+_WORLD_WRITABLE_TMP = frozenset(
+    {
+        Path("/tmp"),
+        Path("/private/tmp"),
+        Path("/var/tmp"),
+    }
+)
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _lease_paths(parent: Path | None = None) -> tuple[Path, Path, Path]:
+def _is_secure_runtime_dir(path: Path) -> bool:
+    if not path.is_absolute():
+        return False
+    try:
+        stat_result = path.lstat()
+    except OSError:
+        return False
+    if path.is_symlink() or not path.is_dir():
+        return False
+    if hasattr(os, "getuid") and stat_result.st_uid != os.getuid():
+        return False
+    if os.name == "posix" and stat_result.st_mode & 0o077:
+        return False
+    try:
+        resolved = path.resolve()
+    except OSError:
+        return False
+    forbidden = {candidate.resolve() for candidate in _WORLD_WRITABLE_TMP}
+    return resolved not in forbidden and forbidden.isdisjoint(resolved.parents)
+
+
+def default_lease_parent() -> Path:
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+    if runtime_dir:
+        candidate = Path(runtime_dir)
+        if _is_secure_runtime_dir(candidate):
+            return candidate / "aptus"
+    if os.name == "posix":
+        return Path.home() / ".aptus" / "run"
+    return Path(tempfile.gettempdir()) / "aptus-run"
+
+
+def default_lease_root(parent: Path | None = None) -> Path:
     identity = (
         str(os.getuid())
         if hasattr(os, "getuid")
         else os.environ.get("USERNAME", "default")
     )
     safe_identity = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
-    lease_parent = parent or (
-        Path("/tmp") if os.name == "posix" else Path(tempfile.gettempdir())
-    )
-    root = lease_parent / f"aptus-gpu-lease-{safe_identity}"
+    return (parent or default_lease_parent()) / f"aptus-gpu-lease-{safe_identity}"
+
+
+def _lease_paths(parent: Path | None = None) -> tuple[Path, Path, Path]:
+    root = default_lease_root(parent)
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     root_stat = root.lstat()
     if root.is_symlink() or not root.is_dir():

@@ -197,6 +197,15 @@ All notable changes are recorded here.
 
 ### Changed
 
+- Local-door hardening: the audit scanner reports Hugging Face `hf_` tokens;
+  provider inspection accepts only repository model IDs, disables HTTP proxies,
+  and stays on `https://huggingface.co`; `aptus serve` prints the workbench
+  origin without a session token; the GPU lease lives under `XDG_RUNTIME_DIR`
+  or `~/.aptus/run` instead of world-writable `/tmp`; and `create_app()`
+  requires `session_token` unless tests or schema generation pass
+  `allow_unauthenticated=True`. Bundles compiled before this change still
+  embed the old `/tmp` lease path and must be recompiled to share the new
+  host lease.
 - The Phase 5 workbench now presents the server-owned v2 decision as separate
   artifact-match, selected-path, and evidence-readiness records. Strict ingress
   correlates the model subject in successful plans and typed 422 no-feasible

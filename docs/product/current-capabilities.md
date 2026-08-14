@@ -135,7 +135,9 @@ acceptance remain open.
 - Validation and deterministic JSONL serialization of every training row during
   compilation, followed by tokenizer-specific transformation in the selected
   runtime gates.
-- Bounded provider model-metadata inspection at an immutable revision.
+- Bounded provider model-metadata inspection at an immutable revision. The
+  model ID must be a provider repository identifier. Fetches disable HTTP
+  proxies and stay on `https://huggingface.co`.
 - One host-side model compatibility registry authority shared by provider
   inspection, sparse candidate admission, and API execution-path validation.
   It now contains two reviewed entries and derives compiler, estimator, export,

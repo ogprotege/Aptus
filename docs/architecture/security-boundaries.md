@@ -1,6 +1,6 @@
 # Security Boundaries
 
-> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-08-04 | **Review by:** 2026-11-01 or after a trust-boundary change
+> **Status:** Active | **Authority:** Normative security architecture | **Applies to:** Aptus 0.2 | **Audience:** Operators, integrators, and security reviewers | **Last reviewed:** 2026-08-14 | **Review by:** 2026-11-01 or after a trust-boundary change
 
 ## Authenticated local service boundary
 
@@ -11,17 +11,16 @@ assets are public. Every other API route, OpenAPI schema, and interactive API
 page requires either the session cookie or an `Authorization: Bearer TOKEN`
 header.
 
-The CLI prints two secrets to standard error: a workbench URL carrying the
-one-time query handoff and the same value as an API bearer token. A valid GET to
-a public workbench path exchanges `aptus_session_token` for an HttpOnly,
+The CLI prints the workbench origin without a query token and prints the same
+value as an API bearer token. A valid GET to a public workbench path may still
+exchange an operator-supplied `aptus_session_token` query for an HttpOnly,
 SameSite Strict cookie. The service immediately returns `303` to the same path
 without the token query. Invalid handoff values return `403`. Treat the printed
-URL and token as credentials.
+token as a credential. Do not put it in the URL unless you accept browser
+history exposure.
 
-The CLI disables Uvicorn access logs so the handoff query is not copied into
-normal request logs. The redirect removes it from later requests. These controls
-do not make the token safe to disclose through terminal capture, browser
-history, process supervision, or another observer.
+The CLI disables Uvicorn access logs. These controls do not make the token safe
+to disclose through terminal capture, process supervision, or another observer.
 
 The default service accepts only loopback Host headers, including `localhost`,
 `127.0.0.1`, and `[::1]`. Non-loopback binding is rejected unless
@@ -30,9 +29,9 @@ server uses plain HTTP. Anyone who can observe the network can steal the token.
 Use an approved TLS and network boundary. The flag does not add tenant
 isolation, filesystem scoping, worker isolation, or a remote-user policy.
 
-Direct callers of `create_app()` can omit `session_token`. That programmatic
-mode has no application authentication and must remain behind a suitable local
-or external boundary.
+`create_app()` requires `session_token` unless the caller passes
+`allow_unauthenticated=True`. That programmatic opt-out has no application
+authentication and must remain behind a suitable local or external boundary.
 
 ## Native desktop boundary
 
@@ -94,9 +93,12 @@ no-clobber and mode 0600.
 ## Model-provider boundary
 
 Model inspection is a bounded metadata fetch from a declared repository and
-revision. Returned fields are untrusted provider declarations. They do not prove
-the license, permission to train, absence of remote code, artifact safety, or
-compatibility with the pinned runtime.
+revision. The model ID must match the provider repository identifier used by
+planning. Fetches disable HTTP proxies, stay on `https://huggingface.co`, and
+refuse a response that leaves that origin. Returned fields are untrusted
+provider declarations. They do not prove the license, permission to train,
+absence of remote code, artifact safety, or compatibility with the pinned
+runtime.
 
 Runtime model loading is bound to the pinned revision. Operators must handle
 credentials through the training stack's normal secure mechanisms. Do not place

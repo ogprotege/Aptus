@@ -56,19 +56,25 @@ are checked against OpenAPI by `tools/check_client_contracts.py`.
 
 ## Authentication
 
-`aptus serve` generates a fresh token for every launch and prints both a
-workbench handoff URL and the token for API clients. The handoff URL has this
-shape:
+`aptus serve` generates a fresh token for every launch and prints the workbench
+URL without the token, plus the token for API clients:
 
 ```text
-http://127.0.0.1:8787/?aptus_session_token=TOKEN
+http://127.0.0.1:8787/
 ```
 
-A valid token on a GET to a public workbench path produces an immediate `303`
-response. The response sets `aptus_desktop_session=TOKEN` with `HttpOnly`,
-`SameSite=Strict`, and `Path=/`, then redirects to the same path without the
-token parameter. Other query parameters are preserved. An invalid handoff token
-returns `403 desktop_session_required`.
+```http
+Authorization: Bearer TOKEN
+```
+
+A GET to a public workbench path may still exchange `?aptus_session_token=TOKEN`
+for a cookie if the operator appends that query. That optional handoff produces
+an immediate `303` response. The response sets `aptus_desktop_session=TOKEN`
+with `HttpOnly`, `SameSite=Strict`, and `Path=/`, then redirects to the same
+path without the token parameter. Other query parameters are preserved. An
+invalid handoff token returns `403 desktop_session_required`. The printed
+workbench URL does not include this query, so a browser history entry from the
+printed URL does not store the token.
 
 API clients can avoid the cookie exchange:
 
@@ -82,14 +88,16 @@ are public. Every other `/api` route, plus `/docs`, `/redoc`, and
 code remains `desktop_session_required` for both desktop and ordinary serve
 sessions.
 
-The CLI disables Uvicorn access logs to keep the handoff query out of normal
-request logging. Operators must still protect terminal output, browser history,
-and the token itself. Explicit non-loopback serving uses plain HTTP, so a
-network observer can steal either credential. Put that mode behind approved TLS
-and network controls.
+The CLI disables Uvicorn access logs. Operators must still protect terminal
+output, browser history when they opt into the query handoff, and the token
+itself. Explicit non-loopback serving uses plain HTTP, so a network observer
+can steal either credential. Put that mode behind approved TLS and network
+controls.
 
-Programmatic `create_app()` callers can omit `session_token`. That direct mode
-has no application authentication. The caller owns its security boundary.
+`create_app()` requires `session_token` unless the caller passes
+`allow_unauthenticated=True`. That opt-out is for tests and local schema
+generation. It has no application authentication. The caller owns its security
+boundary.
 
 ## Endpoint summary
 

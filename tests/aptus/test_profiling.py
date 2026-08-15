@@ -453,7 +453,7 @@ Pages purgeable: 900.
             license_name="apache-2.0",
             training_allowed=True,
         )
-        self.assertEqual(hardware.limiting_vram_bytes, gibibytes(22))
+        self.assertEqual(hardware.limiting_vram_bytes, 0)
         self.assertEqual(model.parameters, 7_000_000_000)
 
     def test_manual_available_memory_and_eight_bit_are_explicit(self) -> None:

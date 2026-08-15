@@ -228,7 +228,7 @@ types, validation rules, side effects, and operational meaning.
 | `--quantization-group-size INTEGER` | No | `null` | Positive default group size for a uniform layout with no module overrides; requires `--quantization-bits` and excludes a named layout profile |
 | `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map; the first MoE row requires `qwen3-moe-4bit-group64-router-gates-8bit` |
 | `--hidden-size INTEGER` | Yes | None | Positive hidden width |
-| `--intermediate-size INTEGER` | No | `null` | Positive MLP width; adapter estimates otherwise use `4 * hidden_size` |
+| `--intermediate-size INTEGER` | No | `null` | Positive MLP width; required for MLP adapter targets. Aptus does not invent `4 * hidden_size` |
 | `--moe-expert-count INTEGER` | For MoE | `null` | Positive total routed-expert count |
 | `--moe-experts-per-token INTEGER` | For MoE | `null` | Positive experts selected per token |
 | `--moe-expert-intermediate-size INTEGER` | For MoE | `null` | Positive routed-expert width |
@@ -256,14 +256,14 @@ manual facts.
 | `--backend {cuda,rocm,mps,cpu}` | No | `cuda` | Planned compute backend |
 | `--gpu-count INTEGER` | Yes | None | Positive homogeneous manual device count |
 | `--vram-gib NUMBER` | Yes | None | Positive total memory for every declared device |
-| `--free-vram-gib NUMBER` | No | `null` | Current free memory; planner uses total when omitted |
+| `--free-vram-gib NUMBER` | No | `null` | Current free memory. Omitted CUDA free memory is infeasible; Aptus will not treat total as free |
 | `--bf16` | No | False | Declares BF16 capability |
 | `--four-bit` | No | False | Declares four-bit capability |
 | `--eight-bit` | No | False | Declares eight-bit capability |
 | `--host-ram-gib NUMBER` | Yes | None | Positive total host RAM |
-| `--host-ram-free-gib NUMBER` | No | `null` | Current free host RAM; planner uses total when omitted |
+| `--host-ram-free-gib NUMBER` | No | `null` | Current free host RAM. Omitted free host RAM is infeasible; Apple Silicon uses this as unified headroom |
 | `--reserve-gib NUMBER` | No | `2.0` | Non-negative reserve subtracted from each device. Raised to at least `8.0` when `--backend mps` is selected |
-| `--disk-free-gib NUMBER` | No | `null` | Current free disk; analytic disk rejection is skipped when omitted |
+| `--disk-free-gib NUMBER` | No | `null` | Current free disk. Omitted free disk is infeasible; Aptus will not assume staging space |
 
 Manual hardware facts are recorded as `user-attested`. Repeating one set of
 values for `--gpu-count N` creates `N` homogeneous device records. It does not

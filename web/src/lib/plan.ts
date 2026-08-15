@@ -38,7 +38,7 @@ export function formatMethod(method: string): string {
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "Not measured";
+    return "Not supplied";
   }
   return `${(bytes / 1024 ** 3).toFixed(bytes >= 10 * 1024 ** 3 ? 1 : 2)} GiB`;
 }

@@ -25,6 +25,13 @@ function gibibytes(
  * the v0.2 workbench. Missing availability stays unknown. In particular, the
  * total Apple unified-memory pool must never be presented as currently free.
  */
+export function restoredAvailabilityGiB(values: Array<number | null>): number | null {
+  if (!values.length || values.some((value) => value === null)) {
+    return null;
+  }
+  return Math.min(...(values as number[]));
+}
+
 export function summarizeHardwareProbe(
   probe: HardwareProbeResponse,
   current: HardwareFacts,
@@ -61,12 +68,9 @@ export function summarizeHardwareProbe(
   const measuredFreeValues = allAvailabilityMeasured
     ? (freeValues as number[])
     : null;
-  const capacities = measuredTotals.map(
-    (total, index) => freeValues[index] ?? total,
-  );
-  const limitingIndex = capacities.reduce(
+  const limitingIndex = measuredTotals.reduce(
     (currentIndex, value, index) =>
-      value < capacities[currentIndex] ? index : currentIndex,
+      value < measuredTotals[currentIndex] ? index : currentIndex,
     0,
   );
   const hostRam = gibibytes(probe.host_ram_gib, probe.host_ram_bytes);

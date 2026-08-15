@@ -1359,6 +1359,36 @@ class ValidationAttestationTests(unittest.TestCase):
         self.assertEqual(persisted["measured_run"], expected["measured_run"])
         self.assertEqual(persisted["latest_recheck"]["state"], "static-pass")
 
+    def test_host_static_recheck_preserves_parent_promotion_receipt(self) -> None:
+        receipt = {
+            "schema_version": "aptus.parent-promotion.v1",
+            "job_id": "job_" + "a" * 32,
+            "run_id": "run_" + "a" * 32,
+            "artifact_fingerprint": "c" * 64,
+            "evidence_sha256": "d" * 64,
+            "promoted_at": "2026-07-21T00:00:00+00:00",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            generate_bundle(make_plan(root), bundle)
+            install_measured_run_attestation(bundle)
+            report_path = bundle / "validation-report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["parent_promotion"] = receipt
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with patch(
+                "aptus.validation._actual_hardware_binding",
+                return_value="selected-hardware-binding",
+            ):
+                result = validate_bundle(bundle, level="static", run=False)
+            persisted = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.state, ValidationState.MEASURED_RUN_PASS)
+        self.assertIn("parent_promotion", persisted)
+        self.assertEqual(persisted["parent_promotion"], receipt)
+        self.assertEqual(persisted["latest_recheck"]["state"], "static-pass")
+
     def test_generated_dependency_recheck_preserves_measured_run_but_tamper_downgrades(
         self,
     ) -> None:

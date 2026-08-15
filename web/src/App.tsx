@@ -7,7 +7,7 @@ import {
 } from "./desktopBridge";
 import { FitLedger } from "./components/FitLedger";
 import { ProjectHistory } from "./components/ProjectHistory";
-import { summarizeHardwareProbe } from "./lib/hardware";
+import { restoredAvailabilityGiB, summarizeHardwareProbe } from "./lib/hardware";
 import {
   applyPlanDerivedModelFacts,
   applyProviderModelInspection,
@@ -122,7 +122,7 @@ function restoredDraft(
           ? String(devices[0]?.backend ?? "cuda")
           : "unknown",
         total_vram_gib: finiteMinimum(devices.map((device) => bytesToGiB(device.total_vram_bytes))),
-        free_vram_gib: finiteMinimum(devices.map((device) => bytesToGiB(device.free_vram_bytes))),
+        free_vram_gib: restoredAvailabilityGiB(devices.map((device) => bytesToGiB(device.free_vram_bytes))),
         supports_bf16: devices.every((device) => device.supports_bf16 === true),
         supports_8bit: devices.every((device) => device.supports_8bit === true),
         supports_4bit: devices.every((device) => device.supports_4bit === true),

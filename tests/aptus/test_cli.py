@@ -974,10 +974,9 @@ class CliIntegrationTests(unittest.TestCase):
             port=9001,
             access_log=False,
         )
-        self.assertIn(
-            f"http://127.0.0.1:9001/?aptus_session_token={token}",
-            stderr.getvalue(),
-        )
+        self.assertIn("Aptus workbench: http://127.0.0.1:9001/", stderr.getvalue())
+        self.assertNotIn("aptus_session_token", stderr.getvalue())
+        self.assertNotIn(f"?aptus_session_token={token}", stderr.getvalue())
         self.assertIn(f"Aptus API bearer token: {token}", stderr.getvalue())
 
 

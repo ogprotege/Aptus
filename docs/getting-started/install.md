@@ -153,16 +153,19 @@ npm --prefix web run test:watch
 aptus serve --host 127.0.0.1 --port 8787
 ```
 
-Keep the service on loopback. Every launch prints a new authenticated workbench
-URL and the same secret as an API bearer token. Open the printed URL, not a
-manually typed root URL. The service exchanges its query token for an HttpOnly,
-SameSite Strict cookie and immediately redirects to a clean URL. Only health and
-static workbench assets are public. Protected API requests require that cookie
-or `Authorization: Bearer TOKEN`.
+Keep the service on loopback. Every launch prints the workbench origin without
+the session token, plus the same secret as an API bearer token. Protected API
+requests require that cookie or `Authorization: Bearer TOKEN`. Only health and
+static workbench assets are public.
 
-The CLI disables Uvicorn access logs, but terminal output and the printed URL
-still contain the secret. Do not paste or persist them. Non-loopback mode is
-blocked unless explicitly enabled. Even then, Aptus serves plain HTTP, so use an
+An optional query handoff remains available if you append
+`?aptus_session_token=TOKEN`. That exchange sets an HttpOnly, SameSite Strict
+cookie and redirects to a clean URL. The printed URL does not include the
+token; appending the query stores it in browser history.
+
+The CLI disables Uvicorn access logs, but terminal output still contains the
+secret. Do not paste or persist the bearer token. Non-loopback mode is blocked
+unless explicitly enabled. Even then, Aptus serves plain HTTP, so use an
 approved TLS and network boundary.
 
 The native Mac host uses a separate exact-origin handoff. It installs its

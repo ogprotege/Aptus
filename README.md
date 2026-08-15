@@ -127,7 +127,8 @@ arm64 macOS 26 runner. The workflow repackages the app as
 aptus serve --host 127.0.0.1 --port 8787
 ```
 
-`aptus serve` mints a fresh session token per launch and prints a handoff URL.
+`aptus serve` mints a fresh session token per launch. It prints the workbench
+origin without the token, plus the same value as an API bearer token.
 
 ---
 

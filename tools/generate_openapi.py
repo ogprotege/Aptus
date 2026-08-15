@@ -18,7 +18,10 @@ from aptus.api_contracts import API_CONTRACT_VERSION  # noqa: E402
 
 def render_openapi() -> str:
     with tempfile.TemporaryDirectory(prefix="aptus-openapi-") as temporary:
-        schema = create_app(state_dir=Path(temporary) / "state").openapi()
+        schema = create_app(
+            state_dir=Path(temporary) / "state",
+            allow_unauthenticated=True,
+        ).openapi()
     schema["info"]["x-aptus-contract-version"] = API_CONTRACT_VERSION
     return json.dumps(schema, indent=2, sort_keys=True, allow_nan=False) + "\n"
 

@@ -96,9 +96,10 @@ reserve below 8 GiB. CUDA retains the submitted non-negative value.
 | `serve --web-dist` | Auto-detected | Use the packaged workbench if present |
 | `serve --allow-non-loopback` | False | Reject non-loopback binding |
 | `serve` session token | Fresh random value per launch | Authenticate protected API requests |
-| `serve` workbench handoff | Printed query URL on standard error | Exchange the token for an HttpOnly, SameSite Strict cookie and redirect with `303` |
+| `serve` workbench URL | Printed origin on standard error | Does not include the session token |
 | `serve` API credential | Printed bearer token on standard error | Use `Authorization: Bearer TOKEN` for programmatic calls |
-| `serve` access logging | False | Keep the handoff query out of Uvicorn access logs |
+| `serve` optional query handoff | Operator-appended `aptus_session_token` | Exchange the token for an HttpOnly, SameSite Strict cookie and redirect with `303` |
+| `serve` access logging | False | Keep request lines out of Uvicorn access logs |
 | `inspect model --timeout` | `10.0` seconds | Provider inspection timeout |
 
 Only health and static workbench assets are public under `aptus serve`. Every

@@ -19,6 +19,25 @@ PROVIDER_MODEL_ID = re.compile(
 )
 
 
+def validate_provider_model_id(model_id: str) -> str:
+    if model_id != model_id.strip():
+        raise ValueError(
+            "model_id must be a provider repository identifier, not a local path."
+        )
+    if (
+        not model_id
+        or len(model_id) > 96
+        or not PROVIDER_MODEL_ID.fullmatch(model_id)
+        or ".." in model_id
+        or "--" in model_id
+        or model_id.endswith(".git")
+    ):
+        raise ValueError(
+            "model_id must be a provider repository identifier, not a local path."
+        )
+    return model_id
+
+
 def _sha256_is_valid(value: Any) -> bool:
     return bool(
         isinstance(value, str)
@@ -444,18 +463,7 @@ class ModelSpec:
     provenance: Mapping[str, Provenance] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        model_id = self.model_id.strip()
-        if (
-            not model_id
-            or len(model_id) > 96
-            or not PROVIDER_MODEL_ID.fullmatch(model_id)
-            or ".." in model_id
-            or "--" in model_id
-            or model_id.endswith(".git")
-        ):
-            raise ValueError(
-                "model_id must be a provider repository identifier, not a local path."
-            )
+        validate_provider_model_id(self.model_id)
         if not (
             40 <= len(self.revision) <= 64
             and all(c in "0123456789abcdefABCDEF" for c in self.revision)
@@ -809,14 +817,10 @@ class ModelInspectionReceipt:
             )
         if not _content_id_is_valid(self.receipt_id, prefix="receipt_"):
             raise ValueError("Model inspection receipt ID is invalid.")
-        if (
-            not self.model_id
-            or not PROVIDER_MODEL_ID.fullmatch(self.model_id)
-            or ".." in self.model_id
-            or "--" in self.model_id
-            or self.model_id.endswith(".git")
-        ):
-            raise ValueError("Model inspection receipt model ID is invalid.")
+        try:
+            validate_provider_model_id(self.model_id)
+        except ValueError as error:
+            raise ValueError("Model inspection receipt model ID is invalid.") from error
         if not _revision_is_valid(self.resolved_revision):
             raise ValueError("Model inspection receipt revision must be immutable.")
         if not _sha256_is_valid(self.observed_facts_sha256):

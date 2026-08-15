@@ -47,6 +47,7 @@ from .plan_contract import (
 )
 from .profiling import probe_apple_platform
 from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
+from .runtime_lease import _lease_paths
 
 
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
@@ -2682,29 +2683,7 @@ class JobService:
         self.runtime_environment: dict[str, str] = dict(
             os.environ if runtime_environment is None else runtime_environment
         )
-        identity = (
-            str(os.getuid())
-            if hasattr(os, "getuid")
-            else os.environ.get("USERNAME", "default")
-        )
-        safe_identity = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
-        lease_parent = (
-            Path("/tmp") if os.name == "posix" else Path(tempfile.gettempdir())
-        )
-        self._lease_root = lease_parent / f"aptus-gpu-lease-{safe_identity}"
-        self._lease_root.mkdir(mode=0o700, parents=True, exist_ok=True)
-        lease_root_stat = self._lease_root.lstat()
-        if self._lease_root.is_symlink() or not self._lease_root.is_dir():
-            raise PermissionError(
-                f"Aptus host-global lease root is not a secure directory: {self._lease_root}"
-            )
-        if hasattr(os, "getuid") and lease_root_stat.st_uid != os.getuid():
-            raise PermissionError(
-                f"Aptus host-global lease root is owned by another user: {self._lease_root}"
-            )
-        if os.name == "posix" and lease_root_stat.st_mode & 0o077:
-            self._lease_root.chmod(0o700)
-        self._lease_path = self._lease_root / "lease.json"
+        self._lease_root, self._lease_path, _lock_path = _lease_paths()
         self._recover_interrupted_jobs()
 
     @contextmanager

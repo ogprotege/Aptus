@@ -1044,10 +1044,7 @@ def _run(arguments: argparse.Namespace) -> int:
         display_host = (
             f"[{arguments.host}]" if ":" in arguments.host else arguments.host
         )
-        workbench_url = (
-            f"http://{display_host}:{arguments.port}/"
-            f"?aptus_session_token={session_token}"
-        )
+        workbench_url = f"http://{display_host}:{arguments.port}/"
         print(f"Aptus workbench: {workbench_url}", file=sys.stderr)
         print(f"Aptus API bearer token: {session_token}", file=sys.stderr)
         uvicorn.run(

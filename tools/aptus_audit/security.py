@@ -22,6 +22,11 @@ SECRET_PATTERNS = (
         re.compile(r"\bsk-[A-Za-z0-9_-]{20,255}\b"),
     ),
     (
+        "huggingface-token",
+        "high",
+        re.compile(r"\bhf_[A-Za-z0-9]{34,}\b"),
+    ),
+    (
         "private-key-header",
         "critical",
         re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),

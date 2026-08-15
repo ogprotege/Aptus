@@ -68,6 +68,16 @@ class BundleProgramPackagingTests(unittest.TestCase):
         self.assertIn('hdiutil detach -force "$DMG_DEVICE"', script)
         self.assertNotIn('hdiutil detach "$DMG_MOUNT"', script)
 
+    def test_ci_wheel_smoke_opts_out_of_create_app_session_token(self) -> None:
+        workflow = (REPOSITORY / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Smoke installed wheel and packaged workbench", workflow)
+        self.assertIn(
+            "create_app(state_dir=Path('/tmp/aptus-wheel-state'), allow_unauthenticated=True)",
+            workflow,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

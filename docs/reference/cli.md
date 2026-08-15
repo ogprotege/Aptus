@@ -514,10 +514,13 @@ aptus inspect model --model-id REPOSITORY \
   --revision REVISION [--timeout 10]
 ```
 
-The timeout must be greater than zero and no more than 30 seconds. Inspection
-makes bounded Hugging Face config and metadata requests. It returns status
-`ok`, `unavailable`, or `unsupported`. Only `ok` exits successfully. Provider
-metadata never decides parameter count or training permission. A successful
+The timeout must be greater than zero and no more than 30 seconds. The model ID
+must be a provider repository identifier, not a URL or local path. Inspection
+makes bounded Hugging Face config and metadata requests, disables HTTP proxies,
+and follows redirects only while the origin remains `https://huggingface.co`.
+It returns status `ok`, `unavailable`, or `unsupported`. Only `ok` exits
+successfully. Provider metadata never decides parameter count or training
+permission. A successful
 result contains an `aptus.model-inspection-receipt.v1` with separate
 compatibility-subject and observed-planning-facts digests. Either save the whole
 inspection output or extract its `inspection_receipt` object for a later
@@ -571,20 +574,24 @@ Every launch generates a new random session token. Before Uvicorn starts, the
 CLI prints these values to standard error:
 
 ```text
-Aptus workbench: http://127.0.0.1:8787/?aptus_session_token=TOKEN
+Aptus workbench: http://127.0.0.1:8787/
 Aptus API bearer token: TOKEN
 ```
 
-Open the printed workbench URL. The first valid public GET exchanges the query
-token for an HttpOnly, SameSite Strict cookie, then returns `303` to the same
-path without `aptus_session_token`. Subsequent browser requests use the cookie.
-API clients can instead send `Authorization: Bearer TOKEN`.
+The printed workbench URL does not include the session token. API clients send
+`Authorization: Bearer TOKEN`. Opening the printed URL loads static workbench
+assets; protected API calls still need the cookie or bearer token.
+
+An optional query handoff remains available if the operator appends
+`?aptus_session_token=TOKEN`. The first valid public GET exchanges that query
+for an HttpOnly, SameSite Strict cookie, then returns `303` to the same path
+without `aptus_session_token`. That path stores the token in browser history.
+Prefer the printed bearer token.
 
 Only `GET /api/v1/health`, `GET /health`, and static workbench assets are public.
 All other API routes, `/docs`, `/redoc`, and `/openapi.json` require the cookie
-or bearer token. The CLI runs Uvicorn with access logging disabled so the query
-handoff is not written to normal request logs. Treat the printed URL and token
-as credentials despite that protection.
+or bearer token. The CLI runs Uvicorn with access logging disabled. Treat the
+printed token as a credential.
 
 `--allow-non-loopback` prints a warning and allows all Host headers. Session
 authentication remains active, but Aptus still serves plain HTTP. A network

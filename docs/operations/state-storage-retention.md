@@ -18,7 +18,7 @@ retention requirements.
 | `pilot-output/` | Pilot metrics, CUDA continuation checkpoints, MLX adapter artifacts and reload evidence, export evidence, and run contracts | Runtime output | Model, data, and hardware evidence |
 | `runs/run_*/` | Unique full-run metrics, CUDA checkpoints or MLX adapter weight snapshots, final export, and manifests | Runtime output; never reused | Model or adapter weights and training evidence |
 | Model and package caches | Provider artifacts and resolved dependencies | Managed by external stacks | Model weights, tokens in external config, and supply-chain state |
-| Host-global lease root | Per-user lease and lock under the operating-system temporary directory | Ephemeral coordination state | Process and state-root identities |
+| Host-global lease root | Per-user lease and lock under `$XDG_RUNTIME_DIR/aptus/` or `~/.aptus/run/` | Ephemeral coordination state | Process and state-root identities |
 
 The API state root contains:
 
@@ -57,9 +57,11 @@ their head to the latest safe immutable revision. Quarantine is intended for
 inspection and recovery. Do not delete it until the cause and retention needs
 are understood.
 
-On POSIX, the shared lease root is
-`/tmp/aptus-gpu-lease-<user-identity-hash>/`. Do not delete an active lease to
-bypass a job conflict. Let `JobService` reconcile stale ownership.
+The shared lease root is not created under world-writable `/tmp`. On POSIX it
+is `$XDG_RUNTIME_DIR/aptus/aptus-gpu-lease-<user-identity-hash>/` when
+`XDG_RUNTIME_DIR` is set, otherwise `~/.aptus/run/aptus-gpu-lease-<user-identity-hash>/`.
+Do not delete an active lease to bypass a job conflict. Let `JobService`
+reconcile stale ownership.
 
 ## Bundle mutability boundary
 

@@ -146,12 +146,11 @@ React workbench is inline and owns one Facts, Compare, Compile, Validate, and Ru
 workflow with immutable project history.
 
 Choose the workbench when you want guided fact entry, candidate cards, evidence
-disclosures, and job monitoring. `aptus serve` prints a new authenticated
-workbench URL and bearer token on every launch. Open the printed URL so its
-one-time query handoff can set the HttpOnly, SameSite Strict cookie and redirect
-to a clean URL. Keep the service on loopback because its protected API can read
-files and launch processes. The token is single-user access control, not tenant
-isolation.
+disclosures, and job monitoring. `aptus serve` prints the workbench origin
+without the session token, plus a bearer token, on every launch. Use
+`Authorization: Bearer TOKEN` for API clients. Keep the service on loopback
+because its protected API can read files and launch processes. The token is
+single-user access control, not tenant isolation.
 
 Choose the CLI when you need repeatable local commands, persisted JSON, explicit
 paths, or automation around a single-user host. The CLI does not weaken any

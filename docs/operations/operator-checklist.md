@@ -20,9 +20,9 @@ raw capture, and aggregation. Do not improvise those fields between runs.
 - An MLX `pilot-pass` proves a two-update uninterrupted run plus fresh-process
   adapter reload and bounded generation. It does not prove crash resume.
 - PyTorch MPS has no compiler. LM Studio and oMLX are inference-only.
-- Standalone `aptus serve` generates a new session token for every launch. It
-  protects the API with a cookie or bearer header, but adds no tenant isolation
-  or remote-user policy.
+- Standalone `aptus serve` generates a new session token for every launch and
+  prints the workbench origin without that token. It protects the API with a
+  cookie or bearer header, but adds no tenant isolation or remote-user policy.
 - The host-global lease coordinates Aptus processes for one local user. It does
   not reserve accelerator or unified-memory capacity against unrelated programs.
 - Package-free bundle entrypoints validate their embedded frozen model-policy
@@ -50,10 +50,12 @@ Exit `0` means a compatible training interpreter was observed. Exit `2` means
 action is required. The doctor installs nothing.
 
 - [ ] Bind `aptus serve` to `127.0.0.1`, `localhost`, or `::1`.
-- [ ] Protect the printed workbench URL and bearer token as credentials.
-- [ ] Open the printed URL and verify the first response redirects to the same
-      path without `aptus_session_token`.
-- [ ] Verify the browser receives an HttpOnly, SameSite Strict session cookie.
+- [ ] Protect the printed bearer token as a credential. The printed workbench
+      URL must not include `aptus_session_token`.
+- [ ] If you opt into the query handoff, open that URL and verify the first
+      response redirects to the same path without `aptus_session_token`.
+- [ ] Verify a successful handoff sets an HttpOnly, SameSite Strict session
+      cookie. Prefer `Authorization: Bearer TOKEN` for API clients.
 - [ ] Verify health and static assets remain public, while an unauthenticated
       product API request returns `403 desktop_session_required`.
 - [ ] For automation, send `Authorization: Bearer TOKEN` and never place the
@@ -145,7 +147,10 @@ Project recovery creates a new revision and never restores training
 authorization. Revalidate and reconfirm before a later train action.
 
 The bundle holds its own mutable validation report, pilot output, and run
-directories. On POSIX, a per-user lease directory is created under `/tmp`.
+directories. The per-user lease directory is
+`$XDG_RUNTIME_DIR/aptus/aptus-gpu-lease-<hash>/` when `XDG_RUNTIME_DIR` is a
+secure user runtime directory, otherwise `~/.aptus/run/aptus-gpu-lease-<hash>/`.
+It is not created under world-writable `/tmp`.
 Do not delete a lease or edit a job record to clear an apparent conflict.
 Inspect the recorded owner and let Aptus reconcile stale state.
 

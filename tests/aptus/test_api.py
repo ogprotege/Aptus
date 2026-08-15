@@ -101,7 +101,10 @@ def inspection_receipt_shape(
 class ApiContractTests(unittest.TestCase):
     def test_validation_authorization_contract_is_typed_and_coherent(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            schema = create_app(state_dir=Path(temporary) / "state").openapi()
+            schema = create_app(
+                state_dir=Path(temporary) / "state",
+                allow_unauthenticated=True,
+            ).openapi()
         validation_schema = schema["components"]["schemas"]["ValidationResponse"]
         status_schema = validation_schema["properties"]["authorization_status"]
         status_variant = next(item for item in status_schema["anyOf"] if "enum" in item)
@@ -174,7 +177,10 @@ class ApiContractTests(unittest.TestCase):
 
     def test_plan_openapi_declares_typed_no_feasible_policy_chain(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            schema = create_app(state_dir=Path(temporary) / "state").openapi()
+            schema = create_app(
+                state_dir=Path(temporary) / "state",
+                allow_unauthenticated=True,
+            ).openapi()
 
         response_schema = schema["paths"]["/api/v1/plan"]["post"]["responses"]["422"][
             "content"
@@ -1012,6 +1018,17 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("SameSite=strict", exchange_response.headers["set-cookie"])
         self.assertEqual(cookie_response.status_code, 200)
 
+    def test_create_app_requires_session_token_unless_tests_opt_out(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary) / "state"
+            with self.assertRaisesRegex(ValueError, "session_token"):
+                create_app(state_dir=state_dir)
+            opted_out = create_app(
+                state_dir=state_dir,
+                allow_unauthenticated=True,
+            )
+            self.assertIsNotNone(opted_out)
+
     def test_desktop_session_token_rejects_short_values(self) -> None:
         with self.assertRaisesRegex(ValueError, "at least 32"):
             create_app(session_token="too-short")
@@ -1084,7 +1101,11 @@ class ApiEndpointTests(unittest.TestCase):
             "<html><body>Aptus workbench</body></html>", encoding="utf-8"
         )
         self.client = TestClient(
-            create_app(state_dir=self.root / "state", static_dir=static)
+            create_app(
+                state_dir=self.root / "state",
+                static_dir=static,
+                allow_unauthenticated=True,
+            )
         )
 
     def tearDown(self) -> None:
@@ -1674,7 +1695,11 @@ class ApiEndpointTests(unittest.TestCase):
             return_value=inspection,
         ):
             client = TestClient(
-                create_app(state_dir=self.root / "inspection-state", static_dir=static)
+                create_app(
+                    state_dir=self.root / "inspection-state",
+                    static_dir=static,
+                    allow_unauthenticated=True,
+                )
             )
         try:
             response = client.post(
@@ -1726,6 +1751,7 @@ class ApiEndpointTests(unittest.TestCase):
                 create_app(
                     state_dir=self.root / "malformed-inspection-state",
                     static_dir=self.root / "web",
+                    allow_unauthenticated=True,
                 ),
                 raise_server_exceptions=False,
             )
@@ -1770,6 +1796,7 @@ class ApiEndpointTests(unittest.TestCase):
                 create_app(
                     state_dir=self.root / "inferred-receipt-state",
                     static_dir=self.root / "web",
+                    allow_unauthenticated=True,
                 ),
                 raise_server_exceptions=False,
             )
@@ -2845,7 +2872,11 @@ class ApiEndpointTests(unittest.TestCase):
             static.mkdir()
             (static / "index.html").write_text("ok", encoding="utf-8")
             with patch("aptus.validation.validate_bundle") as validate_mock:
-                app = create_app(state_dir=root / "state", static_dir=static)
+                app = create_app(
+                    state_dir=root / "state",
+                    static_dir=static,
+                    allow_unauthenticated=True,
+                )
             with patch.object(
                 app.state.aptus.jobs,
                 "pilot_authorization",
@@ -2907,7 +2938,10 @@ class AppleRuntimeApiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.client = TestClient(
-            create_app(state_dir=Path(self.temporary.name) / "state")
+            create_app(
+                state_dir=Path(self.temporary.name) / "state",
+                allow_unauthenticated=True,
+            )
         )
 
     def tearDown(self) -> None:

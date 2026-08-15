@@ -416,7 +416,12 @@ class EvaluationApiTests(unittest.TestCase):
             predictions = root / "pred.jsonl"
             _write_jsonl(gold, [{"id": "a", "completion": "Keep the receipt."}])
             _write_jsonl(predictions, [{"id": "a", "prediction": "Keep the receipt."}])
-            client = TestClient(create_app(state_dir=root / "state"))
+            client = TestClient(
+                create_app(
+                    state_dir=root / "state",
+                    allow_unauthenticated=True,
+                )
+            )
             built = client.post(
                 "/api/v1/evaluations/contracts",
                 json={

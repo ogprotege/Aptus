@@ -167,25 +167,33 @@ class RuntimeLeaseTests(unittest.TestCase):
                 if inherited is not None:
                     os.environ[LEASE_ENV] = inherited
 
-    def test_default_lease_root_is_not_under_world_writable_tmp(self) -> None:
+    def test_default_lease_parent_is_not_world_writable_tmp(self) -> None:
         world_writable = {
             Path("/tmp").resolve(),
             Path("/private/tmp").resolve(),
             Path("/var/tmp").resolve(),
         }
+        parent = default_lease_parent().resolve()
+        root = default_lease_root().resolve()
+        self.assertNotIn(parent, world_writable)
+        self.assertNotIn(root.parent, world_writable)
+
+    def test_isolated_home_lease_uses_user_run_dir_and_matches_job_service(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             home = Path(temporary) / "home"
             home.mkdir()
+            expected_parent = home / ".aptus" / "run"
             with patch.dict(
                 os.environ, {"HOME": str(home), "XDG_RUNTIME_DIR": ""}, clear=False
             ):
                 root, _lease_path, _lock_path = _lease_paths()
                 service = JobService(Path(temporary) / "jobs")
                 expected = default_lease_root()
-        resolved = root.resolve()
-        self.assertTrue(world_writable.isdisjoint({resolved, *resolved.parents}))
-        self.assertEqual(service._lease_root, root)
         self.assertEqual(root, expected)
+        self.assertEqual(service._lease_root, root)
+        self.assertEqual(root.parent, expected_parent)
 
     def test_world_writable_or_relative_xdg_runtime_dir_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

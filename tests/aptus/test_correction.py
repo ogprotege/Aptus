@@ -6,6 +6,7 @@ from pathlib import Path
 
 from aptus.correction import (
     CORRECTION_SCHEMA_VERSION,
+    _direction_for_fact,
     attach_correction,
     build_no_path_correction,
     build_plan_correction,
@@ -14,6 +15,7 @@ from aptus.domain import Backend, Method, Objective, TrainingTarget, to_primitiv
 from aptus.plan_contract import plan_id_for_payload
 from aptus.planning import NoFeasiblePlanError, plan_training
 from aptus.profiling import build_hardware_spec, build_model_spec, profile_dataset
+from aptus.refusal import guide_rejection_reason
 from tests.aptus.helpers import make_dataset, make_plan
 
 
@@ -178,6 +180,45 @@ class PlanCorrectionTests(unittest.TestCase):
             plan = make_plan(Path(tmp), gpu_count=1)
         with self.assertRaisesRegex(ValueError, "viable"):
             build_no_path_correction(plan.candidates)
+
+    def test_sft_policy_fact_hint_directions(self) -> None:
+        below = guide_rejection_reason(
+            "Dataset example_count is below the instruction-SFT supervision prior of "
+            "100 rows; this is not a justified domain adaptation."
+        )
+        self.assertEqual(
+            _direction_for_fact("dataset.example_count", below), "increase"
+        )
+        # Supervision-only conditional: max_epochs is review, not decrease.
+        self.assertEqual(_direction_for_fact("target.max_epochs", below), "review")
+
+        too_small = guide_rejection_reason(
+            "Dataset example_count is below 100 rows; Aptus will not endorse training "
+            "longer than 3 epochs on that set."
+        )
+        self.assertEqual(
+            _direction_for_fact("dataset.example_count", too_small), "increase"
+        )
+        self.assertEqual(
+            _direction_for_fact("target.max_epochs", too_small), "decrease"
+        )
+
+        epoch_cap = guide_rejection_reason(
+            "Requested max_epochs exceeds the instruction-SFT epoch-cap prior of 3; "
+            "Aptus will not rewrite the requested epoch count."
+        )
+        self.assertEqual(
+            _direction_for_fact("target.max_epochs", epoch_cap), "decrease"
+        )
+
+        parrot = guide_rejection_reason(
+            "Small instruction corpus (under 300 rows) with max_epochs >= 10 matches "
+            "the parrot/sycophancy over-training prior."
+        )
+        self.assertEqual(
+            _direction_for_fact("dataset.example_count", parrot), "increase"
+        )
+        self.assertEqual(_direction_for_fact("target.max_epochs", parrot), "decrease")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ from typing import Any, Mapping
 SCHEMA_VERSION = "aptus.training-plan.v6"
 FORMULA_VERSION = "aptus-memory-v2"
 MLX_FORMULA_VERSION = "aptus-memory-mlx-v2"
+TRAINING_POLICY_VERSION = "aptus-training-policy-v1"
 RUNTIME_CONTRACT_VERSION = "aptus.runtime-contract.v1"
 MODEL_COMPATIBILITY_SCHEMA_VERSION = "aptus.model-compatibility.v2"
 MODEL_INSPECTION_RECEIPT_SCHEMA_VERSION = "aptus.model-inspection-receipt.v1"
@@ -2104,6 +2105,7 @@ def plan_id_for_payload(plan: Mapping[str, Any]) -> str:
     identity = {
         "schema_version": plan.get("schema_version"),
         "formula_version": plan.get("formula_version"),
+        "training_policy_version": plan.get("training_policy_version"),
         "facts": {
             "model": _normalized_model(plan.get("model")),
             "dataset": _normalized_dataset(plan.get("dataset")),
@@ -2157,6 +2159,10 @@ def _validate_plan_payload_impl(
         errors.append(f"Plan schema_version must be {SCHEMA_VERSION}; replan_required.")
     if plan.get("formula_version") != FORMULA_VERSION:
         errors.append(f"Plan formula_version must be {FORMULA_VERSION}.")
+    if plan.get("training_policy_version") != TRAINING_POLICY_VERSION:
+        errors.append(
+            f"Plan training_policy_version must be {TRAINING_POLICY_VERSION}."
+        )
     for key in (
         "model",
         "dataset",

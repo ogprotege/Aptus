@@ -1146,6 +1146,7 @@ class TrainingPlan:
     model_policy_snapshot_sha256: str
     evidence_records: tuple[EvidenceRecord, ...] = ()
     formula_version: str = "aptus-memory-v2"
+    training_policy_version: str = "aptus-training-policy-v1"
     plan_id: str = ""
 
     def __post_init__(self) -> None:
@@ -1754,5 +1755,8 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         model_policy_snapshot_sha256=str(value["model_policy_snapshot_sha256"]),
         evidence_records=evidence,
         formula_version=value.get("formula_version", "aptus-memory-v2"),
+        training_policy_version=value.get(
+            "training_policy_version", "aptus-training-policy-v1"
+        ),
         plan_id=value["plan_id"],
     )

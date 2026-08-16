@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from .domain import TrainingPlan
+from .plan_contract import TRAINING_POLICY_VERSION
 
 
 TRAINING_POLICY_SCHEMA_VERSION = "aptus.training-policy.v1"
-TRAINING_POLICY_VERSION = "aptus-training-policy-v1"
 DEFAULT_TRUNCATION_POLICY = (
     "completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision"
 )

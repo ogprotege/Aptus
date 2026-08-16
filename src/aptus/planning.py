@@ -47,6 +47,7 @@ from .model_compatibility import (
     validate_model_inspection_receipt,
 )
 from .plan_contract import (
+    TRAINING_POLICY_VERSION,
     candidate_id_for_payload,
     mlx_memory_breakdown_for_contract,
     plan_id_for_payload,
@@ -1239,6 +1240,7 @@ def plan_training(
         model_policy_snapshot_sha256=current_model_policy_snapshot_sha256(),
         evidence_records=evidence_records,
         formula_version=FORMULA_VERSION,
+        training_policy_version=TRAINING_POLICY_VERSION,
         plan_id="",
     )
     return replace(plan, plan_id=plan_id_for_payload(to_primitive(plan)))

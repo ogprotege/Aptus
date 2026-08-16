@@ -1,5 +1,7 @@
 # Training Policy and Run-Correction Implementation Plan
 
+> **Status:** Active | **Authority:** Implementation plan (subordinate to claim language and TP0 freeze) | **Applies to:** Aptus training-policy increment (TP), not M10 | **Audience:** Agents executing TP1–TP5 | **Last reviewed:** 2026-08-16 | **Review by:** At the start of each TP phase
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task **inside one authorized phase only**. Steps use checkbox (`- [ ]`) syntax for tracking. Do not start Phase \(N+1\) until Phase \(N\) exit criteria have evidence.
 
 **Goal:** Give the solo operator a fail-closed, visible instruction-SFT training policy (dataset size, epoch cap, existing rank/alpha/LR/completions-mask priors) and a post-run correction that reads the loss curve as a regularization alarm — never as model quality — without AutoML, Unsloth imports, or a silent rewrite of the operator’s numbers.

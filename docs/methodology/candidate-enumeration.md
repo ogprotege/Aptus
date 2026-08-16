@@ -1,6 +1,6 @@
 # Candidate Enumeration
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when candidate rules change
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-16 | **Review by:** 2027-01-22 or when candidate rules change
 
 Methodology version: `aptus-candidates-v2`.
 
@@ -105,6 +105,9 @@ facts, the ordered candidate IDs, the recommended candidate ID, the semantic
 model-policy decision and its source, `model_policy_snapshot_sha256`, the
 optional inspection receipt with its nested explanatory decision reason
 excluded, and the canonical evidence records.
+
+Training-knob rationale (`training_policy`) is presentation-only and is not
+part of plan identity.
 
 ## Current boundary
 

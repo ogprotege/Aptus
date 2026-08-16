@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Operators, API clients, automation authors, and compiler maintainers |
 | Authority | Normative v0.2 reference for declared defaults, planner priors, and emitted runtime settings |
-| Last reviewed | 2026-08-06 |
+| Last reviewed | 2026-08-16 |
 | Next review | 2026-10-27, or sooner when CLI, API, planning, catalog, or generation code changes |
 
 Aptus has three kinds of configuration value:
@@ -285,6 +285,11 @@ The compiler writes `config/trainer.json` with schema
 | `pilot_dataset_path` | `data/pilot-sample.jsonl` |
 | `training_dataset_path` | `data/training.jsonl` |
 | `truncation_policy` | `completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision` |
+
+Compare and CLI name rank, alpha, learning rate, and completions-mask as Aptus
+v0.2 method-class or compiler priors, not optima. Those presentation knobs do
+not change the emitted values above, including `weight_decay` `0.0` and
+`warmup_steps` `0`.
 
 The CUDA full run uses the compiled target and seed. `--max-steps` and `--seed`
 are CUDA pilot-only overrides. Full-training resume remains fail-closed. An

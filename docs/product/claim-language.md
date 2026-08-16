@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-11 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-16 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -11,6 +11,7 @@ Use:
 - “recommended within the enumerated v0.2 candidate set”;
 - “analytic point estimate”;
 - “heuristic upper envelope”;
+- “method-class prior”;
 - “eligible for the reviewed pilot path” when inspection binds the complete
   known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
@@ -19,6 +20,7 @@ Use:
 Do not use:
 
 - “universally optimal”;
+- “optimal LoRA rank”;
 - “guaranteed to fit”;
 - “perfect configuration”;
 - “automatic best method”;

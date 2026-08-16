@@ -110,13 +110,22 @@ def classify_instruction_sft_policy(
     reasons: list[str] = []
     status = "none"
 
-    if example_count < INSTRUCTION_SFT_MIN_ROWS and max_epochs <= INSTRUCTION_SFT_EPOCH_CAP:
+    if (
+        example_count < INSTRUCTION_SFT_MIN_ROWS
+        and max_epochs <= INSTRUCTION_SFT_EPOCH_CAP
+    ):
         reasons.append(_REASON_BELOW_SUPERVISION_PRIOR)
         status = "conditional"
-    if example_count < INSTRUCTION_SFT_MIN_ROWS and max_epochs > INSTRUCTION_SFT_EPOCH_CAP:
+    if (
+        example_count < INSTRUCTION_SFT_MIN_ROWS
+        and max_epochs > INSTRUCTION_SFT_EPOCH_CAP
+    ):
         reasons.append(_REASON_TOO_SMALL_FOR_LONG_TRAIN)
         status = "infeasible"
-    if example_count >= INSTRUCTION_SFT_MIN_ROWS and max_epochs > INSTRUCTION_SFT_EPOCH_CAP:
+    if (
+        example_count >= INSTRUCTION_SFT_MIN_ROWS
+        and max_epochs > INSTRUCTION_SFT_EPOCH_CAP
+    ):
         reasons.append(_REASON_EPOCH_CAP_EXCEEDED)
         if status != "infeasible":
             status = "conditional"
@@ -366,7 +375,12 @@ def classify_run_loss_signal(
     validation = _finite_series(validation_loss_observations)
     disallowed = _always_disallowed()
 
-    if train is not None and validation is not None and len(train) >= 2 and len(validation) >= 2:
+    if (
+        train is not None
+        and validation is not None
+        and len(train) >= 2
+        and len(validation) >= 2
+    ):
         t0, t_n = train[0], train[-1]
         v0, v_n = validation[0], validation[-1]
         if t_n < t0 and v_n > v0:

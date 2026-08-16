@@ -2258,7 +2258,9 @@ class ExecutionJobTests(unittest.TestCase):
             }
             (jobs / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
             got = JobService(jobs).get(job_id, include_validation_report=False)
-            persisted = json.loads((jobs / f"{job_id}.json").read_text(encoding="utf-8"))
+            persisted = json.loads(
+                (jobs / f"{job_id}.json").read_text(encoding="utf-8")
+            )
 
         self.assertIn("run_correction", got)
         self.assertEqual(got["run_correction"]["kind"], "eval-rose")

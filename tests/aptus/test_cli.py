@@ -927,7 +927,9 @@ class CliIntegrationTests(unittest.TestCase):
             stderr.getvalue(),
         )
         self.assertIn("kind: loss-flat", stderr.getvalue())
-        self.assertIn("non_claim: Training loss is not model quality.", stderr.getvalue())
+        self.assertIn(
+            "non_claim: Training loss is not model quality.", stderr.getvalue()
+        )
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["run_correction"]["kind"], "loss-flat")
 

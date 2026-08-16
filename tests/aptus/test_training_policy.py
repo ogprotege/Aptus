@@ -103,9 +103,7 @@ class TrainingPolicyPresentationTests(unittest.TestCase):
             "Adapter rank 16 is the Aptus v0.2 objective and dataset-volume prior, "
             "not a tuned optimum.",
         )
-        self.assertEqual(
-            by_name["rank"].prior_kind, "objective-and-token-volume-prior"
-        )
+        self.assertEqual(by_name["rank"].prior_kind, "objective-and-token-volume-prior")
         self.assertEqual(
             by_name["alpha"].rationale,
             "Adapter alpha 32 follows the Aptus v0.2 alpha=2*rank policy.",
@@ -204,7 +202,10 @@ class InstructionSftPolicyTests(unittest.TestCase):
         )
         self.assertEqual(verdict.status, "conditional")
         self.assertTrue(
-            any("below the instruction-SFT supervision prior" in r for r in verdict.reasons)
+            any(
+                "below the instruction-SFT supervision prior" in r
+                for r in verdict.reasons
+            )
         )
 
     def test_four_rows_ten_epochs_is_infeasible(self) -> None:

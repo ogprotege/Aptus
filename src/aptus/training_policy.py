@@ -128,11 +128,24 @@ def build_training_policy_presentation(
     example_count: int,
     max_epochs: int,
     truncation_policy: str,
+    task: str = "sft",
 ) -> TrainingPolicyPresentation:
-    """Explain existing knobs as labeled priors. Does not classify status."""
+    """Explain knobs as labeled priors, including dataset/epoch instruction-SFT rules."""
 
-    del method, target_modules, example_count, max_epochs  # reserved for later surfaces
+    del method, target_modules  # reserved for later surfaces
     lr_text = f"{learning_rate:g}"
+    verdict = classify_instruction_sft_policy(
+        example_count=example_count,
+        max_epochs=max_epochs,
+        task=task,
+    )
+    if verdict.status != "none" and verdict.reasons:
+        dataset_epoch_rationale = " ".join(verdict.reasons)
+    else:
+        dataset_epoch_rationale = (
+            "The requested dataset size and epoch count are within the "
+            "instruction-SFT prior."
+        )
     knobs = (
         TrainingKnob(
             name="rank",
@@ -169,6 +182,18 @@ def build_training_policy_presentation(
                 "tokens are masked. Empty supervision is refused."
             ),
         ),
+        TrainingKnob(
+            name="epochs",
+            value=str(max_epochs),
+            prior_kind="method-class-prior",
+            rationale=dataset_epoch_rationale,
+        ),
+        TrainingKnob(
+            name="dataset_size",
+            value=str(example_count),
+            prior_kind="method-class-prior",
+            rationale=dataset_epoch_rationale,
+        ),
     )
     return TrainingPolicyPresentation(
         schema_version=TRAINING_POLICY_SCHEMA_VERSION,
@@ -193,6 +218,7 @@ def build_training_policy_for_plan(plan: TrainingPlan) -> TrainingPolicyPresenta
         example_count=plan.dataset.example_count,
         max_epochs=plan.target.max_epochs,
         truncation_policy=DEFAULT_TRUNCATION_POLICY,
+        task=plan.target.task,
     )
 
 

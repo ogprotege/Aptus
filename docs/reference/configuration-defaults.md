@@ -286,10 +286,13 @@ The compiler writes `config/trainer.json` with schema
 | `training_dataset_path` | `data/training.jsonl` |
 | `truncation_policy` | `completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision` |
 
-Compare and CLI name rank, alpha, learning rate, and completions-mask as Aptus
-v0.2 method-class or compiler priors, not optima. Those presentation knobs do
-not change the emitted values above, including `weight_decay` `0.0` and
-`warmup_steps` `0`.
+Compare and CLI name rank, alpha, learning rate, completions-mask, epochs, and
+dataset size as Aptus v0.2 method-class, compiler, or instruction-SFT priors,
+not optima. Instruction-SFT defaults: supervision prior of 100 rows; epoch-cap
+prior of 3 (Aptus will not rewrite the requested epoch count); small-corpus
+band 100–299 rows with `max_epochs` ≥ 10 matches the parrot/sycophancy
+over-training prior. Those presentation knobs do not change the emitted values
+above, including `weight_decay` `0.0` and `warmup_steps` `0`.
 
 The CUDA full run uses the compiled target and seed. `--max-steps` and `--seed`
 are CUDA pilot-only overrides. Full-training resume remains fail-closed. An

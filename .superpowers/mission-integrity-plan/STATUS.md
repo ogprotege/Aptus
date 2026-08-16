@@ -1,13 +1,13 @@
 # Mission program status
 
-- **Updated:** 2026-08-13
-- **HEAD:** `fc5186b843ba5ab8f432df2bb3697d58f308018e` plus M9 work on `feat/mission-m9-sustain`
-- **Current phase:** M9 Sustain — COMPLETE (pending PR)
+- **Updated:** 2026-08-16
+- **HEAD:** `feat/training-policy` (TP0–TP3)
+- **Current phase:** TP3 Surfaces — COMPLETE (pending PR)
 - **Last completed on main:** M0–M8 (`fc5186b`, PR #93)
-- **Next allowed action:** TP3 (Compare/CLI/docs for new reasons).
-- **Blocked on:** none for TP3
-- **Anti-rush:** no M10; TP4 not started until TP3-COMPLETION.md exists
-- **TP increment:** TP0–TP2 COMPLETE (`4964bda`). Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
+- **Next allowed action:** TP4 (run-correction spec freeze only; no trainer changes).
+- **Blocked on:** none for TP4 design
+- **Anti-rush:** no M10; TP5 not started until TP4-run-correction-spec is approved
+- **TP increment:** TP0–TP3 COMPLETE. Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
 
 ## Progress stack
 

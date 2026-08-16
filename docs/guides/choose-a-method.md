@@ -103,9 +103,12 @@ Review the full candidate record before accepting the recommendation:
 4. point estimate, upper envelope, usable memory, and reserve;
 5. host RAM, disk, checkpoint, and export estimates;
 6. micro-batch, accumulation, and exact effective batch;
-7. rank, alpha, learning rate, completions-mask, and target modules —
-   Compare and CLI name rank, alpha, learning rate, and completions-mask as
-   Aptus v0.2 method-class or compiler priors, not optima;
+7. rank, alpha, learning rate, completions-mask, epochs, dataset size, and
+   target modules — Compare and CLI name rank, alpha, learning rate, and
+   completions-mask as Aptus v0.2 method-class or compiler priors, not optima,
+   and surface epochs and dataset size against the instruction-SFT supervision
+   prior (100 rows), epoch-cap prior of 3 (Aptus will not rewrite the requested
+   epoch count), and parrot/sycophancy over-training prior for small corpora;
 8. assumptions, confidence, and evidence IDs.
 
 ## Methods visible but not selectable

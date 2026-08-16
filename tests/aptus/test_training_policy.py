@@ -45,7 +45,14 @@ class TrainingPolicyPresentationTests(unittest.TestCase):
         names = [k.name for k in body.knobs]
         self.assertEqual(
             names,
-            ["rank", "alpha", "learning_rate", "completions_mask"],
+            [
+                "rank",
+                "alpha",
+                "learning_rate",
+                "completions_mask",
+                "epochs",
+                "dataset_size",
+            ],
         )
         primitive = body.to_primitive()
         self.assertEqual(primitive["schema_version"], TRAINING_POLICY_SCHEMA_VERSION)
@@ -109,6 +116,56 @@ class TrainingPolicyPresentationTests(unittest.TestCase):
             "are masked. Empty supervision is refused.",
         )
         self.assertEqual(by_name["completions_mask"].prior_kind, "compiler-contract")
+
+    def test_four_rows_one_epoch_quotes_supervision_prior_on_dataset_and_epochs(
+        self,
+    ) -> None:
+        body = build_training_policy_presentation(
+            method="lora",
+            rank=16,
+            alpha=32,
+            learning_rate=2e-4,
+            target_modules=("q_proj", "v_proj"),
+            example_count=4,
+            max_epochs=1,
+            truncation_policy=(
+                "completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision"
+            ),
+            task="sft",
+        )
+        by_name = {knob.name: knob for knob in body.knobs}
+        self.assertEqual(by_name["epochs"].value, "1")
+        self.assertEqual(by_name["dataset_size"].value, "4")
+        self.assertEqual(by_name["epochs"].prior_kind, "method-class-prior")
+        self.assertEqual(by_name["dataset_size"].prior_kind, "method-class-prior")
+        for name in ("epochs", "dataset_size"):
+            self.assertIn(
+                "below the instruction-SFT supervision prior of 100 rows",
+                by_name[name].rationale,
+            )
+            self.assertNotIn("optimal", by_name[name].rationale.lower())
+            self.assertNotIn("sycophant", by_name[name].rationale.lower())
+
+    def test_within_prior_states_request_is_within_instruction_sft_prior(self) -> None:
+        body = build_training_policy_presentation(
+            method="lora",
+            rank=16,
+            alpha=32,
+            learning_rate=2e-4,
+            target_modules=("q_proj", "v_proj"),
+            example_count=200,
+            max_epochs=3,
+            truncation_policy=(
+                "completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision"
+            ),
+            task="sft",
+        )
+        by_name = {knob.name: knob for knob in body.knobs}
+        for name in ("epochs", "dataset_size"):
+            self.assertIn(
+                "within the instruction-SFT prior",
+                by_name[name].rationale,
+            )
 
     def test_attach_training_policy_does_not_change_plan_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

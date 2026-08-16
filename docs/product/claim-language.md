@@ -12,6 +12,10 @@ Use:
 - “analytic point estimate”;
 - “heuristic upper envelope”;
 - “method-class prior”;
+- “below the instruction-SFT supervision prior of 100 rows”;
+- “exceeds the instruction-SFT epoch-cap prior of 3”;
+- “Aptus will not rewrite the requested epoch count”;
+- “parrot/sycophancy over-training prior”;
 - “eligible for the reviewed pilot path” when inspection binds the complete
   known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
@@ -21,6 +25,9 @@ Do not use:
 
 - “universally optimal”;
 - “optimal LoRA rank”;
+- “3 epochs is optimal”;
+- “this dataset will produce a sycophant”;
+- “loss proves the model is bad”;
 - “guaranteed to fit”;
 - “perfect configuration”;
 - “automatic best method”;
@@ -125,14 +132,16 @@ release-gate work or a future campaign as Phase 11.
 ## Quality claims
 
 Training loss, evaluation loss from a split, export structure, or job completion
-does not establish task quality by itself. Quality language requires a named
-dataset, metric, threshold, baseline, run binding, and result. V0.2 provides
-that first-class binding as optional `aptus.evaluation-contract.v1` /
-`aptus.evaluation-result.v1` with deterministic `exact_match` only. A contract
-pass means the bound gold digest, supplied predictions, metric implementation,
-and threshold were met. It is not general quality, safety, human preference, or
-release evidence. `evaluation_fraction` remains a train/validation split
-control. It is not this contract.
+does not establish task quality by itself. Instruction-SFT supervision and
+epoch-cap priors label dataset size and requested epochs; they do not predict
+model quality, sycophancy, or that a given epoch count is optimal. Quality
+language requires a named dataset, metric, threshold, baseline, run binding,
+and result. V0.2 provides that first-class binding as optional
+`aptus.evaluation-contract.v1` / `aptus.evaluation-result.v1` with deterministic
+`exact_match` only. A contract pass means the bound gold digest, supplied
+predictions, metric implementation, and threshold were met. It is not general
+quality, safety, human preference, or release evidence. `evaluation_fraction`
+remains a train/validation split control. It is not this contract.
 
 ## Dependency claims
 

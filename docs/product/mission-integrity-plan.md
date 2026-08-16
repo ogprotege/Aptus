@@ -260,6 +260,8 @@ M8 Evaluation contract     → optional quality lane (still not "guaranteed qual
 M9 Sustain & stop list     → ops, retention, anti-drift forever
 ```
 
+There is **no M10**. After M9, new work is a separate increment. The first such increment is **TP (Training Policy)**: dataset/epoch priors, visible knob rationale, and post-run loss-signal correction. Plan: [`docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`](../superpowers/plans/2026-08-16-training-policy-and-run-correction.md). Freeze: `.superpowers/mission-integrity-plan/TP0-training-policy-spec.md`.
+
 **Dependency rule:**  
 `M0 → M1 → M2 → (M3 ∥ M4 after M2) → M5 → M6 → M7 → M8 → M9`
 

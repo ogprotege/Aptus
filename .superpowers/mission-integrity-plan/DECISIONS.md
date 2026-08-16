@@ -2,6 +2,20 @@
 
 Append-only. Every product choice that freezes scope or identity gets an entry.
 
+---
+
+## DECISION-20260816-01
+
+- **Date:** 2026-08-16
+- **Phase:** TP0
+- **Question:** How does Aptus treat &lt;100-row datasets and `max_epochs` &gt; 3 without breaking Path Alpha or becoming AutoML?
+- **Options:** (a) infeasible below 100 rows always (b) conditional below 100 when epochs≤3; infeasible only for the long-train interactions (c) warn-only, never change status
+- **Choice:** (b) — owner approved 2026-08-16.
+- **Mission justification:** Fail-closed on “train longer on too little data.” Keep the 4-row Path Alpha proof runnable as conditional, not a silent yes and not a destroyed identity.
+- **Explicitly will not do:** Rewrite `max_epochs`; invent rows; Optuna; quality badge from loss; `weight_decay` 0.01 as a sycophancy fix; call this M10.
+- **Evidence / links:** `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`; `TP0-training-policy-spec.md`; `examples/support-sft.jsonl` is 4 rows.
+- **Owner:** Wilson (approved option b in session, 2026-08-16)
+
 Template:
 
 ```markdown

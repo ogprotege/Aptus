@@ -407,6 +407,36 @@ export interface TrainingPolicy {
   non_claims: string[];
 }
 
+/** Presentation-only run-correction (aptus.run-correction.v1); not quality or eval. */
+export type RunCorrectionKind = "loss-collapsed" | "loss-flat" | "eval-rose" | "none";
+
+export interface RunCorrectionPlanHint {
+  fact: string;
+  direction: "decrease" | "increase" | "set" | "review";
+  why: string;
+}
+
+export interface RunCorrectionDisallowedSuggestion {
+  code: string;
+  message: string;
+}
+
+export interface RunCorrectionNextStep {
+  action: "replan-with-fact-hints" | "none";
+  label: string;
+}
+
+export interface RunCorrection {
+  schema_version: "aptus.run-correction.v1";
+  kind: RunCorrectionKind;
+  summary: string;
+  source: "train_loss_observations+validation_loss_observations";
+  next_plan_hints: RunCorrectionPlanHint[];
+  disallowed_suggestions: RunCorrectionDisallowedSuggestion[];
+  operator_next_step: RunCorrectionNextStep;
+  non_claims: string[];
+}
+
 export interface TrainingPlan {
   schema_version: "aptus.training-plan.v6";
   plan_id: string;
@@ -801,6 +831,7 @@ export interface Job {
     note?: string;
     [key: string]: unknown;
   } | null;
+  run_correction?: RunCorrection | null;
   [key: string]: unknown;
 }
 

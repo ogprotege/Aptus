@@ -1929,6 +1929,16 @@
             ],
             "title": "Project Revision Id"
           },
+          "run_correction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunCorrectionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "schema_version": {
             "const": "aptus.job-record.v1",
             "title": "Schema Version",
@@ -4043,6 +4053,149 @@
           "message"
         ],
         "title": "ReplanRequiredResponse",
+        "type": "object"
+      },
+      "RunCorrectionDisallowedSuggestionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RunCorrectionDisallowedSuggestionResponse",
+        "type": "object"
+      },
+      "RunCorrectionFactHintResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "decrease",
+              "increase",
+              "set",
+              "review"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "fact": {
+            "minLength": 1,
+            "title": "Fact",
+            "type": "string"
+          },
+          "why": {
+            "minLength": 1,
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fact",
+          "direction",
+          "why"
+        ],
+        "title": "RunCorrectionFactHintResponse",
+        "type": "object"
+      },
+      "RunCorrectionNextStepResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "replan-with-fact-hints",
+              "none"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "label"
+        ],
+        "title": "RunCorrectionNextStepResponse",
+        "type": "object"
+      },
+      "RunCorrectionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "disallowed_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/RunCorrectionDisallowedSuggestionResponse"
+            },
+            "title": "Disallowed Suggestions",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "loss-collapsed",
+              "loss-flat",
+              "eval-rose",
+              "none"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "next_plan_hints": {
+            "items": {
+              "$ref": "#/components/schemas/RunCorrectionFactHintResponse"
+            },
+            "title": "Next Plan Hints",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "operator_next_step": {
+            "$ref": "#/components/schemas/RunCorrectionNextStepResponse"
+          },
+          "schema_version": {
+            "const": "aptus.run-correction.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "const": "train_loss_observations+validation_loss_observations",
+            "title": "Source",
+            "type": "string"
+          },
+          "summary": {
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "kind",
+          "summary",
+          "source",
+          "next_plan_hints",
+          "disallowed_suggestions",
+          "operator_next_step",
+          "non_claims"
+        ],
+        "title": "RunCorrectionResponse",
         "type": "object"
       },
       "RuntimeConfigureRequest": {

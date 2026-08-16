@@ -27,6 +27,8 @@ import type {
   ProfileRequest,
   ProfileResponse,
   SelectCandidateRequest,
+  RunCorrection,
+  RunCorrectionKind,
   TrainingKnob,
   TrainingKnobName,
   TrainingKnobPriorKind,
@@ -533,6 +535,7 @@ function normalizeJob(payload: Record<string, unknown>): Job {
       typeof payload.validation_report_error === "string"
         ? payload.validation_report_error
         : undefined,
+    run_correction: normalizeRunCorrection(payload.run_correction),
   } as Job;
 }
 
@@ -1066,6 +1069,87 @@ function normalizePlan(
     correction: normalizePlanCorrection(payload.correction),
     training_policy: normalizeTrainingPolicy(payload.training_policy),
   } as TrainingPlan;
+}
+
+function normalizeRunCorrection(value: unknown): RunCorrection | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.run-correction.v1") {
+    return null;
+  }
+  if (
+    value.kind !== "loss-collapsed"
+    && value.kind !== "loss-flat"
+    && value.kind !== "eval-rose"
+    && value.kind !== "none"
+  ) {
+    return null;
+  }
+  if (value.source !== "train_loss_observations+validation_loss_observations") {
+    return null;
+  }
+  if (typeof value.summary !== "string" || value.summary.length === 0) {
+    return null;
+  }
+  const next = value.operator_next_step;
+  if (!isRecord(next) || typeof next.action !== "string" || typeof next.label !== "string") {
+    return null;
+  }
+  if (next.action !== "replan-with-fact-hints" && next.action !== "none") {
+    return null;
+  }
+  const hints: RunCorrection["next_plan_hints"] = [];
+  if (Array.isArray(value.next_plan_hints)) {
+    for (const item of value.next_plan_hints) {
+      if (!isRecord(item)) {
+        continue;
+      }
+      if (typeof item.fact !== "string" || typeof item.why !== "string") {
+        continue;
+      }
+      if (
+        item.direction !== "decrease"
+        && item.direction !== "increase"
+        && item.direction !== "set"
+        && item.direction !== "review"
+      ) {
+        continue;
+      }
+      hints.push({
+        fact: item.fact,
+        direction: item.direction,
+        why: item.why,
+      });
+    }
+  }
+  const disallowed: RunCorrection["disallowed_suggestions"] = [];
+  if (Array.isArray(value.disallowed_suggestions)) {
+    for (const item of value.disallowed_suggestions) {
+      if (!isRecord(item)) {
+        continue;
+      }
+      if (typeof item.code !== "string" || typeof item.message !== "string") {
+        continue;
+      }
+      disallowed.push({ code: item.code, message: item.message });
+    }
+  }
+  return {
+    schema_version: "aptus.run-correction.v1",
+    kind: value.kind as RunCorrectionKind,
+    summary: value.summary,
+    source: "train_loss_observations+validation_loss_observations",
+    next_plan_hints: hints,
+    disallowed_suggestions: disallowed,
+    operator_next_step: {
+      action: next.action,
+      label: next.label,
+    },
+    non_claims: Array.isArray(value.non_claims)
+      ? value.non_claims.filter((item): item is string => typeof item === "string")
+      : [],
+  };
 }
 
 function normalizeTrainingPolicy(value: unknown): TrainingPolicy | null {

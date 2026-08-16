@@ -691,6 +691,33 @@ class TrainingPolicyResponse(ClosedResponseModel):
     non_claims: list[str]
 
 
+class RunCorrectionFactHintResponse(ClosedResponseModel):
+    fact: str = Field(min_length=1)
+    direction: Literal["decrease", "increase", "set", "review"]
+    why: str = Field(min_length=1)
+
+
+class RunCorrectionDisallowedSuggestionResponse(ClosedResponseModel):
+    code: str = Field(min_length=1)
+    message: str = Field(min_length=1)
+
+
+class RunCorrectionNextStepResponse(ClosedResponseModel):
+    action: Literal["replan-with-fact-hints", "none"]
+    label: str = Field(min_length=1)
+
+
+class RunCorrectionResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.run-correction.v1"]
+    kind: Literal["loss-collapsed", "loss-flat", "eval-rose", "none"]
+    summary: str = Field(min_length=1)
+    source: Literal["train_loss_observations+validation_loss_observations"]
+    next_plan_hints: list[RunCorrectionFactHintResponse]
+    disallowed_suggestions: list[RunCorrectionDisallowedSuggestionResponse]
+    operator_next_step: RunCorrectionNextStepResponse
+    non_claims: list[str]
+
+
 class EvaluationNormalizationResponse(ClosedResponseModel):
     strip: bool
     collapse_whitespace: bool
@@ -971,6 +998,7 @@ class JobResponse(ResponseModel):
     created_at: str
     project_id: str | None = None
     project_revision_id: str | None = None
+    run_correction: RunCorrectionResponse | None = None
 
 
 class ProjectRecoveryResponse(ResponseModel):

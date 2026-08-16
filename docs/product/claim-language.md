@@ -143,6 +143,27 @@ predictions, metric implementation, and threshold were met. It is not general
 quality, safety, human preference, or release evidence. `evaluation_fraction`
 remains a train/validation split control. It is not this contract.
 
+## Training-signal correction claims
+
+After a measured run with recorded loss observations, Aptus may attach
+`aptus.run-correction.v1` as a presentation-only next-plan hint.
+
+Use:
+
+- “training-signal correction”;
+- “regularization heuristic”;
+- “next plan”;
+- “Train loss fell while validation loss rose” only as a curve description, not
+  as an evaluation pass or fail.
+
+Do not use:
+
+- “the model is bad” / “the model is good” from loss alone;
+- “overfit confirmed as quality”;
+- “eval pass” from split validation loss;
+- “AutoML” or “start a hyperparameter search” as the product response;
+- “add weight decay as a sycophancy cure.”
+
 ## Dependency claims
 
 Call generated `requirements.txt` “exact direct pins” or “direct constraints.”

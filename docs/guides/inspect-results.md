@@ -174,6 +174,26 @@ does not mean:
 
 Use a separate, predefined evaluation for those claims.
 
+## 7. Inspect training-signal correction (optional)
+
+When a completed train job has a readable `metrics.json` with recorded
+`train_loss_observations` (and optionally `validation_loss_observations`),
+job GET and `aptus jobs --id JOB_ID` may attach a presentation-only
+`aptus.run-correction.v1` object (`run_correction`). The Run UI labels it
+**Training-signal correction (not quality).**
+
+This is a regularization heuristic for the next plan. It is not model quality,
+not an `aptus.evaluation-result.v1` decision, and not required for
+`measured-run-pass`. Aptus does not auto-replan, auto-stop, or change weight
+decay from this signal.
+
+Kinds (first match): `eval-rose`, `loss-collapsed`, `loss-flat`, or `none`.
+CLI stderr prints a block titled like the training-knobs presentation:
+
+```text
+Aptus training-signal correction (presentation only; not quality):
+```
+
 ## Preserve a failed result
 
 Keep the job JSON, complete log, validation report, run directory, plan,

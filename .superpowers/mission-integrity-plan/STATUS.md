@@ -1,13 +1,13 @@
 # Mission program status
 
 - **Updated:** 2026-08-16
-- **HEAD:** `feat/training-policy` (TP0–TP4)
-- **Current phase:** TP5 Run-correction
+- **HEAD:** `feat/training-policy` (TP0–TP5)
+- **Current phase:** TP6 Bibliography and Desktop cleanup
 - **Last completed on main:** M0–M8 (`fc5186b`, PR #93)
-- **Next allowed action:** TP5 (run-correction objects).
-- **Blocked on:** none for TP5
-- **Anti-rush:** no M10; TP6 after TP5-COMPLETION.md
-- **TP increment:** TP0–TP4 COMPLETE. Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
+- **Next allowed action:** TP6 only (no runtime change).
+- **Blocked on:** none for TP6
+- **Anti-rush:** no M10; bibliography after TP5-COMPLETION.md
+- **TP increment:** TP0–TP5 COMPLETE. Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
 
 ## Progress stack
 

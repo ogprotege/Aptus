@@ -8,10 +8,15 @@ from pathlib import Path
 from aptus.domain import to_primitive
 from aptus.plan_contract import plan_id_for_payload
 from aptus.training_policy import (
+    RUN_CORRECTION_SCHEMA_VERSION,
     TRAINING_POLICY_SCHEMA_VERSION,
+    attach_run_correction,
     attach_training_policy,
+    build_run_correction_from_metrics,
+    build_run_correction_from_metrics_path,
     build_training_policy_presentation,
     classify_instruction_sft_policy,
+    classify_run_loss_signal,
 )
 from tests.aptus.helpers import make_plan
 
@@ -230,6 +235,120 @@ class InstructionSftPolicyTests(unittest.TestCase):
         )
         self.assertEqual(verdict.status, "none")
         self.assertEqual(verdict.reasons, ())
+
+
+class RunLossSignalClassifierTests(unittest.TestCase):
+    """TP4 normative fixture series and contract invariants."""
+
+    _DISALLOWED = {
+        "no_automl",
+        "no_quality_from_loss",
+        "no_weight_decay_as_sycophancy_fix",
+    }
+    _NON_CLAIMS = (
+        "Training loss is not model quality.",
+        "Validation split loss is not an aptus.evaluation-result.v1 decision.",
+    )
+
+    def _assert_common(self, correction) -> None:
+        primitive = correction.to_primitive()
+        self.assertEqual(primitive["schema_version"], RUN_CORRECTION_SCHEMA_VERSION)
+        self.assertEqual(
+            primitive["source"],
+            "train_loss_observations+validation_loss_observations",
+        )
+        codes = {item["code"] for item in primitive["disallowed_suggestions"]}
+        self.assertEqual(codes, self._DISALLOWED)
+        for claim in self._NON_CLAIMS:
+            self.assertIn(claim, primitive["non_claims"])
+        # Run-correction must not claim to be an evaluation-result decision.
+        self.assertIn(
+            "Validation split loss is not an aptus.evaluation-result.v1 decision.",
+            primitive["non_claims"],
+        )
+        self.assertNotEqual(primitive["schema_version"], "aptus.evaluation-result.v1")
+
+    def test_fixture_rose(self) -> None:
+        correction = classify_run_loss_signal([1.0, 0.4], [0.9, 1.1])
+        self.assertEqual(correction.kind, "eval-rose")
+        self._assert_common(correction)
+        self.assertEqual(correction.operator_next_step.action, "replan-with-fact-hints")
+        self.assertEqual(correction.next_plan_hints[0].fact, "target.max_epochs")
+        self.assertEqual(correction.next_plan_hints[0].direction, "decrease")
+
+    def test_fixture_collapsed_with_eval_down(self) -> None:
+        correction = classify_run_loss_signal([1.0, 0.05], [0.8, 0.4])
+        self.assertEqual(correction.kind, "loss-collapsed")
+        self._assert_common(correction)
+        self.assertEqual(correction.next_plan_hints[0].fact, "target.max_epochs")
+
+    def test_fixture_collapsed_missing_eval(self) -> None:
+        correction = classify_run_loss_signal([1.0, 0.05], None)
+        self.assertEqual(correction.kind, "loss-collapsed")
+
+    def test_fixture_flat(self) -> None:
+        correction = classify_run_loss_signal([1.0, 0.95], None)
+        self.assertEqual(correction.kind, "loss-flat")
+        self._assert_common(correction)
+        self.assertEqual(correction.next_plan_hints[0].direction, "increase")
+        hint_facts = [hint.fact for hint in correction.next_plan_hints]
+        self.assertNotIn("weight_decay", hint_facts)
+        self.assertNotIn("target.weight_decay", hint_facts)
+
+    def test_fixture_single_point(self) -> None:
+        correction = classify_run_loss_signal([1.0], [])
+        self.assertEqual(correction.kind, "none")
+        self.assertEqual(correction.next_plan_hints, ())
+        self.assertEqual(correction.operator_next_step.action, "none")
+        self._assert_common(correction)
+
+    def test_fixture_empty(self) -> None:
+        correction = classify_run_loss_signal(None, None)
+        self.assertEqual(correction.kind, "none")
+        self._assert_common(correction)
+
+    def test_fixture_both_down_is_none(self) -> None:
+        # Not rose (eval did not rise); not collapsed enough (0.4 >= 0.2).
+        correction = classify_run_loss_signal([1.0, 0.4], [0.9, 0.5])
+        self.assertEqual(correction.kind, "none")
+        self._assert_common(correction)
+
+    def test_eval_rose_wins_when_also_collapsed(self) -> None:
+        # BiLoRA rule: both series present, train collapsed AND eval rose → rose.
+        correction = classify_run_loss_signal([1.0, 0.05], [0.9, 1.2])
+        self.assertEqual(correction.kind, "eval-rose")
+
+    def test_non_finite_series_abstains(self) -> None:
+        correction = classify_run_loss_signal([1.0, float("nan")], [0.9, 1.1])
+        self.assertEqual(correction.kind, "none")
+
+    def test_build_from_metrics_and_path(self) -> None:
+        metrics = {
+            "train_loss_observations": [1.0, 0.4],
+            "validation_loss_observations": [0.9, 1.1],
+        }
+        from_map = build_run_correction_from_metrics(metrics)
+        assert from_map is not None
+        self.assertEqual(from_map.kind, "eval-rose")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "metrics.json"
+            path.write_text(json.dumps(metrics), encoding="utf-8")
+            from_path = build_run_correction_from_metrics_path(path)
+            assert from_path is not None
+            self.assertEqual(from_path.kind, "eval-rose")
+            missing = build_run_correction_from_metrics_path(Path(tmp) / "absent.json")
+            self.assertIsNone(missing)
+
+    def test_attach_run_correction_does_not_change_plan_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plan = make_plan(Path(tmp), gpu_count=1)
+        base = to_primitive(plan)
+        plan_id = plan_id_for_payload(base)
+        correction = classify_run_loss_signal([1.0, 0.05], None)
+        attached = attach_run_correction(base, correction)
+        self.assertIn("run_correction", attached)
+        self.assertEqual(plan_id_for_payload(base), plan_id)
+        self.assertEqual(plan_id_for_payload(attached), plan_id)
 
 
 if __name__ == "__main__":

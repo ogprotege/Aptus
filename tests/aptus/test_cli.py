@@ -874,6 +874,63 @@ class CliIntegrationTests(unittest.TestCase):
         self.assertIn("Aptus error: Cannot start pilot", stderr.getvalue())
         self.assertIn("measured-preflight-pass", stderr.getvalue())
 
+    def test_jobs_id_prints_training_signal_correction_block(self) -> None:
+        service = MagicMock()
+        job_id = "job_" + "r" * 32
+        service.get.return_value = {
+            "schema_version": "aptus.job-record.v1",
+            "id": job_id,
+            "job_id": job_id,
+            "state": "completed",
+            "action": "train",
+            "bundle_dir": "/tmp/bundle",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "run_correction": {
+                "schema_version": "aptus.run-correction.v1",
+                "kind": "loss-flat",
+                "summary": "Train loss stayed relatively flat.",
+                "source": "train_loss_observations+validation_loss_observations",
+                "next_plan_hints": [
+                    {
+                        "fact": "target.max_epochs",
+                        "direction": "increase",
+                        "why": "Train loss stayed flat.",
+                    }
+                ],
+                "disallowed_suggestions": [
+                    {
+                        "code": "no_automl",
+                        "message": "Do not start a hyperparameter search.",
+                    }
+                ],
+                "operator_next_step": {
+                    "action": "replan-with-fact-hints",
+                    "label": "Replan with more epochs or review rank",
+                },
+                "non_claims": [
+                    "Training loss is not model quality.",
+                    "Validation split loss is not an aptus.evaluation-result.v1 decision.",
+                ],
+            },
+        }
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch("aptus.execution.JobService", return_value=service),
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = main(["jobs", "--id", job_id])
+        self.assertEqual(code, 0)
+        self.assertIn(
+            "Aptus training-signal correction (presentation only; not quality):",
+            stderr.getvalue(),
+        )
+        self.assertIn("kind: loss-flat", stderr.getvalue())
+        self.assertIn("non_claim: Training loss is not model quality.", stderr.getvalue())
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["run_correction"]["kind"], "loss-flat")
+
     def test_ctrl_c_requests_owned_job_cancellation(self) -> None:
         service = MagicMock()
         job_id = "job_" + "b" * 32

@@ -368,4 +368,65 @@ describe("RunStage", () => {
       screen.getByText(/Train loss and split evaluation loss are not an evaluation pass/i),
     ).toBeInTheDocument();
   });
+
+  it("shows training-signal correction without quality claims", () => {
+    const job: Job = {
+      id: "job_signal",
+      state: "completed",
+      phase: "completed",
+      mode: "train",
+      bundle_dir: "/tmp/bundle",
+      run_id: "run_signal",
+      run_output_dir: "/tmp/bundle/runs/run_signal",
+      log: "training complete",
+      return_code: 0,
+      run_correction: {
+        schema_version: "aptus.run-correction.v1",
+        kind: "eval-rose",
+        summary:
+          "Train loss fell while validation loss rose; consider fewer epochs on the next plan.",
+        source: "train_loss_observations+validation_loss_observations",
+        next_plan_hints: [
+          {
+            fact: "target.max_epochs",
+            direction: "decrease",
+            why: "Train loss fell while validation loss rose; next plan should use fewer epochs.",
+          },
+        ],
+        disallowed_suggestions: [
+          {
+            code: "no_quality_from_loss",
+            message: "Do not treat this signal as model quality or an M8 eval decision.",
+          },
+        ],
+        operator_next_step: {
+          action: "replan-with-fact-hints",
+          label: "Replan with fewer epochs",
+        },
+        non_claims: [
+          "Training loss is not model quality.",
+          "Validation split loss is not an aptus.evaluation-result.v1 decision.",
+        ],
+      },
+    };
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    const region = screen.getByRole("region", {
+      name: "Training-signal correction (not quality)",
+    });
+    expect(region).toHaveTextContent("eval-rose");
+    expect(region).toHaveTextContent("Training loss is not model quality.");
+    expect(region).toHaveTextContent("target.max_epochs");
+    expect(region).not.toHaveTextContent(/the model is bad/i);
+    expect(region).not.toHaveTextContent(/optimal/i);
+  });
 });

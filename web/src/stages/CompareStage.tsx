@@ -1,4 +1,11 @@
-import type { CandidatePlan, EvidenceRecord, PlanCorrection, PlanView } from "../types";
+import type {
+  CandidatePlan,
+  EvidenceRecord,
+  PlanCorrection,
+  PlanView,
+  TrainingKnob,
+  TrainingPolicy,
+} from "../types";
 import { CandidateComparison } from "../components/CandidateComparison";
 import { EmptyStage } from "../components/EmptyStage";
 import { ModelPolicyPanel } from "../components/ModelPolicyPanel";
@@ -57,6 +64,7 @@ export function CompareStage({
 
   const recommended = plan.recommended;
   const correction = plan.correction ?? null;
+  const trainingPolicy = plan.training_policy ?? null;
   const upper = upperMemory(recommended);
   const limit = memoryLimit(recommended);
   const headroom = upper !== null && limit !== null ? limit - upper : null;
@@ -128,6 +136,8 @@ export function CompareStage({
           </p>
         </section>
       )}
+
+      {trainingPolicy ? <TrainingKnobsPanel policy={trainingPolicy} /> : null}
 
       <CandidateComparison
         candidates={plan.candidates}
@@ -285,6 +295,61 @@ export function CompareStage({
       </div>
     </>
   );
+}
+
+function TrainingKnobsPanel({ policy }: { policy: TrainingPolicy }) {
+  return (
+    <section className="correction-panel" aria-labelledby="training-knobs-title">
+      <div className="section-heading-row">
+        <div>
+          <p className="eyebrow">Presentation priors</p>
+          <h2 id="training-knobs-title">Why these training knobs</h2>
+        </div>
+        <ProvenanceBadge kind="inferred" label="Prior" />
+      </div>
+      <dl className="candidate-contract-grid">
+        {policy.knobs.map((knob) => (
+          <div key={knob.name}>
+            <dt>{formatTrainingKnobName(knob)}</dt>
+            <dd>
+              {knob.value}
+              {" — "}
+              {knob.rationale}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {policy.non_claims.length ? (
+        <ul className="plain-list amber-list">
+          {policy.non_claims.map((claim) => (
+            <li key={claim}>{claim}</li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="correction-claim">
+        Training knobs are method-class and volume priors for this plan, not a tuned optimum.
+      </p>
+    </section>
+  );
+}
+
+function formatTrainingKnobName(knob: TrainingKnob): string {
+  switch (knob.name) {
+    case "rank":
+      return "Rank";
+    case "alpha":
+      return "Alpha";
+    case "learning_rate":
+      return "Learning rate";
+    case "completions_mask":
+      return "Completions mask";
+    case "epochs":
+      return "Epochs";
+    case "dataset_size":
+      return "Dataset size";
+    default:
+      return knob.name;
+  }
 }
 
 function CorrectionPanel({ correction }: { correction: PlanCorrection }) {

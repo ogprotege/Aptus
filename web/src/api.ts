@@ -27,7 +27,11 @@ import type {
   ProfileRequest,
   ProfileResponse,
   SelectCandidateRequest,
+  TrainingKnob,
+  TrainingKnobName,
+  TrainingKnobPriorKind,
   TrainingPlan,
+  TrainingPolicy,
   ValidateRequest,
   ValidationReport,
 } from "./types";
@@ -866,20 +870,20 @@ function normalizeNoFeasibleComparison(
   payload: Record<string, unknown>,
   context: PlanResponseContext,
 ): NoFeasibleComparisonPlan {
-  requireExactKeys(
-    payload,
-    [
-      "error",
-      "message",
-      "candidates",
-      "model_policy_decision",
-      "model_policy_decision_source",
-      "inspection_receipt",
-      "model",
-      "correction",
-    ],
-    "No-feasible-plan response",
-  );
+  const noFeasibleKeys = [
+    "error",
+    "message",
+    "candidates",
+    "model_policy_decision",
+    "model_policy_decision_source",
+    "inspection_receipt",
+    "model",
+    "correction",
+  ];
+  if ("training_policy" in payload) {
+    noFeasibleKeys.push("training_policy");
+  }
+  requireExactKeys(payload, noFeasibleKeys, "No-feasible-plan response");
   if (payload.error !== "no_feasible_plan") {
     throw new Error("No-feasible-plan response requires its typed error code.");
   }
@@ -957,6 +961,7 @@ function normalizeNoFeasibleComparison(
       "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
     ],
     correction: normalizePlanCorrection(payload.correction),
+    training_policy: normalizeTrainingPolicy(payload.training_policy),
   };
 }
 
@@ -1059,7 +1064,64 @@ function normalizePlan(
     rationale,
     recommendation_rationale: rationale,
     correction: normalizePlanCorrection(payload.correction),
+    training_policy: normalizeTrainingPolicy(payload.training_policy),
   } as TrainingPlan;
+}
+
+function normalizeTrainingPolicy(value: unknown): TrainingPolicy | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.training-policy.v1") {
+    return null;
+  }
+  if (value.policy_version !== "aptus-training-policy-v1") {
+    return null;
+  }
+  if (!Array.isArray(value.knobs) || !Array.isArray(value.non_claims)) {
+    return null;
+  }
+  const knobs: TrainingKnob[] = [];
+  for (const item of value.knobs) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    if (
+      item.name !== "rank"
+      && item.name !== "alpha"
+      && item.name !== "learning_rate"
+      && item.name !== "completions_mask"
+      && item.name !== "epochs"
+      && item.name !== "dataset_size"
+    ) {
+      continue;
+    }
+    if (
+      item.prior_kind !== "method-class-prior"
+      && item.prior_kind !== "objective-and-token-volume-prior"
+      && item.prior_kind !== "compiler-contract"
+    ) {
+      continue;
+    }
+    if (typeof item.value !== "string" || item.value.length === 0) {
+      continue;
+    }
+    if (typeof item.rationale !== "string" || item.rationale.length === 0) {
+      continue;
+    }
+    knobs.push({
+      name: item.name as TrainingKnobName,
+      value: item.value,
+      prior_kind: item.prior_kind as TrainingKnobPriorKind,
+      rationale: item.rationale,
+    });
+  }
+  return {
+    schema_version: "aptus.training-policy.v1",
+    policy_version: "aptus-training-policy-v1",
+    knobs,
+    non_claims: value.non_claims.filter((item): item is string => typeof item === "string"),
+  };
 }
 
 function normalizePlanCorrection(value: unknown): PlanCorrection | null {

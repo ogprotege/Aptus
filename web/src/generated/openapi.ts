@@ -1946,6 +1946,23 @@ export interface components {
              */
             training_seed: number;
         };
+        /** TrainingKnobResponse */
+        TrainingKnobResponse: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "rank" | "alpha" | "learning_rate" | "completions_mask" | "epochs" | "dataset_size";
+            /**
+             * Prior Kind
+             * @enum {string}
+             */
+            prior_kind: "method-class-prior" | "objective-and-token-volume-prior" | "compiler-contract";
+            /** Rationale */
+            rationale: string;
+            /** Value */
+            value: string;
+        };
         /** TrainingPlanResponse */
         TrainingPlanResponse: {
             /** Candidates */
@@ -1975,10 +1992,28 @@ export interface components {
              * @constant
              */
             schema_version: "aptus.training-plan.v6";
+            training_policy?: components["schemas"]["TrainingPolicyResponse"] | null;
             /** Warnings */
             warnings: string[];
         } & {
             [key: string]: unknown;
+        };
+        /** TrainingPolicyResponse */
+        TrainingPolicyResponse: {
+            /** Knobs */
+            knobs: components["schemas"]["TrainingKnobResponse"][];
+            /** Non Claims */
+            non_claims: string[];
+            /**
+             * Policy Version
+             * @constant
+             */
+            policy_version: "aptus-training-policy-v1";
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.training-policy.v1";
         };
         /**
          * TrainingRuntime

@@ -4,10 +4,10 @@
 - **HEAD:** `fc5186b843ba5ab8f432df2bb3697d58f308018e` plus M9 work on `feat/mission-m9-sustain`
 - **Current phase:** M9 Sustain — COMPLETE (pending PR)
 - **Last completed on main:** M0–M8 (`fc5186b`, PR #93)
-- **Next allowed action:** TP2 (dataset + epoch capability checks).
-- **Blocked on:** none for TP2
-- **Anti-rush:** no M10; TP3 not started until TP2-COMPLETION.md exists
-- **TP increment:** TP0 COMPLETE; TP1 COMPLETE (`3ec4b87`). Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
+- **Next allowed action:** TP3 (Compare/CLI/docs for new reasons).
+- **Blocked on:** none for TP3
+- **Anti-rush:** no M10; TP4 not started until TP3-COMPLETION.md exists
+- **TP increment:** TP0–TP2 COMPLETE (`4964bda`). Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
 
 ## Progress stack
 

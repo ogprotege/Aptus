@@ -52,6 +52,7 @@ from .plan_contract import (
     plan_id_for_payload,
     validate_plan_payload,
 )
+from .training_policy import classify_instruction_sft_policy
 
 
 FORMULA_VERSION = "aptus-memory-v2"
@@ -925,6 +926,20 @@ def _estimate_candidate_with_policy(
     elif hardware.disk_free_bytes < required_disk:
         infeasible.append(
             "Free disk is below the compiled staging, bounded-pilot, and three-checkpoint retention estimate."
+        )
+
+    verdict = classify_instruction_sft_policy(
+        example_count=dataset.example_count,
+        max_epochs=target.max_epochs,
+        task=target.task,
+    )
+    if verdict.status == "infeasible":
+        infeasible.extend(verdict.reasons)
+    elif verdict.status == "conditional":
+        conditional.extend(verdict.reasons)
+    if verdict.reasons:
+        policy_assumptions.append(
+            "Instruction-SFT dataset-size and epoch-cap rules are Aptus training-policy v1 priors, not measured quality."
         )
 
     if unsupported:

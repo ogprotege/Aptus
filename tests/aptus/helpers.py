@@ -22,14 +22,22 @@ QWEN2_5_ACCEPTANCE_MODEL_ID = "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
 QWEN2_5_ACCEPTANCE_REVISION = "53a32aee5e9447773fd2b85988395066aef3700a"
 
 
-def make_dataset(root: Path, content: str | None = None) -> Path:
+def make_dataset(
+    root: Path,
+    content: str | None = None,
+    *,
+    rows: int = 100,
+) -> Path:
+    """Write a JSONL dataset. Default size is above the instruction-SFT min-row prior."""
+
     path = root / "source.jsonl"
-    path.write_text(
-        content
-        or '{"prompt":"Question one?","completion":"Answer one."}\n'
-        '{"messages":[{"role":"user","content":"Question two?"},{"role":"assistant","content":"Answer two."}]}\n',
-        encoding="utf-8",
-    )
+    if content is None:
+        lines = [
+            f'{{"prompt":"Question {index}?","completion":"Answer {index}."}}'
+            for index in range(1, rows + 1)
+        ]
+        content = "\n".join(lines) + "\n"
+    path.write_text(content, encoding="utf-8")
     return path
 
 
@@ -44,12 +52,15 @@ def make_plan(
     effective_batch: int = 8,
     task: str = "sft",
     packing: bool = False,
+    max_epochs: int = 1,
     optimizer_steps: int | None = None,
     split_seed: int = 424242,
     training_seed: int = 17,
     data_order_seed: int = 1000017,
+    dataset_content: str | None = None,
+    dataset_rows: int = 100,
 ):
-    dataset_path = make_dataset(root)
+    dataset_path = make_dataset(root, content=dataset_content, rows=dataset_rows)
     dataset = profile_dataset(dataset_path, sample_limit=64, sequence_length=128)
     model = build_model_spec(
         model_id="example/model-1b",
@@ -79,7 +90,7 @@ def make_plan(
         objective=objective,
         sequence_length=128,
         effective_batch_size=effective_batch,
-        max_epochs=1,
+        max_epochs=max_epochs,
         task=task,
         packing=packing,
         checkpoint_steps=10,

@@ -1253,6 +1253,81 @@ class PlannerTests(unittest.TestCase):
             )
         )
 
+    def test_four_rows_one_epoch_is_at_least_conditional(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(
+                Path(temporary),
+                dataset_rows=4,
+                max_epochs=1,
+            )
+        self.assertEqual(plan.dataset.example_count, 4)
+        self.assertEqual(plan.target.max_epochs, 1)
+        self.assertIn(
+            plan.recommended.status,
+            {CandidateStatus.CONDITIONAL, CandidateStatus.FEASIBLE},
+        )
+        self.assertEqual(plan.recommended.status, CandidateStatus.CONDITIONAL)
+        self.assertTrue(
+            any(
+                "below the instruction-SFT supervision prior" in reason
+                for reason in plan.recommended.rejection_reasons
+            )
+        )
+        self.assertTrue(
+            any(
+                "training-policy v1 priors" in assumption
+                for assumption in plan.recommended.assumptions
+            )
+        )
+
+    def test_four_rows_ten_epochs_is_no_feasible_plan(self) -> None:
+        target_epochs = 10
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(NoFeasiblePlanError) as raised:
+                make_plan(
+                    Path(temporary),
+                    dataset_rows=4,
+                    max_epochs=target_epochs,
+                )
+        # Operator request is not rewritten by policy.
+        self.assertEqual(target_epochs, 10)
+        error = raised.exception
+        self.assertTrue(error.candidates)
+        self.assertTrue(
+            all(
+                candidate.status == CandidateStatus.INFEASIBLE
+                or candidate.status == CandidateStatus.UNSUPPORTED
+                for candidate in error.candidates
+            )
+        )
+        self.assertTrue(
+            any(
+                any(
+                    "will not endorse training longer than 3 epochs" in reason
+                    for reason in candidate.rejection_reasons
+                )
+                for candidate in error.candidates
+            )
+        )
+
+    def test_thousand_rows_five_epochs_is_viable_conditional(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_plan(
+                Path(temporary),
+                dataset_rows=1000,
+                max_epochs=5,
+            )
+        self.assertEqual(plan.dataset.example_count, 1000)
+        self.assertEqual(plan.target.max_epochs, 5)
+        self.assertTrue(plan.recommended.feasible)
+        self.assertEqual(plan.recommended.status, CandidateStatus.CONDITIONAL)
+        self.assertTrue(
+            any(
+                "exceeds the instruction-SFT epoch-cap prior of 3" in reason
+                for reason in plan.recommended.rejection_reasons
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

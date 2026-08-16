@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 146 tracked Markdown documents. Of those, 145 are
+The repository tree contains 147 tracked Markdown documents. Of those, 146 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -53,21 +53,23 @@ M7-C adds
 M7-A adds
 `docs/operations/evidence/2026-08-13-path-beta-360m-lora-m7a/README.md`.
 The training-policy increment adds one active implementation plan at
-`docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`.
+`docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
+and one active bibliography at
+`docs/research/training-policy-bibliography.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 116 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 117 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 145 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 146 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 145 governed
-Markdown files. Together with the root `LICENSE`, that makes 146 maintained
+The automated `maintained_documentation()` set contains the 146 governed
+Markdown files. Together with the root `LICENSE`, that makes 147 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -208,6 +210,7 @@ selectability come from `src/aptus/methods/registry.py`.
 
 - [EXAMPLE forensic review and salvage ledger](../research/example-intake-reconciliation.md)
 - [Reference and TO-REVIEW reconciliation](../research/reference-and-to-review-reconciliation.md)
+- [Training-policy bibliography](../research/training-policy-bibliography.md)
 - [Top 50 method research source](../../Reference/top-50-llm-training-methods.pplx.md), active only as a non-normative research source
 - [Reference packet index](../../Reference/README.md)
 - [Examples guide](../../examples/README.md)

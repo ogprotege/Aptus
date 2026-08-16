@@ -39,6 +39,7 @@ did not change the serialized contract shapes: the plan remains
   "schema_version": "aptus.training-plan.v6",
   "plan_id": "plan_0123456789abcdef0123",
   "formula_version": "aptus-memory-v2",
+  "training_policy_version": "aptus-training-policy-v1",
   "model_policy_snapshot_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "model": {},
   "dataset": {},
@@ -60,6 +61,7 @@ did not change the serialized contract shapes: the plan remains
 | `schema_version` | string | Exact plan schema identifier |
 | `plan_id` | string | `plan_` plus a 20-hex content identity |
 | `formula_version` | string | Plan-level baseline formula identity; each candidate memory object carries its exact estimator version |
+| `training_policy_version` | string | Bound instruction-SFT training-policy identity (`aptus-training-policy-v1`); hashed into `plan_id` like `formula_version` |
 | `model_policy_snapshot_sha256` | string | Lowercase SHA-256 of the canonical `aptus.model-policy-snapshot.v1` used for the decision |
 | `model` | object | Explicit model identity, structure, permission, and provenance |
 | `dataset` | object | Source identity and profile |
@@ -73,6 +75,7 @@ did not change the serialized contract shapes: the plan remains
 | `warnings` | string array | Plan-wide limitations and inferred assumptions |
 | `recommendation_rationale` | string array | Human-readable ranking explanation |
 | `evidence_records` | array | Resolved evidence objects cited by candidates |
+| `training_policy` | object or absent | Presentation-only `aptus.training-policy.v1`; excluded from `plan_id` (only `training_policy_version` is identity-bound) |
 | `correction` | object or absent | Presentation-only `aptus.plan-correction.v1`; excluded from `plan_id` |
 | `evaluation_contract` | object or absent | Presentation-only `aptus.evaluation-contract.v1`; excluded from `plan_id` |
 

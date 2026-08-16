@@ -2229,6 +2229,75 @@ class ExecutionJobTests(unittest.TestCase):
         self.assertIsNone(persisted["child_process_started_monotonic_ns"])
         self.assertIsNone(persisted["child_process_finished_monotonic_ns"])
 
+    def test_completed_train_job_attaches_run_correction_from_metrics(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            jobs = root / "jobs"
+            jobs.mkdir()
+            run_dir = root / "runs" / "run_signal"
+            run_dir.mkdir(parents=True)
+            (run_dir / "metrics.json").write_text(
+                json.dumps(
+                    {
+                        "train_loss_observations": [1.0, 0.4],
+                        "validation_loss_observations": [0.9, 1.1],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            job_id = "job_" + "c" * 32
+            record = {
+                "schema_version": "aptus.job-record.v1",
+                "id": job_id,
+                "job_id": job_id,
+                "state": "completed",
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "action": "train",
+                "bundle_dir": str(root / "bundle"),
+                "run_output_dir": str(run_dir),
+            }
+            (jobs / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
+            got = JobService(jobs).get(job_id, include_validation_report=False)
+            persisted = json.loads(
+                (jobs / f"{job_id}.json").read_text(encoding="utf-8")
+            )
+
+        self.assertIn("run_correction", got)
+        self.assertEqual(got["run_correction"]["kind"], "eval-rose")
+        self.assertEqual(
+            got["run_correction"]["schema_version"], "aptus.run-correction.v1"
+        )
+        self.assertIn(
+            "Training loss is not model quality.",
+            got["run_correction"]["non_claims"],
+        )
+        # Presentation-only: never written into the persisted job record.
+        self.assertNotIn("run_correction", persisted)
+
+    def test_completed_train_job_omits_run_correction_without_metrics_file(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            jobs = root / "jobs"
+            jobs.mkdir()
+            run_dir = root / "runs" / "run_empty"
+            run_dir.mkdir(parents=True)
+            job_id = "job_" + "d" * 32
+            record = {
+                "schema_version": "aptus.job-record.v1",
+                "id": job_id,
+                "job_id": job_id,
+                "state": "completed",
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "action": "train",
+                "bundle_dir": str(root / "bundle"),
+                "run_output_dir": str(run_dir),
+            }
+            (jobs / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
+            got = JobService(jobs).get(job_id, include_validation_report=False)
+        self.assertNotIn("run_correction", got)
+
     def test_child_process_monotonic_boundaries_are_persisted_for_success(
         self,
     ) -> None:

@@ -48,6 +48,7 @@ from .plan_contract import (
 from .profiling import probe_apple_platform
 from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 from .runtime_lease import _lease_paths
+from .training_policy import build_run_correction_from_metrics_path
 
 
 JobAction = Literal["dependency", "model-data", "preflight", "pilot", "train"]
@@ -4578,6 +4579,7 @@ class JobService:
                 record["log_tail"] = log.read().decode("utf-8", errors="replace")
         else:
             record["log_tail"] = ""
+        self._attach_run_correction(record)
         if not include_validation_report:
             return record
         bundle_dir = record.get("bundle_dir")
@@ -4639,6 +4641,23 @@ class JobService:
                 "The current bundle validation report is missing. Revalidate the bundle before authorizing another action."
             )
         return record
+
+    def _attach_run_correction(self, record: dict[str, Any]) -> None:
+        """Attach presentation-only run_correction; never gates measured-run-pass."""
+
+        if (
+            record.get("action") != "train"
+            or record.get("state") != RunState.COMPLETED.value
+        ):
+            return
+        run_output = record.get("run_output_dir")
+        if not isinstance(run_output, str):
+            return
+        correction = build_run_correction_from_metrics_path(
+            Path(run_output) / "metrics.json"
+        )
+        if correction is not None:
+            record["run_correction"] = correction.to_primitive()
 
     def list(self) -> list[dict[str, Any]]:
         records = []

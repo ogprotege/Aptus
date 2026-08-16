@@ -6,7 +6,7 @@
 >
 > **Applies to:** Retained source packets, reconciliation ledgers, and method research
 >
-> **Last reviewed:** 2026-07-22
+> **Last reviewed:** 2026-08-16
 >
 > **Next scheduled review:** 2026-10-22, or when the research cutoff or method registry changes
 
@@ -36,6 +36,15 @@ current contracts, which moved to the roadmap, and which were rejected. The
 EXAMPLE ledger retains citations, hashes, and bounded findings only. Its raw
 source folder, legacy scripts, credentials, and PDF binaries were removed after
 the accepted salvage was integrated.
+
+### Training-policy bibliography
+
+- [Training-policy bibliography](training-policy-bibliography.md)
+
+This bibliography records what the training-policy increment took and refused
+from listed papers. Citations are priors and research identities. They do not
+make a method selectable and they do not authorize Optuna, synthetic-data
+generation, or a method-catalog expansion.
 
 ### Current normalized method documentation
 

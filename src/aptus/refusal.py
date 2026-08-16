@@ -336,6 +336,47 @@ _RULES: tuple[tuple[str, str, str, str, tuple[str, ...], bool, bool], ...] = (
         True,
         False,
     ),
+    (
+        "below the instruction-sft supervision prior",
+        "dataset_below_sft_prior",
+        "Dataset is below the instruction-SFT supervision prior",
+        "Fewer than 100 examples is below the instruction-SFT supervision prior. "
+        "This is not a justified domain adaptation; Path Alpha remains "
+        "compile-and-run eligible only as conditional.",
+        ("dataset.example_count",),
+        True,
+        False,
+    ),
+    (
+        "will not endorse training longer than 3 epochs",
+        "dataset_too_small_for_requested_epochs",
+        "Too few rows for the requested epoch count",
+        "With fewer than 100 examples, Aptus will not endorse training longer than "
+        "3 epochs. Increase the dataset or lower max_epochs.",
+        ("dataset.example_count", "target.max_epochs"),
+        True,
+        False,
+    ),
+    (
+        "exceeds the instruction-sft epoch-cap prior",
+        "epoch_cap_prior",
+        "Requested epochs exceed the instruction-SFT epoch-cap prior",
+        "max_epochs above 3 exceeds the instruction-SFT epoch-cap prior. "
+        "Aptus will not rewrite the requested epoch count.",
+        ("target.max_epochs",),
+        True,
+        False,
+    ),
+    (
+        "parrot/sycophancy over-training prior",
+        "small_corpus_high_epoch",
+        "Small corpus with high epoch count",
+        "Under 300 rows with max_epochs >= 10 matches the parrot/sycophancy "
+        "over-training prior. Increase the dataset or lower max_epochs.",
+        ("dataset.example_count", "target.max_epochs"),
+        True,
+        False,
+    ),
 )
 
 

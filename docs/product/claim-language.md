@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-11 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-16 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -11,6 +11,11 @@ Use:
 - “recommended within the enumerated v0.2 candidate set”;
 - “analytic point estimate”;
 - “heuristic upper envelope”;
+- “method-class prior”;
+- “below the instruction-SFT supervision prior of 100 rows”;
+- “exceeds the instruction-SFT epoch-cap prior of 3”;
+- “Aptus will not rewrite the requested epoch count”;
+- “parrot/sycophancy over-training prior”;
 - “eligible for the reviewed pilot path” when inspection binds the complete
   known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
@@ -19,6 +24,10 @@ Use:
 Do not use:
 
 - “universally optimal”;
+- “optimal LoRA rank”;
+- “3 epochs is optimal”;
+- “this dataset will produce a sycophant”;
+- “loss proves the model is bad”;
 - “guaranteed to fit”;
 - “perfect configuration”;
 - “automatic best method”;
@@ -123,14 +132,37 @@ release-gate work or a future campaign as Phase 11.
 ## Quality claims
 
 Training loss, evaluation loss from a split, export structure, or job completion
-does not establish task quality by itself. Quality language requires a named
-dataset, metric, threshold, baseline, run binding, and result. V0.2 provides
-that first-class binding as optional `aptus.evaluation-contract.v1` /
-`aptus.evaluation-result.v1` with deterministic `exact_match` only. A contract
-pass means the bound gold digest, supplied predictions, metric implementation,
-and threshold were met. It is not general quality, safety, human preference, or
-release evidence. `evaluation_fraction` remains a train/validation split
-control. It is not this contract.
+does not establish task quality by itself. Instruction-SFT supervision and
+epoch-cap priors label dataset size and requested epochs; they do not predict
+model quality, sycophancy, or that a given epoch count is optimal. Quality
+language requires a named dataset, metric, threshold, baseline, run binding,
+and result. V0.2 provides that first-class binding as optional
+`aptus.evaluation-contract.v1` / `aptus.evaluation-result.v1` with deterministic
+`exact_match` only. A contract pass means the bound gold digest, supplied
+predictions, metric implementation, and threshold were met. It is not general
+quality, safety, human preference, or release evidence. `evaluation_fraction`
+remains a train/validation split control. It is not this contract.
+
+## Training-signal correction claims
+
+After a measured run with recorded loss observations, Aptus may attach
+`aptus.run-correction.v1` as a presentation-only next-plan hint.
+
+Use:
+
+- “training-signal correction”;
+- “regularization heuristic”;
+- “next plan”;
+- “Train loss fell while validation loss rose” only as a curve description, not
+  as an evaluation pass or fail.
+
+Do not use:
+
+- “the model is bad” / “the model is good” from loss alone;
+- “overfit confirmed as quality”;
+- “eval pass” from split validation loss;
+- “AutoML” or “start a hyperparameter search” as the product response;
+- “add weight decay as a sycophancy cure.”
 
 ## Dependency claims
 

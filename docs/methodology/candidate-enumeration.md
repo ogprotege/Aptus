@@ -1,6 +1,6 @@
 # Candidate Enumeration
 
-> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-03 | **Review by:** 2027-01-22 or when candidate rules change
+> **Status:** Active | **Authority:** Normative methodology | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and contributors | **Last reviewed:** 2026-08-16 | **Review by:** 2027-01-22 or when candidate rules change
 
 Methodology version: `aptus-candidates-v2`.
 
@@ -86,7 +86,14 @@ The current checks cover:
 - point and upper per-device VRAM or unified-memory fit;
 - a distribution-aware host-RAM loading heuristic and a disk heuristic covering
   model staging, source and canonical data, the bounded pilot set, pilot
-  workspace, three retained checkpoints, and final export.
+  workspace, three retained checkpoints, and final export;
+- instruction-SFT dataset-size and epoch-cap priors when `task` is `sft`
+  (`aptus-training-policy-v1`): below 100 rows with `max_epochs` at most 3 is
+  conditional (supervision prior); below 100 rows with more than 3 epochs is
+  infeasible; at least 100 rows with more than 3 epochs is conditional
+  (epoch-cap prior; Aptus will not rewrite the requested epoch count); 100–299
+  rows with `max_epochs` at least 10 is infeasible (parrot/sycophancy
+  over-training prior). Operator `max_epochs` and row counts are never rewritten.
 
 Rejection and conditional reasons are plain, structured candidate fields. V0.2
 does not yet emit a separate pass, fail, or unknown record for every rule.
@@ -105,6 +112,14 @@ facts, the ordered candidate IDs, the recommended candidate ID, the semantic
 model-policy decision and its source, `model_policy_snapshot_sha256`, the
 optional inspection receipt with its nested explanatory decision reason
 excluded, and the canonical evidence records.
+
+Training-knob rationale (`training_policy`) is presentation-only and is not
+part of plan identity. Compare and CLI surface rank, alpha, learning rate,
+completions-mask, epochs, and dataset size as labeled priors. Epoch and
+dataset knobs quote the instruction-SFT verdict when it is conditional or
+infeasible, and otherwise state that the request is within the instruction-SFT
+prior. Only the version string `training_policy_version` participates in plan
+identity material; presentation prose is never hashed.
 
 ## Current boundary
 

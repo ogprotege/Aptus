@@ -379,6 +379,64 @@ export interface PlanCorrection {
   operator_next_step: PlanCorrectionNextStep;
 }
 
+/** Presentation-only training knobs (aptus.training-policy.v1); not plan identity. */
+export type TrainingKnobName =
+  | "rank"
+  | "alpha"
+  | "learning_rate"
+  | "completions_mask"
+  | "epochs"
+  | "dataset_size";
+
+export type TrainingKnobPriorKind =
+  | "method-class-prior"
+  | "objective-and-token-volume-prior"
+  | "compiler-contract";
+
+export interface TrainingKnob {
+  name: TrainingKnobName;
+  value: string;
+  prior_kind: TrainingKnobPriorKind;
+  rationale: string;
+}
+
+export interface TrainingPolicy {
+  schema_version: "aptus.training-policy.v1";
+  policy_version: "aptus-training-policy-v1";
+  knobs: TrainingKnob[];
+  non_claims: string[];
+}
+
+/** Presentation-only run-correction (aptus.run-correction.v1); not quality or eval. */
+export type RunCorrectionKind = "loss-collapsed" | "loss-flat" | "eval-rose" | "none";
+
+export interface RunCorrectionPlanHint {
+  fact: string;
+  direction: "decrease" | "increase" | "set" | "review";
+  why: string;
+}
+
+export interface RunCorrectionDisallowedSuggestion {
+  code: string;
+  message: string;
+}
+
+export interface RunCorrectionNextStep {
+  action: "replan-with-fact-hints" | "none";
+  label: string;
+}
+
+export interface RunCorrection {
+  schema_version: "aptus.run-correction.v1";
+  kind: RunCorrectionKind;
+  summary: string;
+  source: "train_loss_observations+validation_loss_observations";
+  next_plan_hints: RunCorrectionPlanHint[];
+  disallowed_suggestions: RunCorrectionDisallowedSuggestion[];
+  operator_next_step: RunCorrectionNextStep;
+  non_claims: string[];
+}
+
 export interface TrainingPlan {
   schema_version: "aptus.training-plan.v6";
   plan_id: string;
@@ -401,6 +459,7 @@ export interface TrainingPlan {
   hardware?: Record<string, unknown>;
   target?: Record<string, unknown>;
   correction?: PlanCorrection | null;
+  training_policy?: TrainingPolicy | null;
   evaluation_contract?: EvaluationContract | null;
   example?: boolean;
   [key: string]: unknown;
@@ -423,6 +482,7 @@ export interface NoFeasibleComparisonPlan {
   project_id?: string;
   project_revision_id?: string;
   correction?: PlanCorrection | null;
+  training_policy?: TrainingPolicy | null;
 }
 
 export type PlanView = TrainingPlan | NoFeasibleComparisonPlan;
@@ -771,6 +831,7 @@ export interface Job {
     note?: string;
     [key: string]: unknown;
   } | null;
+  run_correction?: RunCorrection | null;
   [key: string]: unknown;
 }
 

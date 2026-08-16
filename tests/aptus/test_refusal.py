@@ -143,6 +143,49 @@ class RefusalGuidanceTests(unittest.TestCase):
             guided = guide_rejection_reason(item.rejection_reasons[0])
             self.assertEqual(guided.reason_code, "multi_gpu_on_single")
 
+    def test_dataset_below_sft_prior_maps_to_stable_code(self) -> None:
+        guided = guide_rejection_reason(
+            "Dataset example_count is below the instruction-SFT supervision prior of "
+            "100 rows; this is not a justified domain adaptation."
+        )
+        self.assertEqual(guided.reason_code, "dataset_below_sft_prior")
+        self.assertEqual(guided.changeable_facts, ("dataset.example_count",))
+        self.assertTrue(guided.operator_actionable)
+        self.assertFalse(guided.none_in_catalog)
+
+    def test_dataset_too_small_for_requested_epochs_maps_to_stable_code(self) -> None:
+        guided = guide_rejection_reason(
+            "Dataset example_count is below 100 rows; Aptus will not endorse training "
+            "longer than 3 epochs on that set."
+        )
+        self.assertEqual(guided.reason_code, "dataset_too_small_for_requested_epochs")
+        self.assertEqual(
+            guided.changeable_facts,
+            ("dataset.example_count", "target.max_epochs"),
+        )
+        self.assertTrue(guided.operator_actionable)
+
+    def test_epoch_cap_prior_maps_to_stable_code(self) -> None:
+        guided = guide_rejection_reason(
+            "Requested max_epochs exceeds the instruction-SFT epoch-cap prior of 3; "
+            "Aptus will not rewrite the requested epoch count."
+        )
+        self.assertEqual(guided.reason_code, "epoch_cap_prior")
+        self.assertEqual(guided.changeable_facts, ("target.max_epochs",))
+        self.assertTrue(guided.operator_actionable)
+
+    def test_small_corpus_high_epoch_maps_to_stable_code(self) -> None:
+        guided = guide_rejection_reason(
+            "Small instruction corpus (under 300 rows) with max_epochs >= 10 matches "
+            "the parrot/sycophancy over-training prior."
+        )
+        self.assertEqual(guided.reason_code, "small_corpus_high_epoch")
+        self.assertEqual(
+            guided.changeable_facts,
+            ("dataset.example_count", "target.max_epochs"),
+        )
+        self.assertTrue(guided.operator_actionable)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { CandidatePlan, NoFeasibleComparisonPlan } from "../types";
+import type { CandidatePlan, NoFeasibleComparisonPlan, TrainingPolicy } from "../types";
 import { CompareStage } from "./CompareStage";
 
 const decisionId = `compat_${"b".repeat(20)}`;
@@ -26,6 +26,58 @@ const rejected: CandidatePlan = {
     evidence_requirement: "pilot-required",
     export_kind: "peft-adapter-safetensors",
   },
+};
+
+const trainingPolicy: TrainingPolicy = {
+  schema_version: "aptus.training-policy.v1",
+  policy_version: "aptus-training-policy-v1",
+  knobs: [
+    {
+      name: "rank",
+      value: "16",
+      prior_kind: "objective-and-token-volume-prior",
+      rationale:
+        "Adapter rank 16 is the Aptus v0.2 objective and dataset-volume prior, not a tuned optimum.",
+    },
+    {
+      name: "learning_rate",
+      value: "0.0002",
+      prior_kind: "method-class-prior",
+      rationale:
+        "Learning rate 0.0002 is an Aptus v0.2 method-class prior, not a tuned optimum.",
+    },
+  ],
+  non_claims: ["These knobs are not a prediction of model quality."],
+};
+
+/** Path Alpha presentation: 4 rows, 1 epoch → supervision prior (conditional). */
+const pathAlphaTrainingPolicy: TrainingPolicy = {
+  schema_version: "aptus.training-policy.v1",
+  policy_version: "aptus-training-policy-v1",
+  knobs: [
+    {
+      name: "rank",
+      value: "16",
+      prior_kind: "objective-and-token-volume-prior",
+      rationale:
+        "Adapter rank 16 is the Aptus v0.2 objective and dataset-volume prior, not a tuned optimum.",
+    },
+    {
+      name: "epochs",
+      value: "1",
+      prior_kind: "method-class-prior",
+      rationale:
+        "Dataset example_count is below the instruction-SFT supervision prior of 100 rows; this is not a justified domain adaptation.",
+    },
+    {
+      name: "dataset_size",
+      value: "4",
+      prior_kind: "method-class-prior",
+      rationale:
+        "Dataset example_count is below the instruction-SFT supervision prior of 100 rows; this is not a justified domain adaptation.",
+    },
+  ],
+  non_claims: ["These knobs are not a prediction of model quality."],
 };
 
 const noFeasiblePlan: NoFeasibleComparisonPlan = {
@@ -104,5 +156,49 @@ describe("CompareStage claim language", () => {
     expect(frontier).not.toBeNull();
     expect(frontier).toHaveTextContent("Not supplied");
     expect(frontier).not.toHaveTextContent(/^No$/);
+  });
+
+  it("shows training-knob priors without optimal claims", () => {
+    render(
+      <CompareStage
+        plan={{ ...noFeasiblePlan, training_policy: trainingPolicy }}
+        selected={rejected}
+        busy={null}
+        demoMode={false}
+        modelPolicyPresentation={null}
+        onInspectCandidate={vi.fn()}
+        onSelectCandidate={vi.fn(async () => undefined)}
+        onCompile={vi.fn(async () => undefined)}
+        onReturnToFacts={vi.fn()}
+      />,
+    );
+
+    const region = screen.getByRole("region", { name: "Why these training knobs" });
+    expect(region).toHaveTextContent(/prior/i);
+    expect(region).not.toHaveTextContent(/optimal/i);
+  });
+
+  it("shows supervision prior for 4-row / 1-epoch Path Alpha fixture", () => {
+    render(
+      <CompareStage
+        plan={{ ...noFeasiblePlan, training_policy: pathAlphaTrainingPolicy }}
+        selected={rejected}
+        busy={null}
+        demoMode={false}
+        modelPolicyPresentation={null}
+        onInspectCandidate={vi.fn()}
+        onSelectCandidate={vi.fn(async () => undefined)}
+        onCompile={vi.fn(async () => undefined)}
+        onReturnToFacts={vi.fn()}
+      />,
+    );
+
+    const region = screen.getByRole("region", { name: "Why these training knobs" });
+    expect(region).toHaveTextContent(/below the instruction-SFT supervision prior of 100 rows/i);
+    expect(region).toHaveTextContent("Dataset size");
+    expect(region).toHaveTextContent("Epochs");
+    expect(region).not.toHaveTextContent(/this dataset will produce a sycophant/i);
+    expect(region).not.toHaveTextContent(/3 epochs is optimal/i);
+    expect(region).not.toHaveTextContent(/optimal/i);
   });
 });

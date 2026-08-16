@@ -732,6 +732,7 @@ class BundleGenerationTests(unittest.TestCase):
             config,
         )
         self.assertEqual(trainer_config["optimizer"], "adamw")
+        self.assertEqual(trainer_config["max_epochs"], plan.target.max_epochs)
         self.assertIsNone(trainer_config["lr_scheduler_type"])
         self.assertNotIn("adamw_torch", decision_report)
         self.assertTrue(
@@ -759,7 +760,7 @@ class BundleGenerationTests(unittest.TestCase):
             sum(
                 value["source_row_count"] for value in split_contract["splits"].values()
             ),
-            2,
+            plan.dataset.example_count,
         )
         self.assertTrue(
             all(
@@ -2434,7 +2435,7 @@ class BundleGenerationTests(unittest.TestCase):
                 "bnb_4bit_compute_dtype": "fixture-bf16",
             },
         )
-        self.assertEqual(len(encoded_rows), 2)
+        self.assertEqual(len(encoded_rows), 100)
         self.assertEqual(cleanup_calls, ["empty_cache"])
         self.assertEqual(loaded_model.mutations, [])
         self.assertEqual(preparation_events, ["prepare", "census"])

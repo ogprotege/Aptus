@@ -1,5 +1,6 @@
-import type { Job } from "../types";
+import type { Job, RunCorrection } from "../types";
 import { formatBytes } from "../lib/plan";
+import { ProvenanceBadge } from "./ProvenanceBadge";
 import { StatusBadge } from "./StatusBadge";
 
 interface RunConsoleProps {
@@ -18,6 +19,7 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
   const finalExport = completion?.final_export ?? reportFinalExport;
   const finalExportManifest = finalExportManifestPath(job, finalExport);
   const integrity = job.artifact_integrity;
+  const runCorrection = job.run_correction ?? null;
   const hasCompletionEvidence = Boolean(
     job.run_output_dir || capacity || completion || measuredRun || finalExport || integrity,
   );
@@ -121,6 +123,7 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
           ) : null}
         </section>
       ) : null}
+      {runCorrection ? <RunCorrectionPanel correction={runCorrection} /> : null}
       <footer>
         <span>Mode <strong>{job.mode}</strong></span>
         <span>Phase <strong>{displayState}</strong></span>
@@ -187,4 +190,62 @@ function finalExportManifestPath(
   const parent = match?.[1] ?? exportDirectory;
   const separator = parent.includes("\\") && !parent.includes("/") ? "\\" : "/";
   return `${parent}${separator}final-export.json`;
+}
+
+function RunCorrectionPanel({ correction }: { correction: RunCorrection }) {
+  return (
+    <section className="correction-panel" aria-labelledby="run-correction-title">
+      <div className="section-heading-row">
+        <div>
+          <p className="eyebrow">Regularization heuristic</p>
+          <h2 id="run-correction-title">Training-signal correction (not quality)</h2>
+        </div>
+        <ProvenanceBadge kind="inferred" label="Heuristic" />
+      </div>
+      <p className="correction-summary">{correction.summary}</p>
+      <p className="correction-meta">
+        kind: <code>{correction.kind}</code>
+        {" · next: "}
+        <code>{correction.operator_next_step.action}</code>
+        {" — "}
+        {correction.operator_next_step.label}
+      </p>
+      {correction.next_plan_hints.length ? (
+        <div className="correction-hints">
+          <strong>Next-plan hints</strong>
+          <ul className="plain-list">
+            {correction.next_plan_hints.map((hint) => (
+              <li key={`${hint.fact}-${hint.direction}`}>
+                <code>{hint.fact}</code>
+                {" "}
+                (
+                {hint.direction}
+                ):
+                {" "}
+                {hint.why}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {correction.disallowed_suggestions.length ? (
+        <ul className="plain-list amber-list">
+          {correction.disallowed_suggestions.map((item) => (
+            <li key={item.code}>{item.message}</li>
+          ))}
+        </ul>
+      ) : null}
+      {correction.non_claims.length ? (
+        <ul className="plain-list amber-list">
+          {correction.non_claims.map((claim) => (
+            <li key={claim}>{claim}</li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="correction-claim">
+        Training-signal correction is a next-plan regularization heuristic. It is not model quality
+        and not an evaluation pass or fail.
+      </p>
+    </section>
+  );
 }

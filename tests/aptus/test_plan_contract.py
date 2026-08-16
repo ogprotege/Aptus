@@ -1109,6 +1109,27 @@ class PlanContractTests(unittest.TestCase):
             mutate(value)
             self.assertTrue(validate_plan_payload(value, verify_dataset=False))
 
+    def test_plan_id_changes_when_training_policy_version_changes(self) -> None:
+        value = copy.deepcopy(self.payload)
+        self.assertEqual(value["training_policy_version"], "aptus-training-policy-v1")
+        original_plan_id = plan_id_for_payload(value)
+        value["training_policy_version"] = "aptus-training-policy-v0-test"
+        self.assertNotEqual(plan_id_for_payload(value), original_plan_id)
+
+    def test_rejects_missing_or_wrong_training_policy_version(self) -> None:
+        missing = copy.deepcopy(self.payload)
+        del missing["training_policy_version"]
+        missing_errors = validate_plan_payload(missing, verify_dataset=False)
+        self.assertTrue(
+            any("training_policy_version must be" in item for item in missing_errors)
+        )
+        wrong = copy.deepcopy(self.payload)
+        wrong["training_policy_version"] = "aptus-training-policy-v0-test"
+        wrong_errors = validate_plan_payload(wrong, verify_dataset=False)
+        self.assertTrue(
+            any("training_policy_version must be" in item for item in wrong_errors)
+        )
+
     def test_rejects_plan_id_tampering(self) -> None:
         value = copy.deepcopy(self.payload)
         value["plan_id"] = "plan_" + "0" * 20

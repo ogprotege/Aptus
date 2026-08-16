@@ -27,7 +27,13 @@ import type {
   ProfileRequest,
   ProfileResponse,
   SelectCandidateRequest,
+  RunCorrection,
+  RunCorrectionKind,
+  TrainingKnob,
+  TrainingKnobName,
+  TrainingKnobPriorKind,
   TrainingPlan,
+  TrainingPolicy,
   ValidateRequest,
   ValidationReport,
 } from "./types";
@@ -529,6 +535,7 @@ function normalizeJob(payload: Record<string, unknown>): Job {
       typeof payload.validation_report_error === "string"
         ? payload.validation_report_error
         : undefined,
+    run_correction: normalizeRunCorrection(payload.run_correction),
   } as Job;
 }
 
@@ -866,20 +873,20 @@ function normalizeNoFeasibleComparison(
   payload: Record<string, unknown>,
   context: PlanResponseContext,
 ): NoFeasibleComparisonPlan {
-  requireExactKeys(
-    payload,
-    [
-      "error",
-      "message",
-      "candidates",
-      "model_policy_decision",
-      "model_policy_decision_source",
-      "inspection_receipt",
-      "model",
-      "correction",
-    ],
-    "No-feasible-plan response",
-  );
+  const noFeasibleKeys = [
+    "error",
+    "message",
+    "candidates",
+    "model_policy_decision",
+    "model_policy_decision_source",
+    "inspection_receipt",
+    "model",
+    "correction",
+  ];
+  if ("training_policy" in payload) {
+    noFeasibleKeys.push("training_policy");
+  }
+  requireExactKeys(payload, noFeasibleKeys, "No-feasible-plan response");
   if (payload.error !== "no_feasible_plan") {
     throw new Error("No-feasible-plan response requires its typed error code.");
   }
@@ -957,6 +964,7 @@ function normalizeNoFeasibleComparison(
       "No candidate passed every hard gate. Review the rejection reasons before changing facts.",
     ],
     correction: normalizePlanCorrection(payload.correction),
+    training_policy: normalizeTrainingPolicy(payload.training_policy),
   };
 }
 
@@ -1059,7 +1067,145 @@ function normalizePlan(
     rationale,
     recommendation_rationale: rationale,
     correction: normalizePlanCorrection(payload.correction),
+    training_policy: normalizeTrainingPolicy(payload.training_policy),
   } as TrainingPlan;
+}
+
+function normalizeRunCorrection(value: unknown): RunCorrection | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.run-correction.v1") {
+    return null;
+  }
+  if (
+    value.kind !== "loss-collapsed"
+    && value.kind !== "loss-flat"
+    && value.kind !== "eval-rose"
+    && value.kind !== "none"
+  ) {
+    return null;
+  }
+  if (value.source !== "train_loss_observations+validation_loss_observations") {
+    return null;
+  }
+  if (typeof value.summary !== "string" || value.summary.length === 0) {
+    return null;
+  }
+  const next = value.operator_next_step;
+  if (!isRecord(next) || typeof next.action !== "string" || typeof next.label !== "string") {
+    return null;
+  }
+  if (next.action !== "replan-with-fact-hints" && next.action !== "none") {
+    return null;
+  }
+  const hints: RunCorrection["next_plan_hints"] = [];
+  if (Array.isArray(value.next_plan_hints)) {
+    for (const item of value.next_plan_hints) {
+      if (!isRecord(item)) {
+        continue;
+      }
+      if (typeof item.fact !== "string" || typeof item.why !== "string") {
+        continue;
+      }
+      if (
+        item.direction !== "decrease"
+        && item.direction !== "increase"
+        && item.direction !== "set"
+        && item.direction !== "review"
+      ) {
+        continue;
+      }
+      hints.push({
+        fact: item.fact,
+        direction: item.direction,
+        why: item.why,
+      });
+    }
+  }
+  const disallowed: RunCorrection["disallowed_suggestions"] = [];
+  if (Array.isArray(value.disallowed_suggestions)) {
+    for (const item of value.disallowed_suggestions) {
+      if (!isRecord(item)) {
+        continue;
+      }
+      if (typeof item.code !== "string" || typeof item.message !== "string") {
+        continue;
+      }
+      disallowed.push({ code: item.code, message: item.message });
+    }
+  }
+  return {
+    schema_version: "aptus.run-correction.v1",
+    kind: value.kind as RunCorrectionKind,
+    summary: value.summary,
+    source: "train_loss_observations+validation_loss_observations",
+    next_plan_hints: hints,
+    disallowed_suggestions: disallowed,
+    operator_next_step: {
+      action: next.action,
+      label: next.label,
+    },
+    non_claims: Array.isArray(value.non_claims)
+      ? value.non_claims.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
+function normalizeTrainingPolicy(value: unknown): TrainingPolicy | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.training-policy.v1") {
+    return null;
+  }
+  if (value.policy_version !== "aptus-training-policy-v1") {
+    return null;
+  }
+  if (!Array.isArray(value.knobs) || !Array.isArray(value.non_claims)) {
+    return null;
+  }
+  const knobs: TrainingKnob[] = [];
+  for (const item of value.knobs) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    if (
+      item.name !== "rank"
+      && item.name !== "alpha"
+      && item.name !== "learning_rate"
+      && item.name !== "completions_mask"
+      && item.name !== "epochs"
+      && item.name !== "dataset_size"
+    ) {
+      continue;
+    }
+    if (
+      item.prior_kind !== "method-class-prior"
+      && item.prior_kind !== "objective-and-token-volume-prior"
+      && item.prior_kind !== "compiler-contract"
+    ) {
+      continue;
+    }
+    if (typeof item.value !== "string" || item.value.length === 0) {
+      continue;
+    }
+    if (typeof item.rationale !== "string" || item.rationale.length === 0) {
+      continue;
+    }
+    knobs.push({
+      name: item.name as TrainingKnobName,
+      value: item.value,
+      prior_kind: item.prior_kind as TrainingKnobPriorKind,
+      rationale: item.rationale,
+    });
+  }
+  return {
+    schema_version: "aptus.training-policy.v1",
+    policy_version: "aptus-training-policy-v1",
+    knobs,
+    non_claims: value.non_claims.filter((item): item is string => typeof item === "string"),
+  };
 }
 
 function normalizePlanCorrection(value: unknown): PlanCorrection | null {

@@ -105,6 +105,68 @@ def _emit_correction_block(payload: Mapping[str, Any]) -> None:
     print("\n".join(lines), file=sys.stderr)
 
 
+def _print_plan_training_policy(plan: Any) -> None:
+    """Print training-knob priors (presentation only) to stderr."""
+
+    from .training_policy import build_training_policy_for_plan
+
+    try:
+        policy = build_training_policy_for_plan(plan)
+    except (TypeError, ValueError, AttributeError):
+        return
+    _emit_training_policy_block(policy.to_primitive())
+
+
+def _emit_training_policy_block(payload: Mapping[str, Any]) -> None:
+    lines = [
+        "Aptus training knobs (presentation only; priors, not optima):",
+    ]
+    for knob in payload.get("knobs") or []:
+        if not isinstance(knob, Mapping):
+            continue
+        lines.append(
+            f"  {knob.get('name')}: {knob.get('value')} "
+            f"({knob.get('prior_kind')}) — {knob.get('rationale')}"
+        )
+    for claim in payload.get("non_claims") or []:
+        lines.append(f"  non_claim: {claim}")
+    print("\n".join(lines), file=sys.stderr)
+
+
+def _print_job_run_correction(job: Mapping[str, Any]) -> None:
+    """Print training-signal run-correction (presentation only) to stderr."""
+
+    payload = job.get("run_correction")
+    if not isinstance(payload, Mapping):
+        return
+    _emit_run_correction_block(payload)
+
+
+def _emit_run_correction_block(payload: Mapping[str, Any]) -> None:
+    lines = [
+        "Aptus training-signal correction (presentation only; not quality):",
+        f"  kind: {payload.get('kind')}",
+        f"  summary: {payload.get('summary')}",
+    ]
+    next_step = payload.get("operator_next_step") or {}
+    if isinstance(next_step, Mapping):
+        lines.append(f"  next: {next_step.get('action')} — {next_step.get('label')}")
+    for hint in payload.get("next_plan_hints") or []:
+        if not isinstance(hint, Mapping):
+            continue
+        lines.append(
+            f"  next_plan_hint: {hint.get('fact')} ({hint.get('direction')}) "
+            f"— {hint.get('why')}"
+        )
+    for item in payload.get("disallowed_suggestions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"  do_not: {item.get('message')}")
+    for claim in payload.get("non_claims") or []:
+        lines.append(f"  non_claim: {claim}")
+    print("\n".join(lines), file=sys.stderr)
+
+
 def _print_plan_refusal_summary(plan: Any) -> None:
     """Print operator-facing what/why/what-can-change guidance to stderr.
 
@@ -918,12 +980,14 @@ def _run(arguments: argparse.Namespace) -> int:
         if arguments.command == "spec-plan":
             _write_json(plan, arguments.output)
             _print_plan_correction(plan)
+            _print_plan_training_policy(plan)
             _print_plan_refusal_summary(plan)
         else:
             if arguments.plan_output:
                 _write_json(plan, arguments.plan_output)
             _write_json(_compile(plan, arguments.output), None)
             _print_plan_correction(plan)
+            _print_plan_training_policy(plan)
             _print_plan_refusal_summary(plan)
         return 0
     if arguments.command == "compile":
@@ -999,7 +1063,12 @@ def _run(arguments: argparse.Namespace) -> int:
         from .execution import JobService
 
         service = JobService(arguments.state_dir / "jobs")
-        _write_json(service.get(arguments.id) if arguments.id else service.list(), None)
+        if arguments.id:
+            job = service.get(arguments.id)
+            _print_job_run_correction(job)
+            _write_json(job, None)
+        else:
+            _write_json(service.list(), None)
         return 0
     if arguments.command == "doctor":
         from .diagnostics import build_doctor_report

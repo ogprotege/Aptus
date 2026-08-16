@@ -351,6 +351,17 @@ def _direction_for_fact(fact: str, guided: RefusalGuidance) -> str:
     code = guided.reason_code
     if "packing" in lowered:
         return "set"
+    if "example_count" in lowered:
+        return "increase"
+    if "max_epochs" in lowered:
+        if code in {
+            "dataset_too_small_for_requested_epochs",
+            "epoch_cap_prior",
+            "small_corpus_high_epoch",
+        }:
+            return "decrease"
+        # Supervision-only conditional (dataset_below_sft_prior) and unknowns.
+        return "review"
     if any(
         token in lowered
         for token in ("sequence_length", "effective_batch", "micro_batch", "reserve")

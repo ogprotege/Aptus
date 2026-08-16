@@ -1,6 +1,6 @@
 # Compare Plans
 
-> **Status:** Active | **Authority:** Explanatory planning guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22 or when ranking changes
+> **Status:** Active | **Authority:** Explanatory planning guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners | **Last reviewed:** 2026-08-16 | **Review by:** 2026-10-22 or when ranking changes
 
 Aptus enumerates a bounded candidate matrix. It applies explicit support rules,
 estimates resources, and ranks viable candidates. Viable means `feasible` or
@@ -53,6 +53,18 @@ Alongside the candidate table, Aptus publishes one **correction** summary
 Correction is presentation-only and is **not** optimality, quality, or a license
 to invent unsupported methods. See [Troubleshooting — When Aptus refuses or
 corrects](troubleshooting.md#when-aptus-refuses-or-corrects).
+
+## Training-knob priors
+
+Compare also shows a “Why these training knobs” panel (`aptus.training-policy.v1`)
+for rank, alpha, learning rate, completions-mask, epochs, and dataset size.
+Instruction-SFT rows and epoch rules can mark a candidate conditional or
+infeasible: below the instruction-SFT supervision prior of 100 rows; exceeds
+the instruction-SFT epoch-cap prior of 3 (Aptus will not rewrite the requested
+epoch count); or the parrot/sycophancy over-training prior on a small corpus.
+Those reasons appear on candidates and in the knobs panel. They are labeled
+priors, not claims that a dataset will produce a sycophant, that 3 epochs is
+optimal, or that loss proves the model is bad.
 
 ## Ranking
 

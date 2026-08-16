@@ -1,12 +1,13 @@
 # Mission program status
 
-- **Updated:** 2026-08-13
-- **HEAD:** `fc5186b843ba5ab8f432df2bb3697d58f308018e` plus M9 work on `feat/mission-m9-sustain`
-- **Current phase:** M9 Sustain — COMPLETE (pending PR)
+- **Updated:** 2026-08-16
+- **HEAD:** `feat/training-policy` (TP0–TP6)
+- **Current phase:** TP increment complete — whole-branch review / finishing
 - **Last completed on main:** M0–M8 (`fc5186b`, PR #93)
-- **Next allowed action:** Merge M9 PR; then stop the mission program
+- **Next allowed action:** whole-branch review, then finishing-a-development-branch (no new TP runtime).
 - **Blocked on:** none
-- **Anti-rush:** no M10
+- **Anti-rush:** no M10; no further TP phases
+- **TP increment:** TP0–TP6 COMPLETE. Plan: `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
 
 ## Progress stack
 

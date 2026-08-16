@@ -1,6 +1,6 @@
 # Choose a Fine-Tuning Method
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-08-16 | **Review by:** 2026-10-22
 
 Aptus compares a bounded method catalog against explicit model, dataset,
 hardware, and target facts. Method choice is one part of a candidate. Precision,
@@ -103,7 +103,12 @@ Review the full candidate record before accepting the recommendation:
 4. point estimate, upper envelope, usable memory, and reserve;
 5. host RAM, disk, checkpoint, and export estimates;
 6. micro-batch, accumulation, and exact effective batch;
-7. rank, alpha, learning-rate prior, and target modules;
+7. rank, alpha, learning rate, completions-mask, epochs, dataset size, and
+   target modules — Compare and CLI name rank, alpha, learning rate, and
+   completions-mask as Aptus v0.2 method-class or compiler priors, not optima,
+   and surface epochs and dataset size against the instruction-SFT supervision
+   prior (100 rows), epoch-cap prior of 3 (Aptus will not rewrite the requested
+   epoch count), and parrot/sycophancy over-training prior for small corpora;
 8. assumptions, confidence, and evidence IDs.
 
 ## Methods visible but not selectable

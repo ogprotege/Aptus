@@ -1148,6 +1148,7 @@ export interface components {
             project_id?: string | null;
             /** Project Revision Id */
             project_revision_id?: string | null;
+            run_correction?: components["schemas"]["RunCorrectionResponse"] | null;
             /**
              * Schema Version
              * @constant
@@ -1805,6 +1806,62 @@ export interface components {
              */
             status: "replan_required";
         };
+        /** RunCorrectionDisallowedSuggestionResponse */
+        RunCorrectionDisallowedSuggestionResponse: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+        };
+        /** RunCorrectionFactHintResponse */
+        RunCorrectionFactHintResponse: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "decrease" | "increase" | "set" | "review";
+            /** Fact */
+            fact: string;
+            /** Why */
+            why: string;
+        };
+        /** RunCorrectionNextStepResponse */
+        RunCorrectionNextStepResponse: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "replan-with-fact-hints" | "none";
+            /** Label */
+            label: string;
+        };
+        /** RunCorrectionResponse */
+        RunCorrectionResponse: {
+            /** Disallowed Suggestions */
+            disallowed_suggestions: components["schemas"]["RunCorrectionDisallowedSuggestionResponse"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "loss-collapsed" | "loss-flat" | "eval-rose" | "none";
+            /** Next Plan Hints */
+            next_plan_hints: components["schemas"]["RunCorrectionFactHintResponse"][];
+            /** Non Claims */
+            non_claims: string[];
+            operator_next_step: components["schemas"]["RunCorrectionNextStepResponse"];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.run-correction.v1";
+            /**
+             * Source
+             * @constant
+             */
+            source: "train_loss_observations+validation_loss_observations";
+            /** Summary */
+            summary: string;
+        };
         /** RuntimeConfiguredResponse */
         RuntimeConfiguredResponse: {
             /** Interpreter */
@@ -1946,6 +2003,23 @@ export interface components {
              */
             training_seed: number;
         };
+        /** TrainingKnobResponse */
+        TrainingKnobResponse: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "rank" | "alpha" | "learning_rate" | "completions_mask" | "epochs" | "dataset_size";
+            /**
+             * Prior Kind
+             * @enum {string}
+             */
+            prior_kind: "method-class-prior" | "objective-and-token-volume-prior" | "compiler-contract";
+            /** Rationale */
+            rationale: string;
+            /** Value */
+            value: string;
+        };
         /** TrainingPlanResponse */
         TrainingPlanResponse: {
             /** Candidates */
@@ -1975,10 +2049,28 @@ export interface components {
              * @constant
              */
             schema_version: "aptus.training-plan.v6";
+            training_policy?: components["schemas"]["TrainingPolicyResponse"] | null;
             /** Warnings */
             warnings: string[];
         } & {
             [key: string]: unknown;
+        };
+        /** TrainingPolicyResponse */
+        TrainingPolicyResponse: {
+            /** Knobs */
+            knobs: components["schemas"]["TrainingKnobResponse"][];
+            /** Non Claims */
+            non_claims: string[];
+            /**
+             * Policy Version
+             * @constant
+             */
+            policy_version: "aptus-training-policy-v1";
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.training-policy.v1";
         };
         /**
          * TrainingRuntime

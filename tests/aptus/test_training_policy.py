@@ -11,6 +11,7 @@ from aptus.training_policy import (
     TRAINING_POLICY_SCHEMA_VERSION,
     attach_training_policy,
     build_training_policy_presentation,
+    classify_instruction_sft_policy,
 )
 from tests.aptus.helpers import make_plan
 
@@ -132,6 +133,46 @@ class TrainingPolicyPresentationTests(unittest.TestCase):
         self.assertEqual(plan_id_for_payload(base), plan_id)
         # Identity must ignore presentation-only training_policy if present.
         self.assertEqual(plan_id_for_payload(attached), plan_id)
+
+
+class InstructionSftPolicyTests(unittest.TestCase):
+    def test_path_alpha_four_rows_one_epoch_is_conditional_not_infeasible(self) -> None:
+        verdict = classify_instruction_sft_policy(
+            example_count=4, max_epochs=1, task="sft"
+        )
+        self.assertEqual(verdict.status, "conditional")
+        self.assertTrue(
+            any("below the instruction-SFT supervision prior" in r for r in verdict.reasons)
+        )
+
+    def test_four_rows_ten_epochs_is_infeasible(self) -> None:
+        verdict = classify_instruction_sft_policy(
+            example_count=4, max_epochs=10, task="sft"
+        )
+        self.assertEqual(verdict.status, "infeasible")
+
+    def test_thousand_rows_five_epochs_is_conditional_and_keeps_requested_count(
+        self,
+    ) -> None:
+        verdict = classify_instruction_sft_policy(
+            example_count=1000, max_epochs=5, task="sft"
+        )
+        self.assertEqual(verdict.status, "conditional")
+        self.assertTrue(any("will not rewrite" in r for r in verdict.reasons))
+
+    def test_two_hundred_rows_ten_epochs_is_infeasible_parrot_prior(self) -> None:
+        verdict = classify_instruction_sft_policy(
+            example_count=200, max_epochs=10, task="sft"
+        )
+        self.assertEqual(verdict.status, "infeasible")
+        self.assertTrue(any("parrot/sycophancy" in r for r in verdict.reasons))
+
+    def test_two_hundred_rows_three_epochs_is_none(self) -> None:
+        verdict = classify_instruction_sft_policy(
+            example_count=200, max_epochs=3, task="sft"
+        )
+        self.assertEqual(verdict.status, "none")
+        self.assertEqual(verdict.reasons, ())
 
 
 if __name__ == "__main__":

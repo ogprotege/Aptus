@@ -1,8 +1,9 @@
-"""Training-policy presentation (priors only; not plan identity).
+"""Training-policy presentation and pure instruction-SFT classification.
 
 Surfaces existing rank/alpha/LR/completions-mask knobs as labeled priors.
-Callers attach the result at the API/CLI/UI boundary and must never feed it
-into ``plan_id`` materialization. TP1 does not classify candidate status.
+Classifies dataset-size / epoch priors for task=sft without rewriting
+operator facts. Callers attach presentation at the API/CLI/UI boundary and
+must never feed presentation prose into ``plan_id`` materialization.
 """
 
 from __future__ import annotations
@@ -18,6 +19,28 @@ TRAINING_POLICY_SCHEMA_VERSION = "aptus.training-policy.v1"
 TRAINING_POLICY_VERSION = "aptus-training-policy-v1"
 DEFAULT_TRUNCATION_POLICY = (
     "completion-first; left-truncate-prompt-to-fit; refuse-empty-supervision"
+)
+
+INSTRUCTION_SFT_MIN_ROWS = 100
+INSTRUCTION_SFT_EPOCH_CAP = 3
+INSTRUCTION_SFT_SMALL_CORPUS_MAX = 299
+INSTRUCTION_SFT_PARROT_EPOCHS = 10
+
+_REASON_BELOW_SUPERVISION_PRIOR = (
+    "Dataset example_count is below the instruction-SFT supervision prior of "
+    "100 rows; this is not a justified domain adaptation."
+)
+_REASON_TOO_SMALL_FOR_LONG_TRAIN = (
+    "Dataset example_count is below 100 rows; Aptus will not endorse training "
+    "longer than 3 epochs on that set."
+)
+_REASON_EPOCH_CAP_EXCEEDED = (
+    "Requested max_epochs exceeds the instruction-SFT epoch-cap prior of 3; "
+    "Aptus will not rewrite the requested epoch count."
+)
+_REASON_PARROT_OVERTRAINING = (
+    "Small instruction corpus (under 300 rows) with max_epochs >= 10 matches "
+    "the parrot/sycophancy over-training prior."
 )
 
 _NON_CLAIM_QUALITY = "These knobs are not a prediction of model quality."
@@ -55,6 +78,46 @@ class TrainingPolicyPresentation:
         }
 
 
+@dataclass(frozen=True)
+class TrainingPolicyVerdict:
+    status: str  # "none" | "conditional" | "infeasible"
+    reasons: tuple[str, ...]
+
+
+def classify_instruction_sft_policy(
+    *,
+    example_count: int,
+    max_epochs: int,
+    task: str,
+) -> TrainingPolicyVerdict:
+    """Classify instruction-SFT dataset/epoch priors. Never rewrites max_epochs."""
+
+    if task != "sft":
+        return TrainingPolicyVerdict(status="none", reasons=())
+
+    reasons: list[str] = []
+    status = "none"
+
+    if example_count < INSTRUCTION_SFT_MIN_ROWS and max_epochs <= INSTRUCTION_SFT_EPOCH_CAP:
+        reasons.append(_REASON_BELOW_SUPERVISION_PRIOR)
+        status = "conditional"
+    if example_count < INSTRUCTION_SFT_MIN_ROWS and max_epochs > INSTRUCTION_SFT_EPOCH_CAP:
+        reasons.append(_REASON_TOO_SMALL_FOR_LONG_TRAIN)
+        status = "infeasible"
+    if example_count >= INSTRUCTION_SFT_MIN_ROWS and max_epochs > INSTRUCTION_SFT_EPOCH_CAP:
+        reasons.append(_REASON_EPOCH_CAP_EXCEEDED)
+        if status != "infeasible":
+            status = "conditional"
+    if (
+        INSTRUCTION_SFT_MIN_ROWS <= example_count <= INSTRUCTION_SFT_SMALL_CORPUS_MAX
+        and max_epochs >= INSTRUCTION_SFT_PARROT_EPOCHS
+    ):
+        reasons.append(_REASON_PARROT_OVERTRAINING)
+        status = "infeasible"
+
+    return TrainingPolicyVerdict(status=status, reasons=tuple(reasons))
+
+
 def build_training_policy_presentation(
     *,
     method: str,
@@ -68,7 +131,7 @@ def build_training_policy_presentation(
 ) -> TrainingPolicyPresentation:
     """Explain existing knobs as labeled priors. Does not classify status."""
 
-    del method, target_modules, example_count, max_epochs  # reserved for TP2+
+    del method, target_modules, example_count, max_epochs  # reserved for later surfaces
     lr_text = f"{learning_rate:g}"
     knobs = (
         TrainingKnob(

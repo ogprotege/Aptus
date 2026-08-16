@@ -4354,6 +4354,50 @@
         "title": "TargetRequest",
         "type": "object"
       },
+      "TrainingKnobResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "enum": [
+              "rank",
+              "alpha",
+              "learning_rate",
+              "completions_mask",
+              "epochs",
+              "dataset_size"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "prior_kind": {
+            "enum": [
+              "method-class-prior",
+              "objective-and-token-volume-prior",
+              "compiler-contract"
+            ],
+            "title": "Prior Kind",
+            "type": "string"
+          },
+          "rationale": {
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "value": {
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "prior_kind",
+          "rationale"
+        ],
+        "title": "TrainingKnobResponse",
+        "type": "object"
+      },
       "TrainingPlanResponse": {
         "additionalProperties": true,
         "properties": {
@@ -4446,6 +4490,16 @@
             "title": "Schema Version",
             "type": "string"
           },
+          "training_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrainingPolicyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "warnings": {
             "items": {
               "type": "string"
@@ -4468,6 +4522,43 @@
           "inspection_receipt"
         ],
         "title": "TrainingPlanResponse",
+        "type": "object"
+      },
+      "TrainingPolicyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "knobs": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingKnobResponse"
+            },
+            "title": "Knobs",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "policy_version": {
+            "const": "aptus-training-policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "aptus.training-policy.v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "policy_version",
+          "knobs",
+          "non_claims"
+        ],
+        "title": "TrainingPolicyResponse",
         "type": "object"
       },
       "TrainingRuntime": {

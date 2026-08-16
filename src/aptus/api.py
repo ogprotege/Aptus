@@ -85,12 +85,16 @@ from .profiling import (
     profile_dataset,
     probe_apple_platform,
 )
+from .projects import ProjectRepository
 from .runtime_env import (
     runtime_environment_key,
     runtime_inventory,
     validate_runtime_configuration,
 )
-from .projects import ProjectRepository
+from .training_policy import (
+    attach_training_policy,
+    build_training_policy_for_plan,
+)
 
 
 class StrictModel(BaseModel):
@@ -1571,13 +1575,16 @@ def create_app(
             ),
             plan=plan_payload,
         )
-        return attach_correction(
-            {
-                **plan_payload,
-                "project_id": project_id,
-                "project_revision_id": revision["revision_id"],
-            },
-            build_plan_correction(result),
+        return attach_training_policy(
+            attach_correction(
+                {
+                    **plan_payload,
+                    "project_id": project_id,
+                    "project_revision_id": revision["revision_id"],
+                },
+                build_plan_correction(result),
+            ),
+            build_training_policy_for_plan(result),
         )
 
     @app.get("/api/v1/plans/{plan_id}", response_model=TrainingPlanResponse)
@@ -1607,7 +1614,10 @@ def create_app(
             raise HTTPException(
                 status_code=404, detail={"error": "plan_not_found", "plan_id": plan_id}
             )
-        return attach_correction(to_primitive(result), build_plan_correction(result))
+        return attach_training_policy(
+            attach_correction(to_primitive(result), build_plan_correction(result)),
+            build_training_policy_for_plan(result),
+        )
 
     @app.post("/api/v1/plans/select", response_model=TrainingPlanResponse)
     def select_plan_candidate(request: SelectCandidateRequest) -> dict[str, Any]:
@@ -1668,13 +1678,16 @@ def create_app(
             validation={},
             job_ids=[],
         )
-        return attach_correction(
-            {
-                **selected_payload,
-                "project_id": request.project_id,
-                "project_revision_id": revision["revision_id"],
-            },
-            build_plan_correction(selected_plan),
+        return attach_training_policy(
+            attach_correction(
+                {
+                    **selected_payload,
+                    "project_id": request.project_id,
+                    "project_revision_id": revision["revision_id"],
+                },
+                build_plan_correction(selected_plan),
+            ),
+            build_training_policy_for_plan(selected_plan),
         )
 
     @app.post("/api/v1/compile", response_model=CompileResponse)

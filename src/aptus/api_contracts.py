@@ -666,6 +666,31 @@ class PlanCorrectionResponse(ClosedResponseModel):
     operator_next_step: PlanCorrectionNextStepResponse
 
 
+class TrainingKnobResponse(ClosedResponseModel):
+    name: Literal[
+        "rank",
+        "alpha",
+        "learning_rate",
+        "completions_mask",
+        "epochs",
+        "dataset_size",
+    ]
+    value: str = Field(min_length=1)
+    prior_kind: Literal[
+        "method-class-prior",
+        "objective-and-token-volume-prior",
+        "compiler-contract",
+    ]
+    rationale: str = Field(min_length=1)
+
+
+class TrainingPolicyResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.training-policy.v1"]
+    policy_version: Literal["aptus-training-policy-v1"]
+    knobs: list[TrainingKnobResponse]
+    non_claims: list[str]
+
+
 class EvaluationNormalizationResponse(ClosedResponseModel):
     strip: bool
     collapse_whitespace: bool
@@ -746,6 +771,7 @@ class TrainingPlanResponse(ResponseModel):
     project_id: str | None = None
     project_revision_id: str | None = None
     correction: PlanCorrectionResponse | None = None
+    training_policy: TrainingPolicyResponse | None = None
 
     @model_validator(mode="after")
     def require_complete_policy_chain(self) -> Self:

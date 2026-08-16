@@ -105,6 +105,34 @@ def _emit_correction_block(payload: Mapping[str, Any]) -> None:
     print("\n".join(lines), file=sys.stderr)
 
 
+def _print_plan_training_policy(plan: Any) -> None:
+    """Print training-knob priors (presentation only) to stderr."""
+
+    from .training_policy import build_training_policy_for_plan
+
+    try:
+        policy = build_training_policy_for_plan(plan)
+    except (TypeError, ValueError, AttributeError):
+        return
+    _emit_training_policy_block(policy.to_primitive())
+
+
+def _emit_training_policy_block(payload: Mapping[str, Any]) -> None:
+    lines = [
+        "Aptus training knobs (presentation only; priors, not optima):",
+    ]
+    for knob in payload.get("knobs") or []:
+        if not isinstance(knob, Mapping):
+            continue
+        lines.append(
+            f"  {knob.get('name')}: {knob.get('value')} "
+            f"({knob.get('prior_kind')}) — {knob.get('rationale')}"
+        )
+    for claim in payload.get("non_claims") or []:
+        lines.append(f"  non_claim: {claim}")
+    print("\n".join(lines), file=sys.stderr)
+
+
 def _print_plan_refusal_summary(plan: Any) -> None:
     """Print operator-facing what/why/what-can-change guidance to stderr.
 
@@ -918,12 +946,14 @@ def _run(arguments: argparse.Namespace) -> int:
         if arguments.command == "spec-plan":
             _write_json(plan, arguments.output)
             _print_plan_correction(plan)
+            _print_plan_training_policy(plan)
             _print_plan_refusal_summary(plan)
         else:
             if arguments.plan_output:
                 _write_json(plan, arguments.plan_output)
             _write_json(_compile(plan, arguments.output), None)
             _print_plan_correction(plan)
+            _print_plan_training_policy(plan)
             _print_plan_refusal_summary(plan)
         return 0
     if arguments.command == "compile":

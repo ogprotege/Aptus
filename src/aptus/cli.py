@@ -308,6 +308,15 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         help="Attest that the intended model training is permitted.",
     )
     parser.add_argument(
+        "--confirm-unreviewed-runtime",
+        action="store_true",
+        help=(
+            "Attest an unreviewed Qwen2 MLX-LM QLoRA layer count (not Path Alpha). "
+            "Required to plan 28-layer 4-bit dense Qwen2 such as 7B. "
+            "Does not mark the path reviewed."
+        ),
+    )
+    parser.add_argument(
         "--inspection-receipt",
         type=Path,
         help=(
@@ -888,6 +897,7 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
         data_order_seed=arguments.data_order_seed,
         micro_batch_size=arguments.micro_batch_size,
         gradient_accumulation_steps=arguments.gradient_accumulation_steps,
+        unreviewed_runtime_confirmed=bool(arguments.confirm_unreviewed_runtime),
     )
     inspection_receipt = None
     if arguments.inspection_receipt is not None:

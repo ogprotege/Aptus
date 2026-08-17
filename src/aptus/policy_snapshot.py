@@ -655,7 +655,71 @@ def evaluate_model_policy_snapshot(
         family=family,
         policy=None,
         paths=[],
-        reason_codes=["no-policy-match"],
         evidence_ids=[],
         reason=reasons["unknown"],
+        reason_codes=["no-policy-match"],
+    )
+
+
+UNREVIEWED_RUNTIME_OPERATOR_ATTESTED_REASON = (
+    "This Qwen2 four-bit dense MLX-LM QLoRA shape is not the reviewed 24-layer "
+    "Path Alpha footprint. The operator attested an unreviewed runtime. This is "
+    "not a reviewed 7B identity. Pilot remains required."
+)
+
+
+def apply_operator_unreviewed_runtime_confirm(
+    snapshot: Mapping[str, Any],
+    subject: Mapping[str, Any],
+    decision: Mapping[str, Any],
+    *,
+    confirmed: bool,
+) -> dict[str, Any]:
+    """Promote a layer-count catalog miss to an attested unreviewed path.
+
+    Resource feasibility is unchanged. Identity, four-bit, layout, and dense
+    constraints still fail closed. Only ``layer-count-mismatch`` on the Qwen2
+    MLX QLoRA policy may be promoted, and only after an explicit confirm.
+    """
+
+    if not confirmed:
+        return dict(decision)
+    if decision.get("kind") != "blocked":
+        return dict(decision)
+    if tuple(decision.get("reason_codes") or ()) != ("layer-count-mismatch",):
+        return dict(decision)
+    if decision.get("policy_id") != "model.qwen2-24l.mlx-qlora":
+        return dict(decision)
+    policy = next(
+        (
+            item
+            for item in snapshot["policies"]
+            if item.get("policy_id") == "model.qwen2-24l.mlx-qlora"
+        ),
+        None,
+    )
+    if policy is None:
+        return dict(decision)
+    subject_payload = _compatibility_subject_payload(subject)
+    for constraint in policy["constraints"]:
+        if (
+            constraint.get("kind") == "field_equals"
+            and constraint.get("field") == "layers"
+        ):
+            continue
+        if not _constraint_matches(constraint, subject_payload):
+            return dict(decision)
+    return _decision(
+        snapshot,
+        subject_payload,
+        kind="path-matched",
+        family=policy["family"],
+        policy=policy,
+        paths=list(policy["paths"]),
+        reason_codes=[
+            "unreviewed-runtime-operator-attested",
+            "pilot-not-yet-proven",
+        ],
+        evidence_ids=list(policy["evidence_ids"]),
+        reason=UNREVIEWED_RUNTIME_OPERATOR_ATTESTED_REASON,
     )

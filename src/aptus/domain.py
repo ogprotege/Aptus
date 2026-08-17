@@ -140,6 +140,7 @@ class ModelPolicyReasonCode(StrEnum):
     FAMILY_RECOGNIZED = "family-recognized"
     UNREVIEWED_SPARSE_MODEL = "unreviewed-sparse-model"
     NO_POLICY_MATCH = "no-policy-match"
+    UNREVIEWED_RUNTIME_OPERATOR_ATTESTED = "unreviewed-runtime-operator-attested"
 
 
 class ModelPolicyBindingSource(StrEnum):
@@ -987,6 +988,7 @@ class TrainingTarget:
     data_order_seed: int = 1000017
     micro_batch_size: int | None = None
     gradient_accumulation_steps: int | None = None
+    unreviewed_runtime_confirmed: bool = False
 
     def __post_init__(self) -> None:
         if (
@@ -1667,6 +1669,9 @@ def training_plan_from_primitive(value: Mapping[str, Any]) -> TrainingPlan:
         data_order_seed=target_value["data_order_seed"],
         micro_batch_size=target_value.get("micro_batch_size"),
         gradient_accumulation_steps=target_value.get("gradient_accumulation_steps"),
+        unreviewed_runtime_confirmed=bool(
+            target_value.get("unreviewed_runtime_confirmed", False)
+        ),
     )
 
     memory_fields = {item.name for item in fields(MemoryBreakdown)}

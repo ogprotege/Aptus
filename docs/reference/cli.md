@@ -59,6 +59,7 @@ types, validation rules, side effects, and operational meaning.
       "--checkpoint-steps": {"default": 100},
       "--data-order-seed": {"default": 1000017},
       "--confirm-training-allowed": {"default": false},
+      "--confirm-unreviewed-runtime": {"default": false},
       "--context-length": {"default": null},
       "--dataset": {"default": null},
       "--disk-free-gib": {"default": null},
@@ -239,6 +240,7 @@ types, validation rules, side effects, and operational meaning.
 | `--context-length INTEGER` | Yes | None | Positive model context limit |
 | `--license LABEL` | Yes | None | User-supplied license label |
 | `--confirm-training-allowed` | Yes in practice | False | Planning fails unless explicitly supplied |
+| `--confirm-unreviewed-runtime` | No | False | Attest an unreviewed Qwen2 MLX layer count (not Path Alpha). Required to plan 28-layer 4-bit dense Qwen2 such as 7B. Does not mark the path reviewed. |
 | `--dataset PATH` | Yes | None | Existing `.jsonl`, `.json`, `.csv`, or `.txt` file |
 | `--sample-limit INTEGER` | No | `512` | Positive bound for sampled length statistics, not canonical compilation |
 

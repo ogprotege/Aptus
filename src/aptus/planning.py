@@ -1020,7 +1020,10 @@ def estimate_candidate(
         hardware=hardware,
         target=target,
         distribution=distribution,
-        policy_decision=evaluate_model_compatibility(subject_from_model(model)),
+        policy_decision=evaluate_model_compatibility(
+            subject_from_model(model),
+            confirm_unreviewed_runtime=target.unreviewed_runtime_confirmed,
+        ),
         inspection_receipt=None,
     )
 
@@ -1134,7 +1137,10 @@ def plan_training(
     target: TrainingTarget,
     inspection_receipt: ModelInspectionReceipt | None = None,
 ) -> TrainingPlan:
-    policy_decision = evaluate_model_compatibility(subject_from_model(model))
+    policy_decision = evaluate_model_compatibility(
+        subject_from_model(model),
+        confirm_unreviewed_runtime=target.unreviewed_runtime_confirmed,
+    )
     if inspection_receipt is not None:
         if not isinstance(inspection_receipt, ModelInspectionReceipt):
             raise ValueError(

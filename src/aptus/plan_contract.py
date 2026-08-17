@@ -556,6 +556,8 @@ def _semantic_inspection_receipt(value: Any) -> Any:
 def _current_model_policy_decision(
     model: Mapping[str, Any],
     policy_snapshot: Mapping[str, Any] | None = None,
+    *,
+    confirm_unreviewed_runtime: bool = False,
 ) -> dict[str, Any]:
     """Evaluate model compatibility from the versioned portable snapshot."""
 
@@ -564,9 +566,14 @@ def _current_model_policy_decision(
         if policy_snapshot is not None
         else _policy_snapshot_for_validation()
     )
-    return _policy_snapshot_module().evaluate_model_policy_snapshot(
+    module = _policy_snapshot_module()
+    subject = _compatibility_subject_payload(model)
+    decision = module.evaluate_model_policy_snapshot(snapshot, subject)
+    return module.apply_operator_unreviewed_runtime_confirm(
         snapshot,
-        _compatibility_subject_payload(model),
+        subject,
+        decision,
+        confirmed=confirm_unreviewed_runtime,
     )
 
 
@@ -652,7 +659,15 @@ def require_current_model_policy(
         raise ValueError("Persisted v5 plans require model policy state.")
     try:
         snapshot = _policy_snapshot_for_validation(policy_snapshot=policy_snapshot)
-        expected = _current_model_policy_decision(model, snapshot)
+        expected = _current_model_policy_decision(
+            model,
+            snapshot,
+            confirm_unreviewed_runtime=bool(
+                (plan_value.get("target") or {}).get("unreviewed_runtime_confirmed")
+            )
+            if isinstance(plan_value.get("target"), Mapping)
+            else False,
+        )
     except (
         AttributeError,
         OverflowError,
@@ -1738,6 +1753,7 @@ def _normalized_target(value: Any) -> dict[str, Any]:
             "data_order_seed",
             "micro_batch_size",
             "gradient_accumulation_steps",
+            "unreviewed_runtime_confirmed",
         ),
     )
 
@@ -2235,7 +2251,15 @@ def _validate_plan_payload_impl(
             root=root,
             policy_snapshot=policy_snapshot,
         )
-        current_policy_decision = _current_model_policy_decision(model, snapshot)
+        current_policy_decision = _current_model_policy_decision(
+            model,
+            snapshot,
+            confirm_unreviewed_runtime=bool(
+                (plan.get("target") or {}).get("unreviewed_runtime_confirmed")
+            )
+            if isinstance(plan.get("target"), Mapping)
+            else False,
+        )
     except (TypeError, ValueError) as error:
         errors.append(
             "Model compatibility decision could not be recomputed from bound facts: "

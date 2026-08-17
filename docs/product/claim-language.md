@@ -20,6 +20,8 @@ Use:
   known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
 - “unsupported by the current compiler contract.”
+- “operator-attested unreviewed runtime”;
+- “not the reviewed Path Alpha 24-layer footprint.”
 
 Do not use:
 
@@ -33,6 +35,8 @@ Do not use:
 - “automatic best method”;
 - “the runtime supports this method” based only on model inspection;
 - “zero-risk training.”
+- “Aptus supports 7B Qwen like the reviewed 0.5B Path Alpha path”;
+- “reviewed 7B MLX identity” after an unreviewed-runtime confirm.
 
 Inspection eligibility identifies that the inspected artifact matches a
 reviewed compatibility subject and execution tuple. A configuration-footprint

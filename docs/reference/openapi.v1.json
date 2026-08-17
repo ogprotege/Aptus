@@ -2621,7 +2621,8 @@
           "four-bit-required",
           "family-recognized",
           "unreviewed-sparse-model",
-          "no-policy-match"
+          "no-policy-match",
+          "unreviewed-runtime-operator-attested"
         ],
         "title": "ModelPolicyReasonCode",
         "type": "string"
@@ -4498,6 +4499,11 @@
             "minimum": 0.0,
             "title": "Training Seed",
             "type": "integer"
+          },
+          "unreviewed_runtime_confirmed": {
+            "default": false,
+            "title": "Unreviewed Runtime Confirmed",
+            "type": "boolean"
           }
         },
         "required": [

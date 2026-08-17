@@ -121,6 +121,57 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
         self.assertEqual(len(artifact_evidence), 1)
         self.assertIn(QWEN2_5_ACCEPTANCE_MODEL_ID, artifact_evidence[0].scope)
 
+    def test_qwen2_layer_mismatch_stays_blocked_without_operator_confirm(
+        self,
+    ) -> None:
+        subject = replace(self.qwen2_subject, layers=28)
+        decision = evaluate_model_compatibility(subject)
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.BLOCKED)
+        self.assertEqual(
+            [item.value for item in decision.reason_codes],
+            ["layer-count-mismatch"],
+        )
+
+    def test_qwen2_layer_mismatch_becomes_unreviewed_path_when_confirmed(
+        self,
+    ) -> None:
+        subject = replace(self.qwen2_subject, layers=28)
+        decision = evaluate_model_compatibility(
+            subject,
+            confirm_unreviewed_runtime=True,
+        )
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
+        self.assertEqual(
+            [item.value for item in decision.reason_codes],
+            [
+                "unreviewed-runtime-operator-attested",
+                "pilot-not-yet-proven",
+            ],
+        )
+        self.assertNotIn(
+            "reviewed-runtime-path",
+            [item.value for item in decision.reason_codes],
+        )
+        self.assertIn("not the reviewed 24-layer", decision.reason)
+        self.assertEqual(len(decision.paths), 1)
+        self.assertEqual(decision.paths[0].method, Method.QLORA)
+
+    def test_confirm_does_not_open_layout_or_moe_mismatches(self) -> None:
+        layout = evaluate_model_compatibility(
+            replace(
+                self.qwen2_subject,
+                layers=28,
+                quantization_layout=QuantizationLayout(4, 128),
+            ),
+            confirm_unreviewed_runtime=True,
+        )
+        self.assertEqual(layout.kind, ModelPolicyDecisionKind.BLOCKED)
+        moe = evaluate_model_compatibility(
+            replace(self.qwen2_subject, layers=28, moe=self.subject.moe),
+            confirm_unreviewed_runtime=True,
+        )
+        self.assertEqual(moe.kind, ModelPolicyDecisionKind.BLOCKED)
+
     def test_qwen2_host_and_portable_policy_have_exact_mutation_parity(
         self,
     ) -> None:

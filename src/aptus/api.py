@@ -230,6 +230,7 @@ class TargetRequest(StrictModel):
     data_order_seed: int = Field(default=1000017, ge=0)
     micro_batch_size: int | None = Field(default=None, gt=0)
     gradient_accumulation_steps: int | None = Field(default=None, gt=0)
+    unreviewed_runtime_confirmed: bool = False
 
     @model_validator(mode="after")
     def require_phase3_control_consistency(self) -> Self:

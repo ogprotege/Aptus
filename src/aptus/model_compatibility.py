@@ -46,6 +46,7 @@ from .methods import (
     runtime_contract_for,
 )
 from .policy_snapshot import (
+    apply_operator_unreviewed_runtime_confirm,
     evaluate_model_policy_snapshot,
     model_policy_snapshot_bytes,
     model_policy_snapshot_payload,
@@ -1117,12 +1118,21 @@ def model_policy_binding_for_path(
 
 def evaluate_model_compatibility(
     subject: ModelCompatibilitySubject,
+    *,
+    confirm_unreviewed_runtime: bool = False,
 ) -> ModelPolicyDecision:
     """Return model-policy status without deciding hardware feasibility."""
 
+    snapshot = current_model_policy_snapshot()
     primitive = evaluate_model_policy_snapshot(
-        current_model_policy_snapshot(),
+        snapshot,
         to_primitive(subject),
+    )
+    primitive = apply_operator_unreviewed_runtime_confirm(
+        snapshot,
+        to_primitive(subject),
+        primitive,
+        confirmed=confirm_unreviewed_runtime,
     )
     return model_policy_decision_from_primitive(primitive)
 

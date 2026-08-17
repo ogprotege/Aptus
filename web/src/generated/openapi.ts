@@ -1309,7 +1309,7 @@ export interface components {
          * ModelPolicyReasonCode
          * @enum {string}
          */
-        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match";
+        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match" | "unreviewed-runtime-operator-attested";
         /** MoETopologyRequest */
         MoETopologyRequest: {
             /** Decoder Sparse Step */
@@ -2002,6 +2002,11 @@ export interface components {
              * @default 17
              */
             training_seed: number;
+            /**
+             * Unreviewed Runtime Confirmed
+             * @default false
+             */
+            unreviewed_runtime_confirmed: boolean;
         };
         /** TrainingKnobResponse */
         TrainingKnobResponse: {

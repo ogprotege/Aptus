@@ -921,6 +921,39 @@ class PlannerTests(unittest.TestCase):
             )
         )
 
+    def test_qwen2_28_layer_needs_operator_confirm_for_qlora_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            reviewed = make_qwen2_runtime_footprint_plan(Path(temporary))
+            seven_b = replace(
+                reviewed.model,
+                layers=28,
+                parameters=7_620_000_000,
+            )
+            with self.assertRaises(NoFeasiblePlanError):
+                plan_training(
+                    model=seven_b,
+                    dataset=reviewed.dataset,
+                    hardware=reviewed.hardware,
+                    target=reviewed.target,
+                )
+            attested = plan_training(
+                model=seven_b,
+                dataset=reviewed.dataset,
+                hardware=reviewed.hardware,
+                target=replace(reviewed.target, unreviewed_runtime_confirmed=True),
+            )
+        self.assertEqual(
+            [item.value for item in attested.model_policy_decision.reason_codes],
+            [
+                "unreviewed-runtime-operator-attested",
+                "pilot-not-yet-proven",
+            ],
+        )
+        self.assertEqual(attested.recommended.method, Method.QLORA)
+        self.assertTrue(attested.recommended.feasible)
+        self.assertEqual(attested.recommended.status, CandidateStatus.CONDITIONAL)
+        self.assertTrue(attested.target.unreviewed_runtime_confirmed)
+
     def test_qwen3_moe_near_match_has_no_viable_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             plan = make_qwen3_moe_plan(Path(temporary))

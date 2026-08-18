@@ -5089,6 +5089,13 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("not permission to run full training merely to", claim_language)
         self.assertIn("provoke an OOM", claim_language)
 
+    def test_claim_language_locks_lane_3_run_disposition_sentences(self) -> None:
+        claim_language = (REPOSITORY / "docs/product/claim-language.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("operator-attested run disposition", claim_language)
+        self.assertIn("Use is not a quality yes", claim_language)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1016,21 +1016,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 149)
+        self.assertEqual(len(repository_documents), 150)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 148)
-        self.assertEqual(len(active_documents), 119)
+        self.assertEqual(len(governed_documents), 149)
+        self.assertEqual(len(active_documents), 120)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 148)
-        self.assertIn("148 are governed", normalized_inventory)
-        self.assertIn("148 governed", normalized_inventory)
-        self.assertIn("149 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 119 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 149)
+        self.assertIn("149 are governed", normalized_inventory)
+        self.assertIn("149 governed", normalized_inventory)
+        self.assertIn("150 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 120 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -5095,6 +5095,13 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertIn("operator-attested run disposition", claim_language)
         self.assertIn("Use is not a quality yes", claim_language)
+        self.assertIn("cut-freeze 0.2 as the five-stage referee", claim_language)
+        cut_note = (REPOSITORY / "docs/product/0.2-cut-note.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Cut-freeze 0.2 as the five-stage referee.", cut_note)
+        self.assertIn("There is no", cut_note)
+        self.assertIn("`aptus.product-cut.v1`", cut_note)
 
 
 if __name__ == "__main__":

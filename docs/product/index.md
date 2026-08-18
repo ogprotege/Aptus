@@ -12,6 +12,8 @@
 - [UI and UX contract](ui-ux.md) governs the workbench experience.
 - [Claim language](claim-language.md) defines what each evidence level permits
   Aptus to say.
+- [Aptus 0.2 cut note](0.2-cut-note.md) records the owner product call:
+  cut-freeze 0.2 as the five-stage referee.
 
 For exact method and backend support, use the normative
 [capability matrix](../reference/capability-matrix.md).

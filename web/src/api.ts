@@ -29,6 +29,8 @@ import type {
   SelectCandidateRequest,
   RunCorrection,
   RunCorrectionKind,
+  RunDisposition,
+  RunDispositionKind,
   TrainingKnob,
   TrainingKnobName,
   TrainingKnobPriorKind,
@@ -82,6 +84,7 @@ export const API_PATHS = {
   inferenceServices: "/api/v1/inference/services",
   job: "/api/v1/jobs/{job_id}",
   jobCancel: "/api/v1/jobs/{job_id}/cancel",
+  jobDisposition: "/api/v1/jobs/{job_id}/disposition",
   jobs: "/api/v1/jobs",
   modelInspect: "/api/v1/models/inspect",
   plan: "/api/v1/plan",
@@ -536,6 +539,7 @@ function normalizeJob(payload: Record<string, unknown>): Job {
         ? payload.validation_report_error
         : undefined,
     run_correction: normalizeRunCorrection(payload.run_correction),
+    run_disposition: normalizeRunDisposition(payload.run_disposition),
   } as Job;
 }
 
@@ -1152,6 +1156,108 @@ function normalizeRunCorrection(value: unknown): RunCorrection | null {
   };
 }
 
+function normalizeRunDisposition(value: unknown): RunDisposition | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.schema_version !== "aptus.run-disposition.v1") {
+    return null;
+  }
+  if (value.kind !== "use" && value.kind !== "done" && value.kind !== "stop") {
+    return null;
+  }
+  if (value.source !== "operator-attested") {
+    return null;
+  }
+  if (
+    typeof value.job_id !== "string"
+    || value.job_id.length === 0
+    || typeof value.plan_id !== "string"
+    || value.plan_id.length === 0
+    || typeof value.candidate_id !== "string"
+    || value.candidate_id.length === 0
+    || typeof value.attested_at !== "string"
+    || value.attested_at.length === 0
+  ) {
+    return null;
+  }
+  if (value.run_id !== null && value.run_id !== undefined && (typeof value.run_id !== "string" || value.run_id.length === 0)) {
+    return null;
+  }
+  if (
+    value.previous_kind !== null
+    && value.previous_kind !== undefined
+    && value.previous_kind !== "use"
+    && value.previous_kind !== "done"
+    && value.previous_kind !== "stop"
+  ) {
+    return null;
+  }
+  const evidence = value.evidence;
+  if (!isRecord(evidence)) {
+    return null;
+  }
+  if (
+    evidence.evaluation_decision !== "pass"
+    && evidence.evaluation_decision !== "fail"
+    && evidence.evaluation_decision !== "abstain"
+    && evidence.evaluation_decision !== "omitted"
+  ) {
+    return null;
+  }
+  if (
+    evidence.validation_state !== null
+    && evidence.validation_state !== undefined
+    && typeof evidence.validation_state !== "string"
+  ) {
+    return null;
+  }
+  if (
+    evidence.run_correction_kind !== null
+    && evidence.run_correction_kind !== undefined
+    && typeof evidence.run_correction_kind !== "string"
+  ) {
+    return null;
+  }
+  const next = value.operator_next_step;
+  if (!isRecord(next) || typeof next.action !== "string" || typeof next.label !== "string") {
+    return null;
+  }
+  if (next.action !== "load-adapter" && next.action !== "none") {
+    return null;
+  }
+  if (next.label.length === 0) {
+    return null;
+  }
+  return {
+    schema_version: "aptus.run-disposition.v1",
+    kind: value.kind,
+    job_id: value.job_id,
+    plan_id: value.plan_id,
+    candidate_id: value.candidate_id,
+    run_id: typeof value.run_id === "string" ? value.run_id : null,
+    attested_at: value.attested_at,
+    previous_kind: value.previous_kind === "use" || value.previous_kind === "done" || value.previous_kind === "stop"
+      ? value.previous_kind
+      : null,
+    source: "operator-attested",
+    evidence: {
+      validation_state: typeof evidence.validation_state === "string" ? evidence.validation_state : null,
+      run_correction_kind: typeof evidence.run_correction_kind === "string"
+        ? evidence.run_correction_kind
+        : null,
+      evaluation_decision: evidence.evaluation_decision,
+    },
+    operator_next_step: {
+      action: next.action,
+      label: next.label,
+    },
+    non_claims: Array.isArray(value.non_claims)
+      ? value.non_claims.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
 function normalizeTrainingPolicy(value: unknown): TrainingPolicy | null {
   if (!isRecord(value)) {
     return null;
@@ -1579,6 +1685,14 @@ export const api = {
     const payload = await request<OpenApiJobResponse>(
       bindApiPath(API_PATHS.jobCancel, { job_id: id }),
       { method: "POST" },
+    );
+    return normalizeJob(payload as unknown as Record<string, unknown>);
+  },
+
+  async disposeJob(id: string, kind: RunDispositionKind) {
+    const payload = await request<OpenApiJobResponse>(
+      bindApiPath(API_PATHS.jobDisposition, { job_id: id }),
+      { method: "POST", body: JSON.stringify({ kind }) },
     );
     return normalizeJob(payload as unknown as Record<string, unknown>);
   },

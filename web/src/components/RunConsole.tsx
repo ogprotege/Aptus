@@ -1,14 +1,28 @@
-import type { Job, RunCorrection } from "../types";
+import type { Job, RunCorrection, RunDisposition, RunDispositionKind } from "../types";
 import { formatBytes } from "../lib/plan";
 import { ProvenanceBadge } from "./ProvenanceBadge";
 import { StatusBadge } from "./StatusBadge";
 
+const DISPOSITION_NON_CLAIMS = [
+  "Training finished is not this decision.",
+  "Training loss is not this decision.",
+  "Gold exact-match is not general model quality.",
+  "This is not a 0.2 ship, freeze, or stop.",
+];
+
 interface RunConsoleProps {
   job: Job;
   example?: boolean;
+  busy?: string | null;
+  onDisposeJob?: (kind: RunDispositionKind) => Promise<void>;
 }
 
-export function RunConsole({ job, example = false }: RunConsoleProps) {
+export function RunConsole({
+  job,
+  example = false,
+  busy = null,
+  onDisposeJob,
+}: RunConsoleProps) {
   const lines = Array.isArray(job.log) ? job.log : job.log.split(/\r?\n/);
   const displayState = job.phase ?? job.state;
   const capacity = job.prelaunch_capacity_check;
@@ -20,6 +34,9 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
   const finalExportManifest = finalExportManifestPath(job, finalExport);
   const integrity = job.artifact_integrity;
   const runCorrection = job.run_correction ?? null;
+  const runDisposition = job.run_disposition ?? null;
+  const completedTrain = isCompletedTrainJob(job);
+  const hideCorrectionReplan = runDisposition?.kind === "done" || runDisposition?.kind === "stop";
   const hasCompletionEvidence = Boolean(
     job.run_output_dir || capacity || completion || measuredRun || finalExport || integrity,
   );
@@ -123,7 +140,21 @@ export function RunConsole({ job, example = false }: RunConsoleProps) {
           ) : null}
         </section>
       ) : null}
-      {runCorrection ? <RunCorrectionPanel correction={runCorrection} /> : null}
+      {runCorrection ? (
+        <RunCorrectionPanel
+          correction={runCorrection}
+          hideReplanNext={hideCorrectionReplan}
+        />
+      ) : null}
+      {completedTrain ? (
+        <RunDispositionPanel
+          job={job}
+          disposition={runDisposition}
+          example={example}
+          busy={busy}
+          onDisposeJob={onDisposeJob}
+        />
+      ) : null}
       <footer>
         <span>Mode <strong>{job.mode}</strong></span>
         <span>Phase <strong>{displayState}</strong></span>
@@ -192,7 +223,33 @@ function finalExportManifestPath(
   return `${parent}${separator}final-export.json`;
 }
 
-function RunCorrectionPanel({ correction }: { correction: RunCorrection }) {
+function isCompletedTrainJob(job: Job): boolean {
+  const action = typeof job.action === "string" ? job.action : job.mode;
+  return action === "train" && job.state === "completed";
+}
+
+function liveEvaluationDecision(job: Job): RunDisposition["evidence"]["evaluation_decision"] {
+  const direct = job.evaluation_decision;
+  if (direct === "pass" || direct === "fail" || direct === "abstain" || direct === "omitted") {
+    return direct;
+  }
+  const nestedRecord = objectValue(job.evaluation) ?? objectValue(job.evaluation_result);
+  const nested = nestedRecord?.decision ?? nestedRecord?.evaluation_decision;
+  if (nested === "pass" || nested === "fail" || nested === "abstain" || nested === "omitted") {
+    return nested;
+  }
+  return "omitted";
+}
+
+function RunCorrectionPanel({
+  correction,
+  hideReplanNext = false,
+}: {
+  correction: RunCorrection;
+  hideReplanNext?: boolean;
+}) {
+  const suppressReplan =
+    hideReplanNext && correction.operator_next_step.action === "replan-with-fact-hints";
   return (
     <section className="correction-panel" aria-labelledby="run-correction-title">
       <div className="section-heading-row">
@@ -205,12 +262,16 @@ function RunCorrectionPanel({ correction }: { correction: RunCorrection }) {
       <p className="correction-summary">{correction.summary}</p>
       <p className="correction-meta">
         kind: <code>{correction.kind}</code>
-        {" · next: "}
-        <code>{correction.operator_next_step.action}</code>
-        {" — "}
-        {correction.operator_next_step.label}
+        {suppressReplan ? null : (
+          <>
+            {" · next: "}
+            <code>{correction.operator_next_step.action}</code>
+            {" — "}
+            {correction.operator_next_step.label}
+          </>
+        )}
       </p>
-      {correction.next_plan_hints.length ? (
+      {!suppressReplan && correction.next_plan_hints.length ? (
         <div className="correction-hints">
           <strong>Next-plan hints</strong>
           <ul className="plain-list">
@@ -246,6 +307,98 @@ function RunCorrectionPanel({ correction }: { correction: RunCorrection }) {
         Training-signal correction is a next-plan regularization heuristic. It is not model quality
         and not an evaluation pass or fail.
       </p>
+    </section>
+  );
+}
+
+function RunDispositionPanel({
+  job,
+  disposition,
+  example,
+  busy,
+  onDisposeJob,
+}: {
+  job: Job;
+  disposition: RunDisposition | null;
+  example: boolean;
+  busy: string | null;
+  onDisposeJob?: (kind: RunDispositionKind) => Promise<void>;
+}) {
+  const validationState = disposition?.evidence.validation_state
+    ?? job.validation_report?.state
+    ?? (typeof job.completion_attestation?.state === "string" ? job.completion_attestation.state : null);
+  const correctionKind = disposition?.evidence.run_correction_kind ?? job.run_correction?.kind ?? null;
+  const evaluationDecision = disposition?.evidence.evaluation_decision ?? liveEvaluationDecision(job);
+  const nonClaims = disposition?.non_claims.length ? disposition.non_claims : DISPOSITION_NON_CLAIMS;
+  const canAttest = Boolean(onDisposeJob) && !example;
+
+  return (
+    <section className="correction-panel" aria-labelledby="run-disposition-title">
+      <div className="section-heading-row">
+        <div>
+          <p className="eyebrow">Operator-attested</p>
+          <h2 id="run-disposition-title">What do you want to do with what you just trained?</h2>
+        </div>
+        <ProvenanceBadge kind="user-attested" label="Operator" />
+      </div>
+      <dl className="run-evidence-grid" aria-label="Stacked last-call evidence">
+        <div>
+          <dt>Parent validation state</dt>
+          <dd><code>{validationState ?? "not recorded"}</code></dd>
+        </div>
+        <div>
+          <dt>Training-signal kind</dt>
+          <dd><code>{correctionKind ?? "none"}</code></dd>
+        </div>
+        <div>
+          <dt>Evaluation decision</dt>
+          <dd><code>{evaluationDecision}</code></dd>
+        </div>
+      </dl>
+      {disposition ? (
+        <p className="correction-meta">
+          kind: <code>{disposition.kind}</code>
+          {" · next: "}
+          <code>{disposition.operator_next_step.action}</code>
+          {" — "}
+          {disposition.operator_next_step.label}
+        </p>
+      ) : (
+        <p className="correction-meta">No last call recorded.</p>
+      )}
+      <ul className="plain-list amber-list">
+        {nonClaims.map((claim) => (
+          <li key={claim}>{claim}</li>
+        ))}
+      </ul>
+      {canAttest ? (
+        <div className="console-actions">
+          <button
+            type="button"
+            className="button button-secondary"
+            disabled={busy !== null}
+            onClick={() => void onDisposeJob?.("use")}
+          >
+            Use it
+          </button>
+          <button
+            type="button"
+            className="button button-secondary"
+            disabled={busy !== null}
+            onClick={() => void onDisposeJob?.("done")}
+          >
+            I'm done training this
+          </button>
+          <button
+            type="button"
+            className="button button-secondary"
+            disabled={busy !== null}
+            onClick={() => void onDisposeJob?.("stop")}
+          >
+            Don't use it
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

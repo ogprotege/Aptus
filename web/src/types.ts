@@ -437,6 +437,35 @@ export interface RunCorrection {
   non_claims: string[];
 }
 
+/** Presentation-only run disposition (aptus.run-disposition.v1); operator-attested, not quality. */
+export type RunDispositionKind = "use" | "done" | "stop";
+
+export interface RunDispositionEvidence {
+  validation_state: string | null;
+  run_correction_kind: string | null;
+  evaluation_decision: "pass" | "fail" | "abstain" | "omitted";
+}
+
+export interface RunDispositionNextStep {
+  action: "load-adapter" | "none";
+  label: string;
+}
+
+export interface RunDisposition {
+  schema_version: "aptus.run-disposition.v1";
+  kind: RunDispositionKind;
+  job_id: string;
+  plan_id: string;
+  candidate_id: string;
+  run_id: string | null;
+  attested_at: string;
+  previous_kind: RunDispositionKind | null;
+  source: "operator-attested";
+  evidence: RunDispositionEvidence;
+  operator_next_step: RunDispositionNextStep;
+  non_claims: string[];
+}
+
 export interface TrainingPlan {
   schema_version: "aptus.training-plan.v6";
   plan_id: string;
@@ -832,6 +861,7 @@ export interface Job {
     [key: string]: unknown;
   } | null;
   run_correction?: RunCorrection | null;
+  run_disposition?: RunDisposition | null;
   [key: string]: unknown;
 }
 

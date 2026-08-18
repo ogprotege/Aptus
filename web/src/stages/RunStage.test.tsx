@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RunStage } from "./RunStage";
 import type { AptusDesktopBridge } from "../desktopBridge";
-import type { CompileResponse, Job, ValidationReport } from "../types";
+import type { CompileResponse, Job, RunDisposition, ValidationReport } from "../types";
 
 const reportBinding = {
   planId: "plan_aaaaaaaaaaaaaaaaaaaa",
@@ -19,6 +19,7 @@ const callbacks = {
   onCreateJob: vi.fn(async () => undefined),
   onRefreshJob: vi.fn(async () => undefined),
   onCancelJob: vi.fn(async () => undefined),
+  onDisposeJob: vi.fn(async () => undefined),
   onReturnToValidate: vi.fn(),
 };
 
@@ -429,4 +430,189 @@ describe("RunStage", () => {
     expect(region).not.toHaveTextContent(/the model is bad/i);
     expect(region).not.toHaveTextContent(/optimal/i);
   });
+
+  it("shows operator-attested Use/Done/Stop on a completed train without a last call", () => {
+    const onDisposeJob = vi.fn(async () => undefined);
+    const job: Job = {
+      id: "job_last_call",
+      state: "completed",
+      phase: "completed",
+      mode: "train",
+      bundle_dir: "/tmp/bundle",
+      log: "training complete",
+      return_code: 0,
+    };
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+        onDisposeJob={onDisposeJob}
+      />,
+    );
+
+    const region = screen.getByRole("region", {
+      name: "What do you want to do with what you just trained?",
+    });
+    expect(region).toHaveTextContent("Operator-attested");
+    expect(region).toHaveTextContent("Operator");
+    expect(region).not.toHaveTextContent(/recommended/i);
+    expect(region).not.toHaveTextContent(/quality pass/i);
+    expect(region).not.toHaveTextContent(/\bcut\b/i);
+    expect(screen.getByRole("button", { name: "Use it" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Don't use it" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "I'm done training this" }));
+    expect(onDisposeJob).toHaveBeenCalledWith("done");
+  });
+
+  it("does not offer a last call on a completed pilot", () => {
+    const job: Job = {
+      id: "job_pilot_done",
+      state: "completed",
+      mode: "pilot",
+      bundle_dir: "/tmp/bundle",
+      log: "pilot complete",
+      return_code: 0,
+    };
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("region", {
+        name: "What do you want to do with what you just trained?",
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use it" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I'm done training this" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Don't use it" })).not.toBeInTheDocument();
+  });
+
+  it("presents disposition next instead of replan-with-fact-hints after done", () => {
+    const job: Job = {
+      id: "job_signal",
+      state: "completed",
+      phase: "completed",
+      mode: "train",
+      bundle_dir: "/tmp/bundle",
+      run_id: "run_signal",
+      run_output_dir: "/tmp/bundle/runs/run_signal",
+      log: "training complete",
+      return_code: 0,
+      run_correction: {
+        schema_version: "aptus.run-correction.v1",
+        kind: "eval-rose",
+        summary:
+          "Train loss fell while validation loss rose; consider fewer epochs on the next plan.",
+        source: "train_loss_observations+validation_loss_observations",
+        next_plan_hints: [
+          {
+            fact: "target.max_epochs",
+            direction: "decrease",
+            why: "Train loss fell while validation loss rose; next plan should use fewer epochs.",
+          },
+        ],
+        disallowed_suggestions: [
+          {
+            code: "no_quality_from_loss",
+            message: "Do not treat this signal as model quality or an M8 eval decision.",
+          },
+        ],
+        operator_next_step: {
+          action: "replan-with-fact-hints",
+          label: "Replan with fewer epochs",
+        },
+        non_claims: [
+          "Training loss is not model quality.",
+          "Validation split loss is not an aptus.evaluation-result.v1 decision.",
+        ],
+      },
+      run_disposition: attestedDisposition({
+        kind: "done",
+        job_id: "job_signal",
+        run_id: "run_signal",
+        run_correction_kind: "eval-rose",
+        next_action: "none",
+        next_label: "I'm finished training this.",
+      }),
+    };
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={job}
+        busy={null}
+        demoMode={false}
+        {...callbacks}
+      />,
+    );
+
+    const correction = screen.getByRole("region", {
+      name: "Training-signal correction (not quality)",
+    });
+    expect(correction).toHaveTextContent("eval-rose");
+    expect(correction).not.toHaveTextContent("replan-with-fact-hints");
+    expect(correction).not.toHaveTextContent("Replan with fewer epochs");
+    const lastCall = screen.getByRole("region", {
+      name: "What do you want to do with what you just trained?",
+    });
+    expect(lastCall).toHaveTextContent("none");
+    expect(lastCall).toHaveTextContent("I'm finished training this.");
+    expect(lastCall).not.toHaveTextContent(/recommended/i);
+    expect(lastCall).not.toHaveTextContent(/quality pass/i);
+    expect(lastCall).not.toHaveTextContent(/\bcut\b/i);
+  });
 });
+
+function attestedDisposition({
+  kind,
+  job_id,
+  run_id,
+  run_correction_kind,
+  next_action,
+  next_label,
+}: {
+  kind: RunDisposition["kind"];
+  job_id: string;
+  run_id: string;
+  run_correction_kind: string;
+  next_action: RunDisposition["operator_next_step"]["action"];
+  next_label: string;
+}): RunDisposition {
+  return {
+    schema_version: "aptus.run-disposition.v1",
+    kind,
+    job_id,
+    plan_id: "plan_aaaaaaaaaaaaaaaaaaaa",
+    candidate_id: "candidate-bound",
+    run_id,
+    attested_at: "2026-08-18T00:00:00Z",
+    previous_kind: null,
+    source: "operator-attested",
+    evidence: {
+      validation_state: "measured-run-pass",
+      run_correction_kind,
+      evaluation_decision: "omitted",
+    },
+    operator_next_step: {
+      action: next_action,
+      label: next_label,
+    },
+    non_claims: [
+      "Training finished is not this decision.",
+      "Training loss is not this decision.",
+      "Gold exact-match is not general model quality.",
+      "This is not a 0.2 ship, freeze, or stop.",
+    ],
+  };
+}

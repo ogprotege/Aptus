@@ -46,6 +46,11 @@ from .plan_contract import (
     validate_plan_payload,
 )
 from .profiling import probe_apple_platform
+from .run_disposition import (
+    EVALUATION_DECISIONS,
+    build_run_disposition,
+    run_disposition_from_primitive,
+)
 from .runtime_env import resolve_runtime_interpreter, runtime_environment_key
 from .runtime_lease import _lease_paths
 from .training_policy import build_run_correction_from_metrics_path
@@ -145,6 +150,12 @@ class JobPrerequisiteError(ValueError):
             f"the required prior state is {required_state!r} or later. "
             "Run each preceding validation stage in order, then retry."
         )
+
+
+class JobDispositionError(ValueError):
+    """Raised when an operator-attested run disposition is refused."""
+
+    code = "job_disposition_refused"
 
 
 class JobSubmissionFailure(RuntimeError):
@@ -2768,6 +2779,10 @@ class JobService:
         self._record_path(job_id)
         return self.root / f"{job_id}.log"
 
+    def _disposition_path(self, job_id: str) -> Path:
+        self._record_path(job_id)
+        return self.root / f"{job_id}.disposition.json"
+
     def _record_paths(self) -> list[Path]:
         with self._records_lock():
             result = []
@@ -4580,6 +4595,7 @@ class JobService:
         else:
             record["log_tail"] = ""
         self._attach_run_correction(record)
+        self._attach_run_disposition(record)
         if not include_validation_report:
             return record
         bundle_dir = record.get("bundle_dir")
@@ -4658,6 +4674,137 @@ class JobService:
         )
         if correction is not None:
             record["run_correction"] = correction.to_primitive()
+
+    def _attach_run_disposition(self, record: dict[str, Any]) -> None:
+        """Attach a sibling last call at read time. Never invent ``use``."""
+
+        if (
+            record.get("action") != "train"
+            or record.get("state") != RunState.COMPLETED.value
+        ):
+            return
+        job_id = record.get("id") or record.get("job_id")
+        if not isinstance(job_id, str):
+            return
+        try:
+            path = self._disposition_path(job_id)
+        except KeyError:
+            return
+        if path.is_symlink():
+            record["run_disposition_error"] = (
+                "Run disposition sibling is a symlink; Aptus will not follow it."
+            )
+            return
+        if not path.exists():
+            return
+        if not path.is_file():
+            record["run_disposition_error"] = (
+                "Run disposition sibling is not a regular file."
+            )
+            return
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            disposition = run_disposition_from_primitive(payload)
+        except (OSError, RecursionError, TypeError, ValueError) as error:
+            record["run_disposition_error"] = (
+                f"Could not read the run disposition: {error}"
+            )
+            return
+        if disposition.job_id != job_id:
+            record["run_disposition_error"] = (
+                "Run disposition job_id does not match the job record."
+            )
+            return
+        record["run_disposition"] = disposition.to_primitive()
+
+    def save_disposition(self, job_id: str, kind: str) -> dict[str, Any]:
+        """Persist an operator-attested last call beside a completed train job."""
+
+        record = self.get(job_id)
+        if (
+            record.get("action") != "train"
+            or record.get("state") != RunState.COMPLETED.value
+        ):
+            raise JobDispositionError(
+                "Cannot attest a run disposition unless the job action is train "
+                f"and the state is completed; observed action={record.get('action')!r} "
+                f"state={record.get('state')!r}."
+            )
+        plan_id = record.get("plan_id")
+        candidate_id = record.get("candidate_id")
+        if not isinstance(plan_id, str) or not plan_id.strip():
+            raise JobDispositionError(
+                "Cannot attest a run disposition: the job record has no plan_id."
+            )
+        if not isinstance(candidate_id, str) or not candidate_id.strip():
+            raise JobDispositionError(
+                "Cannot attest a run disposition: the job record has no candidate_id."
+            )
+        run_id = record.get("run_id")
+        if run_id is not None and (
+            not isinstance(run_id, str) or not run_id.strip()
+        ):
+            run_id = None
+        validation_state = None
+        report = record.get("validation_report")
+        if isinstance(report, Mapping):
+            state = report.get("state")
+            if isinstance(state, str) and state.strip():
+                validation_state = state
+        run_correction_kind = None
+        correction = record.get("run_correction")
+        if isinstance(correction, Mapping):
+            correction_kind = correction.get("kind")
+            if isinstance(correction_kind, str) and correction_kind.strip():
+                run_correction_kind = correction_kind
+        evaluation_decision = record.get("evaluation_decision")
+        if evaluation_decision not in EVALUATION_DECISIONS:
+            evaluation_payload = record.get("evaluation")
+            if not isinstance(evaluation_payload, Mapping):
+                evaluation_payload = record.get("evaluation_result")
+            if isinstance(evaluation_payload, Mapping):
+                nested = evaluation_payload.get("decision")
+                if nested not in EVALUATION_DECISIONS:
+                    nested = evaluation_payload.get("evaluation_decision")
+                evaluation_decision = nested
+        if evaluation_decision not in EVALUATION_DECISIONS:
+            evaluation_decision = "omitted"
+        path = self._disposition_path(job_id)
+        previous_kind = None
+        with self._records_lock():
+            if path.is_symlink():
+                raise JobDispositionError(
+                    "Cannot attest a run disposition: the sibling file is a symlink."
+                )
+            if path.is_file():
+                try:
+                    existing = run_disposition_from_primitive(
+                        json.loads(path.read_text(encoding="utf-8"))
+                    )
+                except (OSError, RecursionError, TypeError, ValueError):
+                    existing = None
+                if existing is not None:
+                    if existing.job_id != job_id:
+                        raise JobDispositionError(
+                            "Cannot attest a run disposition: an existing sibling "
+                            "belongs to a different job_id."
+                        )
+                    previous_kind = existing.kind
+            disposition = build_run_disposition(
+                kind=kind,
+                job_id=job_id,
+                plan_id=plan_id,
+                candidate_id=candidate_id,
+                run_id=run_id,
+                attested_at=_now(),
+                previous_kind=previous_kind,
+                validation_state=validation_state,
+                run_correction_kind=run_correction_kind,
+                evaluation_decision=evaluation_decision,
+            )
+            atomic_write_json(path, disposition.to_primitive(), mode=0o600)
+            os.chmod(path, 0o600)
+        return self.get(job_id)
 
     def list(self) -> list[dict[str, Any]]:
         records = []

@@ -1200,6 +1200,43 @@ class ApiEndpointTests(unittest.TestCase):
             )
         )
 
+    def seed_job(
+        self,
+        *,
+        job_id: str,
+        action: str = "train",
+        state: str = "completed",
+        plan_id: str = "plan_abc",
+        candidate_id: str = "cand_abc",
+        run_id: str | None = "run_abc",
+    ) -> str:
+        jobs = self.client.app.state.aptus.jobs
+        bundle = self.root / f"bundle-{job_id}"
+        bundle.mkdir(exist_ok=True)
+        (bundle / "validation-report.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "aptus.validation.v2",
+                    "state": "measured-run-pass",
+                }
+            ),
+            encoding="utf-8",
+        )
+        record = {
+            "schema_version": "aptus.job-record.v1",
+            "id": job_id,
+            "job_id": job_id,
+            "state": state,
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "action": action,
+            "bundle_dir": str(bundle),
+            "plan_id": plan_id,
+            "candidate_id": candidate_id,
+            "run_id": run_id,
+        }
+        (jobs.root / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
+        return job_id
+
     def test_plan_accepts_bound_inspection_receipt_and_marks_omission_attested(
         self,
     ) -> None:
@@ -2864,6 +2901,69 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(response.json()["required_state"], "measured-preflight-pass")
         self.assertEqual(response.json()["current_state"], "model-data-pass")
         self.assertEqual(response.json()["reason"], "insufficient_state")
+
+    def test_post_disposition_on_completed_train_returns_job(self) -> None:
+        job_id = self.seed_job(job_id="job_" + "a" * 32)
+        response = self.client.post(
+            f"/api/v1/jobs/{job_id}/disposition",
+            json={"kind": "use"},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertEqual(body["id"], job_id)
+        disposition = body["run_disposition"]
+        self.assertEqual(disposition["schema_version"], "aptus.run-disposition.v1")
+        self.assertEqual(disposition["kind"], "use")
+        self.assertEqual(disposition["source"], "operator-attested")
+        self.assertEqual(disposition["job_id"], job_id)
+        self.assertEqual(disposition["plan_id"], "plan_abc")
+        self.assertIsNone(disposition["previous_kind"])
+        self.assertEqual(disposition["operator_next_step"]["action"], "load-adapter")
+        self.assertEqual(disposition["evidence"]["evaluation_decision"], "omitted")
+
+    def test_post_disposition_on_pilot_is_typed_as_http_409(self) -> None:
+        job_id = self.seed_job(
+            job_id="job_" + "b" * 32, action="pilot", state="completed"
+        )
+        response = self.client.post(
+            f"/api/v1/jobs/{job_id}/disposition",
+            json={"kind": "use"},
+        )
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(response.json()["error"], "job_disposition_refused")
+        self.assertTrue(response.json()["message"])
+
+    def test_post_disposition_missing_job_is_typed_as_http_404(self) -> None:
+        job_id = "job_" + "c" * 32
+        response = self.client.post(
+            f"/api/v1/jobs/{job_id}/disposition",
+            json={"kind": "done"},
+        )
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertEqual(response.json()["error"], "job_not_found")
+        self.assertEqual(response.json()["job_id"], job_id)
+
+    def test_get_job_includes_run_disposition_after_post(self) -> None:
+        job_id = self.seed_job(job_id="job_" + "d" * 32)
+        posted = self.client.post(
+            f"/api/v1/jobs/{job_id}/disposition",
+            json={"kind": "done"},
+        )
+        self.assertEqual(posted.status_code, 200, posted.text)
+        response = self.client.get(f"/api/v1/jobs/{job_id}")
+        self.assertEqual(response.status_code, 200, response.text)
+        disposition = response.json()["run_disposition"]
+        self.assertEqual(disposition["kind"], "done")
+        self.assertEqual(disposition["source"], "operator-attested")
+        self.assertEqual(disposition["operator_next_step"]["action"], "none")
+
+    def test_get_job_omits_run_disposition_without_sibling(self) -> None:
+        job_id = self.seed_job(job_id="job_" + "e" * 32)
+        response = self.client.get(f"/api/v1/jobs/{job_id}")
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertIsNone(body.get("run_disposition"))
+        self.assertNotEqual((body.get("run_disposition") or {}).get("kind"), "use")
 
     def test_validate_response_defers_deep_pilot_authorization_to_submit(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

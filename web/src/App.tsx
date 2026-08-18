@@ -881,6 +881,20 @@ export default function App() {
     }
   };
 
+  const handleDisposeJob = async (kind: "use" | "done" | "stop") => {
+    if (!job || demoMode) return;
+    beginAction("dispose-job");
+    try {
+      applyJobUpdate(await api.disposeJob(job.id, kind));
+      setConnection("connected");
+      setNotice(`Recorded operator-attested last call ${kind} for ${job.id}.`);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      finishAction();
+    }
+  };
+
   const handleRefreshJob = async () => {
     if (!job || demoMode) return;
     beginAction("refresh-job");
@@ -1224,6 +1238,7 @@ export default function App() {
               onCreateJob={handleCreateJob}
               onRefreshJob={handleRefreshJob}
               onCancelJob={handleCancelJob}
+              onDisposeJob={handleDisposeJob}
               onReturnToValidate={() => setStage("validate")}
             />
           ) : null}

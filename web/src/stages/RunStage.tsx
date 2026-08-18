@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CompileResponse, Job, ValidationReport } from "../types";
+import type { CompileResponse, Job, RunDispositionKind, ValidationReport } from "../types";
 import { EmptyStage } from "../components/EmptyStage";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 import { RunConsole } from "../components/RunConsole";
@@ -20,6 +20,7 @@ interface RunStageProps {
   onCreateJob: (mode: "dependency" | "model-data" | "preflight" | "pilot" | "train") => Promise<void>;
   onRefreshJob: () => Promise<void>;
   onCancelJob: () => Promise<void>;
+  onDisposeJob: (kind: RunDispositionKind) => Promise<void>;
   onReturnToValidate: () => void;
 }
 
@@ -37,6 +38,7 @@ export function RunStage({
   onCreateJob,
   onRefreshJob,
   onCancelJob,
+  onDisposeJob,
   onReturnToValidate,
 }: RunStageProps) {
   const desktopBridge = getDesktopBridge();
@@ -81,7 +83,7 @@ export function RunStage({
 
   const jobMonitor = job ? (
     <>
-      <RunConsole job={job} example={demoMode} />
+      <RunConsole job={job} example={demoMode} busy={busy} onDisposeJob={onDisposeJob} />
       {!demoMode ? (
         <>
           <div className="console-actions">

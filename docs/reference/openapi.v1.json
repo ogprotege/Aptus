@@ -408,6 +408,25 @@
         "title": "ConditionalModelCompatibilityResponse",
         "type": "object"
       },
+      "DisposeJobRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "use",
+              "done",
+              "stop"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DisposeJobRequest",
+        "type": "object"
+      },
       "Distribution": {
         "enum": [
           "single",
@@ -1933,6 +1952,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RunCorrectionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_disposition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunDispositionResponse"
               },
               {
                 "type": "null"
@@ -4199,6 +4228,169 @@
         "title": "RunCorrectionResponse",
         "type": "object"
       },
+      "RunDispositionEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation_decision": {
+            "enum": [
+              "pass",
+              "fail",
+              "abstain",
+              "omitted"
+            ],
+            "title": "Evaluation Decision",
+            "type": "string"
+          },
+          "run_correction_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Correction Kind"
+          },
+          "validation_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation State"
+          }
+        },
+        "required": [
+          "validation_state",
+          "run_correction_kind",
+          "evaluation_decision"
+        ],
+        "title": "RunDispositionEvidenceResponse",
+        "type": "object"
+      },
+      "RunDispositionNextStepResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "load-adapter",
+              "none"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "label"
+        ],
+        "title": "RunDispositionNextStepResponse",
+        "type": "object"
+      },
+      "RunDispositionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "attested_at": {
+            "title": "Attested At",
+            "type": "string"
+          },
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/RunDispositionEvidenceResponse"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "use",
+              "done",
+              "stop"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "operator_next_step": {
+            "$ref": "#/components/schemas/RunDispositionNextStepResponse"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "previous_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "use",
+                  "done",
+                  "stop"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Kind"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "schema_version": {
+            "const": "aptus.run-disposition.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source": {
+            "const": "operator-attested",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "kind",
+          "job_id",
+          "plan_id",
+          "candidate_id",
+          "run_id",
+          "attested_at",
+          "previous_kind",
+          "source",
+          "evidence",
+          "operator_next_step",
+          "non_claims"
+        ],
+        "title": "RunDispositionResponse",
+        "type": "object"
+      },
       "RuntimeConfigureRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6153,6 +6345,115 @@
           }
         },
         "summary": "Cancel Job"
+      }
+    },
+    "/api/v1/jobs/{job_id}/disposition": {
+      "post": {
+        "operationId": "dispose_job_api_v1_jobs__job_id__disposition_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisposeJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "summary": "Dispose Job"
       }
     },
     "/api/v1/models/inspect": {

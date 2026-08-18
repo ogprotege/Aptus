@@ -4,7 +4,7 @@
 >
 > **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, the reviewed Phase 8 guarded-frontier outcome, the reviewed Phase 9 endurance outcome, and the reviewed Phase 10 campaign certification
 >
-> **Last reviewed:** 2026-08-16
+> **Last reviewed:** 2026-08-18
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 147 tracked Markdown documents. Of those, 146 are
+The repository tree contains 149 tracked Markdown documents. Of those, 148 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -56,20 +56,23 @@ The training-policy increment adds one active implementation plan at
 `docs/superpowers/plans/2026-08-16-training-policy-and-run-correction.md`
 and one active bibliography at
 `docs/research/training-policy-bibliography.md`.
+Lane 3 adds the spec and the implementation plan (two active Markdown files):
+`docs/superpowers/specs/2026-08-18-lane-3-run-disposition-design.md` and
+`docs/superpowers/plans/2026-08-18-lane-3-run-disposition.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 117 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 119 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 146 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 148 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 146 governed
-Markdown files. Together with the root `LICENSE`, that makes 147 maintained
+The automated `maintained_documentation()` set contains the 148 governed
+Markdown files. Together with the root `LICENSE`, that makes 149 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -134,6 +137,8 @@ engineering-review index, and all twelve archived engineering reviews.
 - [Product vision](../product/vision.md)
 - [Mission integrity program plan](../product/mission-integrity-plan.md)
 - [Training policy and run-correction implementation plan](../superpowers/plans/2026-08-16-training-policy-and-run-correction.md)
+- [Lane 3 run-disposition design spec](../superpowers/specs/2026-08-18-lane-3-run-disposition-design.md)
+- [Lane 3 run-disposition implementation plan](../superpowers/plans/2026-08-18-lane-3-run-disposition.md)
 - [Architecture documentation](../architecture/index.md)
 - [Artifact compiler](../architecture/artifact-compiler.md)
 - [Code map](../architecture/code-map.md)

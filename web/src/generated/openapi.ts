@@ -209,6 +209,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}/disposition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dispose Job */
+        post: operations["dispose_job_api_v1_jobs__job_id__disposition_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/models/inspect": {
         parameters: {
             query?: never;
@@ -599,6 +616,14 @@ export interface components {
             /** Supported Methods */
             supported_methods: components["schemas"]["Method"][];
             supported_runtime: components["schemas"]["TrainingRuntime"];
+        };
+        /** DisposeJobRequest */
+        DisposeJobRequest: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "use" | "done" | "stop";
         };
         /**
          * Distribution
@@ -1149,6 +1174,7 @@ export interface components {
             /** Project Revision Id */
             project_revision_id?: string | null;
             run_correction?: components["schemas"]["RunCorrectionResponse"] | null;
+            run_disposition?: components["schemas"]["RunDispositionResponse"] | null;
             /**
              * Schema Version
              * @constant
@@ -1861,6 +1887,62 @@ export interface components {
             source: "train_loss_observations+validation_loss_observations";
             /** Summary */
             summary: string;
+        };
+        /** RunDispositionEvidenceResponse */
+        RunDispositionEvidenceResponse: {
+            /**
+             * Evaluation Decision
+             * @enum {string}
+             */
+            evaluation_decision: "pass" | "fail" | "abstain" | "omitted";
+            /** Run Correction Kind */
+            run_correction_kind: string | null;
+            /** Validation State */
+            validation_state: string | null;
+        };
+        /** RunDispositionNextStepResponse */
+        RunDispositionNextStepResponse: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "load-adapter" | "none";
+            /** Label */
+            label: string;
+        };
+        /** RunDispositionResponse */
+        RunDispositionResponse: {
+            /** Attested At */
+            attested_at: string;
+            /** Candidate Id */
+            candidate_id: string;
+            evidence: components["schemas"]["RunDispositionEvidenceResponse"];
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "use" | "done" | "stop";
+            /** Non Claims */
+            non_claims: string[];
+            operator_next_step: components["schemas"]["RunDispositionNextStepResponse"];
+            /** Plan Id */
+            plan_id: string;
+            /** Previous Kind */
+            previous_kind: ("use" | "done" | "stop") | null;
+            /** Run Id */
+            run_id: string | null;
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "aptus.run-disposition.v1";
+            /**
+             * Source
+             * @constant
+             */
+            source: "operator-attested";
         };
         /** RuntimeConfiguredResponse */
         RuntimeConfiguredResponse: {
@@ -3191,6 +3273,95 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dispose_job_api_v1_jobs__job_id__disposition_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisposeJobRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

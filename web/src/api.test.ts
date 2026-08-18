@@ -1268,6 +1268,98 @@ describe("typed API client", () => {
     expect(job.state).toBe("cancelled");
   });
 
+  it("disposes a completed train through the bound job endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify(jobResponse({
+          state: "completed",
+          action: "train",
+          run_disposition: {
+            schema_version: "aptus.run-disposition.v1",
+            kind: "done",
+            job_id: "job_123",
+            plan_id: "plan_abc",
+            candidate_id: "cand_abc",
+            run_id: null,
+            attested_at: "2026-08-18T00:00:00Z",
+            previous_kind: null,
+            source: "operator-attested",
+            evidence: {
+              validation_state: "measured-run-pass",
+              run_correction_kind: "none",
+              evaluation_decision: "omitted",
+            },
+            operator_next_step: {
+              action: "none",
+              label: "I'm finished training this.",
+            },
+            non_claims: [
+              "Training finished is not this decision.",
+              "Training loss is not this decision.",
+              "Gold exact-match is not general model quality.",
+              "This is not a 0.2 ship, freeze, or stop.",
+            ],
+          },
+        })),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const job = await api.disposeJob("job_123", "done");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/jobs/job_123/disposition",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ kind: "done" }),
+      }),
+    );
+    expect(job.mode).toBe("train");
+    expect(job.run_disposition).toMatchObject({
+      schema_version: "aptus.run-disposition.v1",
+      kind: "done",
+      source: "operator-attested",
+      operator_next_step: {
+        action: "none",
+        label: "I'm finished training this.",
+      },
+    });
+  });
+
+  it("does not invent use when a job disposition sibling is missing or invalid", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(jobResponse({ state: "completed", action: "train" })),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(jobResponse({
+            state: "completed",
+            action: "train",
+            run_disposition: {
+              schema_version: "aptus.run-disposition.v1",
+              kind: "cut",
+              source: "operator-attested",
+            },
+          })),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const missing = await api.getJob("job_123");
+    const invalid = await api.getJob("job_123");
+
+    expect(missing.run_disposition).toBeNull();
+    expect(invalid.run_disposition).toBeNull();
+    expect(missing.run_disposition?.kind).not.toBe("use");
+    expect(invalid.run_disposition?.kind).not.toBe("use");
+  });
+
   it("distinguishes estimated and tokenizer-measured profile evidence", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(

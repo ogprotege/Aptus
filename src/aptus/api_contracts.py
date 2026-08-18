@@ -718,6 +718,36 @@ class RunCorrectionResponse(ClosedResponseModel):
     non_claims: list[str]
 
 
+class RunDispositionNextStepResponse(ClosedResponseModel):
+    action: Literal["load-adapter", "none"]
+    label: str
+
+
+class RunDispositionEvidenceResponse(ClosedResponseModel):
+    validation_state: str | None
+    run_correction_kind: str | None
+    evaluation_decision: Literal["pass", "fail", "abstain", "omitted"]
+
+
+class RunDispositionResponse(ClosedResponseModel):
+    schema_version: Literal["aptus.run-disposition.v1"]
+    kind: Literal["use", "done", "stop"]
+    job_id: str
+    plan_id: str
+    candidate_id: str
+    run_id: str | None
+    attested_at: str
+    previous_kind: Literal["use", "done", "stop"] | None
+    source: Literal["operator-attested"]
+    evidence: RunDispositionEvidenceResponse
+    operator_next_step: RunDispositionNextStepResponse
+    non_claims: list[str]
+
+
+class DisposeJobRequest(ClosedResponseModel):
+    kind: Literal["use", "done", "stop"]
+
+
 class EvaluationNormalizationResponse(ClosedResponseModel):
     strip: bool
     collapse_whitespace: bool
@@ -999,6 +1029,7 @@ class JobResponse(ResponseModel):
     project_id: str | None = None
     project_revision_id: str | None = None
     run_correction: RunCorrectionResponse | None = None
+    run_disposition: RunDispositionResponse | None = None
 
 
 class ProjectRecoveryResponse(ResponseModel):

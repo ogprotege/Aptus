@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-16 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-18 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -167,6 +167,27 @@ Do not use:
 - “eval pass” from split validation loss;
 - “AutoML” or “start a hyperparameter search” as the product response;
 - “add weight decay as a sycophancy cure.”
+
+## Run disposition claims
+
+After a completed train, Aptus may attach `aptus.run-disposition.v1` as an
+operator-attested last call. It is not quality, recommendation, or a planner
+status change.
+
+Use:
+
+- “operator-attested run disposition”;
+- “no last call recorded”;
+- “Use is not a quality yes”;
+- “Done closes this recipe; it does not ship Aptus 0.2.”
+
+Do not use:
+
+- “Aptus decided this adapter is good”;
+- “gold fail means Stop”;
+- “measured-run-pass means Use”;
+- “cut this run”;
+- “reviewed 7B” after Use on an unreviewed runtime.
 
 ## Dependency claims
 

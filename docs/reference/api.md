@@ -125,6 +125,7 @@ boundary.
 | `GET /api/v1/jobs` | List persisted jobs | Reconciles each job |
 | `GET /api/v1/jobs/{job_id}` | Read one reconciled job | Can reconcile stale state |
 | `POST /api/v1/jobs/{job_id}/cancel` | Request cancellation | Updates job and terminates owned work |
+| `POST /api/v1/jobs/{job_id}/disposition` | Attest a run last call | Writes `{job_id}.disposition.json` beside the job |
 | `POST /api/v1/projects` | Create a named project | Writes a private project manifest |
 | `GET /api/v1/projects` | List healthy named projects | Can quarantine an unreadable project manifest |
 | `GET /api/v1/projects/{project_id}` | Read a project and latest immutable revision | Can repair a manifest to its latest safe revision |
@@ -830,13 +831,23 @@ attached validation report but include the current 16,000-byte log tail.
 
 Returns one reconciled record plus its current validation report. Completed
 train jobs receive a cheap artifact presence status. Polling does not repeat
-the completion-time recursive hash verification.
+the completion-time recursive hash verification. When a valid sibling last call
+exists, the record includes `run_disposition`. A missing sibling omits the
+field; Aptus does not invent `use`.
 
 ### `POST /api/v1/jobs/{job_id}/cancel`
 
 Returns terminal records unchanged. For active work, cancellation succeeds only
 through the owning `JobService`. The parent completion-verification phase is not
 cancellable. A missing ID returns `404 job_not_found`.
+
+### `POST /api/v1/jobs/{job_id}/disposition`
+
+Accepts `{ "kind": "use" | "done" | "stop" }`. Records an operator-attested
+last call beside a completed train job and returns the reconciled job with
+`run_disposition` attached. Aptus never infers the kind. A missing ID returns
+`404 job_not_found`. A job that is not a completed train, or another refused
+attest, returns `409 job_disposition_refused`.
 
 Job responses use `aptus.job-record.v1`. A schema-less legacy record migrates on
 read with durable authorization cleared. Corrupt, symlinked, or unsupported job
@@ -921,7 +932,7 @@ then inspect the remaining fields.
 | `400` | `invalid_request`, `filesystem_error`, `runtime_configuration_invalid`, local-inference configuration errors |
 | `403` | `path_forbidden`, `desktop_session_required`, `desktop_execution_disabled` |
 | `404` | `path_not_found`, `plan_not_found`, `job_not_found`, `project_not_found`, `project_revision_not_found`, route `not_found` |
-| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `runtime_validation_requires_job`, `runtime_unavailable`, `replan_required`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
+| `409` | `path_conflict`, `active_job_conflict`, `job_prerequisite_not_met`, `job_disposition_refused`, `runtime_validation_requires_job`, `runtime_unavailable`, `replan_required`, `project_revision_conflict`, `project_plan_mismatch`, `project_plan_snapshot_mismatch`, `project_bundle_mismatch`, `project_bundle_binding_mismatch` |
 | `422` | `request_validation`, `no_feasible_plan` |
 | `502`, `504` | Bounded local-inference service or timeout errors |
 

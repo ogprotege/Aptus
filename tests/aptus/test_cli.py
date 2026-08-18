@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from aptus.cli import main
 from aptus.domain import to_primitive
-from aptus.execution import JobPrerequisiteError
+from aptus.execution import JobDispositionError, JobPrerequisiteError
 from aptus.model_compatibility import (
     create_model_inspection_receipt,
     subject_from_model,
@@ -932,6 +932,124 @@ class CliIntegrationTests(unittest.TestCase):
         )
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["run_correction"]["kind"], "loss-flat")
+
+    def test_dispose_writes_disposition_and_prints_block(self) -> None:
+        service = MagicMock()
+        job_id = "job_" + "d" * 32
+        service.save_disposition.return_value = {
+            "schema_version": "aptus.job-record.v1",
+            "id": job_id,
+            "job_id": job_id,
+            "state": "completed",
+            "action": "train",
+            "bundle_dir": "/tmp/bundle",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "run_disposition": {
+                "schema_version": "aptus.run-disposition.v1",
+                "kind": "use",
+                "source": "operator-attested",
+                "operator_next_step": {
+                    "action": "load-adapter",
+                    "label": "Load this adapter",
+                },
+            },
+        }
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch("aptus.execution.JobService", return_value=service) as job_service,
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = main(
+                [
+                    "dispose",
+                    job_id,
+                    "--kind",
+                    "use",
+                    "--state-dir",
+                    "/tmp/aptus-state-test",
+                ]
+            )
+        self.assertEqual(code, 0)
+        job_service.assert_called_once_with(Path("/tmp/aptus-state-test") / "jobs")
+        service.save_disposition.assert_called_once_with(job_id, "use")
+        self.assertIn(
+            "Aptus run disposition (operator-attested; not quality):",
+            stderr.getvalue(),
+        )
+        self.assertIn("kind: use", stderr.getvalue())
+        self.assertIn("next: load-adapter — Load this adapter", stderr.getvalue())
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["run_disposition"]["kind"], "use")
+
+    def test_dispose_refuses_without_kind(self) -> None:
+        job_id = "job_" + "k" * 32
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as raised:
+                main(["dispose", job_id])
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--kind", stderr.getvalue())
+
+    def test_jobs_id_prints_disposition_block(self) -> None:
+        service = MagicMock()
+        job_id = "job_" + "s" * 32
+        service.get.return_value = {
+            "schema_version": "aptus.job-record.v1",
+            "id": job_id,
+            "job_id": job_id,
+            "state": "completed",
+            "action": "train",
+            "bundle_dir": "/tmp/bundle",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "run_disposition": {
+                "schema_version": "aptus.run-disposition.v1",
+                "kind": "done",
+                "source": "operator-attested",
+                "operator_next_step": {
+                    "action": "none",
+                    "label": "I'm finished training this.",
+                },
+            },
+        }
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with (
+            patch("aptus.execution.JobService", return_value=service),
+            contextlib.redirect_stdout(stdout),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = main(["jobs", "--id", job_id])
+        self.assertEqual(code, 0)
+        self.assertIn(
+            "Aptus run disposition (operator-attested; not quality):",
+            stderr.getvalue(),
+        )
+        self.assertIn("kind: done", stderr.getvalue())
+        self.assertIn(
+            "next: none — I'm finished training this.",
+            stderr.getvalue(),
+        )
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["run_disposition"]["kind"], "done")
+
+    def test_dispose_maps_disposition_error_to_aptus_error(self) -> None:
+        service = MagicMock()
+        service.save_disposition.side_effect = JobDispositionError(
+            "Cannot attest a run disposition unless the job action is train "
+            "and the state is completed; observed action='pilot' "
+            "state='completed'."
+        )
+        stderr = io.StringIO()
+        with (
+            patch("aptus.execution.JobService", return_value=service),
+            contextlib.redirect_stderr(stderr),
+        ):
+            code = main(["dispose", "job_" + "f" * 32, "--kind", "use"])
+        self.assertEqual(code, 2)
+        self.assertIn("Aptus error:", stderr.getvalue())
+        self.assertIn("Cannot attest a run disposition", stderr.getvalue())
 
     def test_ctrl_c_requests_owned_job_cancellation(self) -> None:
         service = MagicMock()

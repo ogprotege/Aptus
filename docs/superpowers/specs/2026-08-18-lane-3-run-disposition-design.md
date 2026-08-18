@@ -4,7 +4,8 @@
 > **Authority:** Subordinate to claim language, current capabilities, and mission invariants I1–I12  
 > **Increment:** Lane 3. **Not M10.** **Not a 0.2 ship.**  
 > **Implementation plan:** `docs/superpowers/plans/2026-08-18-lane-3-run-disposition.md`  
-> **Last reviewed:** 2026-08-18
+> **Last reviewed:** 2026-08-18  
+> **Next scheduled review:** After Tasks 1–6 merge, or before writing docs/product/0.2-cut-note.md
 
 Owner sign-off (chat 2026-08-18: "Approved"):
 

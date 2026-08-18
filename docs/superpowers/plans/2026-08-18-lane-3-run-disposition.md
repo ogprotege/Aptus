@@ -1,5 +1,7 @@
 # Lane 3 Run Disposition Implementation Plan
 
+> **Status:** Active | **Authority:** Implementation plan (subordinate to claim language and Lane 3 spec freeze) | **Applies to:** Aptus Lane 3 run-disposition increment, not M10, not a 0.2 ship | **Audience:** Agents executing Tasks 1–6 | **Last reviewed:** 2026-08-18 | **Review by:** After Tasks 1–6 merge, or before Task 7
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** After a completed train, let the operator attest Use / Done / Stop as a last call without turning `measured-run-pass`, loss, or gold into a quality yes.

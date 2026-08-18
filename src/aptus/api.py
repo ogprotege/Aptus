@@ -18,6 +18,7 @@ from .api_contracts import (
     API_CONTRACT_VERSION,
     BootstrapResponse,
     CompileResponse,
+    DisposeJobRequest,
     ErrorResponse,
     EvaluationContractResponse,
     EvaluationResultResponse,
@@ -579,6 +580,7 @@ def create_app(
     from .inspection import inspect_huggingface_model
     from .execution import (
         ActiveJobError,
+        JobDispositionError,
         JobPrerequisiteError,
         decorate_validation_authorization,
     )
@@ -2044,6 +2046,23 @@ def create_app(
             raise HTTPException(
                 status_code=404, detail={"error": "job_not_found", "job_id": job_id}
             ) from None
+
+    @app.post("/api/v1/jobs/{job_id}/disposition", response_model=JobResponse)
+    def dispose_job(job_id: str, request: DisposeJobRequest) -> dict[str, Any]:
+        try:
+            return context.jobs.save_disposition(job_id, request.kind)
+        except KeyError:
+            raise HTTPException(
+                status_code=404, detail={"error": "job_not_found", "job_id": job_id}
+            ) from None
+        except JobDispositionError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": error.code,
+                    "message": str(error),
+                },
+            ) from error
 
     @app.get("/api/v1/jobs", response_model=list[JobResponse])
     def list_jobs() -> list[dict[str, Any]]:

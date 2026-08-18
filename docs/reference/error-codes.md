@@ -56,6 +56,7 @@ Lifecycle conflicts use structured fields:
 | `409` | `path_conflict` | A no-clobber destination already exists |
 | `409` | `active_job_conflict` | A guarded operation conflicts with active Aptus work |
 | `409` | `job_prerequisite_not_met` | A managed action was submitted before its required state |
+| `409` | `job_disposition_refused` | An operator-attested run disposition was refused because the job is not a completed train or the sibling could not be written |
 | `409` | `runtime_validation_requires_job` | Runtime validation was requested through the synchronous endpoint |
 | `409` | `runtime_unavailable` | The selected bundle has no measured or explicitly configured Python interpreter |
 | `409` | `replan_required` | A saved plan uses v4, v3, v2, or no schema identifier, or a coherent v5 plan's decision or snapshot differs from the current host registry; recreate it deterministically under the `aptus.training-plan.v6` contract |

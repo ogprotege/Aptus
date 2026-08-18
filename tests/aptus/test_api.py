@@ -1234,9 +1234,7 @@ class ApiEndpointTests(unittest.TestCase):
             "candidate_id": candidate_id,
             "run_id": run_id,
         }
-        (jobs.root / f"{job_id}.json").write_text(
-            json.dumps(record), encoding="utf-8"
-        )
+        (jobs.root / f"{job_id}.json").write_text(json.dumps(record), encoding="utf-8")
         return job_id
 
     def test_plan_accepts_bound_inspection_receipt_and_marks_omission_attested(
@@ -2920,12 +2918,8 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertEqual(disposition["job_id"], job_id)
         self.assertEqual(disposition["plan_id"], "plan_abc")
         self.assertIsNone(disposition["previous_kind"])
-        self.assertEqual(
-            disposition["operator_next_step"]["action"], "load-adapter"
-        )
-        self.assertEqual(
-            disposition["evidence"]["evaluation_decision"], "omitted"
-        )
+        self.assertEqual(disposition["operator_next_step"]["action"], "load-adapter")
+        self.assertEqual(disposition["evidence"]["evaluation_decision"], "omitted")
 
     def test_post_disposition_on_pilot_is_typed_as_http_409(self) -> None:
         job_id = self.seed_job(
@@ -2961,9 +2955,7 @@ class ApiEndpointTests(unittest.TestCase):
         disposition = response.json()["run_disposition"]
         self.assertEqual(disposition["kind"], "done")
         self.assertEqual(disposition["source"], "operator-attested")
-        self.assertEqual(
-            disposition["operator_next_step"]["action"], "none"
-        )
+        self.assertEqual(disposition["operator_next_step"]["action"], "none")
 
     def test_get_job_omits_run_disposition_without_sibling(self) -> None:
         job_id = self.seed_job(job_id="job_" + "e" * 32)

@@ -89,12 +89,8 @@ class JobDispositionTests(unittest.TestCase):
                     service = JobService(jobs)
                     with self.assertRaises(JobDispositionError) as raised:
                         service.save_disposition(job_id, "use")
-                    self.assertEqual(
-                        raised.exception.code, "job_disposition_refused"
-                    )
-                    self.assertFalse(
-                        (jobs / f"{job_id}.disposition.json").exists()
-                    )
+                    self.assertEqual(raised.exception.code, "job_disposition_refused")
+                    self.assertFalse((jobs / f"{job_id}.disposition.json").exists())
 
     def test_save_disposition_writes_sibling_and_get_attaches(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -194,9 +190,7 @@ class JobDispositionTests(unittest.TestCase):
                         target = root / "elsewhere.json"
                         target.write_text("{}", encoding="utf-8")
                         os.symlink(target, sibling)
-                    got = JobService(jobs).get(
-                        job_id, include_validation_report=False
-                    )
+                    got = JobService(jobs).get(job_id, include_validation_report=False)
                     self.assertNotIn("run_disposition", got)
                     self.assertIn("run_disposition_error", got)
                     self.assertIsInstance(got["run_disposition_error"], str)

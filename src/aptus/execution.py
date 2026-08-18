@@ -4741,9 +4741,7 @@ class JobService:
                 "Cannot attest a run disposition: the job record has no candidate_id."
             )
         run_id = record.get("run_id")
-        if run_id is not None and (
-            not isinstance(run_id, str) or not run_id.strip()
-        ):
+        if run_id is not None and (not isinstance(run_id, str) or not run_id.strip()):
             run_id = None
         validation_state = None
         report = record.get("validation_report")

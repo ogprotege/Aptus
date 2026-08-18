@@ -56,7 +56,9 @@ class RunDispositionTests(unittest.TestCase):
             run_correction_kind=None,
             evaluation_decision="omitted",
         )
-        self.assertEqual(stop.operator_next_step.label, "Don't use this. Don't train this again.")
+        self.assertEqual(
+            stop.operator_next_step.label, "Don't use this. Don't train this again."
+        )
 
     def test_unknown_kind_and_cut_are_rejected(self) -> None:
         with self.assertRaises(ValueError):

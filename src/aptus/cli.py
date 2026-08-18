@@ -167,6 +167,29 @@ def _emit_run_correction_block(payload: Mapping[str, Any]) -> None:
     print("\n".join(lines), file=sys.stderr)
 
 
+def _print_job_run_disposition(job: Mapping[str, Any]) -> None:
+    """Print operator-attested run disposition (not quality) to stderr."""
+
+    payload = job.get("run_disposition")
+    if not isinstance(payload, Mapping):
+        return
+    _emit_run_disposition_block(payload)
+
+
+def _emit_run_disposition_block(payload: Mapping[str, Any]) -> None:
+    print(
+        "\n".join(
+            [
+                "Aptus run disposition (operator-attested; not quality):",
+                f"  kind: {payload.get('kind')}",
+                f"  next: {payload.get('operator_next_step', {}).get('action')} — "
+                f"{payload.get('operator_next_step', {}).get('label')}",
+            ]
+        ),
+        file=sys.stderr,
+    )
+
+
 def _print_plan_refusal_summary(plan: Any) -> None:
     """Print operator-facing what/why/what-can-change guidance to stderr.
 
@@ -581,6 +604,24 @@ def _parser() -> argparse.ArgumentParser:
         help="Managed job state root (default: .aptus-state).",
     )
     jobs.add_argument("--id", help="Return one reconciled job instead of the job list.")
+
+    dispose = commands.add_parser(
+        "dispose",
+        help="Attest Use, Done, or Stop for a completed train job (not quality).",
+    )
+    dispose.add_argument("job_id", help="Completed train job identifier.")
+    dispose.add_argument(
+        "--kind",
+        required=True,
+        choices=("use", "done", "stop"),
+        help="Operator last call: use, done, or stop. There is no default.",
+    )
+    dispose.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path(".aptus-state"),
+        help="Managed job state root (default: .aptus-state).",
+    )
 
     doctor = commands.add_parser(
         "doctor", help="Inspect local training-runtime readiness without changing it."
@@ -1076,9 +1117,18 @@ def _run(arguments: argparse.Namespace) -> int:
         if arguments.id:
             job = service.get(arguments.id)
             _print_job_run_correction(job)
+            _print_job_run_disposition(job)
             _write_json(job, None)
         else:
             _write_json(service.list(), None)
+        return 0
+    if arguments.command == "dispose":
+        from .execution import JobService
+
+        service = JobService(arguments.state_dir / "jobs")
+        job = service.save_disposition(arguments.job_id, arguments.kind)
+        _print_job_run_disposition(job)
+        _write_json(job, None)
         return 0
     if arguments.command == "doctor":
         from .diagnostics import build_doctor_report

@@ -27,6 +27,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `validate` | Validate one evidence level | `static`, direct | Validation report and lock; runtime artifacts when executed |
 | `run` | Submit a managed runtime action and wait | `preflight` | State records, log, report, and runtime artifacts |
 | `jobs` | List or inspect managed jobs | List all | May reconcile stale persisted state |
+| `dispose` | Attest Use, Done, or Stop for a completed train job (not quality) | None (`--kind` required) | Sibling `{job_id}.disposition.json` under state |
 | `doctor` | Inspect training-runtime readiness without changing it | Read `.aptus-state` and probe likely interpreters | Optional JSON output file; no installation |
 | `diagnostics` | Create a privacy-bounded support archive | Summarize `.aptus-state` | New mode-0600 ZIP |
 | `hardware` | Inspect local hardware | Local probe | None |
@@ -108,7 +109,7 @@ types, validation rules, side effects, and operational meaning.
   },
   "commands": {
     "aptus": {
-      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "doctor", "diagnostics", "serve", "hardware", "eval-contract", "eval", "inspect"], "default": null}
+      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "dispose", "doctor", "diagnostics", "serve", "hardware", "eval-contract", "eval", "inspect"], "default": null}
     },
     "aptus profile": {
       "--dataset": {"default": null},
@@ -155,6 +156,11 @@ types, validation rules, side effects, and operational meaning.
     "aptus jobs": {
       "--state-dir": {"default": ".aptus-state"},
       "--id": {"default": null}
+    },
+    "aptus dispose": {
+      "<job_id>": {"default": null},
+      "--kind": {"choices": ["use", "done", "stop"], "default": null},
+      "--state-dir": {"default": ".aptus-state"}
     },
     "aptus doctor": {
       "--state-dir": {"default": ".aptus-state"},
@@ -456,6 +462,37 @@ stale active record failed when its recorded process is no longer valid.
 Job records use `aptus.job-record.v1`. Schema-less legacy records migrate with
 durable authorization cleared. Corrupt, symlinked, or unsupported records move
 to private quarantine with a reason receipt instead of blocking healthy jobs.
+
+With `--id`, standard error may also print a training-signal correction block
+and, when a valid sibling exists, an operator-attested run-disposition block.
+Missing disposition means no last call recorded, not Use.
+
+## `aptus dispose`
+
+```bash
+aptus dispose JOB_ID --kind {use,done,stop} [--state-dir .aptus-state]
+```
+
+Attest an operator last call for a completed train job. There is no default
+kind. Aptus never infers Use from a parent pass, a loss series, or a gold
+score. Use is not a quality yes. Changing your mind is another explicit
+`dispose`; last attest wins.
+
+The command refuses unless the job exists, `action` is `train`, and `state` is
+`completed`. Those refusals, and a missing job, print `Aptus error:` and exit
+`2`. The sibling is `{state-dir}/jobs/{job_id}.disposition.json`. The job
+record identity, `plan_id`, and `measured-run-pass` do not change.
+
+Standard error prints:
+
+```text
+Aptus run disposition (operator-attested; not quality):
+  kind: done
+  next: none — I'm finished training this.
+```
+
+Standard output is the reconciled job JSON, including `run_disposition` when
+the sibling is valid.
 
 ## `aptus doctor`
 

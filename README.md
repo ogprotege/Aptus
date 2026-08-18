@@ -217,6 +217,7 @@ old revision creates a *new* revision and never restores training authorization.
 | `aptus validate` | Validate a bundle at one explicit evidence level. |
 | `aptus run` | Start one ordered dependency, model-data, preflight, pilot, or training job. |
 | `aptus jobs` | List or inspect persisted local jobs. |
+| `aptus dispose` | Attest Use, Done, or Stop for a completed train job (not quality). |
 | `aptus doctor` | Inspect local training-runtime readiness without changing it. |
 | `aptus diagnostics` | Create a privacy-bounded support archive. |
 | `aptus serve` | Serve the local API and built React app from one origin. |

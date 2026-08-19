@@ -1,10 +1,11 @@
 # Lane 4 — Workbench craft specification
 
-> **Status:** DRAFT — awaiting owner review  
+> **Status:** APPROVED 2026-08-19 — owner replied "I approve"  
 > **Authority:** Subordinate to claim language, current capabilities, the UI/UX contract, and mission invariants I1–I12  
 > **Increment:** Lane 4. **Not M10.** **Not 0.3.** **Not a 0.2 ship.**  
+> **Implementation plan:** `docs/superpowers/plans/2026-08-19-lane-4-workbench-craft.md`  
 > **Last reviewed:** 2026-08-19  
-> **Next scheduled review:** After owner approval, or before the implementation plan
+> **Next scheduled review:** After Tasks 1–7 merge, or when a later increment opens
 
 Owner sign-off (chat 2026-08-19):
 

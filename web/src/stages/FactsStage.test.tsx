@@ -385,4 +385,10 @@ describe("FactsStage", () => {
     expect(field).toHaveAccessibleDescription(/does not decide eval pass/i);
     expect(screen.queryByRole("heading", { name: /eval pass/i })).not.toBeInTheDocument();
   });
+
+  it("marks the evaluation-fraction field as caution, not a quality path", () => {
+    render(<FactsHarness />);
+    const field = screen.getByLabelText("Evaluation fraction").closest(".field");
+    expect(field).toHaveClass("evidence-caution");
+  });
 });

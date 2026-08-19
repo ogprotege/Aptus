@@ -931,6 +931,55 @@ code {
   border-style: dashed;
 }
 
+.bundle-contract.evidence-caution {
+  border-left: 4px solid var(--calibration-amber);
+}
+
+.candidate-card.evidence-path {
+  border-left: 3px solid var(--circuit-teal);
+}
+
+.candidate-card.evidence-caution {
+  border-left: 3px solid var(--calibration-amber);
+}
+
+.candidate-card.evidence-blocked {
+  border-left: 3px solid var(--fault-red);
+}
+
+.candidate-card.evidence-blocked.is-inspected {
+  border-color: var(--line);
+  border-left: 3px solid var(--fault-red);
+  box-shadow: none;
+}
+
+.candidate-table tbody tr.evidence-blocked.is-inspected {
+  background: color-mix(in srgb, var(--fault-red) 5%, var(--porcelain));
+  box-shadow: inset 2px 0 var(--fault-red);
+}
+
+.attestation-panel.evidence-path {
+  border-left: 3px solid var(--circuit-teal);
+}
+
+.attestation-panel.evidence-omitted {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--faint);
+}
+
+.correction-panel.last-call-door {
+  border: 1px solid var(--line);
+  box-shadow: none;
+  background: var(--porcelain);
+}
+
+.correction-panel.last-call-door.evidence-omitted {
+  color: var(--muted);
+  border-style: dashed;
+  background: var(--faint);
+}
+
 .provenance-dot,
 .status-dot {
   width: 7px;

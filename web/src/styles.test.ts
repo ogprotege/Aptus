@@ -35,4 +35,16 @@ describe("responsive workbench styles", () => {
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).not.toContain("confetti");
   });
+
+  it("locks compound evidence selectors so host borders cannot wipe the stripe", () => {
+    expect(styles).toContain(".bundle-contract.evidence-caution");
+    expect(styles).toContain(".candidate-card.evidence-path");
+    expect(styles).toContain(".candidate-card.evidence-caution");
+    expect(styles).toContain(".candidate-card.evidence-blocked");
+    expect(styles).toContain(".attestation-panel.evidence-path");
+    expect(styles).toContain(".attestation-panel.evidence-omitted");
+    expect(styles).toContain(".correction-panel.last-call-door");
+    expect(styles).toContain(".correction-panel.last-call-door.evidence-omitted");
+    expect(styles).toContain(".candidate-card.evidence-blocked.is-inspected");
+  });
 });

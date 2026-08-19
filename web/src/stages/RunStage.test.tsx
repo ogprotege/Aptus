@@ -462,6 +462,11 @@ describe("RunStage", () => {
     expect(region).not.toHaveTextContent(/recommended/i);
     expect(region).not.toHaveTextContent(/quality pass/i);
     expect(region).not.toHaveTextContent(/\bcut\b/i);
+    expect(region).toHaveTextContent("No last call recorded.");
+    expect(region).toHaveClass("last-call-door");
+    expect(region).toHaveClass("evidence-omitted");
+    expect(screen.getByRole("button", { name: "Use it" })).toHaveClass("button-secondary");
+    expect(screen.getByRole("button", { name: "Use it" })).not.toHaveClass("button-primary");
     expect(screen.getByRole("button", { name: "Use it" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Don't use it" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "I'm done training this" }));

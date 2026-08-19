@@ -101,7 +101,7 @@ export function ValidateStage({
             </div>
           ) : null}
           {activeReport.validation_level || activeReport.validator_version || bindings.length ? (
-            <section className="attestation-panel" aria-labelledby="attestation-title">
+            <section className={`attestation-panel ${reportBound ? "evidence-path" : "evidence-omitted"}`} aria-labelledby="attestation-title">
               <p className="eyebrow">{reportBound ? "Bound validation evidence" : "Unbound validation evidence"}</p>
               <h2 id="attestation-title">{reportBound
                 ? "Attestation bound to this artifact"

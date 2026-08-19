@@ -85,6 +85,9 @@ describe("ValidateStage", () => {
     expect(screen.getByText("Training finished is not an evaluation pass.")).toBeInTheDocument();
     expect(screen.getByText("nf4-double-quant")).toBeInTheDocument();
     expect(screen.getAllByText("2.00 GiB").length).toBeGreaterThan(0);
+    expect(screen.getByText("Bound validation evidence").closest("section")).toHaveClass(
+      "evidence-path",
+    );
   });
 
   it("renders the uninterrupted MLX pilot contract without implying resume", () => {

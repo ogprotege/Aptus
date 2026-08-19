@@ -62,6 +62,27 @@ describe("CompileStage", () => {
     });
   });
 
+  it("marks the generated-code boundary as caution, not a ship", () => {
+    render(
+      <CompileStage
+        plan={EXAMPLE_PLAN}
+        bundle={EXAMPLE_BUNDLE}
+        busy={null}
+        demoMode={false}
+        onCompile={vi.fn(async () => undefined)}
+        onValidate={vi.fn(async () => undefined)}
+        onReturnToCompare={vi.fn()}
+        outputDir="/tmp/aptus-output"
+        onOutputDirChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(/ready to ship/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/your model is ready/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Generated-code boundary").closest("section")).toHaveClass(
+      "evidence-caution",
+    );
+  });
+
   it("reveals the compiled bundle and archive in Finder", async () => {
     const bridge: AptusDesktopBridge = {
       platform: "macos",

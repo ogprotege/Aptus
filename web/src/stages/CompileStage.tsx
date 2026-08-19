@@ -140,7 +140,7 @@ export function CompileStage({
           </section>
           {desktopActionError ? <p className="native-action-error" role="alert">{desktopActionError}</p> : null}
           <ArtifactTree bundleDir={bundle.bundle_dir} files={bundle.files} />
-          <section className="bundle-contract" aria-labelledby="bundle-contract-title">
+          <section className="bundle-contract evidence-caution" aria-labelledby="bundle-contract-title">
             <p className="eyebrow">Generated-code boundary</p>
             <h2 id="bundle-contract-title">Facts remain in the plan.</h2>
             <p>The generated training entrypoint consumes the typed plan. Model identifiers and dataset paths should not be interpolated into executable source.</p>

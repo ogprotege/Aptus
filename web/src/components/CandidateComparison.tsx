@@ -27,6 +27,13 @@ function isSameCandidate(left: CandidatePlan | null, right: CandidatePlan): bool
   return left.method === right.method && left.distribution === right.distribution;
 }
 
+function evidenceClass(status: string): string {
+  if (status === "feasible") return "evidence-path";
+  if (status === "conditional") return "evidence-caution";
+  if (status === "infeasible" || status === "unsupported") return "evidence-blocked";
+  return "evidence-omitted";
+}
+
 export function CandidateComparison({
   candidates,
   recommended,
@@ -64,10 +71,14 @@ export function CandidateComparison({
           <tbody>
             {candidates.map((candidate, index) => {
               const batches = candidateBatches(candidate);
+              const status = candidateStatus(candidate);
               const isRecommended = isSameCandidate(recommended, candidate);
               const isInspected = isSameCandidate(inspected, candidate);
+              const rowClass = [evidenceClass(status), isInspected ? "is-inspected" : null]
+                .filter(Boolean)
+                .join(" ");
               return (
-                <tr key={candidateKey(candidate, index)} className={isInspected ? "is-inspected" : undefined}>
+                <tr key={candidateKey(candidate, index)} className={rowClass}>
                   <th scope="row">
                     <button
                       type="button"
@@ -85,8 +96,8 @@ export function CandidateComparison({
                   </th>
                   <td>
                     <StatusBadge
-                      state={candidateStatus(candidate)}
-                      label={fitStatusLabel(candidateStatus(candidate))}
+                      state={status}
+                      label={fitStatusLabel(status)}
                     />
                   </td>
                   <td className="mono-cell">
@@ -112,13 +123,14 @@ export function CandidateComparison({
       <div className="candidate-cards" aria-label="Candidate comparison cards">
         {candidates.map((candidate, index) => {
           const batches = candidateBatches(candidate);
+          const status = candidateStatus(candidate);
           const isRecommended = isSameCandidate(recommended, candidate);
           const isInspected = isSameCandidate(inspected, candidate);
           return (
             <button
               type="button"
               key={`${candidateKey(candidate, index)}-card`}
-              className={`candidate-card${isInspected ? " is-inspected" : ""}`}
+              className={`candidate-card ${evidenceClass(status)}${isInspected ? " is-inspected" : ""}`}
               aria-label={`Inspect ${formatMethod(candidate.method)} candidate evidence`}
               aria-pressed={isInspected}
               onClick={() => onInspect(candidate)}
@@ -126,8 +138,8 @@ export function CandidateComparison({
               <span className="candidate-card-title">
                 <strong>{formatMethod(candidate.method)}</strong>
                 <StatusBadge
-                  state={candidateStatus(candidate)}
-                  label={fitStatusLabel(candidateStatus(candidate))}
+                  state={status}
+                  label={fitStatusLabel(status)}
                 />
               </span>
               {isRecommended ? <span className="recommended-label">Recommended</span> : null}

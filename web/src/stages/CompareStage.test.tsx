@@ -115,6 +115,13 @@ const noFeasiblePlan: NoFeasibleComparisonPlan = {
   recommendation_rationale: [],
 };
 
+const unsupported: CandidatePlan = {
+  ...rejected,
+  candidate_id: `cand_${"d".repeat(20)}`,
+  status: "unsupported",
+  rejection_reasons: ["The method registry does not list this distribution."],
+};
+
 describe("CompareStage claim language", () => {
   it("does not call a missing recommendation a safe plan", () => {
     render(
@@ -135,6 +142,24 @@ describe("CompareStage claim language", () => {
       screen.getByText("Aptus did not find a viable strategy under these facts."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/safe plan/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps unsupported candidates visible with the blocked evidence class", () => {
+    render(
+      <CompareStage
+        plan={{ ...noFeasiblePlan, candidates: [unsupported] }}
+        selected={unsupported}
+        busy={null}
+        demoMode={false}
+        modelPolicyPresentation={null}
+        onInspectCandidate={vi.fn()}
+        onSelectCandidate={vi.fn(async () => undefined)}
+        onCompile={vi.fn(async () => undefined)}
+        onReturnToFacts={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByText(/unsupported/).length).toBeGreaterThan(0);
+    expect(document.querySelector(".evidence-blocked")).not.toBeNull();
   });
 
   it("does not treat a missing Pareto flag as No", () => {

@@ -583,7 +583,7 @@ export function FactsStage({
               </details>
             ) : null}
             <div className="field-row">
-              <div className="field">
+              <div className="field evidence-caution">
                 <label htmlFor="evaluation-fraction">Evaluation fraction</label>
                 <input id="evaluation-fraction" type="number" required min="0" max="0.99" step="0.01" value={draft.target.evaluation_fraction} onChange={(event) => updateTarget("evaluation_fraction", Number(event.target.value))} aria-describedby="evaluation-fraction-help" />
                 <small id="evaluation-fraction-help">Train/validation split only. This is not a quality-evaluation contract and does not decide eval pass.</small>

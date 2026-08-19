@@ -333,7 +333,10 @@ function RunDispositionPanel({
   const canAttest = Boolean(onDisposeJob) && !example;
 
   return (
-    <section className="correction-panel" aria-labelledby="run-disposition-title">
+    <section
+      className={disposition ? "correction-panel last-call-door" : "correction-panel last-call-door evidence-omitted"}
+      aria-labelledby="run-disposition-title"
+    >
       <div className="section-heading-row">
         <div>
           <p className="eyebrow">Operator-attested</p>

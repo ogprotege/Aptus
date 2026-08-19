@@ -15,7 +15,9 @@ export function StatusBadge({ state, label }: StatusBadgeProps) {
         ? "active"
         : ["warning", "blocked", "unknown", "conditional", "verified-at-completion-not-rehashed"].includes(normalized)
           ? "warning"
-          : "neutral";
+          : ["omitted", "absent", "no-last-call"].includes(normalized)
+            ? "omitted"
+            : "neutral";
 
   return (
     <span className={`status-badge status-${tone}`}>

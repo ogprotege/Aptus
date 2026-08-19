@@ -17,6 +17,16 @@
   --font-mono: "IBM Plex Mono", monospace;
   --motion-fast: 150ms;
   --motion-ease: cubic-bezier(0.22, 0.75, 0.2, 1);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --type-display: 1.75rem;
+  --type-title: 1.25rem;
+  --type-body: 1rem;
+  --type-meta: 0.875rem;
   color-scheme: light dark;
   color: var(--graphite);
   font-family: var(--font-body);
@@ -685,6 +695,10 @@ code {
   max-width: 780px;
 }
 
+.stage-header h1 {
+  font-size: var(--type-display);
+}
+
 .stage-header h1:focus {
   outline: none;
 }
@@ -693,7 +707,7 @@ code {
   max-width: 720px;
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: var(--type-meta);
 }
 
 .stage-meta {
@@ -705,7 +719,7 @@ code {
   margin-bottom: 8px;
   color: var(--circuit-teal);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: var(--type-meta);
   font-weight: 600;
   letter-spacing: 0.085em;
   text-transform: uppercase;
@@ -885,6 +899,85 @@ code {
   letter-spacing: 0.025em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.status-omitted,
+.evidence-omitted {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--faint);
+}
+
+.evidence-path {
+  border-left: 3px solid var(--circuit-teal);
+}
+
+.evidence-caution {
+  border-left: 3px solid var(--calibration-amber);
+}
+
+.evidence-blocked {
+  border-left: 3px solid var(--fault-red);
+}
+
+.last-call-door {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: var(--space-5);
+  background: var(--porcelain);
+}
+
+.last-call-door.evidence-omitted {
+  border-style: dashed;
+}
+
+.bundle-contract.evidence-caution {
+  border-left: 4px solid var(--calibration-amber);
+}
+
+.candidate-card.evidence-path {
+  border-left: 3px solid var(--circuit-teal);
+}
+
+.candidate-card.evidence-caution {
+  border-left: 3px solid var(--calibration-amber);
+}
+
+.candidate-card.evidence-blocked {
+  border-left: 3px solid var(--fault-red);
+}
+
+.candidate-card.evidence-blocked.is-inspected {
+  border-color: var(--line);
+  border-left: 3px solid var(--fault-red);
+  box-shadow: none;
+}
+
+.candidate-table tbody tr.evidence-blocked.is-inspected {
+  background: color-mix(in srgb, var(--fault-red) 5%, var(--porcelain));
+  box-shadow: inset 2px 0 var(--fault-red);
+}
+
+.attestation-panel.evidence-path {
+  border-left: 3px solid var(--circuit-teal);
+}
+
+.attestation-panel.evidence-omitted {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--faint);
+}
+
+.correction-panel.last-call-door {
+  border: 1px solid var(--line);
+  box-shadow: none;
+  background: var(--porcelain);
+}
+
+.correction-panel.last-call-door.evidence-omitted {
+  color: var(--muted);
+  border-style: dashed;
+  background: var(--faint);
 }
 
 .provenance-dot,

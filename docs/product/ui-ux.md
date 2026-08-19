@@ -1,6 +1,6 @@
 # UI and UX Contract
 
-> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-27 or when the workbench changes
+> **Status:** Active | **Authority:** Normative interface contract | **Applies to:** Aptus 0.2 | **Audience:** Workbench contributors and reviewers | **Last reviewed:** 2026-08-19 | **Review by:** 2026-10-27 or when the workbench changes
 
 The Mac product and contained workbench are local operator interfaces for the
 same Python contracts exposed by the CLI. They must make runtime identity,
@@ -65,6 +65,11 @@ The run stage contains five distinct actions:
 5. Confirm and start full training.
 
 The UI must not present these as one unreviewed automatic action.
+
+Lane 4 tightens craft across the five stages: presentation makes path, caution,
+and blocked readable without a legend, but craft is not a stronger evidence
+level. An empty last call is omitted rather than invented; color remains not the
+only status signal.
 
 ## Facts stage
 

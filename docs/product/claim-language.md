@@ -179,6 +179,7 @@ Use:
 - “operator-attested run disposition”;
 - “no last call recorded”;
 - “Use is not a quality yes”;
+- “craft is not a quality yes”;
 - “Done closes this recipe; it does not ship Aptus 0.2.”
 - “cut-freeze 0.2 as the five-stage referee”
 

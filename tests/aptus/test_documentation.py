@@ -5095,6 +5095,7 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertIn("operator-attested run disposition", claim_language)
         self.assertIn("Use is not a quality yes", claim_language)
+        self.assertIn("craft is not a quality yes", claim_language)
         self.assertIn("cut-freeze 0.2 as the five-stage referee", claim_language)
         cut_note = (REPOSITORY / "docs/product/0.2-cut-note.md").read_text(
             encoding="utf-8"

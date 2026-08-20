@@ -54,6 +54,8 @@ that protect it.
 | [`diagnostics.py`](../../src/aptus/diagnostics.py) | Read-only environment doctor and privacy-bounded support archive | Package installation or secret collection |
 | [`correction.py`](../../src/aptus/correction.py) | Presentation-only plan correction summaries | Plan identity or new methods |
 | [`evaluation.py`](../../src/aptus/evaluation.py) | Optional exact-match evaluation contract and scoring | Model quality, safety, or human preference |
+| [`prepare_train.py`](../../src/aptus/prepare_train.py) | Order JSONL so named rows stay in the MLX compiled-train prefix | Dataset quality or an optimum split |
+| [`emit_run.py`](../../src/aptus/emit_run.py) | This-host hardware fill and runnable spec-plan/ladder script emission | Training, remote-host facts, or an optimum rank |
 | [`cli.py`](../../src/aptus/cli.py) | Command parsing and orchestration over the same core contracts | Alternate planning or validation semantics |
 | [`desktop.py`](../../src/aptus/desktop.py) | Ephemeral loopback binding and private desktop-service readiness | Native UI state or a public network service |
 
@@ -114,7 +116,7 @@ string constants, so a change belongs in the resource file rather than in a
 generator literal. The `_BUNDLE_PROGRAMS` mapping declares the per-runtime set:
 
 - CUDA emits four: `train.py`, `run.py`, `preflight.py`, `validate.py`;
-- MLX-LM emits five: the same four plus `reload.py`.
+- MLX-LM emits six: the same four plus `reload.py` and `eval.py`.
 
 Every compiler copies the current `plan_contract.py`, `policy_snapshot.py`, and
 `runtime_lease.py` into the bundle. The MLX-LM compiler emits its own bounded validator, runner,
@@ -178,7 +180,7 @@ The Python tests broadly mirror production modules:
   shapes, normalized subject identity, and generic decision parity;
 - `test_execution.py` and `test_runtime_lease.py` protect job, lease,
   cancellation, recovery, and completion behavior;
-- `test_api.py` and `test_cli.py` protect public interfaces;
+- `test_api.py`, `test_cli.py`, and `test_emit_run.py` protect public interfaces;
 - `test_documentation.py` checks current Markdown links, fences, and stale
   contract identifiers.
 
@@ -196,6 +198,7 @@ Vitest and Testing Library.
 | Make a method selectable | `domain.py`, registry, planner, catalog | Generator, validation, export, API/UI, negative tests, target-host pilots |
 | Change memory arithmetic | `planning.py` | Formula version, identity, methodology, release gates, calibration tests |
 | Change bundle contents | `generation.py` | Required files, manifest validation, archive determinism, installed-wheel smoke |
+| Change this-host script emission | `emit_run.py` and `prepare_train.py` | CLI parser contract, MLX `eval.py`, claim language |
 | Change runtime evidence | Generated templates and `validation.py` | `attestation.py`, `execution.py`, state docs, failure tests |
 | Change job behavior | `execution.py` and `runtime_lease.py` | API/CLI/UI, recovery, cancellation, multi-process tests |
 | Change an endpoint | `api.py` | `web/src/api.ts`, `types.ts`, API tests, API reference |

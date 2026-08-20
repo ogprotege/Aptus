@@ -4,7 +4,7 @@
 >
 > **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, the reviewed Phase 8 guarded-frontier outcome, the reviewed Phase 9 endurance outcome, and the reviewed Phase 10 campaign certification
 >
-> **Last reviewed:** 2026-08-18
+> **Last reviewed:** 2026-08-20
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 152 tracked Markdown documents. Of those, 151 are
+The repository tree contains 153 tracked Markdown documents. Of those, 152 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -65,20 +65,22 @@ Lane 4 adds the workbench-craft design spec at
 `docs/superpowers/specs/2026-08-19-lane-4-workbench-craft-design.md`
 and the implementation plan at
 `docs/superpowers/plans/2026-08-19-lane-4-workbench-craft.md`.
+Lane 5 adds the recitation-first specialist-eval design spec at
+`docs/superpowers/specs/2026-08-20-lane-5-recitation-first-eval-design.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 122 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 123 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 151 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 152 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 151 governed
-Markdown files. Together with the root `LICENSE`, that makes 152 maintained
+The automated `maintained_documentation()` set contains the 152 governed
+Markdown files. Together with the root `LICENSE`, that makes 153 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -148,6 +150,7 @@ engineering-review index, and all twelve archived engineering reviews.
 - [Lane 3 run-disposition implementation plan](../superpowers/plans/2026-08-18-lane-3-run-disposition.md)
 - [Lane 4 workbench-craft design spec](../superpowers/specs/2026-08-19-lane-4-workbench-craft-design.md)
 - [Lane 4 workbench-craft implementation plan](../superpowers/plans/2026-08-19-lane-4-workbench-craft.md)
+- [Lane 5 recitation-first eval design spec](../superpowers/specs/2026-08-20-lane-5-recitation-first-eval-design.md)
 - [Architecture documentation](../architecture/index.md)
 - [Artifact compiler](../architecture/artifact-compiler.md)
 - [Code map](../architecture/code-map.md)
@@ -341,7 +344,8 @@ compiled bundle:
 
 It also generates command help in `train.py`, `run.py`, `preflight.py`, and
 `validate.py`. MLX bundles additionally generate `reload.py`, whose fresh-child
-adapter reload is inference evidence rather than task-quality evidence. A
+adapter reload is inference evidence rather than task-quality evidence, and
+`eval.py` for optional greedy prediction JSONL. A
 registry-derived test matrix must equal every executable runtime, backend,
 method, and placement row, then compile each row and verify the three operator
 documents before a template change can pass.

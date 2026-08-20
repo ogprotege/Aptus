@@ -209,7 +209,9 @@ old revision creates a *new* revision and never restores training authorization.
 | Command | Purpose |
 | --- | --- |
 | `aptus profile` | Profile a local training dataset. |
+| `aptus prepare-train` | Order JSONL so recitation rows stay in the MLX compiled-train prefix. |
 | `aptus spec-plan` | Write a persisted v6 plan JSON without compiling. |
+| `aptus emit-run` | Probe this host, fill omitted hardware facts, and write runnable spec-plan/ladder scripts. Does not train. |
 | `aptus select-candidate` | Select one complete viable candidate into a new plan identity. |
 | `aptus plan` | Compatibility flow: plan, compile, validate, and archive. |
 | `aptus build` | Plan, compile, validate, and archive. |
@@ -225,6 +227,7 @@ old revision creates a *new* revision and never restores training authorization.
 | `aptus inspect` | Inspect local hardware or bounded provider model facts. |
 | `aptus eval-contract` | Bind a gold JSONL into an optional exact-match evaluation contract. |
 | `aptus eval` | Score operator-supplied predictions against that contract. Training finished is not an eval pass. |
+| `aptus eval-generate` | Run the MLX bundle `eval.py` program to write prediction-only JSONL. |
 
 `python -m aptus` is equivalent to `aptus`. Full flags are in the
 [CLI reference](docs/reference/cli.md).

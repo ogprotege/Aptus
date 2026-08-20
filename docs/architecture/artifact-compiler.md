@@ -71,6 +71,8 @@ original mode only when the Aptus-created directory still owns the path.
 - `run.py`: portable full-run parent and completion promoter.
 - `reload.py`: fresh-process adapter reload and bounded generation for MLX
   bundles.
+- `eval.py`: optional greedy CompletionsDataset generate for MLX bundles. Writes
+  prediction-only JSONL for host `aptus eval`. Not a training gate.
 - `plan_contract.py`: self-contained plan and manifest contract checks.
 - `policy_snapshot.py`: self-contained snapshot validation and generic policy
   evaluation.

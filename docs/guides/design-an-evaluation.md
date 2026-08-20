@@ -133,7 +133,8 @@ Preserve:
 
 Do not write this packet into a compiler-managed bundle path. Store the
 contract and result as separate artifacts. `aptus eval-contract` and
-`aptus eval` emit those artifacts; attaching a contract to a plan JSON is
+`aptus eval` emit those artifacts; MLX `eval.py` / `aptus eval-generate` write
+the prediction JSONL. Attaching a contract to a plan JSON is
 presentation-only and does not change `plan_id`.
 
 Maintain a small deterministic CI subset for contract and regression checks.

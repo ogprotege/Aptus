@@ -111,7 +111,7 @@ Host static validation AST-parses:
 - `train.py`; and
 - `validate.py`.
 
-For MLX bundles, the host also parses `reload.py`. The generated CUDA validator
+For MLX bundles, the host also parses `reload.py` and `eval.py`. The generated CUDA validator
 parses the seven-file list above. The generated MLX validator's `static` level
 reruns the self-contained plan and manifest contracts and records
 `static-pass`, but it does not AST-parse generated programs. Interpret the state

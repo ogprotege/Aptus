@@ -130,7 +130,7 @@ hosts, or become training runtimes. Responses are untrusted inference output.
 ## Code-execution boundary
 
 Generated `train.py`, `preflight.py`, `validate.py`, `run.py`, and MLX
-`reload.py` execute Python in the bundle environment. They also import the
+`reload.py` and `eval.py` execute Python in the bundle environment. They also import the
 manifested `plan_contract.py`, `policy_snapshot.py`, and `runtime_lease.py`
 helpers. Package installation and model loading can execute third-party code.
 Review direct pins, resolved dependencies, model settings, and the bundle before

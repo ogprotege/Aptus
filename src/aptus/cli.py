@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import secrets
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -224,7 +225,9 @@ def _print_plan_refusal_summary(plan: Any) -> None:
         print("\n".join(lines), file=sys.stderr)
 
 
-def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
+def _add_fact_arguments(
+    parser: argparse.ArgumentParser, *, hardware_required: bool = True
+) -> None:
     parser.add_argument(
         "--model-id", required=True, help="Provider repository ID, such as org/model."
     )
@@ -372,13 +375,13 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--gpu-count",
-        required=True,
+        required=hardware_required,
         type=int,
         help="Number of repeated manual device profiles.",
     )
     parser.add_argument(
         "--vram-gib",
-        required=True,
+        required=hardware_required,
         type=float,
         help="Total memory per declared device in GiB.",
     )
@@ -401,7 +404,10 @@ def _add_fact_arguments(parser: argparse.ArgumentParser) -> None:
         help="Declare the eight-bit base-load path supported.",
     )
     parser.add_argument(
-        "--host-ram-gib", required=True, type=float, help="Total host memory in GiB."
+        "--host-ram-gib",
+        required=hardware_required,
+        type=float,
+        help="Total host memory in GiB.",
     )
     parser.add_argument(
         "--host-ram-free-gib",
@@ -503,6 +509,27 @@ def _parser() -> argparse.ArgumentParser:
         help="Write JSON to this path instead of standard output.",
     )
 
+    prepare_train = commands.add_parser(
+        "prepare-train",
+        help=(
+            "Order a prompt/completion JSONL so named recitation rows stay in "
+            "the MLX compiled-train prefix."
+        ),
+    )
+    prepare_train.add_argument(
+        "--corpus", type=Path, required=True, help="All SFT rows."
+    )
+    prepare_train.add_argument(
+        "--include",
+        type=Path,
+        required=True,
+        help="Rows that must land in compiled train (usually gold.jsonl).",
+    )
+    prepare_train.add_argument("--output", type=Path, required=True)
+    prepare_train.add_argument("--evaluation-fraction", type=float, default=0.1)
+    prepare_train.add_argument("--seed", type=int, default=20260820)
+    prepare_train.add_argument("--manifest", type=Path)
+
     for name, help_text in (
         ("spec-plan", "Write a persisted v6 plan JSON without compiling."),
         ("plan", "Compatibility flow: plan, compile, validate, and archive."),
@@ -522,6 +549,52 @@ def _parser() -> argparse.ArgumentParser:
                 type=Path,
                 help="Optional path for the standalone plan JSON.",
             )
+
+    emit_run = commands.add_parser(
+        "emit-run",
+        help=(
+            "Probe this host, fill omitted hardware facts, and write runnable "
+            "spec-plan and ladder scripts. Does not train."
+        ),
+    )
+    _add_fact_arguments(emit_run, hardware_required=False)
+    emit_run.add_argument(
+        "--output",
+        required=True,
+        type=Path,
+        help="New directory for scripts, optional plan, and optional bundle.",
+    )
+    emit_run.add_argument(
+        "--include",
+        type=Path,
+        help="Gold/recitation JSONL mixed into the compiled-train prefix.",
+    )
+    emit_run.add_argument(
+        "--gold",
+        type=Path,
+        help="Gold JSONL for the emitted eval.sh; defaults to --include.",
+    )
+    emit_run.add_argument(
+        "--run-plan",
+        action="store_true",
+        help="Execute spec-plan into output/plan.json (still no train).",
+    )
+    emit_run.add_argument(
+        "--compile",
+        action="store_true",
+        help="Compile the plan into output/bundle after spec-plan.",
+    )
+    emit_run.add_argument(
+        "--state-dir",
+        type=Path,
+        help="Managed job state for the emitted ladder (default: output/state).",
+    )
+    emit_run.add_argument(
+        "--prepare-seed",
+        type=int,
+        default=20260820,
+        help="Seed for --include row order (default: 20260820).",
+    )
 
     compile_command = commands.add_parser(
         "compile", help="Compile a persisted plan JSON into a portable bundle."
@@ -781,6 +854,22 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         help="Write the result JSON here instead of standard output.",
     )
+
+    eval_generate = commands.add_parser(
+        "eval-generate",
+        help=(
+            "Run the bundle eval.py program to write prediction-only JSONL. "
+            "Does not import MLX into Aptus."
+        ),
+    )
+    eval_generate.add_argument(
+        "--bundle", required=True, type=Path, help="Compiled MLX bundle directory."
+    )
+    eval_generate.add_argument("--gold", required=True, type=Path)
+    eval_generate.add_argument("--adapter", required=True, type=Path)
+    eval_generate.add_argument("--output", required=True, type=Path)
+    eval_generate.add_argument("--max-tokens", type=int, default=256)
+    eval_generate.add_argument("--seed", type=int, default=17)
 
     inspect = commands.add_parser(
         "inspect", help="Inspect local hardware or bounded provider model facts."
@@ -1213,6 +1302,12 @@ def _run(arguments: argparse.Namespace) -> int:
         return _eval_contract(arguments)
     if arguments.command == "eval":
         return _eval(arguments)
+    if arguments.command == "prepare-train":
+        return _prepare_train(arguments)
+    if arguments.command == "emit-run":
+        return _emit_run(arguments)
+    if arguments.command == "eval-generate":
+        return _eval_generate(arguments)
     raise AssertionError(f"Unhandled command: {arguments.command}")
 
 
@@ -1260,6 +1355,181 @@ def _eval_contract(arguments: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def _prepare_train(arguments: argparse.Namespace) -> int:
+    from .prepare_train import prepare_train_file
+
+    payload = prepare_train_file(
+        corpus=arguments.corpus,
+        include=arguments.include,
+        output=arguments.output,
+        evaluation_fraction=arguments.evaluation_fraction,
+        seed=arguments.seed,
+        manifest=arguments.manifest,
+    )
+    _write_json(payload, None)
+    return 0
+
+
+def _emit_run(arguments: argparse.Namespace) -> int:
+    from .emit_run import (
+        emit_run_report,
+        fill_namespace_from_hardware,
+        probe_this_host,
+        spec_plan_argv,
+        write_eval_script,
+        write_ladder_script,
+        write_spec_plan_script,
+    )
+    from .prepare_train import prepare_train_file
+
+    workdir = arguments.output
+    workdir.mkdir(parents=True, exist_ok=True)
+    spec_plan_path = workdir / "spec-plan.sh"
+    report_path = workdir / "emit-run.json"
+    hardware_path = workdir / "hardware.json"
+    plan_path = workdir / "plan.json"
+    bundle_path = workdir / "bundle"
+    _refuse_existing(spec_plan_path, "emit-run spec-plan script")
+    _refuse_existing(report_path, "emit-run report")
+    _refuse_existing(hardware_path, "emit-run hardware snapshot")
+    reserve_gib = arguments.reserve_gib
+    hardware = probe_this_host(reserve_gib=reserve_gib)
+    notes = fill_namespace_from_hardware(arguments, hardware)
+    prepared_train = None
+    if arguments.include is not None and not (
+        arguments.backend == "mps" or arguments.training_runtime == "mlx-lm"
+    ):
+        raise ValueError(
+            "--include orders the MLX last-N valid tail. CUDA splits by hash "
+            "and seed. Omit --include on CUDA, or use spec-plan with split_group."
+        )
+    if arguments.include is not None:
+        prepared = workdir / "train.jsonl"
+        manifest = workdir / "split-manifest.json"
+        payload = prepare_train_file(
+            corpus=arguments.dataset,
+            include=arguments.include,
+            output=prepared,
+            evaluation_fraction=arguments.evaluation_fraction,
+            seed=arguments.prepare_seed,
+            manifest=manifest,
+        )
+        arguments.dataset = prepared
+        prepared_train = str(prepared.resolve())
+        notes.append(
+            "Prepared train JSONL keeps include rows out of the MLX valid tail "
+            f"({payload['include_in_train_prefix']} in prefix, "
+            f"{payload['compiled_valid_tail']} valid)."
+        )
+    argv = spec_plan_argv(arguments, plan_path)
+    write_spec_plan_script(spec_plan_path, argv)
+    scripts = [str(spec_plan_path)]
+    _write_json(to_primitive(hardware), hardware_path)
+    plan = None
+    bundle = None
+    should_plan = arguments.run_plan or arguments.compile
+    if should_plan:
+        _refuse_existing(plan_path, "emit-run plan")
+        from .planning import NoFeasiblePlanError
+
+        try:
+            plan = _make_plan(arguments)
+        except NoFeasiblePlanError as error:
+            _print_no_path_correction(error)
+            _print_plan_refusal_summary(
+                type("NoPathPlan", (), {"candidates": error.candidates})()
+            )
+            print(f"Aptus error: {error}", file=sys.stderr)
+            return 2
+        _write_json(plan, plan_path)
+        _print_plan_correction(plan)
+        _print_plan_training_policy(plan)
+        _print_plan_refusal_summary(plan)
+    if arguments.compile:
+        if plan is None:
+            raise ValueError("Compile requires a plan; pass --compile with --run-plan.")
+        compile_report = workdir / "compile.json"
+        _refuse_existing(compile_report, "emit-run compile report")
+        _write_json(_compile(plan, bundle_path), compile_report)
+        bundle = str(bundle_path.resolve())
+        state_dir = arguments.state_dir or (workdir / "state")
+        ladder_path = workdir / "ladder.sh"
+        write_ladder_script(
+            ladder_path,
+            python=sys.executable,
+            bundle=bundle_path,
+            state=state_dir,
+        )
+        scripts.append(str(ladder_path))
+        gold = arguments.gold or arguments.include
+        eval_program = bundle_path / "eval.py"
+        if gold is not None and eval_program.is_file():
+            eval_script = workdir / "eval.sh"
+            write_eval_script(
+                eval_script,
+                aptus_python=sys.executable,
+                bundle=bundle_path,
+                gold=gold,
+                eval_dir=workdir / "eval",
+            )
+            scripts.append(str(eval_script))
+        elif gold is not None:
+            notes.append(
+                "Gold was provided but this bundle has no eval.py; supply "
+                "predictions to aptus eval yourself."
+            )
+    report = emit_run_report(
+        workdir=workdir,
+        scripts=scripts,
+        notes=notes,
+        hardware=hardware,
+        plan=str(plan_path.resolve()) if plan is not None else None,
+        bundle=bundle,
+        prepared_train=prepared_train,
+    )
+    _write_json(report, report_path)
+    _write_json(report, None)
+    print(
+        "Aptus emit-run wrote scripts and did not train. "
+        "Full train still requires --confirm-full-train.",
+        file=sys.stderr,
+    )
+    return 0
+
+
+def _eval_generate(arguments: argparse.Namespace) -> int:
+    eval_program = arguments.bundle / "eval.py"
+    if not eval_program.is_file():
+        raise ValueError(
+            "Bundle has no eval.py. Aptus emits that program for MLX bundles; "
+            "CUDA bundles do not generate predictions."
+        )
+    if arguments.max_tokens <= 0:
+        raise ValueError("--max-tokens must be positive.")
+    _refuse_existing(arguments.output, "Predictions output")
+    from .runtime_env import resolve_runtime_interpreter
+
+    mlx_python = Path(resolve_runtime_interpreter("mlx-lm").path)
+    completed = subprocess.run(
+        [
+            str(mlx_python),
+            str(eval_program.resolve()),
+            "--gold",
+            str(arguments.gold.resolve()),
+            "--adapter",
+            str(arguments.adapter.resolve()),
+            "--output",
+            str(arguments.output.resolve()),
+            "--max-tokens",
+            str(arguments.max_tokens),
+            "--seed",
+            str(arguments.seed),
+        ],
+        check=False,
+    )
+    return completed.returncode
 
 
 def _eval(arguments: argparse.Namespace) -> int:

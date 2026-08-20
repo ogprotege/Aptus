@@ -309,6 +309,35 @@ class CliIntegrationTests(unittest.TestCase):
             )
             self.assertTrue((bundle / "bundle-manifest.json").is_file())
 
+    def test_eval_generate_refuses_bundles_without_eval_program(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / "bundle"
+            bundle.mkdir()
+            gold = root / "gold.jsonl"
+            gold.write_text(
+                '{"prompt":"q","completion":"a","id":"1"}\n', encoding="utf-8"
+            )
+            adapter = root / "adapter"
+            adapter.mkdir()
+            (adapter / "adapters.safetensors").write_bytes(b"not-real")
+            self.assertEqual(
+                main(
+                    [
+                        "eval-generate",
+                        "--bundle",
+                        str(bundle),
+                        "--gold",
+                        str(gold),
+                        "--adapter",
+                        str(adapter),
+                        "--output",
+                        str(root / "pred.jsonl"),
+                    ]
+                ),
+                2,
+            )
+
     def test_select_candidate_writes_new_plan_identity_without_clobbering(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

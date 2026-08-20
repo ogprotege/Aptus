@@ -246,6 +246,10 @@ acceptance remain open.
   the plan before device binding; the trainer configuration remains
   compiler-managed runtime input.
 - Local CUDA hardware inspection and explicit manual hardware facts.
+- `aptus emit-run` this-host probe, omitted-hardware fill, and runnable
+  spec-plan/ladder script emission. It does not train. `aptus prepare-train`
+  keeps named recitation rows in the MLX compiled-train prefix. MLX bundles
+  emit `eval.py`; `aptus eval-generate` subprocesses it.
 - Apple Silicon platform inspection for macOS version and build, chip name,
   logical CPU count, unified-memory capacity and current headroom, memory
   pressure, swap, Metal working-set guidance, optional Metal GPU core count,
@@ -407,7 +411,12 @@ acceptance remain open.
 - General quality evaluation, leaderboards, human-preference labels, or
   LLM-as-judge scoring. The optional `aptus.evaluation-contract.v1` binds a gold
   digest, `exact_match` threshold, and export digest only; it is not a quality
-  guarantee.
+  guarantee. MLX bundles emit portable `eval.py`; `aptus eval-generate`
+  subprocesses that program and does not import MLX into the referee. CUDA
+  bundles do not generate predictions.
+- Remote-host planning from `aptus emit-run`. That command probes this machine,
+  fills omitted hardware facts, and writes scripts. A CUDA profile for another
+  host still uses `spec-plan` with manual facts. `emit-run` does not train.
 - CUDA semantic export load validation as a parent completion gate. MLX pilot
   and full runs perform only a bounded fresh-process adapter generation check.
 - Exporter plugin contracts for merged or deployment-specific artifacts.

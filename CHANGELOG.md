@@ -8,6 +8,12 @@ All notable changes are recorded here.
 
 ### Added
 
+- Operator this-host commands `aptus prepare-train`, `aptus emit-run`, and
+  `aptus eval-generate`, plus portable MLX bundle `eval.py`. They check the
+  dataset split, probe hardware, write runnable spec-plan/ladder/eval scripts,
+  and generate prediction-only JSONL. They do not train, do not skip
+  `--confirm-full-train`, and are not a quality claim. `spec-plan` still
+  defaults `--objective memory`.
 - A standing mission-sustain checklist on every pull request (M9). It does not
   add a method or a measured ladder. Path Beta “current HEAD” wording is
   replaced with the recorded M4 source.

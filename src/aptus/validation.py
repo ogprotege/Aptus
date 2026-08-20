@@ -1377,17 +1377,18 @@ def validate_bundle(
             runtime_contract = validated_plan["recommended"]["runtime_contract"]
             is_mlx_bundle = runtime_contract.get("training_runtime") == "mlx-lm"
             if is_mlx_bundle:
-                reload_path = bundle_dir / "reload.py"
-                if reload_path.is_file():
-                    checked.add("reload.py")
-                else:
-                    findings.append(
-                        _finding(
-                            "MISSING_FILE",
-                            "Required MLX bundle file is missing: reload.py",
-                            path="reload.py",
+                for relative in ("reload.py", "eval.py"):
+                    path = bundle_dir / relative
+                    if path.is_file():
+                        checked.add(relative)
+                    else:
+                        findings.append(
+                            _finding(
+                                "MISSING_FILE",
+                                f"Required MLX bundle file is missing: {relative}",
+                                path=relative,
+                            )
                         )
-                    )
             else:
                 campaign_events_path = bundle_dir / "campaign_events.py"
                 if campaign_events_path.is_file():
@@ -1543,7 +1544,7 @@ def validate_bundle(
             "validate.py",
         ]
         if is_mlx_bundle:
-            python_sources.append("reload.py")
+            python_sources.extend(["reload.py", "eval.py"])
         for relative in python_sources:
             path = bundle_dir / relative
             if not path.is_file():
@@ -1570,7 +1571,7 @@ def validate_bundle(
             "validate.py",
         ]
         if is_mlx_bundle:
-            template_sources.append("reload.py")
+            template_sources.extend(["reload.py", "eval.py"])
         for relative in template_sources:
             path = bundle_dir / relative
             if path.is_file() and any(

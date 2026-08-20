@@ -317,6 +317,9 @@ class GeneratedOperatorDocumentationTests(unittest.TestCase):
                         self.assertIn("unified-memory headroom", runbook)
                         self.assertIn("never substitutes bitsandbytes", runbook)
                         self.assertNotIn("synthetic CUDA model", runbook)
+                        self.assertIn("python eval.py --gold GOLD.jsonl", readme)
+                        self.assertIn("python eval.py --gold GOLD.jsonl", runbook)
+                        self.assertIn("not general quality", runbook)
 
                     if distribution == "single":
                         self.assertIn("Single-device placement binds", decision)

@@ -13,6 +13,7 @@ from aptus.evaluation import (
     CONTRACT_SCHEMA_VERSION,
     EXACT_MATCH_IMPLEMENTATION,
     RESULT_SCHEMA_VERSION,
+    SUPPORTED_PREDICTION_FIELDS,
     attach_evaluation_contract,
     build_evaluation_contract,
     evaluate_predictions,
@@ -188,6 +189,33 @@ class EvaluationScoringTests(unittest.TestCase):
             failed = evaluate_predictions(contract, gold, predictions)
             self.assertEqual(failed.decision, "fail")
             self.assertEqual(failed.score, 0.5)
+
+    def test_prediction_field_beats_copied_gold_completion(self) -> None:
+        self.assertEqual(
+            SUPPORTED_PREDICTION_FIELDS, ("prediction", "output", "completion")
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            gold = Path(tmp) / "gold.jsonl"
+            predictions = Path(tmp) / "pred.jsonl"
+            _write_jsonl(gold, [{"id": "a", "completion": "The canon text."}])
+            contract = build_evaluation_contract(
+                dataset_path=gold,
+                claim="Score the prediction, not a copied gold completion.",
+                threshold=1.0,
+            )
+            _write_jsonl(
+                predictions,
+                [
+                    {
+                        "id": "a",
+                        "prediction": "a baptized male is incapable of celebrating marriage",
+                        "completion": "The canon text.",
+                    }
+                ],
+            )
+            result = evaluate_predictions(contract, gold, predictions)
+            self.assertEqual(result.decision, "fail")
+            self.assertEqual(result.score, 0.0)
 
     def test_missing_or_extra_ids_abstain(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

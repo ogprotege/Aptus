@@ -148,8 +148,13 @@ invalid-input condition, not a replanning condition.
 `measured-run-pass` means the exact run's metrics and structural export tree
 passed parent verification. Review output under the recorded `run_output_dir`.
 Use a separate, explicit evaluation contract before making a task-metric claim.
+`aptus emit-run` probes this host, fills omitted hardware facts, and writes
+`spec-plan.sh` plus, after `--compile`, `ladder.sh`. It does not train. Full
+train still requires `--confirm-full-train`.
+`aptus prepare-train` keeps named recitation rows out of the MLX valid tail.
 `aptus eval-contract` binds a gold JSONL digest, metric, and threshold.
-`aptus eval` scores operator-supplied predictions. A `measured-run-pass` or a
+`aptus eval-generate` subprocesses bundle `eval.py` for prediction-only JSONL.
+`aptus eval` scores those predictions. A `measured-run-pass` or a
 finite train loss is not that decision.
 
 ## Related documentation

@@ -29,6 +29,8 @@ record. Do not infer paths from timestamps or directory order.
 An optional evaluation contract and result live outside that ladder:
 
 ```bash
+aptus eval-generate --bundle BUNDLE --gold GOLD.jsonl \
+  --adapter ADAPTER --output PRED.jsonl
 aptus eval-contract --dataset GOLD.jsonl --claim "..." --threshold 1 --output contract.json
 aptus eval --contract contract.json --gold GOLD.jsonl --predictions PRED.jsonl --output result.json
 ```

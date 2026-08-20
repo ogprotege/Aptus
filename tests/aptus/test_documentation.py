@@ -1016,21 +1016,21 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 152)
+        self.assertEqual(len(repository_documents), 153)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 151)
-        self.assertEqual(len(active_documents), 122)
+        self.assertEqual(len(governed_documents), 152)
+        self.assertEqual(len(active_documents), 123)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 151)
-        self.assertIn("151 are governed", normalized_inventory)
-        self.assertIn("151 governed", normalized_inventory)
-        self.assertIn("152 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 122 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 152)
+        self.assertIn("152 are governed", normalized_inventory)
+        self.assertIn("152 governed", normalized_inventory)
+        self.assertIn("153 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 123 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
 
@@ -4923,6 +4923,9 @@ class DocumentationTests(unittest.TestCase):
         readme = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         self.assertIn("`aptus eval-contract`", readme)
         self.assertIn("`aptus eval`", readme)
+        self.assertIn("`aptus prepare-train`", readme)
+        self.assertIn("`aptus emit-run`", readme)
+        self.assertIn("`aptus eval-generate`", readme)
         self.assertIn("Training finished is not an eval pass", readme)
         capabilities = (REPOSITORY / "docs/product/current-capabilities.md").read_text(
             encoding="utf-8"

@@ -145,7 +145,10 @@ and result. V0.2 provides that first-class binding as optional
 `exact_match` only. A contract pass means the bound gold digest, supplied
 predictions, metric implementation, and threshold were met. It is not general
 quality, safety, human preference, or release evidence. `evaluation_fraction`
-remains a train/validation split control. It is not this contract.
+remains a train/validation split control. It is not this contract. MLX bundle
+`eval.py` and host `aptus eval-generate` write prediction-only JSONL; they are
+not a training gate and not a quality yes. `aptus emit-run` writes this-host
+scripts and does not train.
 
 ## Training-signal correction claims
 

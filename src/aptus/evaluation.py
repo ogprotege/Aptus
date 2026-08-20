@@ -25,7 +25,8 @@ RESULT_SCHEMA_VERSION = "aptus.evaluation-result.v1"
 EXACT_MATCH_IMPLEMENTATION = "aptus.exact-match.v1"
 SUPPORTED_METRICS = frozenset({"exact_match"})
 SUPPORTED_GOLD_FIELDS = frozenset({"completion", "output", "gold"})
-SUPPORTED_PREDICTION_FIELDS = frozenset({"prediction", "output", "completion"})
+# First present string wins. Order is load-bearing; do not make this a set.
+SUPPORTED_PREDICTION_FIELDS = ("prediction", "output", "completion")
 SUPPORTED_EXPORT_KINDS = frozenset({"adapter", "final-export"})
 DEFAULT_NON_CLAIMS = (
     "Training finished is not an evaluation pass.",
@@ -449,7 +450,7 @@ def evaluate_predictions(
     prediction_index = _index_rows(
         prediction_rows,
         id_field=contract.dataset.id_field,
-        text_fields=tuple(SUPPORTED_PREDICTION_FIELDS),
+        text_fields=SUPPORTED_PREDICTION_FIELDS,
         label="predictions",
     )
     missing = sorted(set(gold_index) - set(prediction_index))

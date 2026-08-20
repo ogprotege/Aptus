@@ -673,6 +673,7 @@ class BundleGenerationTests(unittest.TestCase):
             validate_source = (output / "validate.py").read_text(encoding="utf-8")
             run_source = (output / "run.py").read_text(encoding="utf-8")
             reload_source = (output / "reload.py").read_text(encoding="utf-8")
+            eval_source = (output / "eval.py").read_text(encoding="utf-8")
             readme = (output / "README.md").read_text(encoding="utf-8")
             runbook = (output / "runbook.md").read_text(encoding="utf-8")
             config = (output / "config" / "mlx-lm.yaml").read_text(encoding="utf-8")
@@ -701,6 +702,39 @@ class BundleGenerationTests(unittest.TestCase):
                     encoding="utf-8"
                 )
             )
+            manifest = json.loads(
+                (output / "bundle-manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(manifest["entrypoints"]["eval"], "eval.py")
+            self.assertNotRegex(eval_source, r"(?m)^\s*(import aptus\b|from aptus\b)")
+            self.assertIn("prediction", eval_source)
+            for source in (
+                train_source,
+                validate_source,
+                run_source,
+                reload_source,
+                eval_source,
+            ):
+                ast.parse(source)
+            eval_module = self._load_generated_path(
+                output, "eval.py", "aptus_generated_mlx_eval"
+            )
+            prompt, gold = eval_module.prompt_and_gold(
+                {"prompt": "Cite the canon.", "completion": "Canon 818."}
+            )
+            self.assertEqual(prompt, "Cite the canon.")
+            self.assertEqual(gold, "Canon 818.")
+            record = eval_module.prediction_record(
+                {
+                    "prompt": "Cite the canon.",
+                    "completion": "Canon 818.",
+                    "id": "g1",
+                },
+                0,
+                "wrong",
+            )
+            self.assertEqual(record["prediction"], "wrong")
+            self.assertNotIn("completion", record)
         self.assertEqual(report.state, ValidationState.STATIC_PASS)
         self.assertEqual(requirements, "mlx==0.31.2\nmlx-lm==0.31.3\n")
         self.assertNotIn("bitsandbytes", requirements)
@@ -742,11 +776,10 @@ class BundleGenerationTests(unittest.TestCase):
                 "data/mlx/split-contract.json",
                 "config/mlx-lm.yaml",
                 "reload.py",
+                "eval.py",
             }
             <= files
         )
-        for source in (train_source, validate_source, run_source, reload_source):
-            ast.parse(source)
 
         micro_batch = plan.recommended.micro_batch_size
         self.assertEqual(

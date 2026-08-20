@@ -42,7 +42,7 @@ parsed state.
 | `policy_snapshot_sha256` | string | SHA-256 of the canonical snapshot bytes; must equal the plan binding and manifested file digest |
 | `candidate_id` | string | Bound recommended candidate |
 | `formula_version` | string | Bound memory formula version |
-| `entrypoints` | object | Paths for `run`, `train`, `preflight`, `validate`, and MLX `reload` when present |
+| `entrypoints` | object | Paths for `run`, `train`, `preflight`, `validate`, MLX `reload` when present, and MLX `eval` when present |
 | `validation` | object | Supported levels and the state required before full training |
 | `files` | array | Sorted path, size, and SHA-256 entries |
 

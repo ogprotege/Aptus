@@ -40,7 +40,14 @@ _BUNDLE_PROGRAMS = {
         "preflight.py",
         "validate.py",
     ),
-    "mlx": ("train.py", "run.py", "reload.py", "preflight.py", "validate.py"),
+    "mlx": (
+        "train.py",
+        "run.py",
+        "reload.py",
+        "eval.py",
+        "preflight.py",
+        "validate.py",
+    ),
 }
 
 
@@ -440,7 +447,11 @@ python validate.py --level model-data
 python validate.py --level measured-preflight
 python validate.py --level pilot
 python run.py --confirm-full-train --output-dir runs/run_<new-name>
+python eval.py --gold GOLD.jsonl --adapter runs/run_<id>/final --output predictions.jsonl
 ```
+
+`eval.py` writes prediction-only JSONL for `aptus eval`. It is not a
+training gate and not a quality claim.
 
 The pilot proves at least two completed optimizer updates, finite train and
 validation loss, exact target-module coverage, a positive adapter delta, and a
@@ -593,6 +604,16 @@ Read `validation-report.json`, the selected run `metrics.json`, and
 `final-export.json`. `measured-run-pass` is operational and structural
 evidence. Use a separate evaluation contract before making a quality claim.
 
+## 8. Optional exact-match generate
+
+```bash
+python eval.py --gold GOLD.jsonl --adapter runs/run_<id>/final --output predictions.jsonl
+```
+
+This greedy CompletionsDataset generate writes only a `prediction` field.
+Score it with host `aptus eval`. It is not general quality, safety, or
+`measured-run-pass`.
+
 ## Resume boundary
 
 MLX-LM optimizer, scheduler, and random-state crash continuation is not
@@ -721,6 +742,7 @@ def _write_manifest(root: Path, plan: TrainingPlan) -> None:
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
     ):
         entrypoints["reload"] = "reload.py"
+        entrypoints["eval"] = "eval.py"
     _write_json(
         root / "bundle-manifest.json",
         {

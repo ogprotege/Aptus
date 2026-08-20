@@ -20,9 +20,11 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | Command | Purpose | Default action | Persistent side effects |
 | --- | --- | --- | --- |
 | `profile` | Profile a local dataset | Sample up to 512 valid rows for length statistics | Optional JSON output file |
+| `prepare-train` | Order JSONL so named recitation rows stay in the MLX train prefix | Evaluation fraction `0.1` | Train JSONL and optional split manifest |
 | `spec-plan` | Write a standalone v6 plan | Objective `memory` | Plan JSON output file |
 | `plan` | Compatibility flow for plan, compile, static validation, and archive | Same as `build` | Bundle, ZIP, optional plan file |
 | `build` | Plan, compile, static validation, and archive | Objective `memory` | Bundle, ZIP, optional plan file |
+| `emit-run` | Probe this host, fill omitted hardware, write runnable scripts | Objective `memory`; does not train | Scripts, hardware snapshot, optional plan/bundle |
 | `compile` | Compile a persisted plan | Archive beside bundle | Bundle, ZIP, validation report |
 | `validate` | Validate one evidence level | `static`, direct | Validation report and lock; runtime artifacts when executed |
 | `run` | Submit a managed runtime action and wait | `preflight` | State records, log, report, and runtime artifacts |
@@ -35,6 +37,7 @@ Run `aptus COMMAND --help` for the exact options in the installed build.
 | `inspect model` | Inspect bounded provider metadata | 10-second timeout | Provider network requests only |
 | `eval-contract` | Bind a gold JSONL into `aptus.evaluation-contract.v1` | `exact_match` | Optional contract JSON and optional presentation-only plan copy |
 | `eval` | Score predictions against a bound contract | Write result JSON | Optional result JSON; does not start a training job |
+| `eval-generate` | Run bundle `eval.py` to write prediction-only JSONL | Subprocess the portable program | Predictions JSONL; does not import MLX into Aptus |
 | `serve` | Serve an authenticated API and packaged workbench | `127.0.0.1:8787` | Per-launch workbench handoff, bearer token, state, and job records |
 
 ## Machine-readable parser contract
@@ -109,13 +112,21 @@ types, validation rules, side effects, and operational meaning.
   },
   "commands": {
     "aptus": {
-      "<command>": {"choices": ["profile", "spec-plan", "plan", "build", "compile", "select-candidate", "validate", "run", "jobs", "dispose", "doctor", "diagnostics", "serve", "hardware", "eval-contract", "eval", "inspect"], "default": null}
+      "<command>": {"choices": ["profile", "prepare-train", "spec-plan", "plan", "build", "emit-run", "compile", "select-candidate", "validate", "run", "jobs", "dispose", "doctor", "diagnostics", "serve", "hardware", "eval-contract", "eval", "eval-generate", "inspect"], "default": null}
     },
     "aptus profile": {
       "--dataset": {"default": null},
       "--sample-limit": {"default": 512},
       "--sequence-length": {"default": null},
       "--output": {"default": null}
+    },
+    "aptus prepare-train": {
+      "--corpus": {"default": null},
+      "--include": {"default": null},
+      "--output": {"default": null},
+      "--evaluation-fraction": {"default": 0.1},
+      "--seed": {"default": 20260820},
+      "--manifest": {"default": null}
     },
     "aptus spec-plan": {
       "$groups": ["planning-facts"],
@@ -130,6 +141,16 @@ types, validation rules, side effects, and operational meaning.
       "$groups": ["planning-facts"],
       "--output": {"default": null},
       "--plan-output": {"default": null}
+    },
+    "aptus emit-run": {
+      "$groups": ["planning-facts"],
+      "--output": {"default": null},
+      "--include": {"default": null},
+      "--gold": {"default": null},
+      "--run-plan": {"default": false},
+      "--compile": {"default": false},
+      "--state-dir": {"default": null},
+      "--prepare-seed": {"default": 20260820}
     },
     "aptus compile": {
       "--plan": {"default": null},
@@ -201,6 +222,14 @@ types, validation rules, side effects, and operational meaning.
       "--predictions": {"default": null},
       "--export-digest": {"default": null},
       "--output": {"default": null}
+    },
+    "aptus eval-generate": {
+      "--bundle": {"default": null},
+      "--gold": {"default": null},
+      "--adapter": {"default": null},
+      "--output": {"default": null},
+      "--max-tokens": {"default": 256},
+      "--seed": {"default": 17}
     },
     "aptus inspect": {
       "<inspect_command>": {"choices": ["hardware", "model"], "default": null}
@@ -331,6 +360,21 @@ are created and an existing file is replaced. The command reads every row for
 schema validation, counts, digesting, duplicate detection, and totals. The
 sample limit bounds only percentile statistics and sample indices.
 
+## `aptus prepare-train`
+
+```bash
+aptus prepare-train --corpus CORPUS.jsonl --include GOLD.jsonl \
+  --output TRAIN.jsonl [--evaluation-fraction 0.1] [--seed 20260820] \
+  [--manifest SPLIT.json]
+```
+
+MLX compile takes the last `round(n * evaluation_fraction)` rows of the training
+file as valid. Concatenating gold at the end of that file parks those rows in
+valid, so later exact-match on them is 0 even when the adapter recites train.
+This command mixes `--include` prompts into the compiled-train prefix and
+refuses to overwrite existing outputs. The split is `aptus.operator-mlx-split.v1`.
+It is not a quality claim.
+
 ## `aptus spec-plan`
 
 ```bash
@@ -363,6 +407,25 @@ Both names execute the same compatibility flow:
 The bundle destination must be absent or empty. The ZIP must not exist. The
 optional standalone plan is written before compilation and can therefore remain
 when a later compilation step fails.
+
+## `aptus emit-run`
+
+```bash
+aptus emit-run FACT_OPTIONS --output RUNDIR \
+  [--include GOLD.jsonl] [--gold GOLD.jsonl] \
+  [--run-plan] [--compile] [--state-dir STATE] [--prepare-seed 20260820]
+```
+
+This is the this-host operator command. It probes local hardware, fills omitted
+`--gpu-count`, `--vram-gib`, `--host-ram-gib`, free-RAM, and disk facts, writes
+`spec-plan.sh`, and optionally plans and compiles. On Apple Silicon, a parser
+default `--backend cuda` with no training runtime becomes `--backend mps
+--training-runtime mlx-lm`. `spec-plan` itself still defaults `--objective
+memory` (rank 8). Pass `--objective quality` when the token volume needs rank
+16. The command never trains. Full train remains
+`aptus run BUNDLE --action train --confirm-full-train`. Existing script, report,
+and hardware snapshot files are refused. `--compile` also writes `ladder.sh` and,
+for MLX bundles with gold, `eval.sh`.
 
 ## `aptus compile`
 
@@ -590,11 +653,25 @@ aptus eval --contract CONTRACT.json --gold GOLD.jsonl \
 ```
 
 This scores operator-supplied predictions against the bound gold digest using
-`aptus.exact-match.v1`. Aptus does not generate predictions. The command writes
-`aptus.evaluation-result.v1` and exits `0` only for `pass`. `fail` and
+`aptus.exact-match.v1`. `aptus eval` does not generate predictions. The command
+writes `aptus.evaluation-result.v1` and exits `0` only for `pass`. `fail` and
 `abstain` exit `1`. Missing or extra prediction identities, a gold-digest
 mismatch, or an export-digest mismatch abstain. This is not a managed training
 job and does not change validation state.
+
+## `aptus eval-generate`
+
+```bash
+aptus eval-generate --bundle BUNDLE --gold GOLD.jsonl \
+  --adapter ADAPTER --output PRED.jsonl [--max-tokens 256] [--seed 17]
+```
+
+This subprocesses the portable MLX `eval.py` in the compiled bundle. Aptus does
+not import MLX to generate. The program applies the CompletionsDataset chat
+template (user = prompt, assistant = completion), samples greedily, and writes
+only a `prediction` field so a copied gold `completion` cannot be scored as a
+match. CUDA bundles have no `eval.py`; the command fail-closes. Exact-match on
+the resulting file is not general quality.
 
 ## `aptus serve`
 

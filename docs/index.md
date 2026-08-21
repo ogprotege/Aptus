@@ -1,6 +1,6 @@
 # Aptus Documentation
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27 or when pages move
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** All readers | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-27 or when pages move
 
 Aptus plans, compiles, validates, and locally runs a bounded set of supervised
 fine-tuning strategies. These documents distinguish current product behavior,
@@ -15,6 +15,7 @@ The current portable contract uses `aptus.training-plan.v6`,
 | Understand what Aptus does | [Product vision](product/vision.md) | [Current capabilities](product/current-capabilities.md) |
 | Run something safely on this Mac | [Install Aptus for Mac](getting-started/install.md#build-aptus-for-mac) | [Choose your path](getting-started/choose-your-path.md) |
 | Plan for this Mac or a CUDA host | [Model, dataset, and hardware facts](guides/model-dataset-hardware.md) | [Compare plans](guides/compare-plans.md) |
+| Plan on this machine | [CLI `emit-run`](reference/cli.md#aptus-emit-run) | [First planning-only run](getting-started/first-plan.md) for typed remote facts |
 | Choose a fine-tuning method | [Method selection guide](guides/choose-a-method.md) | [Method taxonomy](methodology/method-taxonomy.md) |
 | Prepare a dataset | [Prepare a dataset](guides/prepare-a-dataset.md) | [Dataset schemas](reference/dataset-schemas.md) |
 | Compile and run a bundle | [Quickstart](getting-started/quickstart.md) | [Operator checklist](operations/operator-checklist.md) |

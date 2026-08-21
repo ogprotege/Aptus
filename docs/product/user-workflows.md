@@ -1,20 +1,22 @@
 # User Workflows
 
-> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-27 or when a workflow changes
+> **Status:** Active | **Authority:** Explanatory workflow guide | **Applies to:** Aptus 0.2 | **Audience:** Users and operators | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-27 or when a workflow changes
 
 ## Plan for a known host
 
 1. Pin the model repository to an immutable commit.
 2. Verify license and training permission.
-3. Profile the local dataset.
-4. Scan the target host or enter measured hardware facts.
+3. Profile the local dataset. For MLX recitation rows, `aptus prepare-train`
+   keeps `--include` prompts out of the compiled valid tail.
+4. On this machine, `aptus emit-run` probes hardware. For a remote CUDA host,
+   enter measured facts on `spec-plan`.
 5. Select MLX-LM for Apple Silicon or Transformers and PEFT for CUDA.
 6. State sequence length, effective batch, epochs, objective, and checkpoint
    interval.
 7. Compare all candidate statuses, runtime contracts, assumptions, and the
    three separate model-policy records for artifact match, selected candidate
    path, and evidence readiness.
-8. Compile the selected plan to a new path.
+8. Compile the selected plan to a new path, or pass `--compile` to `emit-run`.
 
 The current result is an `aptus.training-plan.v6` and an `aptus.bundle.v3`.
 Their identities cross-bind the compatibility decision and canonical

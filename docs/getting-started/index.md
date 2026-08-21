@@ -1,6 +1,6 @@
 # Getting Started
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when onboarding changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-22 or when onboarding changes
 
 Choose the smallest path that proves what you need.
 
@@ -9,10 +9,14 @@ Choose the smallest path that proves what you need.
 1. [Choose your Aptus path](choose-your-path.md) to separate local planning from
    CUDA execution.
 2. [Install Aptus](install.md) and verify the CLI.
-3. Run the [first planning-only tutorial](first-plan.md). It is executable on
-   this Mac and starts no training.
-4. Use the [CUDA target-host quickstart](quickstart.md) only after replacing all
-   model and hardware facts.
+3. Run the [first planning-only tutorial](first-plan.md). It types CUDA facts by
+   hand so it runs on this Mac without probing this machine, and it starts no
+   training.
+4. On the machine that will run the work, prefer
+   [`aptus emit-run`](../reference/cli.md#aptus-emit-run). It probes this host,
+   fills omitted hardware, and writes scripts. It does not train.
+5. Use the [CUDA target-host quickstart](quickstart.md) only after replacing all
+   model and hardware facts on a **remote** CUDA host.
 
 ## Evidence checkpoints
 

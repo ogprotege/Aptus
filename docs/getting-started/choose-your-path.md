@@ -1,6 +1,6 @@
 # Choose Your Aptus Path
 
-> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-11 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** First-time users | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Product | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-27
 
 Aptus can profile data, compare plans, compile bundles, and run static checks on
 an ordinary development computer. Its planner can emit runtime-specific CUDA
@@ -15,6 +15,7 @@ Choose a path based on the result you need and the host you actually have.
 |---|---|---|---|
 | Understand Aptus without training | Open Aptus for Mac or start the browser workbench | macOS app or Python 3.11 or newer | You can explain the five stages and the evidence boundary |
 | Profile a dataset | Run `aptus profile` | Any supported Python host | You have reviewed counts, schemas, duplicates, truncation warnings, and the source digest |
+| Plan and compile on this machine | Run `aptus emit-run` with model and dataset facts; omit hardware flags | The machine that will run the work | `spec-plan.sh` exists; optional `ladder.sh` stops after pilot; full train still needs `--confirm-full-train` |
 | Compare plans for an Apple or CUDA host | Select the training runtime and enter measured or user-attested facts | Any supported Python host | You have reviewed every candidate status, runtime contract, assumption, and memory envelope |
 | Produce a reviewable bundle | Compile a persisted plan and run static validation | Any supported Python host | The no-clobber bundle and archive pass `static-pass` |
 | Validate and train an MLX-LM bundle | Run the five ordered actions | Apple Silicon, the exact external MLX-LM Python, model access, and sufficient storage | Parent verification promotes the exact uninterrupted adapter run to `measured-run-pass` |
@@ -33,9 +34,11 @@ CUDA training host.
 3. Profile a local dataset.
 4. Inspect the local hardware inventory if useful.
 5. Select MLX-LM for Apple Silicon or Transformers and PEFT for CUDA.
-6. Enter measured or user-attested facts for the intended host.
+6. Enter measured or user-attested facts for the intended host. On the machine
+   that will run the work, `aptus emit-run` can fill omitted hardware from a
+   probe. Typed `spec-plan` hardware remains the path for a **different** host.
 7. Compare the 12 method-placement candidates and their runtime contracts.
-8. Compile the selected plan to a new path.
+8. Compile the selected plan to a new path, or pass `--compile` to `emit-run`.
 9. Run static validation.
 
 Current planning writes `aptus.training-plan.v6`; compilation writes an

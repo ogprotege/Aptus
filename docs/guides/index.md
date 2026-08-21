@@ -1,6 +1,6 @@
 # Task Guides
 
-> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-07-22 | **Review by:** 2026-10-22 or when a task guide changes
+> **Status:** Active | **Authority:** Documentation navigation | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-22 or when a task guide changes
 
 These guides explain what to do. The pages under `docs/reference/` own exact
 interface and schema details.
@@ -8,6 +8,7 @@ interface and schema details.
 ## Plan
 
 - [Prepare a dataset](prepare-a-dataset.md)
+- [This-host emit-run](../reference/cli.md#aptus-emit-run)
 - [Record model, dataset, and hardware facts](model-dataset-hardware.md)
 - [Choose a method](choose-a-method.md)
 - [Compare plans](compare-plans.md)

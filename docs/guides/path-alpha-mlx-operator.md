@@ -1,6 +1,6 @@
 # Path Alpha operator runbook — MLX QLoRA on Apple Silicon
 
-> **Status:** Active | **Authority:** Path-scoped operator procedure | **Applies to:** Aptus 0.2 Path Alpha (`path-alpha-mlx-qlora-v1`) | **Audience:** Solo operators on Apple Silicon | **Last reviewed:** 2026-08-12 | **Review by:** When Path Alpha identity or MLX pins change
+> **Status:** Active | **Authority:** Path-scoped operator procedure | **Applies to:** Aptus 0.2 Path Alpha (`path-alpha-mlx-qlora-v1`) | **Audience:** Solo operators on Apple Silicon | **Last reviewed:** 2026-08-20 | **Review by:** When Path Alpha identity or MLX pins change
 
 This runbook completes **Journey A** for the frozen Path Alpha identity: one
 exact Qwen2.5 0.5B 4-bit MLX QLoRA path from facts through `measured-run-pass`.
@@ -65,7 +65,35 @@ shasum -a 256 examples/support-sft.jsonl
 
 ## Plan
 
-Measure host headroom (or pass measured values from `aptus hardware`):
+On this Mac, prefer `aptus emit-run`. It probes unified memory and disk, fills
+omitted hardware flags, and can compile. It does not train.
+
+```bash
+WORKDIR=./aptus-work/path-alpha
+mkdir -p "$WORKDIR"
+export PYTHONPATH=src:.
+
+python -m aptus emit-run \
+  --model-id mlx-community/Qwen2.5-0.5B-Instruct-4bit \
+  --revision 53a32aee5e9447773fd2b85988395066aef3700a \
+  --family qwen --parameters-b 0.494 \
+  --model-type qwen2 --architecture Qwen2ForCausalLM \
+  --quantization-bits 4 --quantization-group-size 64 \
+  --hidden-size 896 --intermediate-size 4864 --layers 24 \
+  --context-length 32768 --license apache-2.0 --confirm-training-allowed \
+  --dataset ./examples/support-sft.jsonl --sample-limit 64 \
+  --objective memory --sequence-length 128 --effective-batch-size 1 \
+  --epochs 1 --prefer-method qlora --optimizer-steps 3 \
+  --output "$WORKDIR" \
+  --run-plan --compile
+```
+
+Omit `--gpu-count`, `--vram-gib`, and RAM/disk flags. `emit-run` fills them
+from this host. Path Alpha still uses `--objective memory` (rank 8). Full train
+still requires `--confirm-full-train`.
+
+The expanded `spec-plan` form below is the same identity with typed hardware
+values, for a host you measured by hand:
 
 ```bash
 python -m aptus hardware
@@ -107,8 +135,12 @@ python -m aptus compile --plan "$WORKDIR/plan.json" --output "$BUNDLE"
 
 No-clobber: never recompile into a non-empty directory. Note `plan_id`,
 `candidate_id`, and `policy_snapshot_sha256` from `bundle-manifest.json`.
+`emit-run --compile` writes `$WORKDIR/bundle` instead of `bundle-alpha`.
 
 ## Ordered runtime actions
+
+If you used `emit-run --compile`, `ladder.sh` in the workdir runs dependency
+through pilot and **prints** the train confirm. It does not train.
 
 Use a private state directory and the same external MLX interpreter:
 

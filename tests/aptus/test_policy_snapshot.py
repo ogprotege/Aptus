@@ -298,6 +298,7 @@ class PolicySnapshotTests(unittest.TestCase):
             {
                 "model.qwen3-moe.mlx-qlora",
                 "model.qwen2-24l.mlx-qlora",
+                "model.gemma4.mlx.v1",
             },
         )
         qwen2 = policies["model.qwen2-24l.mlx-qlora"]

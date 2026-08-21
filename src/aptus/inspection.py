@@ -47,6 +47,7 @@ _PROVIDER_MODEL_TYPE_ALIASES = {
     "gemma2": "gemma",
     "gemma3": "gemma",
     "gemma3_text": "gemma",
+    "gemma4_text": "gemma4",
 }
 _TEXT_ONLY_GEMMA3_ARCHITECTURES = {
     "Gemma3ForCausalLM",
@@ -195,6 +196,9 @@ def _canonical_quantization_mapping(
     for module_path, override in value.items():
         if module_path in {"bits", "group_size"}:
             continue
+        if not isinstance(override, Mapping):
+            # MLX affine layouts declare scalar metadata such as mode=affine.
+            continue
         if (
             not isinstance(module_path, str)
             or not module_path
@@ -212,7 +216,7 @@ def _canonical_quantization_mapping(
             return None, (
                 "Provider quantization metadata contains an invalid module path."
             )
-        if not isinstance(override, Mapping) or set(override) != {
+        if set(override) != {
             "bits",
             "group_size",
         }:
@@ -278,6 +282,8 @@ def _quantization_layout(
 
 def _moe_facts(config: dict[str, Any]) -> dict[str, Any] | None:
     text = _text_config(config)
+    if text.get("enable_moe_block") is False:
+        return None
     names = (
         "num_experts",
         "num_experts_per_tok",
@@ -286,7 +292,14 @@ def _moe_facts(config: dict[str, Any]) -> dict[str, Any] | None:
         "mlp_only_layers",
         "shared_expert_intermediate_size",
     )
-    if not any(name in text for name in names):
+
+    def _declared(name: str) -> bool:
+        value = text.get(name)
+        if name == "mlp_only_layers":
+            return isinstance(value, list) and bool(value)
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    if not any(_declared(name) for name in names):
         return None
     return {
         "expert_count": text.get("num_experts"),

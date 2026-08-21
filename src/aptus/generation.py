@@ -564,9 +564,9 @@ plan-pinned model revision, disables remote model code, binds `data/mlx`, runs
 at most eight iterations, and records the exact completed artifact tree plus
 runtime-neutral MLX memory metrics in the validation report.
 
-For QLoRA, the pinned model must contain explicit four-bit MLX quantization
-metadata. Aptus never substitutes bitsandbytes and never quantizes an unbound
-model during training.
+For QLoRA, the pinned model must contain declared MLX quantization metadata
+whose bits match the plan (1 through 16). Aptus never substitutes bitsandbytes
+and never quantizes an unbound model during training.
 {moe_policy}
 
 ## 5. Pilot gate

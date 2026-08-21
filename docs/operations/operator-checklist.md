@@ -224,15 +224,16 @@ not supply a resume argument.
       validation report binds the artifact's current SHA-256.
 
 Model-data validation does not enter training mode and does not prove
-accelerator fit. MLX QLoRA must obtain four-bit eligibility from the pinned
-model metadata, not a CUDA-style device flag.
+accelerator fit. MLX QLoRA must obtain declared quantization bits (1 through 16)
+from the pinned model metadata matching the plan, not a CUDA-style device flag.
 
-On `mlx-lm` this action measures the packed safetensors shards and compares live
-available unified memory against the packed-checkpoint-adjusted candidate
-estimate plus `max(plan reserve, 8 GiB)`. If the shortfall is positive it refuses
-before any weight load and reports exact required, available, and shortfall byte
-counts. Treat that refusal as a legitimate fail-closed outcome and record it: the
-2026-07-28 Qwen3 30B-A3B attempt stopped here.
+On `mlx-lm` this action measures the packed safetensors shards bound to tensors
+mlx-lm actually loads (excluding leftover Gemma 4 vision/audio Hub payloads)
+and compares live available unified memory against the packed-checkpoint-adjusted
+candidate estimate plus `max(plan reserve, 8 GiB)`. If the shortfall is positive
+it refuses before any weight load and reports exact required, available, and
+shortfall byte counts. Treat that refusal as a legitimate fail-closed outcome
+and record it: the 2026-07-28 Qwen3 30B-A3B attempt stopped here.
 
 ## Measured preflight action
 

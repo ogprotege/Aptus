@@ -136,6 +136,15 @@ EVIDENCE_REGISTRY: dict[str, EvidenceRecord] = {
         "implementation-reviewed",
         "1.0.0",
     ),
+    "policy.gemma4.mlx.v1": EvidenceRecord(
+        "policy.gemma4.mlx.v1",
+        "Aptus defines one Gemma 4 dense MLX-LM family path as eligible for gated validation.",
+        "aptus://product/lane-6-gemma4-family-admission",
+        "aptus-compatibility-policy",
+        "Exact gemma4 / gemma4_text / Gemma4ForConditionalGeneration identity; inspect-declared layers and bits 1-16; dense topology. Runtime evidence remains artifact-scoped and pilot-required.",
+        "implementation-reviewed",
+        "1.0.0",
+    ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": EvidenceRecord(
         "runtime.qwen2-0.5b.mlx-qlora.2026-07-27",
         "Two clean historical workflows for the exact pinned Qwen2.5 0.5B artifact reached measured-run-pass under Aptus training-plan v2 and bundle v2.",

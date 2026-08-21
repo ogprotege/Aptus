@@ -157,12 +157,18 @@ The model-data action enforces the census but does not persist a separate census
 object in the validation report. Later measured levels persist it in metrics.
 
 For `mlx-lm`, model-data validation first scans the pinned snapshot's safetensors
-shards and compares live available unified memory against the packed-checkpoint-
-adjusted candidate estimate. It adds any observed packed size in excess of the
-planned resident bytes to both the point and upper estimates, and requires
-available unified memory of at least `max(adjusted point, adjusted upper)` plus
-`max(plan reserve, 8 GiB)`. If that requirement is not met it fails closed before
-any weights load, reporting exact required, available, and shortfall byte counts.
+shards, excluding tensor payloads mlx-lm sanitizes out of language training
+(Gemma 4 Hub snapshots may still contain `vision_tower`, `audio_tower`,
+`multi_modal_projector`, `embed_audio`, and `embed_vision` weights). It compares
+the remaining bytes to live available unified memory against the
+packed-checkpoint-adjusted candidate estimate. Container overhead may be up to
+2 MiB or 0.01% of packed bytes, whichever is larger, so unpriced BF16 RMSNorms
+are not treated as a corrupt checkpoint. It adds any observed packed size
+in excess of the planned resident bytes to both the point and upper estimates,
+and requires available unified memory of at least
+`max(adjusted point, adjusted upper)` plus `max(plan reserve, 8 GiB)`. If that
+requirement is not met it fails closed before any weights load, reporting exact
+required, available, and shortfall byte counts.
 
 The [2026-07-28 Qwen3 MoE admission record](../operations/evidence/2026-07-28-qwen3-moe-admission/README.md)
 preserves a real instance of this refusal. The exact 30B checkpoint stopped
@@ -170,9 +176,9 @@ before model loading with an 18.932 GiB live unified-memory shortfall.
 
 Only after admission passes does it load the exact pinned revision through MLX-LM
 and tokenize every row in the compiler-produced `data/mlx/train.jsonl` and
-`data/mlx/valid.jsonl` files. MLX QLoRA also requires explicit four-bit MLX
-quantization metadata in the pinned model configuration. It does not use a CUDA
-device capability flag or bitsandbytes.
+`data/mlx/valid.jsonl` files. MLX QLoRA also requires declared MLX
+quantization bits (1 through 16) in the pinned model configuration matching
+the plan. It does not use a CUDA device capability flag or bitsandbytes.
 
 After model loading, configuration validation, parameter census, and all
 compiled-row tokenization checks pass, the validator atomically writes mutable

@@ -14,6 +14,29 @@ All notable changes are recorded here.
 
 ### Added
 
+- Lane 6 Gemma 4 family admission (`model.gemma4.mlx.v1`): inspect maps
+  `gemma4` / `gemma4_text` to family `gemma4`, Compare can recommend
+  single-device MLX LoRA/QLoRA for dense `Gemma4ForConditionalGeneration`
+  pins, and QLoRA uses the pin's declared bits (1 through 16) instead of a
+  four-bit freeze. MLX packed-checkpoint admission subtracts Hub safetensors
+  payloads that mlx-lm sanitizes out of Gemma 4 language training (vision
+  and audio towers, multimodal projector). Those leftover bytes are not
+  container overhead. MLX LoRA target binding still requires q/o/gate/up/down
+  on every transformer layer. Only family `gemma4` may omit k_proj/v_proj
+  together on KV-shared layers (`k_proj` count must equal `v_proj` count).
+  k-equals-v (omitted `v_proj`) is a later named slice, not this gate.
+  Empty Hub `mlp_only_layers` is not a MoE declaration at the train gate.
+  Operator E2B 4-bit QLoRA on this
+  M5 Pro reached `measured-run-pass` at `aptus-work/gemma4-e2b-v4-run`
+  (`plan_520fdcbc14993ebe9a15`, `job_9e93baf929f44f0b849bd14b2c4acba6`).
+  Operator E4B 4-bit QLoRA on the same host reached `measured-run-pass` at
+  `aptus-work/gemma4-e4b-v3-run` (`plan_937a5afb19fd594575f3`,
+  `run_402ed9d3f66740e0bced6153dc47053d`).
+  Packed-checkpoint container-overhead floor is 2 MiB so Gemma 4 BF16
+  RMSNorms the 4-bit plus groupwise-metadata formula does not price stay
+  inside the bound; leftover vision/audio Hub payloads stay excluded, not
+  slop. That is not a reviewed Path Alpha identity and is not model quality.
+  Vision training and 26B-A4B MoE remain later slices.
 - An Aptus-side consumer contract for dataset-compiler JSONL
   (`docs/guides/aptus-veriformis-handoff.md`). Aptus 0.2 still does not import
   `.vfbundle`. Recitation gold is not the Veriformis evaluation partition.

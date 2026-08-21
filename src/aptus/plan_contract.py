@@ -95,7 +95,8 @@ DENSE_TARGET_MODULES = [
     "down_proj",
 ]
 MODEL_TARGET_MODULES = {
-    family: DENSE_TARGET_MODULES for family in ("gemma", "llama", "mistral", "qwen")
+    family: DENSE_TARGET_MODULES
+    for family in ("gemma", "gemma4", "llama", "mistral", "qwen")
 }
 MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY] = [
     "q_proj",
@@ -103,6 +104,95 @@ MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY] = [
     "v_proj",
     "o_proj",
 ]
+MLX_SPARSE_LAYER_ADAPTER_TARGETS = frozenset({"k_proj", "v_proj"})
+MLX_SPARSE_ADAPTER_FAMILIES = frozenset({"gemma4"})
+
+
+MLX_PACKED_CHECKPOINT_OVERHEAD_FLOOR_BYTES = 2 * 1024**2
+MLX_PACKED_CHECKPOINT_OVERHEAD_RATIO = 0.0001
+
+
+def mlx_packed_checkpoint_overhead_limit(expected_packed: int) -> int:
+    """Return the fail-closed container-overhead ceiling.
+
+    Gemma 4 keeps BF16 RMSNorms that the 4-bit plus groupwise-metadata formula
+    does not price. The two-mebibyte floor covers that residual plus headers.
+    Unused vision/audio Hub payloads are excluded from the observed bytes and
+    must not be absorbed as overhead.
+    """
+
+    if not _positive_int(expected_packed):
+        raise ValueError(
+            "MLX packed-checkpoint overhead limit requires a positive packed size."
+        )
+    return max(
+        MLX_PACKED_CHECKPOINT_OVERHEAD_FLOOR_BYTES,
+        round(expected_packed * MLX_PACKED_CHECKPOINT_OVERHEAD_RATIO),
+    )
+
+
+def mlx_trainable_target_instance_total(
+    planned_targets: Any,
+    layer_count: Any,
+    target_instance_counts: Any,
+    *,
+    family: Any,
+) -> int:
+    """Return the bound adapter-instance total for a loaded MLX model.
+
+    Each planned target must appear at least once and at most once per
+    transformer layer. Default is every planned target in every layer.
+    Only Gemma 4 may omit k_proj/v_proj together on KV-shared layers.
+    Asymmetric k/v counts are refused; k-equals-v (omitted v_proj) is a
+    later named slice.
+    """
+
+    if (
+        not isinstance(planned_targets, (list, tuple))
+        or not planned_targets
+        or any(not isinstance(target, str) or not target for target in planned_targets)
+        or not isinstance(layer_count, int)
+        or isinstance(layer_count, bool)
+        or layer_count <= 0
+        or not isinstance(family, str)
+        or not family
+        or not isinstance(target_instance_counts, Mapping)
+        or set(target_instance_counts) != set(planned_targets)
+        or len(target_instance_counts) != len(planned_targets)
+    ):
+        raise ValueError("MLX trainable-target instance counts are not exact.")
+    allow_sparse_kv = family in MLX_SPARSE_ADAPTER_FAMILIES
+    total = 0
+    for target in planned_targets:
+        count = target_instance_counts.get(target)
+        if (
+            not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 1
+            or count > layer_count
+        ):
+            raise ValueError("MLX trainable-target instance counts are not exact.")
+        sparse_ok = allow_sparse_kv and target in MLX_SPARSE_LAYER_ADAPTER_TARGETS
+        if not sparse_ok and count != layer_count:
+            raise ValueError(
+                "MLX adapters must cover every transformer layer unless the "
+                "Gemma 4 family omits k_proj/v_proj on KV-shared layers."
+            )
+        total += count
+    if allow_sparse_kv:
+        k_count = target_instance_counts.get("k_proj")
+        v_count = target_instance_counts.get("v_proj")
+        if (
+            isinstance(k_count, int)
+            and not isinstance(k_count, bool)
+            and isinstance(v_count, int)
+            and not isinstance(v_count, bool)
+            and k_count != v_count
+        ):
+            raise ValueError("Gemma 4 k_proj and v_proj adapter counts must match.")
+    return total
+
+
 MOE_TOPOLOGY_FIELDS = (
     "expert_count",
     "experts_per_token",
@@ -145,6 +235,9 @@ EVIDENCE_RECORD_SHA256 = {
     ),
     "policy.qwen2-24l.mlx-qlora.v1": (
         "c7a097e7140ade3f48a9cf9cfbc01cb95dd31b5124e7e9d10d90b8b0f3b63264"
+    ),
+    "policy.gemma4.mlx.v1": (
+        "dec03ae4eee5ea8671ebd632907ca0d1d834a73db4192654813cc1e6bad81c59"
     ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": (
         "2b1905044b84b3473d536fbe73af31841af15857523f458bb58a6d34d89447bc"
@@ -1194,6 +1287,23 @@ def _model_config_source(config: Mapping[str, Any]) -> Mapping[str, Any]:
     return text_config if isinstance(text_config, Mapping) else config
 
 
+def _config_declares_moe_topology_field(source: Mapping[str, Any], name: str) -> bool:
+    """Return whether a config field is a real MoE declaration.
+
+    Empty `mlp_only_layers` is a common dense Hub default. Inspect treats it as
+    not declared; the train gate must not call that topology.
+    """
+
+    if name not in source:
+        return False
+    value = source.get(name)
+    if value is None:
+        return False
+    if name == "mlp_only_layers":
+        return isinstance(value, list) and bool(value)
+    return True
+
+
 def _config_first(config: Mapping[str, Any], *names: str) -> Any:
     for name in names:
         value = config.get(name)
@@ -1319,7 +1429,7 @@ def _canonical_config_quantization_layout(
                 ),
             }
             for key, item in value.items()
-            if key not in {"bits", "group_size"}
+            if key not in {"bits", "group_size"} and isinstance(item, Mapping)
         ],
     }
     layout["module_overrides"].sort(key=lambda item: item["module_path"])
@@ -1331,9 +1441,9 @@ def _canonical_config_quantization_layout(
         ) from error
     assert normalized is not None
     for key, item in value.items():
-        if key in {"bits", "group_size"}:
+        if key in {"bits", "group_size"} or not isinstance(item, Mapping):
             continue
-        if not isinstance(item, Mapping) or set(item) != {"bits", "group_size"}:
+        if set(item) != {"bits", "group_size"}:
             raise ValueError(
                 "Pinned model quantization layout contains unsupported override fields."
             )
@@ -1603,7 +1713,9 @@ def validate_model_config_against_plan(
         "shared_expert_intermediate_size",
     )
     expected_moe = expected["moe"]
-    if expected_moe is None and any(name in source for name in moe_config_names):
+    if expected_moe is None and any(
+        _config_declares_moe_topology_field(source, name) for name in moe_config_names
+    ):
         raise ValueError("Pinned model unexpectedly declares MoE topology.")
     if expected_moe is not None:
         observed_moe = {
@@ -3054,18 +3166,27 @@ def _validate_plan_payload_impl(
                 )
         method = candidate.get("method")
         quantization = candidate.get("quantization")
+        mlx_qlora_bits = model.get("quantization_bits")
         expected_quantization = (
-            "mlx-4bit-groupwise"
-            if runtime_id == "mlx-lm" and method == "qlora"
+            f"mlx-{mlx_qlora_bits}bit-groupwise"
+            if runtime_id == "mlx-lm"
+            and method == "qlora"
+            and isinstance(mlx_qlora_bits, int)
+            and not isinstance(mlx_qlora_bits, bool)
+            and 1 <= mlx_qlora_bits <= 16
             else (
-                {
-                    "full": None,
-                    "lora": None,
-                    "int8-lora": "int8-bitsandbytes",
-                    "qlora": "nf4-double-quant",
-                }.get(method)
-                if isinstance(method, str)
-                else None
+                "mlx-4bit-groupwise"
+                if runtime_id == "mlx-lm" and method == "qlora"
+                else (
+                    {
+                        "full": None,
+                        "lora": None,
+                        "int8-lora": "int8-bitsandbytes",
+                        "qlora": "nf4-double-quant",
+                    }.get(method)
+                    if isinstance(method, str)
+                    else None
+                )
             )
         )
         if _known_text(method, METHODS) and quantization != expected_quantization:

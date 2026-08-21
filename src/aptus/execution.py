@@ -39,6 +39,8 @@ from .plan_contract import (
     StaleModelPolicyError,
     expected_model_architecture_contract,
     mlx_quantized_storage_bytes_for_contract,
+    mlx_packed_checkpoint_overhead_limit,
+    mlx_trainable_target_instance_total,
     require_current_model_policy,
     require_current_model_policy_snapshot,
     sha256_file,
@@ -1169,7 +1171,7 @@ def _require_mlx_model_load_binding(
         expected_metadata_bytes = 0
     expected_packed_bytes = expected_weight_bytes + expected_metadata_bytes
     overhead = observed_safetensors - expected_packed_bytes
-    overhead_limit = max(1024**2, round(expected_packed_bytes * 0.0001))
+    overhead_limit = mlx_packed_checkpoint_overhead_limit(expected_packed_bytes)
     expected_packed = {
         "schema_version": "aptus.mlx-packed-checkpoint.v1",
         "observed_safetensors_bytes": observed_safetensors,
@@ -1468,7 +1470,17 @@ def _verify_mlx_runtime_metrics(
     if not isinstance(binding, dict) or not isinstance(planned_targets, list):
         raise ValueError("MLX runtime metrics require an exact target binding.")
     layer_count = int(plan["model"]["layers"])
-    expected_instances = len(planned_targets) * layer_count
+    try:
+        expected_instances = mlx_trainable_target_instance_total(
+            planned_targets,
+            layer_count,
+            binding.get("target_instance_counts"),
+            family=plan["model"].get("family"),
+        )
+    except ValueError as error:
+        raise ValueError(
+            "MLX runtime metrics target binding is stale or inexact."
+        ) from error
     binding_payload = {
         name: value for name, value in binding.items() if name != "descriptor_sha256"
     }
@@ -1492,8 +1504,7 @@ def _verify_mlx_runtime_metrics(
         or binding.get("expected_adapter_target_instance_count") != expected_instances
         or binding.get("adapter_target_instance_count") != expected_instances
         or binding.get("trainable_tensor_count") != expected_instances * 2
-        or binding.get("target_instance_counts")
-        != {target: layer_count for target in planned_targets}
+        or not isinstance(binding.get("target_instance_counts"), dict)
         or not isinstance(resolved_keys, list)
         or len(resolved_keys) != len(planned_targets)
         or any(not isinstance(key, str) or not key for key in resolved_keys)

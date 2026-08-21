@@ -44,6 +44,7 @@ from aptus.plan_contract import (
     StaleModelPolicyError,
     _current_model_policy_decision,
     expected_model_architecture_contract,
+    mlx_packed_checkpoint_overhead_limit,
     sha256_file,
 )
 
@@ -182,8 +183,8 @@ def mlx_model_load_binding(plan: dict) -> dict:
         "expected_quantization_metadata_bytes": 0,
         "expected_packed_tensor_bytes": expected_weight_bytes,
         "container_overhead_bytes": 4096,
-        "container_overhead_limit_bytes": max(
-            1024**2, round(expected_weight_bytes * 0.0001)
+        "container_overhead_limit_bytes": mlx_packed_checkpoint_overhead_limit(
+            expected_weight_bytes
         ),
     }
     packed["descriptor_sha256"] = _json_hash(packed)

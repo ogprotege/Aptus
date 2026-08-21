@@ -392,8 +392,8 @@ signatures. A caller that passes the receipt to planning must trust its local
 client boundary. Aptus still recomputes the receipt, observed facts, policy
 decision, provenance requirements, and content identity before using it.
 
-Exact aliases normalize reviewed dense Qwen and Gemma model types. The registry
-currently has two conditional MLX-LM QLoRA policies:
+Exact aliases normalize reviewed dense Qwen, Gemma 2/3, and Gemma 4 model types.
+The registry currently has three conditional MLX-LM policies:
 
 - Dense Qwen2 policy `model.qwen2-24l.mlx-qlora` version `1.0.0` claims exact
   provider model type `qwen2` or architecture `Qwen2ForCausalLM`, then requires
@@ -408,6 +408,13 @@ currently has two conditional MLX-LM QLoRA policies:
   shared expert. It emits path
   `mlx-lm.qlora.single.attention-qkvo.v1` with profile
   `attention-qkvo.v1`.
+- Dense Gemma 4 policy `model.gemma4.mlx.v1` version `1.0.0` requires family
+  `gemma4`, provider type `gemma4_text`, and architecture
+  `Gemma4ForConditionalGeneration`, with no MoE topology. Size and bitwidth
+  come from the pinned revision. It emits paths
+  `mlx-lm.qlora.single.gemma4-dense.v1` and
+  `mlx-lm.lora.single.gemma4-dense.v1`. QLoRA still needs declared bits 1
+  through 16 at plan time; LoRA needs an unquantized base.
 
 Both rows report only gated conditional eligibility and require model-data,
 measured-preflight, and pilot validation. The
@@ -588,7 +595,7 @@ requests outside those conditions retain the submitted value.
 
 For CUDA, `supports_4bit` is a device and kernel eligibility fact. MLX-LM
 QLoRA does not reuse that CUDA-shaped flag. It remains conditional until the
-model-data gate verifies explicit four-bit MLX quantization metadata on the
+model-data gate verifies declared MLX quantization bits (1 through 16) on the
 pinned model revision.
 
 `target` fields:

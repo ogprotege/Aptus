@@ -45,7 +45,7 @@ def reviewed_qwen3_moe_quantization_layout(layers: int) -> QuantizationLayout:
 
 TARGET_MODULES: dict[str, tuple[str, ...]] = {
     family: DENSE_CAUSAL_LM_TARGET_MODULES
-    for family in ("llama", "mistral", "gemma", "qwen")
+    for family in ("llama", "mistral", "gemma", "gemma4", "qwen")
 }
 TARGET_MODULES[QWEN3_MOE_FAMILY] = QWEN3_MOE_TARGET_MODULES
 

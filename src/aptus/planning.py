@@ -416,8 +416,7 @@ def _single_device_is_compatible(*, method: Method, device: DeviceSpec) -> bool:
     if device.backend == Backend.MPS:
         # MLX QLoRA eligibility belongs to the pinned model revision, not to a
         # CUDA-style device capability bit. The generated model-data gate
-        # requires explicit four-bit MLX quantization metadata before work can
-        # advance.
+        # requires declared MLX quantization metadata before work can advance.
         return method in {Method.LORA, Method.QLORA}
     if device.backend != Backend.CUDA:
         return False
@@ -660,6 +659,26 @@ def _estimate_candidate_with_policy(
         unsupported.append(
             "Eight-bit LoRA requires explicit eight-bit support on every participating GPU."
         )
+    if runtime_contract.training_runtime == TrainingRuntime.MLX_LM:
+        bits = model.quantization_bits
+        layout = model.quantization_layout
+        quantized = bits is not None or layout is not None
+        if method == Method.QLORA and (
+            bits is None
+            or layout is None
+            or bits != layout.default_bits
+            or not 1 <= bits <= 16
+        ):
+            unsupported.append(
+                "MLX-LM QLoRA requires a pinned revision with declared "
+                "quantization bits from 1 through 16 and a matching groupwise "
+                "layout. Aptus will not quantize an unbound model during training."
+            )
+        if method == Method.LORA and quantized:
+            unsupported.append(
+                "MLX-LM LoRA requires an unquantized pinned base. A quantized "
+                "base is the QLoRA path."
+            )
 
     world_size = (
         1 if distribution == Distribution.SINGLE else max(1, len(participating_devices))
@@ -696,16 +715,25 @@ def _estimate_candidate_with_policy(
         unsupported.append(
             "Full-parameter FP16 training is fail-closed in Aptus v0.2 because the generated mixed-precision path does not retain verified FP32 trainable master weights."
         )
+    mlx_qlora_bits = model.quantization_bits
     quantization = (
-        "mlx-4bit-groupwise"
+        f"mlx-{mlx_qlora_bits}bit-groupwise"
         if runtime_contract.training_runtime == TrainingRuntime.MLX_LM
         and method == Method.QLORA
-        else {
-            Method.FULL: None,
-            Method.LORA: None,
-            Method.INT8_LORA: "int8-bitsandbytes",
-            Method.QLORA: "nf4-double-quant",
-        }[method]
+        and isinstance(mlx_qlora_bits, int)
+        and not isinstance(mlx_qlora_bits, bool)
+        and 1 <= mlx_qlora_bits <= 16
+        else (
+            "mlx-4bit-groupwise"
+            if runtime_contract.training_runtime == TrainingRuntime.MLX_LM
+            and method == Method.QLORA
+            else {
+                Method.FULL: None,
+                Method.LORA: None,
+                Method.INT8_LORA: "int8-bitsandbytes",
+                Method.QLORA: "nf4-double-quant",
+            }[method]
+        )
     )
     rank = 0 if method == Method.FULL else _rank_prior(dataset, target.objective)
     alpha = 0 if method == Method.FULL else rank * 2
@@ -720,8 +748,8 @@ def _estimate_candidate_with_policy(
         policy_assumptions.extend(
             (
                 "The generated compiler uses MLX-LM with AdamW, gradient checkpointing, and an MLX-native adapter export.",
-                "MLX-LM QLoRA requires an already four-bit MLX model revision; it does not invoke bitsandbytes or assume NF4 kernels.",
-                "MLX-LM QLoRA eligibility is verified from the pinned model's four-bit quantization metadata during model-data validation, not inferred from a CUDA-style device flag.",
+                "MLX-LM QLoRA requires an already quantized MLX model revision with declared bits from 1 through 16; it does not invoke bitsandbytes or assume NF4 kernels.",
+                "MLX-LM QLoRA eligibility is verified from the pinned model's declared quantization metadata during model-data validation, not inferred from a CUDA-style device flag.",
                 "The Apple unified-memory envelope must pass model-data validation and a bounded measured preflight; neither guarantees full-run fit.",
             )
         )

@@ -1,6 +1,6 @@
 # Operator Checklist
 
-> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-08-07 | **Review by:** 2026-10-27
+> **Status:** Active | **Audience:** Local CUDA and Apple Silicon operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime operations | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-27
 
 Use this checklist for one Aptus bundle on one trusted-user host. Aptus is not a
 remote scheduler or multi-user service. The checklist does not replace the
@@ -70,6 +70,15 @@ a URL.
 If non-loopback serving is unavoidable, place it behind approved TLS and
 network controls. A network observer can steal a cookie or bearer token from
 the built-in plain-HTTP server.
+
+## This-host planning
+
+- [ ] On the machine that will run the work, prefer `aptus emit-run` so omitted
+      hardware facts come from a probe.
+- [ ] Use `spec-plan` with manual CUDA facts when the plan describes a
+      **different** host.
+- [ ] `ladder.sh` from `emit-run --compile` stops after pilot. Full train still
+      requires `--confirm-full-train`.
 
 ## Before receiving a bundle
 

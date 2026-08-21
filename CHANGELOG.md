@@ -6,6 +6,12 @@ All notable changes are recorded here.
 
 ## 0.2.0 - Unreleased
 
+### Changed
+
+- Getting-started, Path Alpha, dataset, and operator pages now send this-host
+  work through `aptus emit-run` and MLX `prepare-train`. Typed `spec-plan`
+  hardware remains the remote-host path. `ladder.sh` still stops after pilot.
+
 ### Added
 
 - Operator this-host commands `aptus prepare-train`, `aptus emit-run`, and

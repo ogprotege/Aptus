@@ -1,6 +1,6 @@
 # Compile, Validate, and Run
 
-> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA and Apple Silicon operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when runtime actions change
+> **Status:** Active | **Authority:** Operational execution guide | **Applies to:** Aptus 0.2 | **Audience:** CUDA and Apple Silicon operators | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-22 or when runtime actions change
 
 ## Compile once
 
@@ -11,6 +11,12 @@ aptus compile --plan ./work/plan.json --output ./work/bundle
 Compilation is atomic and no-clobber. The destination must be absent or empty.
 The generated archive must not already exist. If facts or strategy change,
 create a new plan and a new bundle path.
+
+On the machine that will run the work, `aptus emit-run --compile` writes
+`spec-plan.sh` and `ladder.sh` into a new directory and compiles that bundle.
+`ladder.sh` runs dependency, model-data, preflight, and pilot, then **echoes**
+the `--confirm-full-train` command. It does not train. For a remote CUDA host,
+keep typing hardware facts on `spec-plan` and compile as above.
 
 ## Install the bundle stack
 

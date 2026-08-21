@@ -1,10 +1,13 @@
 # First Planning-Only Run
 
-> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-06 | **Review by:** 2026-10-22 or when CLI defaults change
+> **Status:** Active | **Authority:** Operational tutorial | **Applies to:** Aptus 0.2 | **Audience:** First-time users | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-22 or when CLI defaults change
 
 This tutorial proves the local planning, compilation, and static-validation
 path. It works without CUDA. It uses bundled synthetic data and synthetic model
-facts. It does not download a model or start training.
+facts. It does not download a model or start training. The CUDA hardware flags
+below are tutorial planning facts, not a probe of this Mac. For a plan against
+**this** host, use [`aptus emit-run`](../reference/cli.md#aptus-emit-run)
+instead of typing `--gpu-count` and `--vram-gib`.
 
 ## Expected result
 

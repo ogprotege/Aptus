@@ -5,7 +5,8 @@
 > **Increment:** Lane 5. **Not M10.** **Not 0.3.** **Not a 0.2 ship.**  
 > **Implementation plan:** not written until this spec is approved  
 > **Last reviewed:** 2026-08-20  
-> **Next scheduled review:** After owner approval, or when Journey B2 recitation evidence exists
+> **Next scheduled review:** After owner approval, or when Journey B2 recitation evidence exists  
+> **Shipped later:** PR #103 (2026-08-20) added host `aptus eval-generate` as a subprocess of bundle `eval.py`. It does not import MLX into the referee. The non-goal below still forbids in-process MLX in Aptus.
 
 Owner prompt that opened this increment (chat 2026-08-20): 0/62 gold
 exact-match on Journey B is not “gold is hard”; it needs to be fixed.
@@ -274,7 +275,7 @@ Forbidden:
 | Old gold | Retired for B2; keep the B tree on disk |
 | Eval order | Train recitation → valid recitation → gold |
 | Gold threshold 1.0 | Forbidden on this corpus |
-| Host eval-generate | Out of scope |
+| Host eval-generate | Out of scope for this spec increment. Shipped later in PR #103 as a bundle subprocess, not MLX-in-the-referee |
 | Done job | Do not retrain |
 
 ## 12. Success

@@ -1,6 +1,6 @@
 # Prepare a Dataset
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners and data reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Data contracts | **Last reviewed:** 2026-07-28 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners and data reviewers | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Data contracts | **Last reviewed:** 2026-08-20 | **Review by:** 2026-10-22
 
 Aptus 0.2 accepts supervised fine-tuning data from local JSONL, JSON, CSV, or
 text files. Preparation has two separate goals: make every row structurally
@@ -123,6 +123,25 @@ row count when the group sizes and available ungrouped rows make it attainable.
 Otherwise it selects the closest feasible size and records the target, realized
 size, fraction, and row error. Never break a real source relationship merely to
 obtain an exact fraction.
+
+## MLX compiled-train prefix
+
+The Aptus MLX compiler takes the last `round(n * evaluation_fraction)` rows of
+the training file as valid. Concatenating gold or recitation rows at the end of
+that file parks them in valid, so later exact-match on them is 0 even when the
+adapter recites train. `aptus prepare-train` mixes `--include` prompts into the
+compiled-train prefix and refuses overwrite. `--include` on `aptus emit-run` is
+MLX-only; CUDA still splits by hash, seed, and optional `split_group`.
+
+```bash
+aptus prepare-train \
+  --corpus ./data/corpus.jsonl \
+  --include ./data/gold.jsonl \
+  --output ./data/train.jsonl \
+  --manifest ./data/split-manifest.json
+```
+
+This is a split-membership helper. It is not a quality claim.
 
 ## Review the profiling evidence
 

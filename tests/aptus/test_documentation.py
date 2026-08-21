@@ -1016,23 +1016,47 @@ class DocumentationTests(unittest.TestCase):
         active_documents = (
             governed_documents - deprecated_documents - archived_documents
         )
-        self.assertEqual(len(repository_documents), 153)
+        self.assertEqual(len(repository_documents), 154)
         self.assertEqual(len(excluded_documents), 1)
-        self.assertEqual(len(governed_documents), 152)
-        self.assertEqual(len(active_documents), 123)
+        self.assertEqual(len(governed_documents), 153)
+        self.assertEqual(len(active_documents), 124)
         self.assertEqual(len(deprecated_documents), 2)
         self.assertEqual(len(archived_documents), 27)
         self.assertEqual(
             governed_documents,
             active_documents | deprecated_documents | archived_documents,
         )
-        self.assertEqual(len(maintained_documentation()), 152)
-        self.assertIn("152 are governed", normalized_inventory)
-        self.assertIn("152 governed", normalized_inventory)
-        self.assertIn("153 tracked Markdown", normalized_inventory)
-        self.assertIn("| Active | 123 |", inventory)
+        self.assertEqual(len(maintained_documentation()), 153)
+        self.assertIn("153 are governed", normalized_inventory)
+        self.assertIn("153 governed", normalized_inventory)
+        self.assertIn("154 tracked Markdown", normalized_inventory)
+        self.assertIn("| Active | 124 |", inventory)
         self.assertIn("| Deprecated | 2 |", inventory)
         self.assertIn("| Archived | 27 |", inventory)
+
+    def test_aptus_veriformis_handoff_contract(self) -> None:
+        handoff_path = REPOSITORY / "docs/guides/aptus-veriformis-handoff.md"
+        handoff = " ".join(handoff_path.read_text(encoding="utf-8").split())
+        for claim in (
+            "does not import a `.vfbundle`",
+            "does not read that file",
+            "veriformis.aptus-handoff/v1",
+            "must already be in corpus",
+            "**Never** the MLX train-file tail",
+            "`emit-run --include` is refused on CUDA",
+            "last 10% (default)",
+            "Recitation gold is **not** that evaluation partition",
+            "Call that score quality",
+        ):
+            self.assertIn(claim, handoff, claim)
+        self.assertIn(
+            handoff_path,
+            {path.resolve() for path in maintained_documentation()},
+        )
+        inventory = (
+            REPOSITORY / "docs/maintenance/documentation-inventory.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("docs/guides/aptus-veriformis-handoff.md", inventory)
 
     def test_cuda_empirical_campaign_is_canonical_and_bounded(self) -> None:
         campaign_path = REPOSITORY / "docs/operations/cuda-empirical-campaign.md"

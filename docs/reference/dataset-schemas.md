@@ -314,5 +314,6 @@ digest, assignment digest, and counts before training continues.
 - [Bundle manifest](bundle-manifest.md)
 - [Evidence records](evidence-records.md)
 - [Reviewed corpus contract](reviewed-corpus-contract.md)
+- [Aptus ↔ Veriformis handoff](../guides/aptus-veriformis-handoff.md)
 - [Model, dataset, and hardware facts](../guides/model-dataset-hardware.md)
 - [Capability matrix](capability-matrix.md)

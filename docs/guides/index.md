@@ -8,6 +8,7 @@ interface and schema details.
 ## Plan
 
 - [Prepare a dataset](prepare-a-dataset.md)
+- [Aptus ↔ Veriformis handoff](aptus-veriformis-handoff.md)
 - [This-host emit-run](../reference/cli.md#aptus-emit-run)
 - [Record model, dataset, and hardware facts](model-dataset-hardware.md)
 - [Choose a method](choose-a-method.md)

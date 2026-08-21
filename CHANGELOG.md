@@ -14,6 +14,9 @@ All notable changes are recorded here.
 
 ### Added
 
+- An Aptus-side consumer contract for dataset-compiler JSONL
+  (`docs/guides/aptus-veriformis-handoff.md`). Aptus 0.2 still does not import
+  `.vfbundle`. Recitation gold is not the Veriformis evaluation partition.
 - Operator this-host commands `aptus prepare-train`, `aptus emit-run`, and
   `aptus eval-generate`, plus portable MLX bundle `eval.py`. They check the
   dataset split, probe hardware, write runnable spec-plan/ladder/eval scripts,

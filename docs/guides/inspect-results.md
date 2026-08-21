@@ -128,7 +128,8 @@ For MLX measured preflight, pilot, and full runs, inspect the
 for every present planned-target instance, reject other trainables, and carry a
 stable descriptor digest. q_proj, o_proj, gate_proj, up_proj, and down_proj still
 cover every transformer layer. Only family `gemma4` may omit k_proj and v_proj
-on KV-shared or k-equals-v layers. Also inspect completed optimizer updates, finite train
+together on KV-shared layers; those two counts must match. k-equals-v (omitted
+`v_proj`) is a later named slice. Also inspect completed optimizer updates, finite train
 and validation losses, positive adapter delta, positive MLX peak, and live
 unified-memory admission. Pilot requires at least two updates. Full requires at
 least one.

@@ -1504,6 +1504,18 @@ class PlanContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unexpectedly declares MoE"):
             validate_model_config_against_plan(model, config)
 
+        dense_config = {
+            "model_type": "qwen2",
+            "architectures": ["Qwen2ForCausalLM"],
+            "hidden_size": 896,
+            "intermediate_size": 4864,
+            "num_hidden_layers": 24,
+            "max_position_embeddings": 32768,
+            "quantization": {"bits": 4, "group_size": 64},
+            "mlp_only_layers": [],
+        }
+        validate_model_config_against_plan(model, dense_config)
+
     def test_dense_mlx_storage_supports_explicit_empty_override_layout(self) -> None:
         model = {
             "parameters": 494_000_000,
@@ -1558,12 +1570,10 @@ class PlanContractTests(unittest.TestCase):
             mlx_trainable_target_instance_total(targets, 35, counts, family="gemma4"),
             205,
         )
-        self.assertEqual(
+        with self.assertRaisesRegex(ValueError, "k_proj and v_proj adapter counts"):
             mlx_trainable_target_instance_total(
                 targets, 35, {**counts, "v_proj": 1}, family="gemma4"
-            ),
-            191,
-        )
+            )
         with self.assertRaisesRegex(ValueError, "every transformer layer"):
             mlx_trainable_target_instance_total(targets, 35, counts, family="llama")
         full = {target: 35 for target in targets}

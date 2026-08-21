@@ -204,6 +204,9 @@ GEMMA4_REQUIRED_PROVENANCE_FIELDS = (
     "layers",
     "model_type",
 )
+# Quantization bits/layout stay off this list: the LoRA path is unquantized and
+# has no provider-declared bits. QLoRA still re-checks declared bits at plan
+# and train. Requiring those fields here would refuse unquantized LoRA receipts.
 
 
 ADAPTER_PROFILE_TARGET_MODULES: dict[AdapterProfile, tuple[str, ...]] = {

@@ -142,7 +142,9 @@ def mlx_trainable_target_instance_total(
 
     Each planned target must appear at least once and at most once per
     transformer layer. Default is every planned target in every layer.
-    Only Gemma 4 may omit k_proj/v_proj on KV-shared or k-equals-v layers.
+    Only Gemma 4 may omit k_proj/v_proj together on KV-shared layers.
+    Asymmetric k/v counts are refused; k-equals-v (omitted v_proj) is a
+    later named slice.
     """
 
     if (
@@ -177,6 +179,17 @@ def mlx_trainable_target_instance_total(
                 "Gemma 4 family omits k_proj/v_proj on KV-shared layers."
             )
         total += count
+    if allow_sparse_kv:
+        k_count = target_instance_counts.get("k_proj")
+        v_count = target_instance_counts.get("v_proj")
+        if (
+            isinstance(k_count, int)
+            and not isinstance(k_count, bool)
+            and isinstance(v_count, int)
+            and not isinstance(v_count, bool)
+            and k_count != v_count
+        ):
+            raise ValueError("Gemma 4 k_proj and v_proj adapter counts must match.")
     return total
 
 
@@ -1274,6 +1287,23 @@ def _model_config_source(config: Mapping[str, Any]) -> Mapping[str, Any]:
     return text_config if isinstance(text_config, Mapping) else config
 
 
+def _config_declares_moe_topology_field(source: Mapping[str, Any], name: str) -> bool:
+    """Return whether a config field is a real MoE declaration.
+
+    Empty `mlp_only_layers` is a common dense Hub default. Inspect treats it as
+    not declared; the train gate must not call that topology.
+    """
+
+    if name not in source:
+        return False
+    value = source.get(name)
+    if value is None:
+        return False
+    if name == "mlp_only_layers":
+        return isinstance(value, list) and bool(value)
+    return True
+
+
 def _config_first(config: Mapping[str, Any], *names: str) -> Any:
     for name in names:
         value = config.get(name)
@@ -1684,7 +1714,7 @@ def validate_model_config_against_plan(
     )
     expected_moe = expected["moe"]
     if expected_moe is None and any(
-        name in source and source.get(name) is not None for name in moe_config_names
+        _config_declares_moe_topology_field(source, name) for name in moe_config_names
     ):
         raise ValueError("Pinned model unexpectedly declares MoE topology.")
     if expected_moe is not None:

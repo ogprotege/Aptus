@@ -179,6 +179,9 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
   `dense-causal-lm.v1` and dense q/k/v/o/gate/up/down targets.
 - Provider-inspection requirement: `architecture`, `layers`, and
   `model_type` must be provider-declared at the resolved revision.
+  `quantization_bits` and `quantization_layout` are not required provenance
+  because the LoRA path is unquantized. QLoRA still re-checks declared bits
+  at plan and train.
 
 The Qwen2 row describes a reviewed configuration footprint, not an artifact
 allowlist. A matched policy path and compiler establish conditional execution

@@ -22,8 +22,11 @@ All notable changes are recorded here.
   payloads that mlx-lm sanitizes out of Gemma 4 language training (vision
   and audio towers, multimodal projector). Those leftover bytes are not
   container overhead. MLX LoRA target binding still requires q/o/gate/up/down
-  on every transformer layer. Only family `gemma4` may omit k_proj/v_proj on
-  KV-shared or k-equals-v layers. Operator E2B 4-bit QLoRA on this
+  on every transformer layer. Only family `gemma4` may omit k_proj/v_proj
+  together on KV-shared layers (`k_proj` count must equal `v_proj` count).
+  k-equals-v (omitted `v_proj`) is a later named slice, not this gate.
+  Empty Hub `mlp_only_layers` is not a MoE declaration at the train gate.
+  Operator E2B 4-bit QLoRA on this
   M5 Pro reached `measured-run-pass` at `aptus-work/gemma4-e2b-v4-run`
   (`plan_520fdcbc14993ebe9a15`, `job_9e93baf929f44f0b849bd14b2c4acba6`).
   Operator E4B 4-bit QLoRA on the same host reached `measured-run-pass` at

@@ -274,8 +274,8 @@ other trainable tensor. Optimizer parameter identities must exactly equal the
 validated trainable identities. Both CUDA pilot phases must report the same
 census. MLX binds one A/B pair to every present planned-target instance
 (every planned target still every layer except Gemma 4, which may omit k/v
-on KV-shared or k-equals-v layers) and proves a positive adapter delta in its
-uninterrupted run.
+together on KV-shared layers with equal k/v counts) and proves a positive
+adapter delta in its uninterrupted run.
 
 ## Split identity and mutation detection
 

@@ -256,6 +256,110 @@ class ModelInspectionTests(unittest.TestCase):
                 self.assertEqual(result["compatibility"]["status"], "unsupported")
                 self.assertIsNone(result["compatibility"]["supported_runtime"])
 
+    def test_gemma4_text_conditional_generation_maps_to_gemma4_family(self) -> None:
+        commit = "e" * 40
+        for bits in (4, 8, 6, 1):
+            with self.subTest(bits=bits):
+                transport = SequenceTransport(
+                    [
+                        FakeResponse(
+                            {
+                                "model_type": "gemma4",
+                                "architectures": ["Gemma4ForConditionalGeneration"],
+                                "quantization": {
+                                    "group_size": 64,
+                                    "bits": bits,
+                                    "mode": "affine",
+                                },
+                                "text_config": {
+                                    "model_type": "gemma4_text",
+                                    "hidden_size": 5376,
+                                    "intermediate_size": 21504,
+                                    "num_hidden_layers": 60,
+                                    "max_position_embeddings": 262144,
+                                    "num_attention_heads": 32,
+                                    "num_key_value_heads": 16,
+                                    "vocab_size": 262144,
+                                    "enable_moe_block": False,
+                                    "num_experts": None,
+                                    "num_experts_per_tok": None,
+                                    "moe_intermediate_size": None,
+                                },
+                            },
+                            {"X-Repo-Commit": commit},
+                        ),
+                        FakeResponse(
+                            {"cardData": {"license": "apache-2.0"}},
+                            {"X-Repo-Commit": commit},
+                        ),
+                    ]
+                )
+
+                result = inspect_huggingface_model(
+                    "org/gemma4", "main", transport=transport
+                )
+
+                self.assertEqual(result["status"], "ok")
+                self.assertEqual(result["facts"]["family"], "gemma4")
+                self.assertEqual(result["facts"]["model_type"], "gemma4_text")
+                self.assertEqual(
+                    result["facts"]["architecture"],
+                    "Gemma4ForConditionalGeneration",
+                )
+                self.assertEqual(result["facts"]["layers"], 60)
+                self.assertEqual(result["facts"]["quantization_bits"], bits)
+                self.assertEqual(
+                    result["facts"]["quantization_layout"]["default_bits"],
+                    bits,
+                )
+                self.assertEqual(
+                    result["facts"]["quantization_layout"]["default_group_size"],
+                    64,
+                )
+                self.assertEqual(
+                    result["facts"]["quantization_layout"]["module_overrides"],
+                    [],
+                )
+                self.assertIsNone(result["facts"]["moe"])
+                self.assertEqual(result["compatibility"]["status"], "conditional")
+                self.assertEqual(result["compatibility"]["family"], "gemma4")
+                self.assertEqual(
+                    result["compatibility"]["supported_methods"],
+                    ["qlora", "lora"],
+                )
+                self.assertEqual(
+                    result["compatibility"]["supported_runtime"],
+                    "mlx-lm",
+                )
+
+    def test_gemma4_null_moe_keys_stay_dense(self) -> None:
+        commit = "f" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4_text",
+                        "architectures": ["Gemma4ForConditionalGeneration"],
+                        "num_hidden_layers": 35,
+                        "hidden_size": 1536,
+                        "intermediate_size": 6144,
+                        "enable_moe_block": False,
+                        "num_experts": None,
+                        "quantization": {"bits": 4, "group_size": 64, "mode": "affine"},
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+
+        result = inspect_huggingface_model("org/e2b", "main", transport=transport)
+
+        self.assertEqual(result["facts"]["family"], "gemma4")
+        self.assertEqual(result["facts"]["layers"], 35)
+        self.assertIsNone(result["facts"]["moe"])
+        self.assertEqual(result["compatibility"]["status"], "conditional")
+
     def test_exact_four_bit_qwen3_moe_is_conditionally_supported(self) -> None:
         commit = QWEN3_MOE_REVISION
         transport = SequenceTransport(

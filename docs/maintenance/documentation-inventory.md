@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 154 tracked Markdown documents. Of those, 153 are
+The repository tree contains 155 tracked Markdown documents. Of those, 154 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -67,22 +67,24 @@ and the implementation plan at
 `docs/superpowers/plans/2026-08-19-lane-4-workbench-craft.md`.
 Lane 5 adds the recitation-first specialist-eval design spec at
 `docs/superpowers/specs/2026-08-20-lane-5-recitation-first-eval-design.md`.
+Lane 6 adds the Gemma 4 family-admission design spec at
+`docs/superpowers/specs/2026-08-21-lane-6-gemma4-family-admission-design.md`.
 The Aptus consumer handoff from a dataset compiler is
 `docs/guides/aptus-veriformis-handoff.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 124 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 125 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 153 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 154 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 153 governed
-Markdown files. Together with the root `LICENSE`, that makes 154 maintained
+The automated `maintained_documentation()` set contains the 154 governed
+Markdown files. Together with the root `LICENSE`, that makes 155 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -154,6 +156,7 @@ engineering-review index, and all twelve archived engineering reviews.
 - [Lane 4 workbench-craft design spec](../superpowers/specs/2026-08-19-lane-4-workbench-craft-design.md)
 - [Lane 4 workbench-craft implementation plan](../superpowers/plans/2026-08-19-lane-4-workbench-craft.md)
 - [Lane 5 recitation-first eval design spec](../superpowers/specs/2026-08-20-lane-5-recitation-first-eval-design.md)
+- [Lane 6 Gemma 4 family-admission design spec](../superpowers/specs/2026-08-21-lane-6-gemma4-family-admission-design.md)
 - [Architecture documentation](../architecture/index.md)
 - [Artifact compiler](../architecture/artifact-compiler.md)
 - [Code map](../architecture/code-map.md)

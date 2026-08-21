@@ -71,7 +71,7 @@ observation timestamp, digest, and detail are retained when present.
 feasibility. Its `subject_facts_sha256` covers only compatibility inputs. Stable
 reason codes and evidence IDs identify the result. A matched or blocked
 registered policy can also name a stable policy ID and semantic version. The
-registry currently contains two reviewed version `1.0.0` paths:
+registry currently contains three reviewed version `1.0.0` paths:
 
 - `model.qwen3-moe.mlx-qlora` binds the exact reviewed sparse identity and
   topology row to `mlx-lm.qlora.single.attention-qkvo.v1`.
@@ -81,6 +81,12 @@ registry currently contains two reviewed version `1.0.0` paths:
   MoE topology, and a uniform four-bit group-size-64 layout with no module
   overrides. Its adapter targets are `q_proj`, `k_proj`, `v_proj`, `o_proj`,
   `gate_proj`, `up_proj`, and `down_proj`.
+- `model.gemma4.mlx.v1` binds dense Gemma 4 (`gemma4_text` /
+  `Gemma4ForConditionalGeneration`) to
+  `mlx-lm.qlora.single.gemma4-dense.v1` and
+  `mlx-lm.lora.single.gemma4-dense.v1`. Size and bitwidth come from the pin.
+  Evidence ID `policy.gemma4.mlx.v1` is implementation-reviewed, not a
+  measured-run-pass transfer.
 
 The Qwen2 policy is a configuration-footprint decision, not an artifact
 allowlist or a transferable runtime attestation. A different model artifact can
@@ -173,6 +179,7 @@ The registry currently contains these records.
 | `policy.qwen3-moe.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The exact reviewed Qwen3 MoE tuple maps to one MLX-LM QLoRA path; runtime validation remains mandatory |
 | `admission.qwen3-30b-a3b.memory-blocked.2026-07-28` | Measured admission record | `measured-blocked` | One exact 30B attempt failed live unified-memory admission before model loading; it is refusal evidence, not a passing pilot |
 | `policy.qwen2-24l.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The reviewed 24-layer dense Qwen2 four-bit group-size-64 configuration maps to one single-device MLX-LM QLoRA path with seven dense targets; runtime gates remain mandatory |
+| `policy.gemma4.mlx.v1` | Aptus compatibility policy | `implementation-reviewed` | Dense Gemma 4 (`gemma4_text` / `Gemma4ForConditionalGeneration`) maps to MLX-LM LoRA and QLoRA family paths; size and bits come from the pin; runtime gates remain mandatory |
 | `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` | Measured runtime record | `measured-historical` | Two clean runs passed for the exact pinned Qwen2.5 0.5B artifact under training-plan v2 and bundle v2; this is not current v5/v3 acceptance and does not transfer to other matching artifacts |
 
 Canonical source URLs and revisions are serialized into each generated plan.
@@ -225,7 +232,8 @@ Selectable candidates reference evidence IDs directly.
 A candidate that matches a registered policy path also cites that path's
 policy-specific evidence. The Qwen2 path therefore adds
 `policy.qwen2-24l.mlx-qlora.v1` and
-`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`. Carrying the historical runtime ID in
+`runtime.qwen2-0.5b.mlx-qlora.2026-07-27`. The Gemma 4 path adds
+`policy.gemma4.mlx.v1`. Carrying the historical runtime ID in
 a current plan preserves its scope; it does not relabel the current plan or
 bundle as runtime-tested. The separate exact-source refresh applies only when
 its exact plan, bundle, artifact, source, host, runtime, dataset, policy

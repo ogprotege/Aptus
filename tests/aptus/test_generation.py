@@ -33,6 +33,7 @@ from aptus.model_compatibility import (
 from aptus.planning import plan_training
 from aptus.plan_contract import (
     expected_model_architecture_contract,
+    mlx_packed_checkpoint_overhead_limit,
     mlx_quantized_storage_bytes_for_contract,
     sha256_file,
 )
@@ -109,8 +110,8 @@ def _mlx_model_load_binding(plan: dict) -> dict:
         "expected_quantization_metadata_bytes": expected_metadata_bytes,
         "expected_packed_tensor_bytes": expected_packed_bytes,
         "container_overhead_bytes": 4096,
-        "container_overhead_limit_bytes": max(
-            1024**2, round(expected_packed_bytes * 0.0001)
+        "container_overhead_limit_bytes": mlx_packed_checkpoint_overhead_limit(
+            expected_packed_bytes
         ),
     }
     packed["descriptor_sha256"] = hashlib.sha256(
@@ -130,6 +131,27 @@ def _mlx_model_load_binding(plan: dict) -> dict:
         json.dumps(binding, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
     return binding
+
+
+def _write_minimal_safetensors(path: Path, tensors: dict[str, bytes]) -> int:
+    """Write a header-valid safetensors file with the given named payloads."""
+
+    offset = 0
+    header: dict[str, object] = {}
+    payloads: list[bytes] = []
+    for name, payload in tensors.items():
+        header[name] = {
+            "dtype": "U8",
+            "shape": [len(payload)],
+            "data_offsets": [offset, offset + len(payload)],
+        }
+        payloads.append(payload)
+        offset += len(payload)
+    encoded = json.dumps(header, separators=(",", ":")).encode("utf-8")
+    while (8 + len(encoded)) % 8:
+        encoded += b" "
+    path.write_bytes(len(encoded).to_bytes(8, "little") + encoded + b"".join(payloads))
+    return path.stat().st_size
 
 
 def _mlx_unified_memory_admission(plan: dict) -> dict:
@@ -1152,14 +1174,17 @@ class BundleGenerationTests(unittest.TestCase):
             model = types.SimpleNamespace(
                 layers=[FakeLayer() for _index in range(plan["model"]["layers"])]
             )
-            resolved, binding = module.resolve_lora_keys(model, candidate)
+            family = plan["model"]["family"]
+            resolved, binding = module.resolve_lora_keys(
+                model, candidate, family=family
+            )
             names = [
                 f"model.layers.{layer_index}.{key}.{suffix}"
                 for layer_index in range(plan["model"]["layers"])
                 for key in resolved
                 for suffix in ("lora_a", "lora_b")
             ]
-            census = module.require_trainable_binding(names, binding)
+            census = module.require_trainable_binding(names, binding, family=family)
 
             self.assertEqual(
                 census["planned_target_modules"], candidate["target_modules"]
@@ -1171,8 +1196,85 @@ class BundleGenerationTests(unittest.TestCase):
             self.assertEqual(census["trainable_tensor_count"], len(names))
             with self.assertRaisesRegex(RuntimeError, "non-LoRA"):
                 module.require_trainable_binding(
-                    [*names, "model.layers.0.norm.weight"], binding
+                    [*names, "model.layers.0.norm.weight"],
+                    binding,
+                    family=family,
                 )
+
+    def test_generated_mlx_binding_allows_absent_kv_on_shared_layers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(
+                output, "aptus_generated_mlx_kv_shared_binding"
+            )
+            plan = module.load_contract()[0]
+            candidate = plan["recommended"]
+            layer_count = plan["model"]["layers"]
+            kv_layers = layer_count - 8
+
+            class FakeLayer:
+                def __init__(self, has_kv: bool) -> None:
+                    modules = [
+                        ("self_attn.q_proj", object()),
+                        ("self_attn.o_proj", object()),
+                        ("mlp.gate_proj", object()),
+                        ("mlp.up_proj", object()),
+                        ("mlp.down_proj", object()),
+                    ]
+                    if has_kv:
+                        modules[1:1] = [
+                            ("self_attn.k_proj", object()),
+                            ("self_attn.v_proj", object()),
+                        ]
+                    self._modules = modules
+
+                def named_modules(self):
+                    return list(self._modules)
+
+            model = types.SimpleNamespace(
+                layers=[
+                    FakeLayer(has_kv=index < kv_layers) for index in range(layer_count)
+                ]
+            )
+            resolved, binding = module.resolve_lora_keys(
+                model, candidate, family="gemma4"
+            )
+            names = []
+            for layer_index, layer in enumerate(model.layers):
+                present = {
+                    name.rsplit(".", 1)[-1] for name, _module in layer.named_modules()
+                }
+                for key in resolved:
+                    target = key.rsplit(".", 1)[-1]
+                    if target not in present:
+                        continue
+                    for suffix in ("lora_a", "lora_b"):
+                        names.append(f"model.layers.{layer_index}.{key}.{suffix}")
+            census = module.require_trainable_binding(names, binding, family="gemma4")
+            expected = layer_count * len(candidate["target_modules"]) - 16
+            self.assertEqual(census["adapter_target_instance_count"], expected)
+            self.assertEqual(census["target_instance_counts"]["k_proj"], kv_layers)
+            self.assertEqual(census["target_instance_counts"]["q_proj"], layer_count)
+            with self.assertRaisesRegex(RuntimeError, "every transformer layer"):
+                module.resolve_lora_keys(model, candidate, family="llama")
+
+            missing_q = types.SimpleNamespace(
+                layers=[FakeLayer(has_kv=True) for _index in range(layer_count - 1)]
+                + [FakeLayer(has_kv=True)]
+            )
+            missing_q.layers[-1]._modules = [
+                item
+                for item in missing_q.layers[-1]._modules
+                if not item[0].endswith("q_proj")
+            ]
+            with self.assertRaisesRegex(RuntimeError, "every transformer layer"):
+                module.resolve_lora_keys(missing_q, candidate, family="gemma4")
+
+            no_k = types.SimpleNamespace(
+                layers=[FakeLayer(has_kv=False) for _index in range(layer_count)]
+            )
+            with self.assertRaisesRegex(RuntimeError, "matched 0 modules"):
+                module.resolve_lora_keys(no_k, candidate, family="gemma4")
 
     def test_generated_mlx_iteration_schedule_is_bounded_and_epoch_derived(
         self,
@@ -1488,7 +1590,7 @@ class BundleGenerationTests(unittest.TestCase):
                 module.require_method_model(
                     quantized_plan, {"method": "lora"}, quantized
                 )
-            with self.assertRaisesRegex(RuntimeError, "four-bit"):
+            with self.assertRaisesRegex(RuntimeError, "declared quantization bits"):
                 module.require_method_model(plan, {"method": "qlora"}, unquantized)
             with self.assertRaisesRegex(RuntimeError, "custom model_file"):
                 module.require_method_model(plan, {"method": "lora"}, custom_model)
@@ -1813,7 +1915,10 @@ class BundleGenerationTests(unittest.TestCase):
             plan = module.load_contract()[0]
             model_path = Path(temporary) / "pinned-admission-model"
             model_path.mkdir()
-            (model_path / "model.safetensors").write_bytes(b"x")
+            observed_bytes = _write_minimal_safetensors(
+                model_path / "model.safetensors",
+                {"language_model.model.embed_tokens.weight": b"x"},
+            )
             vm_stat = (
                 "Mach Virtual Memory Statistics: (page size of 4096 bytes)\n"
                 "Pages free:                               5000000.\n"
@@ -1830,7 +1935,7 @@ class BundleGenerationTests(unittest.TestCase):
                 admission["required_available_bytes"],
             )
             self.assertEqual(admission["reserve_bytes"], 8 * 1024**3)
-            self.assertEqual(admission["observed_safetensors_bytes"], 1)
+            self.assertEqual(admission["observed_safetensors_bytes"], observed_bytes)
             self.assertEqual(admission["resident_adjustment_bytes"], 0)
             self.assertNotIn("free_vram_bytes", admission)
 
@@ -1877,6 +1982,51 @@ class BundleGenerationTests(unittest.TestCase):
             self.assertIn("available=4096 bytes", str(raised.exception))
             self.assertIn(f"shortfall={required - 4096} bytes", str(raised.exception))
 
+    def test_generated_mlx_snapshot_excludes_unused_multimodal_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = self._mlx_bundle(Path(temporary))
+            module = self._load_generated(output, "aptus_generated_mlx_snapshot_bytes")
+            mixed = Path(temporary) / "mixed-gemma4"
+            mixed.mkdir()
+            language = b"L" * 64
+            vision = b"V" * 128
+            audio = b"A" * 32
+            projector = b"P" * 16
+            mixed_total = _write_minimal_safetensors(
+                mixed / "model.safetensors",
+                {
+                    "language_model.model.layers.0.self_attn.q_proj.weight": language,
+                    "model.vision_tower.patch_embedding.weight": vision,
+                    "audio_tower.encoder.weight": audio,
+                    "multi_modal_projector.weight": projector,
+                },
+            )
+            unused = len(vision) + len(audio) + len(projector)
+            self.assertEqual(
+                module.snapshot_safetensors_bytes(mixed),
+                mixed_total - unused,
+            )
+
+            language_only = Path(temporary) / "language-only"
+            language_only.mkdir()
+            language_total = _write_minimal_safetensors(
+                language_only / "model.safetensors",
+                {"language_model.model.embed_tokens.weight": language},
+            )
+            self.assertEqual(
+                module.snapshot_safetensors_bytes(language_only),
+                language_total,
+            )
+
+            unused_only = Path(temporary) / "unused-only"
+            unused_only.mkdir()
+            _write_minimal_safetensors(
+                unused_only / "model.safetensors",
+                {"vision_tower.weight": vision, "embed_audio.weight": audio},
+            )
+            with self.assertRaisesRegex(RuntimeError, "language-tower"):
+                module.snapshot_safetensors_bytes(unused_only)
+
     def test_generated_mlx_model_data_refuses_right_truncation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = self._mlx_bundle(Path(temporary))
@@ -1885,6 +2035,8 @@ class BundleGenerationTests(unittest.TestCase):
             )
             plan = json.loads((output / "plan.json").read_text(encoding="utf-8"))
             plan["model"]["quantization_bits"] = 4
+            plan["recommended"]["method"] = "qlora"
+            plan["recommended"]["quantization"] = "mlx-4bit-groupwise"
             observed = {}
 
             class FakeDataset:

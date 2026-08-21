@@ -289,11 +289,12 @@ promoted to provider facts. Old v4, v3, v2, and schema-less plans, plus
 stale-policy or stale-snapshot v6 plans, require replanning instead of
 reinterpretation.
 
-The registry currently carries two reviewed policy subjects. The Qwen3 MoE row
-binds its exact sparse topology and mixed quantization layout. The second row,
+The registry currently carries three reviewed policy subjects. The Qwen3 MoE row
+binds its exact sparse topology and mixed quantization layout. The Qwen2 row,
 `model.qwen2-24l.mlx-qlora`, is a reviewed dense configuration footprint rather
 than an artifact allowlist: exact artifact and revision identity remain bound by
-inspection receipts and runtime evidence.
+inspection receipts and runtime evidence. The Gemma 4 row, `model.gemma4.mlx.v1`,
+is a dense family path: size and bitwidth come from the pinned revision.
 
 The workbench consumes that server-owned policy as three separate records:
 artifact match, selected candidate path, and evidence readiness. It strictly

@@ -140,7 +140,7 @@ acceptance remain open.
   proxies and stay on `https://huggingface.co`.
 - One host-side model compatibility registry authority shared by provider
   inspection, sparse candidate admission, and API execution-path validation.
-  It now contains two reviewed entries and derives compiler, estimator, export,
+  It now contains three reviewed entries and derives compiler, estimator, export,
   and evidence-requirement identities from the method registry instead of
   copying them.
 - Exact policy matching for `qwen3_moe` checkpoints with

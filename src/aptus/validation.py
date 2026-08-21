@@ -48,6 +48,7 @@ from .policy_snapshot import (
 )
 from .plan_contract import (
     bundle_fingerprint,
+    mlx_trainable_target_instance_total,
     sha256_file,
     validate_bundle_manifest,
     validate_plan_payload,
@@ -245,7 +246,15 @@ def _require_mlx_target_binding(value: Any, plan: Mapping[str, Any]) -> None:
         or layers <= 0
     ):
         raise ValueError("MLX trainable-target binding is missing.")
-    count = len(targets) * layers
+    counts = value.get("target_instance_counts")
+    try:
+        count = mlx_trainable_target_instance_total(
+            targets, layers, counts, family=model.get("family")
+        )
+    except ValueError as error:
+        raise ValueError(
+            "MLX trainable-target binding is not exact for the plan."
+        ) from error
     expected = {
         "schema_version": "aptus.mlx-trainable-target-binding.v1",
         "planned_target_modules": targets,
@@ -253,7 +262,7 @@ def _require_mlx_target_binding(value: Any, plan: Mapping[str, Any]) -> None:
         "expected_adapter_target_instance_count": count,
         "adapter_target_instance_count": count,
         "trainable_tensor_count": count * 2,
-        "target_instance_counts": {target: layers for target in targets},
+        "target_instance_counts": counts,
     }
     resolved = value.get("resolved_layer_keys")
     descriptor = value.get("descriptor_sha256")

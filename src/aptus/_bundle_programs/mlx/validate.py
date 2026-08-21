@@ -18,7 +18,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True
-from plan_contract import bundle_fingerprint, load_json_object, validate_bundle_manifest, validate_plan_payload
+from plan_contract import (
+    bundle_fingerprint,
+    load_json_object,
+    mlx_trainable_target_instance_total,
+    validate_bundle_manifest,
+    validate_plan_payload,
+)
 from train import (
     build_mlx_model_load_binding,
     require_method_model,
@@ -400,8 +406,18 @@ def require_runtime_metrics(
         raise RuntimeError("MLX-LM runtime metrics require an exact trainable-target binding.")
     planned = candidate["target_modules"]
     layer_count = int(plan["model"]["layers"])
-    expected_instances = len(planned) * layer_count
     target_counts = binding.get("target_instance_counts")
+    try:
+        expected_instances = mlx_trainable_target_instance_total(
+            planned,
+            layer_count,
+            target_counts,
+            family=plan["model"].get("family"),
+        )
+    except ValueError as error:
+        raise RuntimeError(
+            "MLX-LM trainable-target binding is not exact for the plan."
+        ) from error
     descriptor_sha256 = binding.get("descriptor_sha256")
     descriptor_payload = {
         key: value for key, value in binding.items() if key != "descriptor_sha256"
@@ -419,7 +435,6 @@ def require_runtime_metrics(
         or binding.get("adapter_target_instance_count") != expected_instances
         or binding.get("trainable_tensor_count") != expected_instances * 2
         or not isinstance(target_counts, dict)
-        or target_counts != {target: layer_count for target in planned}
         or not isinstance(binding.get("resolved_layer_keys"), list)
         or len(binding["resolved_layer_keys"]) != len(planned)
         or len(set(binding["resolved_layer_keys"])) != len(planned)

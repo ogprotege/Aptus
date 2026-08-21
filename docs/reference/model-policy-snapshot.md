@@ -167,6 +167,19 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
   at the resolved revision. Dense topology is enforced by the `moe: null`
   constraint rather than by requiring a provider-declared `moe` field.
 
+### Dense Gemma 4 family
+
+- Policy: `model.gemma4.mlx.v1`, version `1.0.0`.
+- Exact identity: family `gemma4`, model type `gemma4_text`, architecture
+  `Gemma4ForConditionalGeneration`.
+- Dense topology: `moe` is null. Size and bitwidth are inspect-declared;
+  there is no 24-layer or four-bit freeze.
+- Paths: `mlx-lm.qlora.single.gemma4-dense.v1` and
+  `mlx-lm.lora.single.gemma4-dense.v1` with adapter profile
+  `dense-causal-lm.v1` and dense q/k/v/o/gate/up/down targets.
+- Provider-inspection requirement: `architecture`, `layers`, and
+  `model_type` must be provider-declared at the resolved revision.
+
 The Qwen2 row describes a reviewed configuration footprint, not an artifact
 allowlist. A matched policy path and compiler establish conditional execution
 eligibility, not target-runtime proof. The

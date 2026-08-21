@@ -136,13 +136,17 @@ policy identity and version, complete path objects, reason codes, and evidence
 IDs. See the [model-policy snapshot reference](model-policy-snapshot.md) for the
 portable evaluation order and rule shapes.
 
-The current registry contains two exact configuration rows:
+The current registry contains three exact configuration rows:
 
 - Qwen3 MoE uses policy `model.qwen3-moe.mlx-qlora` version `1.0.0`, path
   `mlx-lm.qlora.single.attention-qkvo.v1`, and adapter profile
   `attention-qkvo.v1`.
 - Dense 24-layer Qwen2 uses policy `model.qwen2-24l.mlx-qlora` version
   `1.0.0`, path `mlx-lm.qlora.single.dense-causal-lm.v1`, and adapter profile
+  `dense-causal-lm.v1`.
+- Dense Gemma 4 uses policy `model.gemma4.mlx.v1` version `1.0.0`, paths
+  `mlx-lm.qlora.single.gemma4-dense.v1` and
+  `mlx-lm.lora.single.gemma4-dense.v1`, and adapter profile
   `dense-causal-lm.v1`.
 
 The Qwen2 row requires family `qwen`, model type `qwen2`, architecture

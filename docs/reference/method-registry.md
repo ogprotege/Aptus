@@ -123,15 +123,15 @@ Registered alias: `8bit-lora`.
 
 ### QLoRA
 
-QLoRA trains LoRA adapters through a frozen runtime-native four-bit base: an NF4
-double-quantized base on `transformers-peft-cuda`, and a four-bit MLX base on
-`mlx-lm`.
+QLoRA trains LoRA adapters through a frozen runtime-native quantized base: an
+NF4 double-quantized four-bit base on `transformers-peft-cuda`, and a declared
+MLX groupwise base (bits 1 through 16) on `mlx-lm`.
 
 Additional v0.2 gates:
 
 - every participating CUDA device must explicitly support the four-bit path.
-  This gate does not apply to `mlx-lm`, where eligibility comes from explicit
-  four-bit MLX quantization metadata in the pinned model revision, checked at
+  This gate does not apply to `mlx-lm`, where eligibility comes from declared
+  MLX quantization metadata in the pinned model revision, checked at
   model-data validation;
 - FSDP is outside the verified compiler matrix;
 - single-device CUDA QLoRA uses reentrant gradient checkpointing;

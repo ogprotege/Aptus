@@ -25,7 +25,7 @@ support status and reason.
   subject to the exact pilot.
 - LoRA and QLoRA also compile on one Apple unified-memory device through the
   `mlx-lm` runtime, at single placement only. There, QLoRA eligibility comes
-  from explicit four-bit MLX quantization metadata in the pinned model revision,
+  from declared MLX quantization bits (1 through 16) in the pinned model revision,
   not from a device four-bit capability fact.
 - Full, LoRA, int8-LoRA, and QLoRA can be considered on one device or DDP when
   their capability and memory checks pass.

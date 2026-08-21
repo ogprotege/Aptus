@@ -212,12 +212,13 @@ priors. They are not tuned against the supplied corpus.
 | CUDA `int8-lora` | BF16 if every bound device declares support, otherwise FP16 | `int8-bitsandbytes` | `0.0002` |
 | CUDA `qlora` | BF16 if every bound device declares support, otherwise FP16 | `nf4-double-quant` | `0.0002` |
 | MLX-LM `lora` | BF16 if declared, otherwise FP16; discovered MPS currently records FP16 | `null` | `0.0002` |
-| MLX-LM `qlora` | BF16 if declared, otherwise FP16; discovered MPS currently records FP16 | `mlx-4bit-groupwise` | `0.0002` |
+| MLX-LM `qlora` | BF16 if declared, otherwise FP16; discovered MPS currently records FP16 | `mlx-{bits}bit-groupwise` from the pin | `0.0002` |
 
 CUDA eight-bit and four-bit candidates require the corresponding capability on
 every participating device. MLX QLoRA ignores the CUDA-style device flag and
-requires explicit four-bit MLX quantization metadata in the pinned model during
-model-data validation. Capability flags never manufacture support.
+requires declared MLX quantization bits (1 through 16) in the pinned model
+during model-data validation. A 4-bit pin still emits `mlx-4bit-groupwise`.
+Capability flags never manufacture support.
 
 ### Batch derivation
 

@@ -145,7 +145,7 @@ branches.
 | Full | No compiler | Unsupported | Unsupported | None |
 | LoRA | Conditional through uninterrupted pilot and full-duration adapter training | Unsupported | Unsupported | MLX-LM adapter |
 | int8-LoRA | No compiler | Unsupported | Unsupported | None |
-| QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with explicit four-bit quantization metadata in the pinned MLX model revision; no device four-bit capability fact is required | Unsupported | Unsupported | MLX-LM adapter |
+| QLoRA | Conditional through uninterrupted pilot and full-duration adapter training, with declared MLX quantization bits (1 through 16) in the pinned model revision; no device four-bit capability fact is required | Unsupported | Unsupported | MLX-LM adapter |
 
 MLX-LM uses the `mps` compute backend and `aptus-memory-mlx-v2` estimator. Its
 LoRA and QLoRA candidates always remain conditional and pilot-required. Its

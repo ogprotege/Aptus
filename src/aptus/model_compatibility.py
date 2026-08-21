@@ -168,6 +168,43 @@ QWEN2_REQUIRED_PROVENANCE_FIELDS = (
     "quantization_layout",
 )
 
+GEMMA4_FAMILY = "gemma4"
+GEMMA4_MODEL_TYPE = "gemma4_text"
+GEMMA4_ARCHITECTURE = "Gemma4ForConditionalGeneration"
+GEMMA4_IDENTITY_REASON = (
+    "Dense Gemma 4 execution requires the gemma4 family, gemma4_text provider "
+    "type, and Gemma4ForConditionalGeneration architecture."
+)
+GEMMA4_DENSE_REASON = (
+    "The Gemma 4 MLX-LM family path requires dense topology with no MoE "
+    "configuration. Sparse Gemma 4 remains a later named slice."
+)
+GEMMA4_PATH_REASON = (
+    "The Gemma 4 runtime is executable only as single-device MLX-LM LoRA or "
+    "QLoRA with dense q/k/v/o/gate/up/down adapters. QLoRA requires declared "
+    "quantization bits from 1 through 16; LoRA requires an unquantized base."
+)
+GEMMA4_MATCHED_REASON = (
+    "The provider identity matches the Gemma 4 dense MLX-LM family. Size and "
+    "bitwidth come from the pinned revision. Runtime evidence remains "
+    "artifact-scoped, and every execution still requires model-data, "
+    "measured-preflight, and pilot validation."
+)
+GEMMA4_BLOCKED_INSPECTION_REASON = (
+    "The Gemma 4 identity was recognized, but this configuration is not the "
+    "dense language-tower path."
+)
+GEMMA4_POLICY_ID = "model.gemma4.mlx.v1"
+GEMMA4_POLICY_VERSION = "1.0.0"
+GEMMA4_QLORA_PATH_ID = "mlx-lm.qlora.single.gemma4-dense.v1"
+GEMMA4_LORA_PATH_ID = "mlx-lm.lora.single.gemma4-dense.v1"
+GEMMA4_POLICY_EVIDENCE_IDS = ("policy.gemma4.mlx.v1",)
+GEMMA4_REQUIRED_PROVENANCE_FIELDS = (
+    "architecture",
+    "layers",
+    "model_type",
+)
+
 
 ADAPTER_PROFILE_TARGET_MODULES: dict[AdapterProfile, tuple[str, ...]] = {
     AdapterProfile.ATTENTION_QKVO_V1: QWEN3_MOE_TARGET_MODULES,
@@ -483,9 +520,76 @@ _QWEN2_POLICY = _ModelCompatibilityPolicy(
     ),
 )
 
+_GEMMA4_POLICY = _ModelCompatibilityPolicy(
+    policy_id=GEMMA4_POLICY_ID,
+    policy_version=GEMMA4_POLICY_VERSION,
+    family=GEMMA4_FAMILY,
+    claims={
+        "architecture": (GEMMA4_ARCHITECTURE,),
+        "family": (GEMMA4_FAMILY,),
+        "model_type": (GEMMA4_MODEL_TYPE, "gemma4"),
+    },
+    constraints=(
+        {
+            "kind": "exact_identity",
+            "values": {
+                "architecture": GEMMA4_ARCHITECTURE,
+                "family": GEMMA4_FAMILY,
+                "model_type": GEMMA4_MODEL_TYPE,
+            },
+            "reason": "gemma4_identity",
+            "reason_code": ModelPolicyReasonCode.IDENTITY_MISMATCH.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "moe",
+            "value": None,
+            "reason": "gemma4_dense",
+            "reason_code": ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED.value,
+        },
+    ),
+    paths=(
+        _policy_path(
+            path_id=GEMMA4_QLORA_PATH_ID,
+            family=GEMMA4_FAMILY,
+            method=Method.QLORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.DENSE_CAUSAL_LM_V1,
+            evidence_ids=GEMMA4_POLICY_EVIDENCE_IDS,
+        ),
+        _policy_path(
+            path_id=GEMMA4_LORA_PATH_ID,
+            family=GEMMA4_FAMILY,
+            method=Method.LORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.DENSE_CAUSAL_LM_V1,
+            evidence_ids=GEMMA4_POLICY_EVIDENCE_IDS,
+        ),
+    ),
+    matched_reason_key="gemma4_matched",
+    matched_reason=GEMMA4_MATCHED_REASON,
+    matched_reason_codes=(
+        ModelPolicyReasonCode.REVIEWED_RUNTIME_PATH,
+        ModelPolicyReasonCode.PILOT_NOT_YET_PROVEN,
+    ),
+    evidence_ids=GEMMA4_POLICY_EVIDENCE_IDS,
+    required_provenance_fields=GEMMA4_REQUIRED_PROVENANCE_FIELDS,
+    path_rejection_reason=GEMMA4_PATH_REASON,
+    blocked_inspection_reason=GEMMA4_BLOCKED_INSPECTION_REASON,
+    inspection_blocking_reason_codes=(
+        ModelPolicyReasonCode.INVALID_FACTS,
+        ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED,
+    ),
+)
+
 MODEL_COMPATIBILITY_POLICIES: tuple[_ModelCompatibilityPolicy, ...] = (
     _QWEN3_MOE_POLICY,
     _QWEN2_POLICY,
+    _GEMMA4_POLICY,
 )
 
 
@@ -562,6 +666,9 @@ def current_model_policy_snapshot() -> dict[str, Any]:
                 "qwen2_dense": QWEN2_DENSE_REASON,
                 "qwen2_four_bit": QWEN2_FOUR_BIT_REASON,
                 "qwen2_matched": QWEN2_MATCHED_REASON,
+                "gemma4_identity": GEMMA4_IDENTITY_REASON,
+                "gemma4_dense": GEMMA4_DENSE_REASON,
+                "gemma4_matched": GEMMA4_MATCHED_REASON,
                 "dense": FAMILY_RECOGNIZED_REASON,
                 "sparse": UNREVIEWED_SPARSE_MODEL_REASON,
                 "unknown": UNKNOWN_POLICY_REASON,

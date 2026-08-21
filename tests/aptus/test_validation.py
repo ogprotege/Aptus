@@ -17,6 +17,7 @@ from aptus.model_compatibility import (
 from aptus.plan_contract import (
     bundle_fingerprint,
     expected_model_architecture_contract,
+    mlx_packed_checkpoint_overhead_limit,
     mlx_quantized_storage_bytes_for_contract,
     sha256_file,
 )
@@ -106,8 +107,8 @@ def _mlx_model_load_binding(plan: dict) -> dict:
         "expected_quantization_metadata_bytes": expected_metadata_bytes,
         "expected_packed_tensor_bytes": expected_packed_bytes,
         "container_overhead_bytes": 4096,
-        "container_overhead_limit_bytes": max(
-            1024**2, round(expected_packed_bytes * 0.0001)
+        "container_overhead_limit_bytes": mlx_packed_checkpoint_overhead_limit(
+            expected_packed_bytes
         ),
     }
     packed["descriptor_sha256"] = _json_digest(packed)

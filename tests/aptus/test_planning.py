@@ -800,7 +800,7 @@ class PlannerTests(unittest.TestCase):
                 target=base.target,
             )
         viable = [item for item in plan.candidates if item.feasible]
-        self.assertEqual({item.method for item in viable}, {Method.LORA, Method.QLORA})
+        self.assertEqual({item.method for item in viable}, {Method.LORA})
         self.assertTrue(
             all(item.status == CandidateStatus.CONDITIONAL for item in viable)
         )
@@ -813,10 +813,20 @@ class PlannerTests(unittest.TestCase):
                 for item in viable
             )
         )
-        qlora = next(item for item in viable if item.method == Method.QLORA)
-        self.assertEqual(qlora.quantization, "mlx-4bit-groupwise")
+        qlora = next(
+            item
+            for item in plan.candidates
+            if item.method == Method.QLORA and item.distribution == Distribution.SINGLE
+        )
+        self.assertFalse(qlora.feasible)
+        self.assertEqual(qlora.status, CandidateStatus.UNSUPPORTED)
+        self.assertTrue(
+            any(
+                "declared quantization bits" in reason
+                for reason in qlora.rejection_reasons
+            )
+        )
         self.assertFalse(hardware.devices[0].supports_4bit)
-        self.assertTrue(any("not bitsandbytes" in item for item in qlora.assumptions))
 
     def test_qwen3_moe_allows_only_attention_only_single_mlx_qlora(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

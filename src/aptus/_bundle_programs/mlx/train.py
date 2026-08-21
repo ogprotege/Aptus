@@ -21,6 +21,8 @@ from plan_contract import (
     expected_model_architecture_contract,
     load_json_object,
     mlx_quantized_storage_bytes_for_contract,
+    mlx_packed_checkpoint_overhead_limit,
+    mlx_trainable_target_instance_total,
     validate_bundle_manifest,
     validate_model_config_against_plan,
     validate_plan_payload,
@@ -129,9 +131,17 @@ def require_method_model(
     if not quantization and isinstance(text_config, dict):
         quantization = text_config.get("quantization_config")
     bits = quantization.get("bits") if isinstance(quantization, dict) else None
-    if candidate["method"] == "qlora" and bits != 4:
+    planned_bits = plan["model"].get("quantization_bits")
+    if candidate["method"] == "qlora" and (
+        not isinstance(bits, int)
+        or isinstance(bits, bool)
+        or bits != planned_bits
+        or not 1 <= bits <= 16
+    ):
         raise RuntimeError(
-            "MLX-LM QLoRA requires a pinned model revision with explicit four-bit MLX quantization metadata. Aptus will not substitute bitsandbytes or quantize an unbound model during training."
+            "MLX-LM QLoRA requires a pinned model revision whose declared "
+            "quantization bits match the plan (1 through 16). Aptus will not "
+            "substitute bitsandbytes or quantize an unbound model during training."
         )
     if candidate["method"] == "lora" and quantization:
         raise RuntimeError(
@@ -141,23 +151,87 @@ def require_method_model(
     return architecture_contract
 
 
+_UNUSED_MULTIMODAL_TENSOR_PREFIXES = (
+    "vision_tower",
+    "multi_modal_projector",
+    "audio_tower",
+    "embed_audio",
+    "embed_vision",
+)
+
+
+def _is_unused_multimodal_tensor(name: str) -> bool:
+    stripped = name.removeprefix("model.")
+    return stripped.startswith(_UNUSED_MULTIMODAL_TENSOR_PREFIXES) or name.startswith(
+        _UNUSED_MULTIMODAL_TENSOR_PREFIXES
+    )
+
+
+def _safetensors_payload_accounting(path: Path) -> tuple[int, int]:
+    """Return (total tensor payload bytes, unused multimodal payload bytes)."""
+
+    with path.open("rb") as handle:
+        header_size = int.from_bytes(handle.read(8), "little")
+        if header_size <= 0 or header_size > 64 * 1024 * 1024:
+            raise RuntimeError("Pinned MLX-LM safetensors header is invalid.")
+        header = json.loads(handle.read(header_size).decode("utf-8"))
+    if not isinstance(header, dict):
+        raise RuntimeError("Pinned MLX-LM safetensors header is not an object.")
+    payload = 0
+    unused = 0
+    for name, meta in header.items():
+        if name == "__metadata__" or not isinstance(meta, dict):
+            continue
+        offsets = meta.get("data_offsets")
+        if (
+            not isinstance(offsets, list)
+            or len(offsets) != 2
+            or not isinstance(offsets[0], int)
+            or not isinstance(offsets[1], int)
+            or offsets[1] < offsets[0]
+        ):
+            raise RuntimeError("Pinned MLX-LM safetensors tensor offsets are invalid.")
+        size = offsets[1] - offsets[0]
+        payload += size
+        if _is_unused_multimodal_tensor(name):
+            unused += size
+    return payload, unused
+
+
 def snapshot_safetensors_bytes(model_path: Path) -> int:
-    """Return the exact bytes occupied by the pinned snapshot tensor shards."""
+    """Return safetensors bytes bound to tensors mlx-lm actually loads.
+
+    Gemma 4 Hub snapshots also contain vision/audio shards that mlx-lm drops at
+    sanitize. Those leftover payloads are not container overhead and are
+    excluded from the packed-checkpoint comparison.
+    """
 
     files = sorted(model_path.rglob("*.safetensors"))
     if not files:
         raise RuntimeError("Pinned MLX-LM snapshot contains no safetensors weights.")
     total = 0
+    payload = 0
+    unused = 0
     for path in files:
         if not path.is_file():
             raise RuntimeError("Pinned MLX-LM safetensors path is not a regular file.")
         size = path.stat().st_size
         if size <= 0:
             raise RuntimeError("Pinned MLX-LM safetensors shard is empty.")
+        shard_payload, shard_unused = _safetensors_payload_accounting(path)
         total += size
-    if total <= 0:
+        payload += shard_payload
+        unused += shard_unused
+    if payload <= 0:
         raise RuntimeError("Pinned MLX-LM snapshot has no positive tensor bytes.")
-    return total
+    if unused >= payload:
+        raise RuntimeError(
+            "Pinned MLX-LM snapshot has no language-tower safetensors payload."
+        )
+    bound = total - unused
+    if bound <= 0:
+        raise RuntimeError("Pinned MLX-LM snapshot has no positive tensor bytes.")
+    return bound
 
 
 def build_mlx_packed_checkpoint_binding(
@@ -182,7 +256,7 @@ def build_mlx_packed_checkpoint_binding(
         expected_metadata = 0
     expected_packed = expected_weights + expected_metadata
     overhead = int(observed_safetensors_bytes) - expected_packed
-    overhead_limit = max(1024**2, round(expected_packed * 0.0001))
+    overhead_limit = mlx_packed_checkpoint_overhead_limit(expected_packed)
     if overhead < 0:
         raise RuntimeError(
             "Pinned MLX-LM safetensors bytes are smaller than the bound packed tensor arithmetic."
@@ -649,7 +723,7 @@ def require_unified_memory_admission(
 
 
 def resolve_lora_keys(
-    model: Any, candidate: dict[str, Any]
+    model: Any, candidate: dict[str, Any], *, family: str
 ) -> tuple[list[str], dict[str, Any]]:
     planned = candidate.get("target_modules")
     if (
@@ -665,6 +739,7 @@ def resolve_lora_keys(
     if not layers:
         raise RuntimeError("The loaded MLX-LM model exposes no transformer layers.")
     resolved: dict[str, str] = {}
+    target_layer_counts: dict[str, int] = {}
     for target in planned:
         observed: list[str] = []
         for layer_index, layer in enumerate(layers):
@@ -673,17 +748,29 @@ def resolve_lora_keys(
                 for name, _module in layer.named_modules()
                 if name == target or name.endswith("." + target)
             )
-            if len(matches) != 1:
+            if len(matches) > 1:
                 raise RuntimeError(
                     f"Planned MLX target {target!r} matched {len(matches)} modules "
-                    f"in transformer layer {layer_index}; exactly one is required."
+                    f"in transformer layer {layer_index}; at most one is required."
                 )
-            observed.append(matches[0])
+            if matches:
+                observed.append(matches[0])
+        if not observed:
+            raise RuntimeError(
+                f"Planned MLX target {target!r} matched 0 modules in the loaded transformer."
+            )
         if len(set(observed)) != 1:
             raise RuntimeError(
                 f"Planned MLX target {target!r} does not resolve to one stable layer-relative key."
             )
         resolved[target] = observed[0]
+        target_layer_counts[target] = len(observed)
+    try:
+        expected_instances = mlx_trainable_target_instance_total(
+            planned, len(layers), target_layer_counts, family=family
+        )
+    except ValueError as error:
+        raise RuntimeError(str(error)) from error
     resolved_keys = [resolved[target] for target in planned]
     if len(set(resolved_keys)) != len(resolved_keys):
         raise RuntimeError(
@@ -694,13 +781,14 @@ def resolve_lora_keys(
         "planned_target_modules": planned,
         "resolved_layer_keys": resolved_keys,
         "transformer_layer_count": len(layers),
-        "expected_adapter_target_instance_count": len(layers) * len(planned),
+        "expected_adapter_target_instance_count": expected_instances,
+        "target_instance_counts": target_layer_counts,
     }
     return resolved_keys, binding
 
 
 def require_trainable_binding(
-    names: list[str], binding: dict[str, Any]
+    names: list[str], binding: dict[str, Any], *, family: str
 ) -> dict[str, Any]:
     planned = binding["planned_target_modules"]
     pairs: dict[str, set[str]] = {}
@@ -737,11 +825,20 @@ def require_trainable_binding(
         )
         target_counts[target] += 1
     layer_count = binding["transformer_layer_count"]
-    if len(pairs) != binding["expected_adapter_target_instance_count"] or any(
-        count != layer_count for count in target_counts.values()
+    inspect_counts = binding.get("target_instance_counts")
+    try:
+        expected_instances = mlx_trainable_target_instance_total(
+            planned, layer_count, target_counts, family=family
+        )
+    except ValueError as error:
+        raise RuntimeError(str(error)) from error
+    if (
+        inspect_counts != target_counts
+        or len(pairs) != expected_instances
+        or binding.get("expected_adapter_target_instance_count") != expected_instances
     ):
         raise RuntimeError(
-            "The MLX trainable adapter set does not cover every planned target in every layer."
+            "The MLX trainable adapter set does not match the loaded planned-target instances."
         )
     descriptor = {
         **binding,
@@ -922,7 +1019,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
             or float(config.get("scale", float("nan"))) != expected_scale
         ):
             raise RuntimeError("MLX-LM LoRA rank or alpha/r scale violates the plan.")
-        resolved_keys, binding = resolve_lora_keys(model, candidate)
+        resolved_keys, binding = resolve_lora_keys(
+            model, candidate, family=str(plan["model"]["family"])
+        )
         config["keys"] = resolved_keys
         evidence["resolved_binding"] = binding
         original_linear_to_lora_layers(model, num_layers, config, use_dora=use_dora)
@@ -941,7 +1040,9 @@ def run_smoke(arguments: argparse.Namespace) -> int:
             )
         before = dict(tree_flatten(model.trainable_parameters()))
         binding = require_trainable_binding(
-            sorted(before), evidence.get("resolved_binding", {})
+            sorted(before),
+            evidence.get("resolved_binding", {}),
+            family=str(plan["model"]["family"]),
         )
         mx.eval(*before.values())
         optimizer = kwargs.get("optimizer")

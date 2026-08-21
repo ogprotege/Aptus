@@ -25,6 +25,8 @@ from aptus.model_compatibility import (
 )
 from aptus.plan_contract import (
     MODEL_TARGET_MODULES,
+    mlx_packed_checkpoint_overhead_limit,
+    mlx_trainable_target_instance_total,
     RUNTIME_BINDING_IDENTITIES,
     StaleModelPolicyError,
     _current_model_policy_decision,
@@ -1536,6 +1538,55 @@ class PlanContractTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "MoE topology"):
             mlx_quantized_storage_bytes_for_contract(model)
+
+    def test_mlx_packed_checkpoint_overhead_limit_covers_gemma4_norm_residual(
+        self,
+    ) -> None:
+        self.assertEqual(
+            mlx_packed_checkpoint_overhead_limit(4_197_945_024), 2 * 1024**2
+        )
+        self.assertGreater(
+            mlx_packed_checkpoint_overhead_limit(4_197_945_024), 1_157_462
+        )
+
+    def test_mlx_trainable_target_instance_total_allows_absent_kv(self) -> None:
+        targets = MODEL_TARGET_MODULES["gemma4"]
+        counts = {target: 35 for target in targets}
+        counts["k_proj"] = 15
+        counts["v_proj"] = 15
+        self.assertEqual(
+            mlx_trainable_target_instance_total(targets, 35, counts, family="gemma4"),
+            205,
+        )
+        self.assertEqual(
+            mlx_trainable_target_instance_total(
+                targets, 35, {**counts, "v_proj": 1}, family="gemma4"
+            ),
+            191,
+        )
+        with self.assertRaisesRegex(ValueError, "every transformer layer"):
+            mlx_trainable_target_instance_total(targets, 35, counts, family="llama")
+        full = {target: 35 for target in targets}
+        self.assertEqual(
+            mlx_trainable_target_instance_total(targets, 35, full, family="llama"),
+            245,
+        )
+        sparse_qwen3 = {target: 48 for target in MODEL_TARGET_MODULES["qwen3_moe"]}
+        sparse_qwen3["k_proj"] = 1
+        with self.assertRaisesRegex(ValueError, "every transformer layer"):
+            mlx_trainable_target_instance_total(
+                MODEL_TARGET_MODULES["qwen3_moe"],
+                48,
+                sparse_qwen3,
+                family="qwen3_moe",
+            )
+        counts["q_proj"] = 34
+        with self.assertRaisesRegex(ValueError, "every transformer layer"):
+            mlx_trainable_target_instance_total(targets, 35, counts, family="gemma4")
+        counts["q_proj"] = 35
+        counts["k_proj"] = 0
+        with self.assertRaisesRegex(ValueError, "not exact"):
+            mlx_trainable_target_instance_total(targets, 35, counts, family="gemma4")
 
     def test_qwen3_moe_architecture_contract_rejects_quantization_layout_drift(
         self,

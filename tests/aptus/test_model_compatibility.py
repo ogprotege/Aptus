@@ -21,6 +21,7 @@ from aptus.domain import (
     to_primitive,
 )
 from aptus.model_compatibility import (
+    GEMMA4_POLICY_ID,
     INVALID_COMPATIBILITY_FACTS_REASON,
     QWEN3_MOE_FOUR_BIT_REASON,
     QWEN3_MOE_IDENTITY_REASON,
@@ -120,6 +121,54 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
         ]
         self.assertEqual(len(artifact_evidence), 1)
         self.assertIn(QWEN2_5_ACCEPTANCE_MODEL_ID, artifact_evidence[0].scope)
+
+    def test_gemma4_dense_family_matches_qlora_and_lora_paths(self) -> None:
+        for bits, layers in ((4, 60), (8, 60), (6, 35), (1, 35)):
+            with self.subTest(bits=bits, layers=layers):
+                subject = ModelCompatibilitySubject(
+                    family="gemma4",
+                    model_type="gemma4_text",
+                    architecture="Gemma4ForConditionalGeneration",
+                    layers=layers,
+                    quantization_bits=bits,
+                    quantization_layout=QuantizationLayout(bits, 64),
+                    moe=None,
+                )
+                decision = evaluate_model_compatibility(subject)
+                response = compatibility_response_v1(decision)
+
+                self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
+                self.assertEqual(decision.policy_id, GEMMA4_POLICY_ID)
+                self.assertEqual(decision.family, "gemma4")
+                self.assertEqual(
+                    {path.path_id for path in decision.paths},
+                    {
+                        "mlx-lm.qlora.single.gemma4-dense.v1",
+                        "mlx-lm.lora.single.gemma4-dense.v1",
+                    },
+                )
+                self.assertEqual(response["status"], "conditional")
+                self.assertEqual(response["family"], "gemma4")
+                self.assertEqual(response["supported_methods"], ["qlora", "lora"])
+                self.assertEqual(response["supported_runtime"], "mlx-lm")
+
+    def test_gemma4_moe_topology_stays_blocked(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4",
+            model_type="gemma4_text",
+            architecture="Gemma4ForConditionalGeneration",
+            layers=60,
+            quantization_bits=4,
+            quantization_layout=QuantizationLayout(4, 64),
+            moe=self.subject.moe,
+        )
+        decision = evaluate_model_compatibility(subject)
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.BLOCKED)
+        self.assertEqual(decision.policy_id, GEMMA4_POLICY_ID)
+        self.assertEqual(
+            [item.value for item in decision.reason_codes],
+            ["dense-topology-required"],
+        )
 
     def test_qwen2_layer_mismatch_stays_blocked_without_operator_confirm(
         self,

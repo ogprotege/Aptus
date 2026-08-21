@@ -14,7 +14,7 @@ tokenizer, and exact model weights. CUDA validation checks parameter count,
 plan-driving structure, adapter targets, every canonical row, visible device
 count, and the selected bitsandbytes load contract. MLX-LM validation loads the
 pinned revision through MLX-LM and tokenizes every compiled train and validation
-row. MLX QLoRA additionally requires explicit four-bit MLX quantization metadata
+row. MLX QLoRA additionally requires declared MLX quantization bits (1 through 16)
 in that pinned revision. It does not consult a CUDA device flag or substitute
 bitsandbytes.
 
@@ -28,12 +28,13 @@ step.
 Before loading model weights, the MLX-LM gate binds the pinned model-architecture
 contract. That contract covers the model type, architecture class, expert
 topology, and canonical quantization layout. The gate then measures the pinned
-snapshot's safetensors bytes, adds any excess over the planned resident bytes to
-the point and upper estimates, and refuses unless available unified memory is at
-least that adjusted estimate plus `max(user reserve, 8 GiB)`. A refusal reports
-exact required, available, and shortfall byte counts and writes no evidence.
-This is the first live-memory gate in the MLX ladder, and it can stop the run
-before any weights are read.
+snapshot's safetensors bytes bound to tensors mlx-lm actually loads, excluding
+leftover Gemma 4 vision/audio payloads that sanitize drops, adds any excess over
+the planned resident bytes to the point and upper estimates, and refuses unless
+available unified memory is at least that adjusted estimate plus
+`max(user reserve, 8 GiB)`. A refusal reports exact required, available, and
+shortfall byte counts and writes no evidence. This is the first live-memory gate
+in the MLX ladder, and it can stop the run before any weights are read.
 
 After the architecture, load, tokenizer, and compiled-data checks pass, the gate
 atomically writes mutable runtime artifact `model-data-evidence.json` under

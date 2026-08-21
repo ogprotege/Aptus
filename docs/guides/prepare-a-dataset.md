@@ -210,6 +210,7 @@ edited.
 
 ## Related documentation
 
+- [Aptus ↔ Veriformis handoff](aptus-veriformis-handoff.md)
 - [Model, dataset, and hardware facts](model-dataset-hardware.md)
 - [Reviewed corpus contract](../reference/reviewed-corpus-contract.md)
 - [Design an evaluation](design-an-evaluation.md)

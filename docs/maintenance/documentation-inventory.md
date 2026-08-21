@@ -4,7 +4,7 @@
 >
 > **Applies to:** Current Aptus 0.2 documentation after PR #41 and the canonical CUDA campaign integration, including the Phase 1 protocol freeze, Phase 2A source-tooling contract, Phase 2B sanitized recovery supplement, both immutable Phase 5 cohort outcomes, the historical Phase 6 packets, the Full confirmatory-stability outcome, the complete reviewed Phase 7 outcomes, the reviewed Phase 8 guarded-frontier outcome, the reviewed Phase 9 endurance outcome, and the reviewed Phase 10 campaign certification
 >
-> **Last reviewed:** 2026-08-20
+> **Last reviewed:** 2026-08-21
 >
 > **Next scheduled review:** 2026-10-27, or after any documentation move
 
@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 153 tracked Markdown documents. Of those, 152 are
+The repository tree contains 154 tracked Markdown documents. Of those, 153 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -67,20 +67,22 @@ and the implementation plan at
 `docs/superpowers/plans/2026-08-19-lane-4-workbench-craft.md`.
 Lane 5 adds the recitation-first specialist-eval design spec at
 `docs/superpowers/specs/2026-08-20-lane-5-recitation-first-eval-design.md`.
+The Aptus consumer handoff from a dataset compiler is
+`docs/guides/aptus-veriformis-handoff.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 123 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 124 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 152 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 153 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 152 governed
-Markdown files. Together with the root `LICENSE`, that makes 153 maintained
+The automated `maintained_documentation()` set contains the 153 governed
+Markdown files. Together with the root `LICENSE`, that makes 154 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -132,6 +134,7 @@ engineering-review index, and all twelve archived engineering reviews.
 - [Inspect results](../guides/inspect-results.md)
 - [Model, dataset, and hardware facts](../guides/model-dataset-hardware.md)
 - [Prepare a dataset](../guides/prepare-a-dataset.md)
+- [Aptus ↔ Veriformis handoff](../guides/aptus-veriformis-handoff.md)
 - [Recovery and the resume boundary](../guides/resume-recover.md)
 - [Troubleshooting](../guides/troubleshooting.md)
 

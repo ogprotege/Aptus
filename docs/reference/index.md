@@ -14,6 +14,7 @@ Use this section to look up exact interfaces and product contracts.
 ## Input and planning contracts
 
 - [Dataset schemas](dataset-schemas.md)
+- [Aptus ↔ Veriformis handoff](../guides/aptus-veriformis-handoff.md)
 - [Method registry](method-registry.md)
 - [Plan schema](plan-schema.md)
 - [Model-policy snapshot](model-policy-snapshot.md)

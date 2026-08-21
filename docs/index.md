@@ -18,6 +18,7 @@ The current portable contract uses `aptus.training-plan.v6`,
 | Plan on this machine | [CLI `emit-run`](reference/cli.md#aptus-emit-run) | [First planning-only run](getting-started/first-plan.md) for typed remote facts |
 | Choose a fine-tuning method | [Method selection guide](guides/choose-a-method.md) | [Method taxonomy](methodology/method-taxonomy.md) |
 | Prepare a dataset | [Prepare a dataset](guides/prepare-a-dataset.md) | [Dataset schemas](reference/dataset-schemas.md) |
+| Hand a compiler dataset to Aptus | [Aptus ↔ Veriformis handoff](guides/aptus-veriformis-handoff.md) | [CLI `prepare-train`](reference/cli.md#aptus-prepare-train) |
 | Compile and run a bundle | [Quickstart](getting-started/quickstart.md) | [Operator checklist](operations/operator-checklist.md) |
 | Understand a failure | [Troubleshooting](guides/troubleshooting.md) | [Error and finding codes](reference/error-codes.md) |
 | Interpret a completed run | [Inspect results](guides/inspect-results.md) | [Design an evaluation](guides/design-an-evaluation.md) |

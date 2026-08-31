@@ -5,7 +5,7 @@
 > **Increment:** Remainder program (R0). Names Lanes 7–10. **Not M10.** **Not 0.3.** **Not a 0.2 patch.**
 > **Implementation plan:** `docs/superpowers/plans/2026-08-26-remainder-program.md`
 > **Last reviewed:** 2026-08-26
-> **Next scheduled review:** After the Lane 7 spec freeze, or when a parked-track program opens
+> **Next scheduled review:** After the Lane 7 spec is approved, or when a parked-track program opens
 
 Owner sign-off (chat 2026-08-26): file the remainder as named increments after
 Lane 6. Do not grow the 0.2 referee. Do not start Lane 7 code from this freeze

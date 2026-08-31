@@ -14,6 +14,11 @@ All notable changes are recorded here.
 
 ### Added
 
+- Remainder completion plan and proposed Lane 7 unified spec. Not owner
+  "go." Not M10. Not 0.3. Not a 0.2 patch. Spec:
+  `docs/superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md`. Plan:
+  `docs/superpowers/plans/2026-08-31-remainder-completion.md`. This filing
+  does not admit 12B, MoE, or vision.
 - Remainder program freeze (R0): named Lanes 7–10 after Lane 6. Not M10.
   Not 0.3. Not a 0.2 patch. Spec:
   `docs/superpowers/specs/2026-08-26-remainder-program-design.md`. Plan:

@@ -60,6 +60,8 @@ R0 is done when the two new Markdown files are approved, inventoried, and reacha
 ## Lane 7: Gemma 4 unified (12B)
 
 Do not start until a Lane 7 spec is approved and the owner says go.
+Proposed spec: `docs/superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md`.
+Completion plan: `docs/superpowers/plans/2026-08-31-remainder-completion.md`.
 
 **Do**
 

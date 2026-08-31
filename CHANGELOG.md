@@ -14,6 +14,11 @@ All notable changes are recorded here.
 
 ### Added
 
+- Remainder program freeze (R0): named Lanes 7–10 after Lane 6. Not M10.
+  Not 0.3. Not a 0.2 patch. Spec:
+  `docs/superpowers/specs/2026-08-26-remainder-program-design.md`. Plan:
+  `docs/superpowers/plans/2026-08-26-remainder-program.md`. This freeze does
+  not admit 12B, MoE, or vision.
 - Lane 6 Gemma 4 family admission (`model.gemma4.mlx.v1`): inspect maps
   `gemma4` / `gemma4_text` to family `gemma4`, Compare can recommend
   single-device MLX LoRA/QLoRA for dense `Gemma4ForConditionalGeneration`

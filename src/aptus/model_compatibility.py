@@ -180,7 +180,8 @@ GEMMA4_IDENTITY_REASON = (
 )
 GEMMA4_DENSE_REASON = (
     "The Gemma 4 MLX-LM family path requires dense topology with no MoE "
-    "configuration. Sparse Gemma 4 remains a later named slice."
+    "configuration. Declared Gemma 4 MoE is family gemma4_moe / "
+    "model.gemma4-moe.mlx.v1, not this dense row."
 )
 GEMMA4_PATH_REASON = (
     "The Gemma 4 runtime is executable only as single-device MLX-LM LoRA or "

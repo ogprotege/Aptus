@@ -1787,7 +1787,11 @@ def validate_model_config_against_plan(
             experts_per_token = source.get("top_k_experts")
         decoder_sparse_step = source.get("decoder_sparse_step")
         mlp_only_layers = source.get("mlp_only_layers")
-        if source.get("top_k_experts") is not None:
+        gemma_style = (
+            source.get("enable_moe_block") is True
+            or source.get("top_k_experts") is not None
+        )
+        if gemma_style:
             if decoder_sparse_step is None:
                 decoder_sparse_step = 1
             if mlp_only_layers is None:

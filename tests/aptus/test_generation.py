@@ -49,6 +49,8 @@ from tools.generate_cuda_campaign_fixture import (
 )
 
 from tests.aptus.helpers import (
+    GEMMA4_MOE_MODEL_ID,
+    GEMMA4_MOE_REVISION,
     gemma4_moe_hub_quantization_config,
     make_gemma4_moe_plan,
     make_plan,
@@ -1647,6 +1649,119 @@ class BundleGenerationTests(unittest.TestCase):
                     observed_safetensors_bytes=observed_safetensors_bytes,
                     parameter_counter=lambda value: (
                         total + 1_000_001 if value is loaded_model else per_layer
+                    ),
+                )
+
+    def test_generated_mlx_census_accepts_gemma4_moe_router_experts_graph(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-census"
+            generate_bundle(make_gemma4_moe_plan(root), output)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_census"
+            )
+            hidden_size = 4
+            expert_count = 4
+            experts_per_token = 2
+            expert_intermediate_size = 3
+            layer_count = 2
+            per_layer = expert_count * 3 * hidden_size * expert_intermediate_size
+            total = 10_000_000
+            inactive = per_layer * layer_count // 2
+            model_contract = {
+                "model_id": GEMMA4_MOE_MODEL_ID,
+                "revision": GEMMA4_MOE_REVISION,
+                "family": "gemma4_moe",
+                "parameters": total,
+                "hidden_size": hidden_size,
+                "intermediate_size": 12,
+                "layers": layer_count,
+                "context_length": 128,
+                "architecture": "Gemma4ForConditionalGeneration",
+                "model_type": "gemma4_text",
+                "quantization_bits": 4,
+                "quantization_layout": {
+                    "default_bits": 4,
+                    "default_group_size": 64,
+                    "module_overrides": [
+                        {
+                            "module_path": f"model.layers.{index}.router.proj",
+                            "bits": 8,
+                            "group_size": 64,
+                        }
+                        for index in range(layer_count)
+                    ],
+                },
+                "moe": {
+                    "expert_count": expert_count,
+                    "experts_per_token": experts_per_token,
+                    "expert_intermediate_size": expert_intermediate_size,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                    "shared_expert_intermediate_size": None,
+                },
+                "sparse_layer_count": layer_count,
+                "active_parameters": total - inactive,
+            }
+            layers = [
+                types.SimpleNamespace(
+                    mlp=types.SimpleNamespace(),
+                    router=types.SimpleNamespace(
+                        config=types.SimpleNamespace(top_k_experts=experts_per_token)
+                    ),
+                    experts=types.SimpleNamespace(
+                        switch_glu=types.SimpleNamespace(num_experts=expert_count)
+                    ),
+                )
+                for _ in range(layer_count)
+            ]
+            loaded_model = types.SimpleNamespace(layers=layers)
+            switch_ids = {id(layer.experts.switch_glu) for layer in layers}
+
+            def count_parameters(value):
+                if value is loaded_model:
+                    return total
+                if id(value) in switch_ids:
+                    return per_layer
+                return 0
+
+            plan = {"model": model_contract, "recommended": {"method": "qlora"}}
+            expected_weight_bytes, expected_metadata_bytes = (
+                mlx_quantized_storage_bytes_for_contract(model_contract)
+            )
+            observed_safetensors_bytes = (
+                expected_weight_bytes + expected_metadata_bytes + 4096
+            )
+            binding = module.build_mlx_model_load_binding(
+                loaded_model,
+                plan,
+                observed_safetensors_bytes=observed_safetensors_bytes,
+                parameter_counter=count_parameters,
+            )
+            census = binding["parameter_census"]
+            self.assertEqual(census["observed_active_parameters"], total - inactive)
+            self.assertEqual(census["routed_expert_parameters"], per_layer * 2)
+            qwen_shaped = types.SimpleNamespace(
+                layers=[
+                    types.SimpleNamespace(
+                        mlp=types.SimpleNamespace(
+                            num_experts=expert_count,
+                            top_k=experts_per_token,
+                            switch_mlp=object(),
+                        )
+                    )
+                    for _ in range(layer_count)
+                ]
+            )
+            with self.assertRaisesRegex(RuntimeError, "planned expert topology"):
+                module.build_mlx_model_load_binding(
+                    qwen_shaped,
+                    plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
+                    parameter_counter=lambda value: (
+                        total if value is qwen_shaped else per_layer
                     ),
                 )
 

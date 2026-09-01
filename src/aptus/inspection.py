@@ -117,6 +117,7 @@ def _route_gemma4_moe_family(
 
     if (
         family != "gemma4"
+        or not isinstance(architecture, str)
         or architecture not in _DENSE_GEMMA4_ARCHITECTURES
         or moe is None
     ):

@@ -682,8 +682,6 @@ _GEMMA4_UNIFIED_POLICY = _ModelCompatibilityPolicy(
     path_rejection_reason=GEMMA4_UNIFIED_COMPILER_REASON,
     blocked_inspection_reason=GEMMA4_UNIFIED_BLOCKED_INSPECTION_REASON,
     inspection_blocking_reason_codes=(
-        ModelPolicyReasonCode.INVALID_FACTS,
-        ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED,
         ModelPolicyReasonCode.COMPILER_CONTRACT_UNSUPPORTED,
     ),
 )

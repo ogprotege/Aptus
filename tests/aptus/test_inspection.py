@@ -4,6 +4,7 @@ from urllib.error import URLError
 
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request
 
+from aptus.api_contracts import ModelInspectionResponse
 from aptus.inspection import (
     _compatibility_subject,
     _fetch_json,
@@ -452,6 +453,49 @@ class ModelInspectionTests(unittest.TestCase):
 
         self.assertEqual(result["facts"]["family"], "gemma4_unified_text")
         self.assertEqual(result["facts"]["model_type"], "gemma4_unified_text")
+
+    def test_inspect_payload_round_trips_the_http_facts_contract(self) -> None:
+        commit = "c" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4_unified_text",
+                        "architectures": ["Gemma4UnifiedForConditionalGeneration"],
+                        "num_hidden_layers": 48,
+                        "quantization": {"bits": 4, "group_size": 64},
+                        "attention_k_eq_v": False,
+                        "num_kv_shared_layers": 0,
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+        result = inspect_huggingface_model(
+            "mlx-community/gemma-4-12b-it-4bit",
+            "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            transport=transport,
+        )
+        ModelInspectionResponse.model_validate(result)
+
+        dense = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4_text",
+                        "architectures": ["Gemma4ForConditionalGeneration"],
+                        "num_hidden_layers": 35,
+                        "quantization": {"bits": 4, "group_size": 64},
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+        ModelInspectionResponse.model_validate(
+            inspect_huggingface_model("org/e2b", "main", transport=dense)
+        )
 
     def test_exact_four_bit_qwen3_moe_is_conditionally_supported(self) -> None:
         commit = QWEN3_MOE_REVISION

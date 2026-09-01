@@ -1231,6 +1231,8 @@ export interface components {
             architectures?: string[] | null;
             /** Attention Heads */
             attention_heads?: number | null;
+            /** Attention K Eq V */
+            attention_k_eq_v?: boolean | null;
             /** Context Length */
             context_length?: number | null;
             /** Family */
@@ -1248,6 +1250,8 @@ export interface components {
             /** Model Type */
             model_type?: string | null;
             moe?: components["schemas"]["InspectedMoETopologyResponse"] | null;
+            /** Num Kv Shared Layers */
+            num_kv_shared_layers?: number | null;
             /** Parameters */
             parameters?: null;
             /** Quantization Bits */

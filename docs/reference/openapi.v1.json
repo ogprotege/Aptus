@@ -2266,6 +2266,17 @@
             ],
             "title": "Attention Heads"
           },
+          "attention_k_eq_v": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention K Eq V"
+          },
           "context_length": {
             "anyOf": [
               {
@@ -2368,6 +2379,18 @@
                 "type": "null"
               }
             ]
+          },
+          "num_kv_shared_layers": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Kv Shared Layers"
           },
           "parameters": {
             "title": "Parameters",

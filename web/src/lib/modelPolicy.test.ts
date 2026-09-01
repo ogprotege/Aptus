@@ -193,6 +193,15 @@ describe("model policy decision boundary", () => {
         reason_codes: ["no-policy-match"],
         evidence_ids: [],
       },
+      {
+        ...DECISION,
+        kind: "blocked",
+        family: "gemma4",
+        policy_id: "model.gemma4-unified.mlx.v1",
+        policy_version: "1.0.0",
+        paths: [],
+        reason_codes: ["compiler-contract-unsupported"],
+      },
     ];
 
     expect(variants.map((variant) => decodeModelPolicyDecision(variant).kind)).toEqual([
@@ -200,6 +209,7 @@ describe("model policy decision boundary", () => {
       "family-recognized",
       "blocked",
       "unknown",
+      "blocked",
     ]);
   });
 

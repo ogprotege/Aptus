@@ -20,7 +20,7 @@ authorization that the policy remains current. A transferred package-free
 bundle can validate only its embedded frozen snapshot. Installed Aptus performs
 the separate current-host-registry comparison described below.
 
-The current registry contains two ordered policy rows, but this additive
+The current registry contains four ordered policy rows, but this additive
 registry change does not alter the contract shape. The snapshot remains
 `aptus.model-policy-snapshot.v1`, decisions remain
 `aptus.model-compatibility.v2`, plans remain `aptus.training-plan.v6`, and

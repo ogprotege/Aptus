@@ -124,6 +124,11 @@ the exact constraint still verifies the family, and sparse identity markers
 remain on the sparse fail-closed path instead of being captured by this dense
 policy.
 
+Later registry rows name dense Gemma 4 (`model.gemma4.mlx.v1`), unified Gemma 4
+(`model.gemma4-unified.mlx.v1`; Exit B / compiler-contract unsupported on bound
+MLX-LM), and Gemma 4 MoE (`model.gemma4-moe.mlx.v1`; family `gemma4_moe`,
+conditional, no measured ladder). Naming those rows is not runtime evidence.
+
 Planning is analytic. It does not import the selected training stack or
 allocate accelerator memory.
 
@@ -218,8 +223,11 @@ The exact Qwen3 MoE compiler profile also binds model identity, topology,
 canonical quantization layout and digest, and attention-only adapter scope for
 model-data and later runtime checks. The Qwen2 24-layer profile binds its dense
 identity, exact empty-override four-bit layout, and seven-module adapter scope.
-The current v5/v3 acceptance applies to the exact recorded Qwen2.5 fixture;
-compiler support alone does not transfer that evidence to another artifact.
+Later Gemma 4 compiler profiles name dense `model.gemma4.mlx.v1`, unified
+`model.gemma4-unified.mlx.v1` (Exit B / compiler-contract unsupported), and
+`model.gemma4-moe.mlx.v1` (conditional, no measured ladder). The current v5/v3
+acceptance applies to the exact recorded Qwen2.5 fixture; compiler support
+alone does not transfer that evidence to another artifact.
 
 Runtime program source lives as package data under
 `src/aptus/_bundle_programs/{cuda,mlx}/`. The compiler reads those bytes through

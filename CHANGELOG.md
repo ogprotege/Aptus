@@ -8,6 +8,10 @@ All notable changes are recorded here.
 
 ### Changed
 
+- Docs and Facts helper copy name the Lane 9 `gemma4_moe` identity next to the
+  exact Qwen3 MoE row. A named family is not runtime support. 12B stays Exit B /
+  compiler-contract unsupported. 26B stays conditional and unrun. This is copy
+  honesty after Lane 9, not a new feature.
 - Getting-started, Path Alpha, dataset, and operator pages now send this-host
   work through `aptus emit-run` and MLX `prepare-train`. Typed `spec-plan`
   hardware remains the remote-host path. `ladder.sh` still stops after pilot.

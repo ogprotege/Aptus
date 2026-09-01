@@ -33,7 +33,10 @@ incomplete. Inspection never decides license rights or training permission.
 The first sparse compatibility row is exact: `qwen3_moe`,
 `Qwen3MoeForCausalLM`, four-bit group-64 defaults, one eight-bit group-64
 `model.layers.N.mlp.gate` override for every layer, no shared expert,
-single-device MLX-LM QLoRA, and attention-only adapters. Other MoE identities,
+single-device MLX-LM QLoRA, and attention-only adapters. A second exact sparse
+row is family `gemma4_moe` on declared Gemma 4 experts with `router.proj`
+overrides, the same method and placement, and attention-only adapters. It is
+conditional, pilot-required, and has no measured ladder. Other MoE identities,
 quantization layouts, runtimes, methods, and placements remain unsupported.
 
 The second reviewed policy matches a 24-layer dense `qwen` / `qwen2` /

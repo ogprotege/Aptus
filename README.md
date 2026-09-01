@@ -265,7 +265,7 @@ transfers to another artifact, source tree, host, or runtime configuration.
 | **Methods** | The planner enumerates Full, LoRA, int8-LoRA, and QLoRA; compiler availability remains runtime- and placement-specific | DoRA, BitFit, AdaLoRA, ShareLoRA, LoReFT and other research identities |
 | **CUDA** | Compiler paths for single-device and DDP, plus conditional LoRA FSDP; the Phase 10 packet certifies six exact single-device cells, a guarded frontier, and one endurance/job-control scope on the recorded RTX 3050 host | Full-parameter FSDP, quantized FSDP, ROCm, CPU training, multi-GPU acceptance, and any claim broader than the exact certified cells |
 | **Apple Silicon** | Conditional single-device MLX-LM LoRA and QLoRA compiler paths; the exact recorded Qwen2.5 QLoRA scope is runtime-qualified | Full-parameter or DoRA through MLX-LM, PyTorch MPS compilation, CUDA execution on macOS, and transferring the Qwen2.5 result to another artifact |
-| **MoE** | A conditional, pilot-required policy path for exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed layout, using single-device MLX-LM QLoRA with attention-only adapters; its recorded 30B attempt stopped at the memory gate | General MoE runtime acceptance, other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, and other MoE methods |
+| **MoE** | Two conditional, pilot-required single-device MLX-LM QLoRA policy paths with attention-only adapters: exact `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed layout, and exact `gemma4_moe` on declared Gemma 4 experts with `router.proj` overrides. The recorded Qwen3 30B attempt stopped at the memory gate. Gemma 4 26B has no measured ladder | General MoE runtime acceptance, other MoE families, shared-expert variants, MoE on CUDA, distributed MoE, and other MoE methods |
 | **Dense reviewed policy** | Conditional, pilot-required 24-layer `qwen` / `qwen2` / `Qwen2ForCausalLM` configuration footprint with a uniform four-bit group-64 layout, single-device MLX-LM QLoRA, and seven attention/MLP projection targets | Other dense policy footprints and treating one matching configuration as artifact-wide runtime acceptance |
 | **Data** | JSON, JSONL, CSV and text with common SFT row shapes | Sequence packing; tasks other than SFT. Whole-text rows do not compile for `mlx-lm` |
 | **Recovery** | Named projects with immutable content-hashed revisions | Crash resume for MLX-LM or CUDA full runs |
@@ -574,6 +574,8 @@ requires full real-model acceptance. Its first exact 30B attempt passed
 dependency validation, then refused model loading with an 18.932 GiB live
 unified-memory shortfall. See the
 [Qwen3 MoE admission record](docs/operations/evidence/2026-07-28-qwen3-moe-admission/README.md).
+Lane 9 added a separate conditional `gemma4_moe` path for declared Gemma 4
+experts with `router.proj` overrides. It has no measured ladder.
 
 Phase 6 implemented a second registry-driven path for the reviewed 24-layer
 dense Qwen2 configuration footprint. It permits only single-device MLX-LM QLoRA

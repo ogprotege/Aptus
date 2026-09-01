@@ -85,7 +85,7 @@ did not change the serialized contract shapes: the plan remains
 | --- | --- | --- |
 | `model_id` | string | Provider repository ID, not a local path |
 | `revision` | string | Immutable 40 to 64 character hexadecimal commit |
-| `family` | string | Canonical lowercase planner family. Dense adapter paths use `gemma`, `llama`, `mistral`, or `qwen`; the exact sparse row uses `qwen3_moe` |
+| `family` | string | Canonical lowercase planner family. Dense adapter paths use `gemma`, `gemma4`, `llama`, `mistral`, or `qwen`; exact sparse rows use `qwen3_moe` or `gemma4_moe`. Unified Gemma 4 stays family `gemma4`. A named family is not runtime support |
 | `parameters` | integer | Positive exact user-attested total parameter count. This is the resident-weight basis |
 | `active_parameters` | integer | Backend-derived logical parameters used per token. This never replaces `parameters` in resident memory estimates |
 | `hidden_size` | integer | Positive hidden width |
@@ -273,6 +273,8 @@ The initial executable sparse row requires `model_type: qwen3_moe`,
 a complete topology, and no shared expert. It permits only single-device
 MLX-LM QLoRA. A different override count, module path, precision, group size,
 or ordering is unsupported even when the checkpoint is otherwise four-bit.
+The current contract also has a separate `gemma4_moe` family path; it is not
+that Qwen3 layout.
 
 ## Dataset object
 

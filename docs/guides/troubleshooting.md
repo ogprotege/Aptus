@@ -58,6 +58,7 @@ effective batch size, method, or hardware.
 | MLX-LM support is pilot-required | Every MLX path is evidence-gated | None in catalog — run the pilot ladder | Claiming measured fit from plan alone |
 | Sequence length exceeds model context | Seq > context | Lower `sequence_length` or longer-context model | Packing (also closed) |
 | Qwen3 MoE near-match / only attention QLoRA | MoE policy path is exact | Match reviewed layout/topology; only single MLX QLoRA attention | Prefix “Qwen3” hope or CUDA MoE |
+| `gemma4_moe` near-match / dense-topology-required | Gemma 4 MoE policy path is exact | Match declared experts, `router.proj` layout, and family `gemma4_moe`; only single MLX QLoRA attention | Dense Gemma 4 alias, prefix hope, or CUDA MoE |
 | No registered full compiler on mps | Full not compiled for Apple runtimes | LoRA/QLoRA on MLX, or CUDA full on CUDA host | PyTorch MPS full training |
 
 When guidance says **no supported correction exists in the current Aptus

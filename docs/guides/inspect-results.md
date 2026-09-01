@@ -128,8 +128,9 @@ For MLX measured preflight, pilot, and full runs, inspect the
 for every present planned-target instance, reject other trainables, and carry a
 stable descriptor digest. q_proj, o_proj, gate_proj, up_proj, and down_proj still
 cover every transformer layer. Only family `gemma4` may omit k_proj and v_proj
-together on KV-shared layers; those two counts must match. k-equals-v (omitted
-`v_proj`) is a later named slice. Inspect persists provider `attention_k_eq_v`
+together on KV-shared layers; those two counts must match. Lane 8 is on main
+for families `gemma4` and `gemma4_moe`: omit-`v_proj` is allowed when
+`v_count` does not exceed `k_count`. Inspect persists provider `attention_k_eq_v`
 and `num_kv_shared_layers` when declared. Loaded `k_proj` / `v_proj` instance
 counts require a bound loader; Gemma 4 unified is recognized and unsupported
 by the current compiler contract, so that census is not a loaded fact yet.

@@ -68,7 +68,9 @@ QLoRA eligibility belongs to the pinned model revision rather than a CUDA-style
 device capability bit: the generated model-data gate requires explicit four-bit
 MLX quantization metadata in that revision before work can advance. The reviewed
 Qwen3 MoE slice is executable only as single-device MLX-LM QLoRA with
-attention-only adapters.
+attention-only adapters. The Gemma 4 MoE slice is a separate family path
+(`gemma4_moe`): conditional, pilot-required, attention-only, with no measured
+ladder.
 
 The second reviewed policy matches a 24-layer dense `qwen` / `qwen2` /
 `Qwen2ForCausalLM` configuration with no MoE topology and a uniform four-bit

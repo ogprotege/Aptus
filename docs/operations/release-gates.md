@@ -131,7 +131,9 @@ do not prove public notarization.
 - The first MoE row accepts only `qwen3_moe`, `Qwen3MoeForCausalLM`, four-bit
   group-64 defaults, exactly one eight-bit group-64 router-gate override per
   layer, a complete no-shared-expert topology, MLX-LM, QLoRA, `single`, and
-  attention-only adapters. Every near match stays unsupported.
+  attention-only adapters. Every near match stays unsupported. The current
+  contract also has `gemma4_moe` (`model.gemma4-moe.mlx.v1`) for declared
+  Gemma 4 experts with `router.proj` overrides. Near matches stay unsupported.
 - The second policy, `model.qwen2-24l.mlx-qlora`, is a configuration-footprint
   rule rather than an artifact allowlist. It requires the `qwen`, `qwen2`, and
   `Qwen2ForCausalLM` identity, exactly 24 layers, dense topology, and uniform

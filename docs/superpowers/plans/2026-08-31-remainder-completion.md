@@ -463,10 +463,10 @@ Do not start until Lane 7 is closed and a Lane 9 spec is approved.
 refuse. Dense Gemma 4, unified Gemma 4, and Qwen2 unchanged. No CUDA MoE.
 No "Aptus supports MoE."
 
-- [ ] Lane 9 spec written and approved
-- [ ] Owner "go"
-- [ ] Topology + census + estimator
-- [ ] Measured ladder or envelope refuse
+- [x] Lane 9 spec written and approved
+- [x] Owner "go"
+- [x] Topology + census + estimator
+- [ ] Measured ladder or envelope refuse (conditional path shipped; operator ladder is a later new work dir)
 - [ ] PR opened and merged
 
 ---

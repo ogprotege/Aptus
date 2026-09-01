@@ -28,6 +28,7 @@ from aptus.planning import NoFeasiblePlanError, estimate_candidate, plan_trainin
 from aptus.profiling import build_hardware_spec
 
 from tests.aptus.helpers import (
+    make_gemma4_moe_plan,
     make_plan,
     make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
@@ -866,6 +867,43 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(
             candidate.memory.activations_bytes,
             dense_activation + routed_activation,
+        )
+        self.assertLess(plan.model.active_parameters, plan.model.parameters)
+        self.assertTrue(
+            any(
+                "total parameters" in assumption
+                for assumption in candidate.memory.assumptions
+            )
+        )
+
+    def test_gemma4_moe_allows_only_attention_only_single_mlx_qlora(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = make_gemma4_moe_plan(Path(temporary))
+
+        viable = [candidate for candidate in plan.candidates if candidate.feasible]
+        self.assertEqual(len(viable), 1)
+        candidate = viable[0]
+        self.assertEqual(candidate.method, Method.QLORA)
+        self.assertEqual(candidate.distribution, Distribution.SINGLE)
+        self.assertEqual(candidate.status, CandidateStatus.CONDITIONAL)
+        self.assertEqual(
+            candidate.runtime_contract.training_runtime, TrainingRuntime.MLX_LM
+        )
+        self.assertEqual(
+            candidate.target_modules, ("q_proj", "k_proj", "v_proj", "o_proj")
+        )
+        self.assertEqual(
+            plan.model_policy_decision.policy_id,
+            "model.gemma4-moe.mlx.v1",
+        )
+        router_parameters = 30 * 2816 * 128
+        self.assertEqual(
+            candidate.memory.base_weights_bytes,
+            round((25_200_000_000 - router_parameters) * 0.5 + router_parameters),
+        )
+        self.assertNotEqual(
+            candidate.memory.base_weights_bytes,
+            round(plan.model.active_parameters * 0.5),
         )
         self.assertLess(plan.model.active_parameters, plan.model.parameters)
         self.assertTrue(

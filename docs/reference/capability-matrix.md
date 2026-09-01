@@ -259,15 +259,21 @@ devices.
 | `llama` | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj` |
 | `mistral` | Same seven dense projection names |
 | `gemma` | Same seven dense projection names |
+| `gemma4` | Same seven dense projection names |
 | `qwen` | Same seven dense projection names |
 | `qwen3_moe` | `q_proj`, `k_proj`, `v_proj`, `o_proj` only |
+| `gemma4_moe` | `q_proj`, `k_proj`, `v_proj`, `o_proj` only |
 
 Full training does not need adapter target modules. Provider inspection performs
 only exact alias normalization:
 
 - `qwen2` and `qwen3` to `qwen`;
-- `gemma2`, `gemma3`, and `gemma3_text` to `gemma`; and
-- `gemma3` only for explicitly accepted text architectures.
+- `gemma2`, `gemma3`, and `gemma3_text` to `gemma`;
+- `gemma3` only for explicitly accepted text architectures;
+- `gemma4` and `gemma4_text` to `gemma4` when topology is dense;
+- `gemma4_unified_text` to family `gemma4`; and
+- declared MoE on `gemma4_text` / `Gemma4ForConditionalGeneration` to
+  `gemma4_moe`.
 
 Multimodal, prefix-matched, and unknown architectures are not silently mapped.
 The reviewed dense Qwen2 configuration footprint requires all fields below:
@@ -291,7 +297,8 @@ inspection receipt binds the exact model ID and immutable revision. The August
 source only. Its runtime evidence does not transfer to another artifact, which
 must complete its own model-data, measured-preflight, and pilot gates.
 
-The only sparse exception is exact and requires all fields below:
+Sparse exceptions are exact and require all fields below. They do not
+transfer evidence to each other.
 
 | Qwen3 MoE field | Required value |
 | --- | --- |
@@ -306,6 +313,19 @@ The only sparse exception is exact and requires all fields below:
 | Adapter scope | Attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
 | Evidence | `pilot-required` |
 
+| Gemma 4 MoE field | Required value |
+| --- | --- |
+| Aptus family | `gemma4_moe` |
+| Provider model type | `gemma4_text` |
+| Architecture | `Gemma4ForConditionalGeneration` |
+| Default checkpoint layout | Four-bit, group size 64 |
+| Module overrides | Exactly one eight-bit, group-size-64 `model.layers.N.router.proj` override for every layer, sorted by module path |
+| Shared expert | Absent |
+| Runtime and backend | `mlx-lm` on `mps` |
+| Method and placement | QLoRA, `single` |
+| Adapter scope | Attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` |
+| Evidence | `pilot-required` |
+
 The plan records total resident parameters separately from backend-derived
 active parameters and sparse-layer count. Active parameters describe routed
 per-token computation. They never reduce the base-weight residency budget.
@@ -314,15 +334,16 @@ override count, module path, bit width, group size, or ordering remains
 unsupported. Aptus can inspect an arbitrary immutable revision, but it admits
 that revision only when every structural and runtime gate matches this row.
 Target-host acceptance applies only to the exact revision that produced the
-evidence. Every other MoE family, precision, runtime, method, and placement
-remains unsupported.
+evidence. CUDA MoE, Mixtral, shared-expert variants, and other MoE families,
+precisions, runtimes, methods, and placements remain unsupported.
 
 CUDA model-data validation checks the loaded parameter count, hidden size,
 optional intermediate size, layers, context length, and adapter targets.
 MLX-LM model-data validation loads the exact revision, validates QLoRA
-quantization metadata, the uniform Qwen2 or mixed Qwen3 layout bound by the
-selected policy when applicable, and exact MoE topology when applicable. It
-then tokenizes every bound row.
+quantization metadata, the uniform Qwen2, mixed Qwen3 `mlp.gate`, or mixed
+Gemma 4 MoE `router.proj` layout bound by the selected policy when
+applicable, and exact MoE topology when applicable. It then tokenizes every
+bound row.
 
 ## Dataset support
 

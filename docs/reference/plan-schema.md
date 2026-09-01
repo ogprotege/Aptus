@@ -136,7 +136,7 @@ policy identity and version, complete path objects, reason codes, and evidence
 IDs. See the [model-policy snapshot reference](model-policy-snapshot.md) for the
 portable evaluation order and rule shapes.
 
-The current registry contains three exact configuration rows:
+The current registry contains five exact configuration rows:
 
 - Qwen3 MoE uses policy `model.qwen3-moe.mlx-qlora` version `1.0.0`, path
   `mlx-lm.qlora.single.attention-qkvo.v1`, and adapter profile
@@ -151,6 +151,9 @@ The current registry contains three exact configuration rows:
 - Gemma 4 unified uses policy `model.gemma4-unified.mlx.v1` version `1.0.0`.
   Bound MLX-LM does not load `Gemma4UnifiedForConditionalGeneration`, so that
   identity is unsupported by the current compiler contract.
+- Gemma 4 MoE uses policy `model.gemma4-moe.mlx.v1` version `1.0.0`, path
+  `mlx-lm.qlora.single.gemma4-moe.v1`, and adapter profile
+  `attention-qkvo.v1`.
 
 The Qwen2 row requires family `qwen`, model type `qwen2`, architecture
 `Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit metadata, a uniform
@@ -414,7 +417,7 @@ ID. A user-attested binding must use `inspection_receipt_id: null`.
 | `rank` | integer | Zero for full training; adapter prior otherwise |
 | `alpha` | integer | Zero for full training; `2 * rank` for adapters |
 | `learning_rate` | number | Method-class prior |
-| `target_modules` | string array | Empty for full and for unsupported adapters on an unregistered family; otherwise the exact family catalog modules. Qwen3 MoE uses attention `q_proj`, `k_proj`, `v_proj`, and `o_proj`; dense Qwen2 additionally uses `gate_proj`, `up_proj`, and `down_proj` |
+| `target_modules` | string array | Empty for full and for unsupported adapters on an unregistered family; otherwise the exact family catalog modules. Qwen3 MoE and Gemma 4 MoE use attention `q_proj`, `k_proj`, `v_proj`, and `o_proj`; dense Qwen2 additionally uses `gate_proj`, `up_proj`, and `down_proj` |
 
 ### Resource and decision fields
 

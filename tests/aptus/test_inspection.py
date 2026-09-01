@@ -15,10 +15,13 @@ from aptus.model_compatibility import (
     evaluate_model_compatibility,
 )
 from tests.aptus.helpers import (
+    GEMMA4_MOE_MODEL_ID,
+    GEMMA4_MOE_REVISION,
     QWEN2_5_ACCEPTANCE_MODEL_ID,
     QWEN2_5_ACCEPTANCE_REVISION,
     QWEN3_MOE_MODEL_ID,
     QWEN3_MOE_REVISION,
+    gemma4_moe_hub_quantization_config,
     qwen3_moe_quantization_config,
 )
 
@@ -454,6 +457,96 @@ class ModelInspectionTests(unittest.TestCase):
         self.assertEqual(result["facts"]["family"], "gemma4_unified_text")
         self.assertEqual(result["facts"]["model_type"], "gemma4_unified_text")
 
+    def test_gemma4_26b_moe_maps_to_gemma4_moe_family_not_dense_policy(self) -> None:
+        commit = GEMMA4_MOE_REVISION
+        layer_types = (["sliding_attention"] * 5 + ["full_attention"]) * 5
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4",
+                        "architectures": ["Gemma4ForConditionalGeneration"],
+                        "quantization": gemma4_moe_hub_quantization_config(),
+                        "quantization_config": gemma4_moe_hub_quantization_config(),
+                        "text_config": {
+                            "model_type": "gemma4_text",
+                            "hidden_size": 2816,
+                            "intermediate_size": 2112,
+                            "num_hidden_layers": 30,
+                            "max_position_embeddings": 262144,
+                            "num_attention_heads": 16,
+                            "num_key_value_heads": 8,
+                            "vocab_size": 262144,
+                            "enable_moe_block": True,
+                            "num_experts": 128,
+                            "top_k_experts": 8,
+                            "moe_intermediate_size": 704,
+                            "attention_k_eq_v": True,
+                            "num_kv_shared_layers": 0,
+                            "layer_types": layer_types,
+                        },
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse(
+                    {"cardData": {"license": "apache-2.0"}},
+                    {"X-Repo-Commit": commit},
+                ),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            GEMMA4_MOE_MODEL_ID, GEMMA4_MOE_REVISION, transport=transport
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["facts"]["family"], "gemma4_moe")
+        self.assertEqual(result["facts"]["model_type"], "gemma4_text")
+        self.assertEqual(
+            result["facts"]["architecture"],
+            "Gemma4ForConditionalGeneration",
+        )
+        self.assertEqual(result["facts"]["layers"], 30)
+        self.assertEqual(result["facts"]["attention_k_eq_v"], True)
+        self.assertEqual(result["facts"]["num_kv_shared_layers"], 0)
+        moe = result["facts"]["moe"]
+        self.assertEqual(moe["expert_count"], 128)
+        self.assertEqual(moe["experts_per_token"], 8)
+        self.assertEqual(moe["expert_intermediate_size"], 704)
+        self.assertEqual(moe["decoder_sparse_step"], 1)
+        self.assertEqual(moe["mlp_only_layers"], [])
+        self.assertIsNone(moe["shared_expert_intermediate_size"])
+        layout = result["facts"]["quantization_layout"]
+        self.assertEqual(layout["default_bits"], 4)
+        self.assertEqual(layout["default_group_size"], 64)
+        self.assertEqual(len(layout["module_overrides"]), 30)
+        self.assertEqual(
+            layout["module_overrides"][0]["module_path"],
+            "model.layers.0.router.proj",
+        )
+        self.assertTrue(
+            all(
+                item["module_path"].startswith("model.layers.")
+                and item["module_path"].endswith(".router.proj")
+                and "language_model." not in item["module_path"]
+                and item["bits"] == 8
+                and item["group_size"] == 64
+                for item in layout["module_overrides"]
+            )
+        )
+        self.assertEqual(result["compatibility"]["status"], "conditional")
+        self.assertEqual(result["compatibility"]["family"], "gemma4_moe")
+        self.assertEqual(result["compatibility"]["supported_methods"], ["qlora"])
+        self.assertEqual(result["compatibility"]["supported_runtime"], "mlx-lm")
+        self.assertEqual(
+            result["inspection_receipt"]["decision"]["policy_id"],
+            "model.gemma4-moe.mlx.v1",
+        )
+        self.assertNotEqual(
+            result["inspection_receipt"]["decision"]["policy_id"],
+            "model.gemma4.mlx.v1",
+        )
+
     def test_inspect_payload_round_trips_the_http_facts_contract(self) -> None:
         commit = "c" * 40
         transport = SequenceTransport(
@@ -495,6 +588,35 @@ class ModelInspectionTests(unittest.TestCase):
         )
         ModelInspectionResponse.model_validate(
             inspect_huggingface_model("org/e2b", "main", transport=dense)
+        )
+        moe = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4",
+                        "architectures": ["Gemma4ForConditionalGeneration"],
+                        "quantization": gemma4_moe_hub_quantization_config(),
+                        "text_config": {
+                            "model_type": "gemma4_text",
+                            "num_hidden_layers": 30,
+                            "hidden_size": 2816,
+                            "enable_moe_block": True,
+                            "num_experts": 128,
+                            "top_k_experts": 8,
+                            "moe_intermediate_size": 704,
+                            "attention_k_eq_v": True,
+                            "num_kv_shared_layers": 0,
+                        },
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+        ModelInspectionResponse.model_validate(
+            inspect_huggingface_model(
+                GEMMA4_MOE_MODEL_ID, GEMMA4_MOE_REVISION, transport=moe
+            )
         )
 
     def test_exact_four_bit_qwen3_moe_is_conditionally_supported(self) -> None:

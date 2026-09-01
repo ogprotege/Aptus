@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from aptus.catalog import reviewed_gemma4_moe_quantization_layout
 from aptus.domain import (
     AdapterProfile,
     Backend,
@@ -16,11 +17,13 @@ from aptus.domain import (
     Method,
     ModelCompatibilitySubject,
     ModelPolicyDecisionKind,
+    MoETopology,
     QuantizationLayout,
     TrainingRuntime,
     to_primitive,
 )
 from aptus.model_compatibility import (
+    GEMMA4_MOE_POLICY_ID,
     GEMMA4_POLICY_ID,
     INVALID_COMPATIBILITY_FACTS_REASON,
     QWEN3_MOE_FOUR_BIT_REASON,
@@ -169,6 +172,51 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             [item.value for item in decision.reason_codes],
             ["dense-topology-required"],
         )
+
+    def test_gemma4_moe_family_matches_qlora_path(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4_moe",
+            model_type="gemma4_text",
+            architecture="Gemma4ForConditionalGeneration",
+            layers=30,
+            quantization_bits=4,
+            quantization_layout=reviewed_gemma4_moe_quantization_layout(30),
+            moe=MoETopology(
+                expert_count=128,
+                experts_per_token=8,
+                expert_intermediate_size=704,
+                decoder_sparse_step=1,
+                mlp_only_layers=(),
+                shared_expert_intermediate_size=None,
+            ),
+        )
+        decision = evaluate_model_compatibility(subject)
+        response = compatibility_response_v1(decision)
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
+        self.assertEqual(decision.policy_id, GEMMA4_MOE_POLICY_ID)
+        self.assertEqual(decision.family, "gemma4_moe")
+        self.assertEqual(
+            {path.path_id for path in decision.paths},
+            {"mlx-lm.qlora.single.gemma4-moe.v1"},
+        )
+        self.assertEqual(response["status"], "conditional")
+        self.assertEqual(response["supported_methods"], ["qlora"])
+        self.assertEqual(response["supported_runtime"], "mlx-lm")
+        self.assertNotEqual(decision.policy_id, GEMMA4_POLICY_ID)
+
+    def test_dense_gemma4_does_not_match_moe_policy(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4",
+            model_type="gemma4_text",
+            architecture="Gemma4ForConditionalGeneration",
+            layers=35,
+            quantization_bits=4,
+            quantization_layout=QuantizationLayout(4, 64),
+            moe=None,
+        )
+        decision = evaluate_model_compatibility(subject)
+        self.assertEqual(decision.policy_id, GEMMA4_POLICY_ID)
+        self.assertNotEqual(decision.policy_id, GEMMA4_MOE_POLICY_ID)
 
     def test_gemma4_unified_does_not_match_dense_policy(self) -> None:
         subject = ModelCompatibilitySubject(

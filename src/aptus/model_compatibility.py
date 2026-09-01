@@ -7,6 +7,9 @@ from typing import Any, Mapping
 
 from .catalog import (
     DENSE_CAUSAL_LM_TARGET_MODULES,
+    GEMMA4_MOE_ARCHITECTURE,
+    GEMMA4_MOE_FAMILY,
+    GEMMA4_MOE_MODEL_TYPE,
     QWEN3_MOE_ARCHITECTURE,
     QWEN3_MOE_FAMILY,
     QWEN3_MOE_MODEL_TYPE,
@@ -237,6 +240,51 @@ GEMMA4_UNIFIED_REQUIRED_PROVENANCE_FIELDS = (
     "model_type",
 )
 
+
+GEMMA4_MOE_IDENTITY_REASON = (
+    "Gemma 4 MoE execution requires the gemma4_moe family, gemma4_text "
+    "provider type, and Gemma4ForConditionalGeneration architecture."
+)
+GEMMA4_MOE_LAYOUT_REASON = (
+    "Gemma 4 MoE execution requires the exact four-bit plus eight-bit "
+    "router.proj MLX quantization layout."
+)
+GEMMA4_MOE_TOPOLOGY_REASON = (
+    "Gemma 4 MoE execution requires the complete provider-declared expert topology."
+)
+GEMMA4_MOE_SHARED_EXPERT_REASON = (
+    "The first Gemma 4 MoE MLX-LM contract does not support a shared expert."
+)
+GEMMA4_MOE_FOUR_BIT_REASON = (
+    "The first Gemma 4 MoE MLX-LM contract requires explicit four-bit model metadata."
+)
+GEMMA4_MOE_PATH_REASON = (
+    "Gemma 4 MoE is executable only as single-device MLX-LM QLoRA with "
+    "attention-only adapters."
+)
+GEMMA4_MOE_MATCHED_REASON = (
+    "The model identity, mixed-precision layout, routed-expert topology, and "
+    "attention-only q/k/v/o target policy match the Gemma 4 MoE slice. "
+    "Measured preflight and a real-model pilot remain mandatory. Resident "
+    "weight is not active parameters."
+)
+GEMMA4_MOE_BLOCKED_INSPECTION_REASON = (
+    "The exact Gemma 4 MoE identity was recognized, but this revision does not "
+    "match the reviewed four-bit default, eight-bit router.proj overrides, and "
+    "no-shared-expert topology."
+)
+GEMMA4_MOE_POLICY_ID = "model.gemma4-moe.mlx.v1"
+GEMMA4_MOE_POLICY_VERSION = "1.0.0"
+GEMMA4_MOE_PATH_ID = "mlx-lm.qlora.single.gemma4-moe.v1"
+GEMMA4_MOE_POLICY_EVIDENCE_IDS = ("policy.gemma4-moe.mlx.v1",)
+GEMMA4_MOE_REQUIRED_PROVENANCE_FIELDS = (
+    "architecture",
+    "layers",
+    "model_type",
+    "moe",
+    "quantization_bits",
+    "quantization_layout",
+)
 
 ADAPTER_PROFILE_TARGET_MODULES: dict[AdapterProfile, tuple[str, ...]] = {
     AdapterProfile.ATTENTION_QKVO_V1: QWEN3_MOE_TARGET_MODULES,
@@ -686,11 +734,89 @@ _GEMMA4_UNIFIED_POLICY = _ModelCompatibilityPolicy(
     ),
 )
 
+_GEMMA4_MOE_POLICY = _ModelCompatibilityPolicy(
+    policy_id=GEMMA4_MOE_POLICY_ID,
+    policy_version=GEMMA4_MOE_POLICY_VERSION,
+    family=GEMMA4_MOE_FAMILY,
+    claims={
+        "family": (GEMMA4_MOE_FAMILY,),
+    },
+    constraints=(
+        {
+            "kind": "exact_identity",
+            "values": {
+                "architecture": GEMMA4_MOE_ARCHITECTURE,
+                "family": GEMMA4_MOE_FAMILY,
+                "model_type": GEMMA4_MOE_MODEL_TYPE,
+            },
+            "reason": "gemma4_moe_identity",
+            "reason_code": ModelPolicyReasonCode.IDENTITY_MISMATCH.value,
+        },
+        {
+            "kind": "quantization_layout",
+            "default_bits": 4,
+            "default_group_size": 64,
+            "override_module_template": "model.layers.{layer}.router.proj",
+            "override_bits": 8,
+            "override_group_size": 64,
+            "reason": "gemma4_moe_layout",
+            "reason_code": ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH.value,
+        },
+        {
+            "kind": "sparse_topology",
+            "reason": "gemma4_moe_topology",
+            "reason_code": ModelPolicyReasonCode.TOPOLOGY_INCOMPLETE.value,
+        },
+        {
+            "kind": "no_shared_expert",
+            "reason": "gemma4_moe_shared",
+            "reason_code": ModelPolicyReasonCode.SHARED_EXPERT_UNSUPPORTED.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "quantization_bits",
+            "value": 4,
+            "reason": "gemma4_moe_four_bit",
+            "reason_code": ModelPolicyReasonCode.FOUR_BIT_REQUIRED.value,
+        },
+    ),
+    paths=(
+        _policy_path(
+            path_id=GEMMA4_MOE_PATH_ID,
+            family=GEMMA4_MOE_FAMILY,
+            method=Method.QLORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.ATTENTION_QKVO_V1,
+            evidence_ids=GEMMA4_MOE_POLICY_EVIDENCE_IDS,
+        ),
+    ),
+    matched_reason_key="gemma4_moe_matched",
+    matched_reason=GEMMA4_MOE_MATCHED_REASON,
+    matched_reason_codes=(
+        ModelPolicyReasonCode.REVIEWED_RUNTIME_PATH,
+        ModelPolicyReasonCode.PILOT_NOT_YET_PROVEN,
+    ),
+    evidence_ids=GEMMA4_MOE_POLICY_EVIDENCE_IDS,
+    required_provenance_fields=GEMMA4_MOE_REQUIRED_PROVENANCE_FIELDS,
+    path_rejection_reason=GEMMA4_MOE_PATH_REASON,
+    blocked_inspection_reason=GEMMA4_MOE_BLOCKED_INSPECTION_REASON,
+    inspection_blocking_reason_codes=(
+        ModelPolicyReasonCode.INVALID_FACTS,
+        ModelPolicyReasonCode.QUANTIZATION_LAYOUT_MISMATCH,
+        ModelPolicyReasonCode.TOPOLOGY_INCOMPLETE,
+        ModelPolicyReasonCode.SHARED_EXPERT_UNSUPPORTED,
+        ModelPolicyReasonCode.FOUR_BIT_REQUIRED,
+    ),
+)
+
 MODEL_COMPATIBILITY_POLICIES: tuple[_ModelCompatibilityPolicy, ...] = (
     _QWEN3_MOE_POLICY,
     _QWEN2_POLICY,
     _GEMMA4_POLICY,
     _GEMMA4_UNIFIED_POLICY,
+    _GEMMA4_MOE_POLICY,
 )
 
 
@@ -773,6 +899,12 @@ def current_model_policy_snapshot() -> dict[str, Any]:
                 "gemma4_unified_identity": GEMMA4_UNIFIED_IDENTITY_REASON,
                 "gemma4_unified_compiler": GEMMA4_UNIFIED_COMPILER_REASON,
                 "gemma4_unified_matched": GEMMA4_UNIFIED_MATCHED_REASON,
+                "gemma4_moe_identity": GEMMA4_MOE_IDENTITY_REASON,
+                "gemma4_moe_layout": GEMMA4_MOE_LAYOUT_REASON,
+                "gemma4_moe_topology": GEMMA4_MOE_TOPOLOGY_REASON,
+                "gemma4_moe_shared": GEMMA4_MOE_SHARED_EXPERT_REASON,
+                "gemma4_moe_four_bit": GEMMA4_MOE_FOUR_BIT_REASON,
+                "gemma4_moe_matched": GEMMA4_MOE_MATCHED_REASON,
                 "dense": FAMILY_RECOGNIZED_REASON,
                 "sparse": UNREVIEWED_SPARSE_MODEL_REASON,
                 "unknown": UNKNOWN_POLICY_REASON,

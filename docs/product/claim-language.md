@@ -40,7 +40,9 @@ Do not use:
 - “reviewed 7B MLX identity” after an unreviewed-runtime confirm.
 - “Aptus supports Gemma 4”;
 - “Aptus supports 12B”;
+- “Aptus supports MoE”;
 - “unified is dense Gemma 4.”
+- “26B is the same as E2B.”
 
 Inspection eligibility identifies that the inspected artifact matches a
 reviewed compatibility subject and execution tuple. A configuration-footprint

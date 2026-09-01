@@ -141,7 +141,7 @@ acceptance remain open.
   proxies and stay on `https://huggingface.co`.
 - One host-side model compatibility registry authority shared by provider
   inspection, sparse candidate admission, and API execution-path validation.
-  It now contains four reviewed entries and derives compiler, estimator, export,
+  It now contains five reviewed entries and derives compiler, estimator, export,
   and evidence-requirement identities from the method registry instead of
   copying them.
 - Exact policy matching for `qwen3_moe` checkpoints with
@@ -175,6 +175,14 @@ acceptance remain open.
   `Gemma4UnifiedForConditionalGeneration`). Bound MLX-LM 0.31.3 does not load
   that architecture, so inspect is unsupported by the current compiler
   contract, never `no-policy-match`. This is not "Aptus supports 12B."
+- A fifth registry-driven policy for Gemma 4 MoE
+  (`model.gemma4-moe.mlx.v1`). Inspect routes declared MoE on
+  `gemma4_text` / `Gemma4ForConditionalGeneration` to family `gemma4_moe`.
+  The only eligible tuple is single-device MLX-LM QLoRA with adapter
+  profile `attention-qkvo.v1`. Layout is four-bit group-64 defaults plus
+  one eight-bit `model.layers.N.router.proj` override per layer. No shared
+  expert. Resident weight is not active parameters. Conditional,
+  pilot-required, not CUDA, not quality, not "Aptus supports MoE."
 - Persisted `aptus.training-plan.v6` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
@@ -183,9 +191,10 @@ acceptance remain open.
   `mlx-lm.qlora.single.attention-qkvo.v1`,
   `model.qwen2-24l.mlx-qlora` with
   `mlx-lm.qlora.single.dense-causal-lm.v1`,
-  `model.gemma4.mlx.v1` with the dense Gemma 4 MLX LoRA/QLoRA paths, and
+  `model.gemma4.mlx.v1` with the dense Gemma 4 MLX LoRA/QLoRA paths,
   `model.gemma4-unified.mlx.v1` which currently blocks on the compiler
-  contract.
+  contract, and `model.gemma4-moe.mlx.v1` with
+  `mlx-lm.qlora.single.gemma4-moe.v1`.
   Every candidate links to the decision. Only the exact matching candidate
   receives an `aptus.model-policy-binding.v1` path binding.
 - Versioned `aptus.model-inspection-receipt.v1` output from successful provider

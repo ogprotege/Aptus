@@ -229,7 +229,7 @@ def _mlx_config(plan: TrainingPlan) -> str:
     if plan.model.moe is not None:
         lines.extend(
             (
-                "# Aptus Qwen3 MoE policy: attention projections only.",
+                "# Aptus MoE policy: attention projections only.",
                 "# Expert and router weights remain frozen in this executable profile.",
             )
         )
@@ -412,7 +412,7 @@ bundle; do not edit the snapshot, plan, manifest, or digests.
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
     ):
         moe_policy = (
-            "\nFor this Qwen3 MoE plan, Aptus adapts only `q_proj`, `k_proj`, `v_proj`, and `o_proj`. Expert and router weights remain frozen. The full quantized base still resides in unified memory. Active-parameter counts describe per-token routing, not model residency. Model-data validation records the exact architecture, expert topology, logical total parameters, and logical active parameters before adapter conversion.\n"
+            "\nFor this MoE plan, Aptus adapts only `q_proj`, `k_proj`, `v_proj`, and `o_proj`. Expert and router weights remain frozen. The full quantized base still resides in unified memory. Active-parameter counts describe per-token routing, not model residency. Model-data validation records the exact architecture, expert topology, logical total parameters, and logical active parameters before adapter conversion.\n"
             if plan.model.moe is not None
             else ""
         )
@@ -522,7 +522,7 @@ def _runbook(plan: TrainingPlan) -> str:
         and plan.recommended.runtime_contract.training_runtime == TrainingRuntime.MLX_LM
     ):
         moe_policy = (
-            "\nFor this Qwen3 MoE profile, Aptus uses attention-only QLoRA. Only `q_proj`, `k_proj`, `v_proj`, and `o_proj` receive adapters. Expert and router weights remain frozen. The full quantized base remains resident in unified memory even though each token activates only part of the expert graph. The model-data gate verifies the pinned architecture, all sparse layers, expert count, experts per token, logical total parameters, and logical active parameters before training.\n"
+            "\nFor this MoE profile, Aptus uses attention-only QLoRA. Only `q_proj`, `k_proj`, `v_proj`, and `o_proj` receive adapters. Expert and router weights remain frozen. The full quantized base remains resident in unified memory even though each token activates only part of the expert graph. The model-data gate verifies the pinned architecture, all sparse layers, expert count, experts per token, logical total parameters, and logical active parameters before training.\n"
             if plan.model.moe is not None
             else ""
         )

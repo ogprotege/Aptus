@@ -300,6 +300,7 @@ class PolicySnapshotTests(unittest.TestCase):
                 "model.qwen2-24l.mlx-qlora",
                 "model.gemma4.mlx.v1",
                 "model.gemma4-unified.mlx.v1",
+                "model.gemma4-moe.mlx.v1",
             },
         )
         qwen2 = policies["model.qwen2-24l.mlx-qlora"]
@@ -354,6 +355,16 @@ class PolicySnapshotTests(unittest.TestCase):
         self.assertIn(
             "compiler_contract",
             {constraint["kind"] for constraint in unified["constraints"]},
+        )
+        moe = policies["model.gemma4-moe.mlx.v1"]
+        self.assertEqual(moe["family"], "gemma4_moe")
+        self.assertEqual(
+            moe["claims"],
+            {"any_identity": {"family": ["gemma4_moe"]}},
+        )
+        self.assertEqual(
+            [path["path_id"] for path in moe["paths"]],
+            ["mlx-lm.qlora.single.gemma4-moe.v1"],
         )
 
     def test_claims_may_be_a_subset_of_exact_identity_without_family_capture(

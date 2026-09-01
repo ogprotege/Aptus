@@ -20,7 +20,7 @@ authorization that the policy remains current. A transferred package-free
 bundle can validate only its embedded frozen snapshot. Installed Aptus performs
 the separate current-host-registry comparison described below.
 
-The current registry contains four ordered policy rows, but this additive
+The current registry contains five ordered policy rows, but this additive
 registry change does not alter the contract shape. The snapshot remains
 `aptus.model-policy-snapshot.v1`, decisions remain
 `aptus.model-compatibility.v2`, plans remain `aptus.training-plan.v6`, and
@@ -124,7 +124,7 @@ when choosing a field and value.
 
 ## Current registry policies
 
-The snapshot currently carries four registry-driven policies. Path-matched
+The snapshot currently carries five registry-driven policies. Path-matched
 rows emit single-device MLX-LM LoRA and/or QLoRA paths and remain conditional
 on `model-data`, `measured-preflight`, and `pilot` validation. The Gemma 4
 unified row is recognized and blocked by `compiler_contract`.
@@ -204,6 +204,23 @@ unified row is recognized and blocked by `compiler_contract`.
 - Declared paths `mlx-lm.qlora.single.gemma4-unified.v1` and
   `mlx-lm.lora.single.gemma4-unified.v1` name the Exit A contract if a later
   mlx-lm loads this architecture. They are not executable today.
+
+### Gemma 4 MoE
+
+- Policy: `model.gemma4-moe.mlx.v1`, version `1.0.0`.
+- Claims: family `gemma4_moe` only. Architecture and `gemma4_text` are
+  shared with dense Gemma 4 and are not broad claims.
+- Exact identity: family `gemma4_moe`, model type `gemma4_text`,
+  architecture `Gemma4ForConditionalGeneration`.
+- Layout and topology: four-bit group-64 defaults, one eight-bit group-64
+  `model.layers.N.router.proj` override per layer, a usable sparse
+  topology, and no shared expert.
+- Path: `mlx-lm.qlora.single.gemma4-moe.v1` with adapter profile
+  `attention-qkvo.v1` and targets `q_proj`, `k_proj`, `v_proj`, and
+  `o_proj`.
+- Provider-inspection requirement: `architecture`, `layers`, `model_type`,
+  `moe`, `quantization_bits`, and `quantization_layout` must all be
+  provider-declared at the resolved revision.
 
 The Qwen2 row describes a reviewed configuration footprint, not an artifact
 allowlist. A matched policy path and compiler establish conditional execution

@@ -1570,9 +1570,15 @@ class PlanContractTests(unittest.TestCase):
             mlx_trainable_target_instance_total(targets, 35, counts, family="gemma4"),
             205,
         )
+        self.assertEqual(
+            mlx_trainable_target_instance_total(
+                targets, 35, {**counts, "v_proj": 10}, family="gemma4"
+            ),
+            200,
+        )
         with self.assertRaisesRegex(ValueError, "k_proj and v_proj adapter counts"):
             mlx_trainable_target_instance_total(
-                targets, 35, {**counts, "v_proj": 1}, family="gemma4"
+                targets, 35, {**counts, "v_proj": 16}, family="gemma4"
             )
         with self.assertRaisesRegex(ValueError, "every transformer layer"):
             mlx_trainable_target_instance_total(targets, 35, counts, family="llama")

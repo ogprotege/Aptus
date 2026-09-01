@@ -331,7 +331,7 @@ def _mlx_memory_breakdown(
             "MLX-LM uses Apple unified memory; this estimate does not add a second CUDA-style host staging pool.",
             *(
                 (
-                    "The reviewed Qwen3 MoE layout prices its four-bit group-64 default, eight-bit group-64 router gates, and affine scale and bias metadata separately.",
+                    "The reviewed MoE layout prices its four-bit group-64 default, eight-bit group-64 router overrides, and affine scale and bias metadata separately.",
                 )
                 if model.quantization_layout is not None and model.moe is not None
                 else (

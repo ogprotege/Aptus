@@ -14,7 +14,7 @@ bundle guidance, package metadata, inline help, and workbench copy.
 
 ## Inventory summary
 
-The repository tree contains 159 tracked Markdown documents. Of those, 158 are
+The repository tree contains 160 tracked Markdown documents. Of those, 159 are
 governed: every tracked Markdown file except the pull-request template,
 whose submitted-body contract remains exempt from reader-page metadata. PR #41
 added the historical engineering-review index, classified the twelve completed
@@ -73,27 +73,29 @@ The remainder program after Lane 6 adds the freeze and the implementation
 plan (two active Markdown files):
 `docs/superpowers/specs/2026-08-26-remainder-program-design.md` and
 `docs/superpowers/plans/2026-08-26-remainder-program.md`.
-The remainder-completion filing adds the proposed Lane 7 unified spec and
-the completion plan (two active Markdown files):
+The remainder-completion filing adds the Lane 7 unified spec and
+the completion plan:
 `docs/superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md` and
 `docs/superpowers/plans/2026-08-31-remainder-completion.md`.
-That filing does not admit 12B, MoE, or vision.
+Lane 9 adds the Gemma 4 MoE design spec
+`docs/superpowers/specs/2026-08-31-lane-9-gemma4-moe-design.md`.
+That remainder does not admit vision until Lane 10.
 The Aptus consumer handoff from a dataset compiler is
 `docs/guides/aptus-veriformis-handoff.md`.
 
 | Lifecycle | Markdown files | Meaning |
 |---|---:|---|
-| Active | 129 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
+| Active | 130 | Current guidance, governance, navigation, evidence, protocol, or current research with explicit limits |
 | Deprecated | 2 | Superseded v0.1 signposts |
 | Archived | 27 | Historical research intake, legacy-audit evidence, twelve engineering reviews, the dated documentation-drift audit, and the nonqualifying Phase 6 diagnostic |
-| Total | 158 | Excludes only the pull-request workflow template from tracked Markdown governance |
+| Total | 159 | Excludes only the pull-request workflow template from tracked Markdown governance |
 
 The repository also contains one active machine-readable research catalog, one
 active machine-readable CUDA campaign protocol companion, and 12 archived
 machine-readable legacy-audit records.
 
-The automated `maintained_documentation()` set contains the 158 governed
-Markdown files. Together with the root `LICENSE`, that makes 159 maintained
+The automated `maintained_documentation()` set contains the 159 governed
+Markdown files. Together with the root `LICENSE`, that makes 160 maintained
 reader documents.
 Metadata, link, anchor, and primary-index reachability checks
 therefore cover the native build guide, all ten legacy-audit reports, the
@@ -169,6 +171,7 @@ engineering-review index, and all twelve archived engineering reviews.
 - [Remainder program design spec](../superpowers/specs/2026-08-26-remainder-program-design.md)
 - [Remainder program implementation plan](../superpowers/plans/2026-08-26-remainder-program.md)
 - [Lane 7 Gemma 4 unified design spec](../superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md)
+- [Lane 9 Gemma 4 MoE design spec](../superpowers/specs/2026-08-31-lane-9-gemma4-moe-design.md)
 - [Remainder completion implementation plan](../superpowers/plans/2026-08-31-remainder-completion.md)
 - [Architecture documentation](../architecture/index.md)
 - [Artifact compiler](../architecture/artifact-compiler.md)

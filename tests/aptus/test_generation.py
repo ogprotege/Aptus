@@ -49,6 +49,8 @@ from tools.generate_cuda_campaign_fixture import (
 )
 
 from tests.aptus.helpers import (
+    gemma4_moe_hub_quantization_config,
+    make_gemma4_moe_plan,
     make_plan,
     make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
@@ -933,6 +935,101 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("full quantized base still resides", readme)
         self.assertIn("logical active parameters", runbook)
         self.assertIn("MoE adapter policy: attention-only QLoRA", decision)
+
+    def test_gemma4_moe_bundle_allows_omitted_v_proj_on_k_eq_v_layers(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-bundle"
+            report = generate_bundle(make_gemma4_moe_plan(root), output)
+            self.assertEqual(report.state, ValidationState.STATIC_PASS)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_omit_v"
+            )
+            plan, candidate = module.load_contract()
+            layer_count = plan["model"]["layers"]
+            full_attention = {5, 11, 17, 23, 29}
+
+            class FakeLayer:
+                def __init__(self, layer_idx: int) -> None:
+                    modules = [
+                        ("self_attn.q_proj", object()),
+                        ("self_attn.k_proj", object()),
+                        ("self_attn.o_proj", object()),
+                    ]
+                    if layer_idx not in full_attention:
+                        modules.insert(2, ("self_attn.v_proj", object()))
+                    self._modules = modules
+
+                def named_modules(self):
+                    return list(self._modules)
+
+            model = types.SimpleNamespace(
+                layers=[FakeLayer(index) for index in range(layer_count)]
+            )
+            resolved, binding = module.resolve_lora_keys(
+                model, candidate, family="gemma4_moe"
+            )
+            names = []
+            for layer_index, layer in enumerate(model.layers):
+                present = {
+                    name.rsplit(".", 1)[-1] for name, _module in layer.named_modules()
+                }
+                for key in resolved:
+                    target = key.rsplit(".", 1)[-1]
+                    if target not in present:
+                        continue
+                    for suffix in ("lora_a", "lora_b"):
+                        names.append(f"model.layers.{layer_index}.{key}.{suffix}")
+            census = module.require_trainable_binding(
+                names, binding, family="gemma4_moe"
+            )
+            self.assertEqual(census["target_instance_counts"]["k_proj"], 30)
+            self.assertEqual(census["target_instance_counts"]["v_proj"], 25)
+            self.assertEqual(census["target_instance_counts"]["q_proj"], 30)
+            with self.assertRaisesRegex(RuntimeError, "every transformer layer"):
+                module.resolve_lora_keys(model, candidate, family="llama")
+
+    def test_generated_mlx_binds_gemma4_moe_router_proj_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-layout-bundle"
+            generate_bundle(make_gemma4_moe_plan(root), output)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_layout"
+            )
+            plan, candidate = module.load_contract()
+            model_path = root / "model"
+            model_path.mkdir()
+            config = {
+                "model_type": "gemma4",
+                "architectures": ["Gemma4ForConditionalGeneration"],
+                "quantization": gemma4_moe_hub_quantization_config(),
+                "text_config": {
+                    "model_type": "gemma4_text",
+                    "hidden_size": 2816,
+                    "intermediate_size": 2112,
+                    "num_hidden_layers": 30,
+                    "max_position_embeddings": 262144,
+                    "num_experts": 128,
+                    "top_k_experts": 8,
+                    "moe_intermediate_size": 704,
+                    "enable_moe_block": True,
+                },
+            }
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+            module.require_method_model(plan, candidate, model_path)
+            config["quantization"]["language_model.model.layers.0.router.proj"][
+                "bits"
+            ] = 4
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                module.require_method_model(plan, candidate, model_path)
 
     def test_qwen2_runtime_footprint_compiles_and_binds_dense_model_data(
         self,

@@ -141,6 +141,7 @@ class ModelPolicyReasonCode(StrEnum):
     UNREVIEWED_SPARSE_MODEL = "unreviewed-sparse-model"
     NO_POLICY_MATCH = "no-policy-match"
     UNREVIEWED_RUNTIME_OPERATOR_ATTESTED = "unreviewed-runtime-operator-attested"
+    COMPILER_CONTRACT_UNSUPPORTED = "compiler-contract-unsupported"
 
 
 class ModelPolicyBindingSource(StrEnum):

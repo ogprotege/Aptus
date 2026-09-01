@@ -1231,6 +1231,8 @@ export interface components {
             architectures?: string[] | null;
             /** Attention Heads */
             attention_heads?: number | null;
+            /** Attention K Eq V */
+            attention_k_eq_v?: boolean | null;
             /** Context Length */
             context_length?: number | null;
             /** Family */
@@ -1248,6 +1250,8 @@ export interface components {
             /** Model Type */
             model_type?: string | null;
             moe?: components["schemas"]["InspectedMoETopologyResponse"] | null;
+            /** Num Kv Shared Layers */
+            num_kv_shared_layers?: number | null;
             /** Parameters */
             parameters?: null;
             /** Quantization Bits */
@@ -1335,7 +1339,7 @@ export interface components {
          * ModelPolicyReasonCode
          * @enum {string}
          */
-        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match" | "unreviewed-runtime-operator-attested";
+        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match" | "unreviewed-runtime-operator-attested" | "compiler-contract-unsupported";
         /** MoETopologyRequest */
         MoETopologyRequest: {
             /** Decoder Sparse Step */

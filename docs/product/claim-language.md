@@ -1,6 +1,6 @@
 # Claim Language
 
-> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-18 | **Review by:** Every release
+> **Status:** Active | **Authority:** Normative claim policy | **Applies to:** Aptus 0.2 | **Audience:** Contributors and product writers | **Last reviewed:** 2026-08-31 | **Review by:** Every release
 
 Product language must match the strongest available evidence.
 
@@ -20,6 +20,7 @@ Use:
   known runtime, compute backend, method, distribution, and adapter profile;
 - “conditional on a target-host pilot”;
 - “unsupported by the current compiler contract.”
+- “second exact identity under family gemma4”;
 - “operator-attested unreviewed runtime”;
 - “not the reviewed Path Alpha 24-layer footprint.”
 
@@ -37,6 +38,9 @@ Do not use:
 - “zero-risk training.”
 - “Aptus supports 7B Qwen like the reviewed 0.5B Path Alpha path”;
 - “reviewed 7B MLX identity” after an unreviewed-runtime confirm.
+- “Aptus supports Gemma 4”;
+- “Aptus supports 12B”;
+- “unified is dense Gemma 4.”
 
 Inspection eligibility identifies that the inspected artifact matches a
 reviewed compatibility subject and execution tuple. A configuration-footprint

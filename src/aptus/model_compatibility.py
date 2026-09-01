@@ -195,7 +195,7 @@ GEMMA4_BLOCKED_INSPECTION_REASON = (
     "dense language-tower path."
 )
 GEMMA4_POLICY_ID = "model.gemma4.mlx.v1"
-GEMMA4_POLICY_VERSION = "1.0.0"
+GEMMA4_POLICY_VERSION = "1.1.0"
 GEMMA4_QLORA_PATH_ID = "mlx-lm.qlora.single.gemma4-dense.v1"
 GEMMA4_LORA_PATH_ID = "mlx-lm.lora.single.gemma4-dense.v1"
 GEMMA4_POLICY_EVIDENCE_IDS = ("policy.gemma4.mlx.v1",)
@@ -207,6 +207,35 @@ GEMMA4_REQUIRED_PROVENANCE_FIELDS = (
 # Quantization bits/layout stay off this list: the LoRA path is unquantized and
 # has no provider-declared bits. QLoRA still re-checks declared bits at plan
 # and train. Requiring those fields here would refuse unquantized LoRA receipts.
+
+GEMMA4_UNIFIED_MODEL_TYPE = "gemma4_unified_text"
+GEMMA4_UNIFIED_ARCHITECTURE = "Gemma4UnifiedForConditionalGeneration"
+GEMMA4_UNIFIED_IDENTITY_REASON = (
+    "Gemma 4 unified execution requires the gemma4 family, gemma4_unified_text "
+    "provider type, and Gemma4UnifiedForConditionalGeneration architecture."
+)
+GEMMA4_UNIFIED_COMPILER_REASON = (
+    "The Gemma 4 unified identity is recognized, but the bound MLX-LM compiler "
+    "does not load Gemma4UnifiedForConditionalGeneration. This is unsupported "
+    "by the current compiler contract, not an unknown family."
+)
+GEMMA4_UNIFIED_MATCHED_REASON = (
+    "The provider identity matches the Gemma 4 unified MLX-LM family. Size and "
+    "bitwidth come from the pinned revision. Runtime evidence remains "
+    "artifact-scoped, and every execution still requires model-data, "
+    "measured-preflight, and pilot validation."
+)
+GEMMA4_UNIFIED_BLOCKED_INSPECTION_REASON = GEMMA4_UNIFIED_COMPILER_REASON
+GEMMA4_UNIFIED_POLICY_ID = "model.gemma4-unified.mlx.v1"
+GEMMA4_UNIFIED_POLICY_VERSION = "1.0.0"
+GEMMA4_UNIFIED_QLORA_PATH_ID = "mlx-lm.qlora.single.gemma4-unified.v1"
+GEMMA4_UNIFIED_LORA_PATH_ID = "mlx-lm.lora.single.gemma4-unified.v1"
+GEMMA4_UNIFIED_POLICY_EVIDENCE_IDS = ("policy.gemma4-unified.mlx.v1",)
+GEMMA4_UNIFIED_REQUIRED_PROVENANCE_FIELDS = (
+    "architecture",
+    "layers",
+    "model_type",
+)
 
 
 ADAPTER_PROFILE_TARGET_MODULES: dict[AdapterProfile, tuple[str, ...]] = {
@@ -529,7 +558,6 @@ _GEMMA4_POLICY = _ModelCompatibilityPolicy(
     family=GEMMA4_FAMILY,
     claims={
         "architecture": (GEMMA4_ARCHITECTURE,),
-        "family": (GEMMA4_FAMILY,),
         "model_type": (GEMMA4_MODEL_TYPE, "gemma4"),
     },
     constraints=(
@@ -589,10 +617,80 @@ _GEMMA4_POLICY = _ModelCompatibilityPolicy(
     ),
 )
 
+_GEMMA4_UNIFIED_POLICY = _ModelCompatibilityPolicy(
+    policy_id=GEMMA4_UNIFIED_POLICY_ID,
+    policy_version=GEMMA4_UNIFIED_POLICY_VERSION,
+    family=GEMMA4_FAMILY,
+    claims={
+        "architecture": (GEMMA4_UNIFIED_ARCHITECTURE,),
+        "model_type": (GEMMA4_UNIFIED_MODEL_TYPE,),
+    },
+    constraints=(
+        {
+            "kind": "exact_identity",
+            "values": {
+                "architecture": GEMMA4_UNIFIED_ARCHITECTURE,
+                "family": GEMMA4_FAMILY,
+                "model_type": GEMMA4_UNIFIED_MODEL_TYPE,
+            },
+            "reason": "gemma4_unified_identity",
+            "reason_code": ModelPolicyReasonCode.IDENTITY_MISMATCH.value,
+        },
+        {
+            "kind": "field_equals",
+            "field": "moe",
+            "value": None,
+            "reason": "gemma4_dense",
+            "reason_code": ModelPolicyReasonCode.DENSE_TOPOLOGY_REQUIRED.value,
+        },
+        {
+            "kind": "compiler_contract",
+            "reason": "gemma4_unified_compiler",
+            "reason_code": ModelPolicyReasonCode.COMPILER_CONTRACT_UNSUPPORTED.value,
+        },
+    ),
+    paths=(
+        _policy_path(
+            path_id=GEMMA4_UNIFIED_QLORA_PATH_ID,
+            family=GEMMA4_FAMILY,
+            method=Method.QLORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.DENSE_CAUSAL_LM_V1,
+            evidence_ids=GEMMA4_UNIFIED_POLICY_EVIDENCE_IDS,
+        ),
+        _policy_path(
+            path_id=GEMMA4_UNIFIED_LORA_PATH_ID,
+            family=GEMMA4_FAMILY,
+            method=Method.LORA,
+            training_runtime=TrainingRuntime.MLX_LM,
+            compute_backend=Backend.MPS,
+            distribution=Distribution.SINGLE,
+            adapter_profile_id=AdapterProfile.DENSE_CAUSAL_LM_V1,
+            evidence_ids=GEMMA4_UNIFIED_POLICY_EVIDENCE_IDS,
+        ),
+    ),
+    matched_reason_key="gemma4_unified_matched",
+    matched_reason=GEMMA4_UNIFIED_MATCHED_REASON,
+    matched_reason_codes=(
+        ModelPolicyReasonCode.REVIEWED_RUNTIME_PATH,
+        ModelPolicyReasonCode.PILOT_NOT_YET_PROVEN,
+    ),
+    evidence_ids=GEMMA4_UNIFIED_POLICY_EVIDENCE_IDS,
+    required_provenance_fields=GEMMA4_UNIFIED_REQUIRED_PROVENANCE_FIELDS,
+    path_rejection_reason=GEMMA4_UNIFIED_COMPILER_REASON,
+    blocked_inspection_reason=GEMMA4_UNIFIED_BLOCKED_INSPECTION_REASON,
+    inspection_blocking_reason_codes=(
+        ModelPolicyReasonCode.COMPILER_CONTRACT_UNSUPPORTED,
+    ),
+)
+
 MODEL_COMPATIBILITY_POLICIES: tuple[_ModelCompatibilityPolicy, ...] = (
     _QWEN3_MOE_POLICY,
     _QWEN2_POLICY,
     _GEMMA4_POLICY,
+    _GEMMA4_UNIFIED_POLICY,
 )
 
 
@@ -672,6 +770,9 @@ def current_model_policy_snapshot() -> dict[str, Any]:
                 "gemma4_identity": GEMMA4_IDENTITY_REASON,
                 "gemma4_dense": GEMMA4_DENSE_REASON,
                 "gemma4_matched": GEMMA4_MATCHED_REASON,
+                "gemma4_unified_identity": GEMMA4_UNIFIED_IDENTITY_REASON,
+                "gemma4_unified_compiler": GEMMA4_UNIFIED_COMPILER_REASON,
+                "gemma4_unified_matched": GEMMA4_UNIFIED_MATCHED_REASON,
                 "dense": FAMILY_RECOGNIZED_REASON,
                 "sparse": UNREVIEWED_SPARSE_MODEL_REASON,
                 "unknown": UNKNOWN_POLICY_REASON,

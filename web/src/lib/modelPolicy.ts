@@ -134,6 +134,8 @@ const REASON_CODES = new Set<ModelPolicyDecision["reason_codes"][number]>([
   "family-recognized",
   "unreviewed-sparse-model",
   "no-policy-match",
+  "unreviewed-runtime-operator-attested",
+  "compiler-contract-unsupported",
 ]);
 
 const VALIDATION_STATE_RANK = new Map<string, number>([

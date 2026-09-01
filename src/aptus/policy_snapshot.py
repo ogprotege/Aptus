@@ -15,6 +15,7 @@ _CONSTRAINT_KINDS = {
     "sparse_topology",
     "no_shared_expert",
     "field_equals",
+    "compiler_contract",
 }
 _REQUIRED_REASONS = {
     "identity",
@@ -294,6 +295,7 @@ def validate_model_policy_snapshot(snapshot: Mapping[str, Any]) -> None:
                 "sparse_topology": set(),
                 "no_shared_expert": set(),
                 "field_equals": {"field", "value"},
+                "compiler_contract": set(),
             }[kind]
             expected_fields = {"kind", "reason", "reason_code"} | operands
             if set(constraint) != expected_fields:
@@ -446,6 +448,8 @@ def _constraint_matches(
             isinstance(moe, Mapping)
             and moe.get("shared_expert_intermediate_size") is None
         )
+    if kind == "compiler_contract":
+        return False
     if kind == "sparse_topology":
         moe, layers = subject.get("moe"), subject.get("layers")
         if (

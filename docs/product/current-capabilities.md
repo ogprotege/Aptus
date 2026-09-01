@@ -1,6 +1,6 @@
 # Current Capabilities
 
-> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-12 | **Review by:** 2026-10-27 and every release
+> **Status:** Active | **Authority:** Normative product boundary | **Applies to:** Aptus 0.2 | **Audience:** Users, operators, and integrators | **Last reviewed:** 2026-08-31 | **Review by:** 2026-10-27 and every release
 
 This page is the normative v0.2 product boundary. Aptus v0.2 is unreleased. The
 [2026-08-12 Path Alpha MLX QLoRA acceptance
@@ -98,8 +98,9 @@ reconciles 149 frozen slots to 58 started, 91 planned-not-started, and 47
 native-pass plus protocol-valid results without replacement. It independently
 recomputes the six listed stable-cell summaries, the Phase 8 probe-only
 frontier, and the Phase 9 endurance aggregate. That bounded evidence does not establish model quality, semantic CUDA adapter
-reload, broad CUDA support, or release readiness. Gemma remains license-excluded
-and Mistral remains planner-ineligible. The
+reload, broad CUDA support, or release readiness. CUDA Gemma 2/3 remains
+license-excluded in that campaign. Dense Gemma 4 MLX is a later named family
+path, not that CUDA exclusion. Mistral remains planner-ineligible. The
 [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains immutable history. Every CUDA method, placement, artifact, host, and
@@ -140,7 +141,7 @@ acceptance remain open.
   proxies and stay on `https://huggingface.co`.
 - One host-side model compatibility registry authority shared by provider
   inspection, sparse candidate admission, and API execution-path validation.
-  It now contains three reviewed entries and derives compiler, estimator, export,
+  It now contains four reviewed entries and derives compiler, estimator, export,
   and evidence-requirement identities from the method registry instead of
   copying them.
 - Exact policy matching for `qwen3_moe` checkpoints with
@@ -163,14 +164,28 @@ acceptance remain open.
   configuration footprint, not acceptance of every artifact with those
   structural facts;
   sparse Qwen near-matches remain blocked by the sparse-policy boundary.
+- A third registry-driven policy for dense Gemma 4 MLX LoRA and QLoRA
+  (`model.gemma4.mlx.v1` version `1.1.0`). It requires provider type
+  `gemma4_text` and architecture `Gemma4ForConditionalGeneration`, with no MoE
+  topology. Size and bitwidth come from the pin. Conditional, pilot-required,
+  not CUDA, not Path Alpha, not model quality.
+- A fourth registry-driven policy for Gemma 4 unified
+  (`model.gemma4-unified.mlx.v1`). It is a second exact identity under family
+  `gemma4` (`gemma4_unified_text` /
+  `Gemma4UnifiedForConditionalGeneration`). Bound MLX-LM 0.31.3 does not load
+  that architecture, so inspect is unsupported by the current compiler
+  contract, never `no-policy-match`. This is not "Aptus supports 12B."
 - Persisted `aptus.training-plan.v6` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
-  IDs and the matched entry's policy, version, and path. The two registered
+  IDs and the matched entry's policy, version, and path. The registered
   identities are `model.qwen3-moe.mlx-qlora` with
-  `mlx-lm.qlora.single.attention-qkvo.v1`, and
+  `mlx-lm.qlora.single.attention-qkvo.v1`,
   `model.qwen2-24l.mlx-qlora` with
-  `mlx-lm.qlora.single.dense-causal-lm.v1`, both at policy version `1.0.0`.
+  `mlx-lm.qlora.single.dense-causal-lm.v1`,
+  `model.gemma4.mlx.v1` with the dense Gemma 4 MLX LoRA/QLoRA paths, and
+  `model.gemma4-unified.mlx.v1` which currently blocks on the compiler
+  contract.
   Every candidate links to the decision. Only the exact matching candidate
   receives an `aptus.model-policy-binding.v1` path binding.
 - Versioned `aptus.model-inspection-receipt.v1` output from successful provider

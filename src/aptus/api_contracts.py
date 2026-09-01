@@ -260,6 +260,8 @@ class ModelInspectionFactsResponse(ClosedResponseModel):
     quantization_layout: InspectedQuantizationLayoutResponse | None = None
     moe: InspectedMoETopologyResponse | None = None
     license_name: str | None = None
+    attention_k_eq_v: bool | None = None
+    num_kv_shared_layers: int | None = Field(default=None, ge=0)
     parameters: None = None
     training_allowed: None = None
 

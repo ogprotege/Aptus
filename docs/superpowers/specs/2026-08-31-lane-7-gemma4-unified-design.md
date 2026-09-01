@@ -1,6 +1,6 @@
 # Lane 7 — Gemma 4 unified (12B)
 
-> **Status:** PROPOSED 2026-08-31 — no owner "go." Do not start Lane 7 code from this file.
+> **Status:** APPROVED 2026-08-31 — owner: "go"
 > **Authority:** Subordinate to claim language, current capabilities, the 0.2 cut-freeze, and the remainder freeze
 > **Increment:** Lane 7. **Not M10.** **Not 0.3.** **Not a 0.2 patch.** **Not an alias of Lane 6.**
 > **Parent freeze:** `docs/superpowers/specs/2026-08-26-remainder-program-design.md`
@@ -8,8 +8,9 @@
 > **Last reviewed:** 2026-08-31
 > **Next scheduled review:** After owner approval, or when this proposal is superseded
 
-Owner sign-off required before code. This file names the second exact
-Gemma 4 identity. It does not admit 12B, MoE, or vision by existing.
+Owner sign-off: "go" (chat 2026-08-31). Bound MLX-LM 0.31.3 has no
+`gemma4_unified` loader, so this increment is Exit B. It does not admit
+12B as executable, MoE, or vision.
 
 ---
 

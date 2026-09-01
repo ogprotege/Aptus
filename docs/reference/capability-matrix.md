@@ -5,7 +5,7 @@
 | Status | Active, unreleased engineering preview |
 | Audience | Operators, product owners, method authors, and release reviewers |
 | Authority | Normative v0.2 support boundary |
-| Last reviewed | 2026-08-11 |
+| Last reviewed | 2026-08-31 |
 | Next review | 2026-11-01, or sooner when the method registry, planner, compiler, or model policy changes |
 
 This matrix distinguishes a planner path from target-host proof. A planner row
@@ -106,8 +106,10 @@ certification](../operations/evidence/2026-08-11-cuda-phase10-certification/READ
 then reconciles every frozen campaign disposition, recomputes the published
 statistics, and closes the campaign with 149 planned, 58 started, 91
 planned-not-started, and 47 qualifying passes. This remains exact-host bounded
-evidence, not broad capability or model-quality evidence. Gemma remains
-license-excluded and Mistral remains planner-ineligible. The [earlier stopped Phase 7
+evidence, not broad capability or model-quality evidence. CUDA Gemma 2/3
+remains license-excluded in that campaign. Dense Gemma 4 MLX is a separate
+named family path. Unified Gemma 4 is recognized and unsupported by the
+current compiler contract. Mistral remains planner-ineligible. The [earlier stopped Phase 7
 cohort](../operations/evidence/2026-08-10-cuda-phase7-scale-staircase/README.md)
 remains an immutable historical record.
 

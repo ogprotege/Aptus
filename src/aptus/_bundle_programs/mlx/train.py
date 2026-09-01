@@ -311,6 +311,42 @@ def require_mlx_packed_checkpoint_binding(
     return binding
 
 
+def _sparse_expert_switch(layer: Any, *, gemma_moe: bool) -> tuple[Any, Any, Any]:
+    """Return (expert switch module, expert_count, experts_per_token)."""
+
+    if gemma_moe:
+        experts = getattr(layer, "experts", None)
+        router = getattr(layer, "router", None)
+        switch = getattr(experts, "switch_glu", None)
+        num_experts = getattr(switch, "num_experts", None)
+        if num_experts is None:
+            num_experts = getattr(
+                getattr(switch, "gate_proj", None), "num_experts", None
+            )
+        top_k = getattr(getattr(router, "config", None), "top_k_experts", None)
+        if switch is None or router is None:
+            return None, None, None
+        return switch, num_experts, top_k
+    mlp = getattr(layer, "mlp", None)
+    return (
+        getattr(mlp, "switch_mlp", None),
+        getattr(mlp, "num_experts", None),
+        getattr(mlp, "top_k", None),
+    )
+
+
+def _layer_has_unexpected_experts(layer: Any, *, gemma_moe: bool) -> bool:
+    if gemma_moe:
+        return (
+            getattr(layer, "experts", None) is not None
+            or getattr(layer, "router", None) is not None
+        )
+    mlp = getattr(layer, "mlp", None)
+    return mlp is not None and (
+        hasattr(mlp, "switch_mlp") or hasattr(mlp, "num_experts")
+    )
+
+
 def build_mlx_model_parameter_census(
     model: Any,
     plan: dict[str, Any],
@@ -389,27 +425,28 @@ def build_mlx_model_parameter_census(
         expected_per_layer = (
             expert_count * 3 * int(model_spec["hidden_size"]) * expert_intermediate_size
         )
+        gemma_moe = model_spec.get("family") == "gemma4_moe"
         for index, layer in enumerate(layers):
             mlp = getattr(layer, "mlp", None)
             if index in expected_sparse_indices:
-                switch_mlp = getattr(mlp, "switch_mlp", None)
+                switch_module, observed_experts, observed_top_k = _sparse_expert_switch(
+                    layer, gemma_moe=gemma_moe
+                )
                 if (
-                    getattr(mlp, "num_experts", None) != expert_count
-                    or getattr(mlp, "top_k", None) != experts_per_token
-                    or switch_mlp is None
+                    switch_module is None
+                    or observed_experts != expert_count
+                    or observed_top_k != experts_per_token
                 ):
                     raise RuntimeError(
                         f"Loaded MLX-LM sparse layer {index} does not match the planned expert topology."
                     )
-                observed_layer_parameters = parameter_counter(switch_mlp)
+                observed_layer_parameters = parameter_counter(switch_module)
                 if observed_layer_parameters != expected_per_layer:
                     raise RuntimeError(
                         f"Loaded MLX-LM sparse layer {index} has an unexpected logical expert parameter count."
                     )
                 routed_expert_parameters += int(observed_layer_parameters)
-            elif mlp is not None and (
-                hasattr(mlp, "switch_mlp") or hasattr(mlp, "num_experts")
-            ):
+            elif _layer_has_unexpected_experts(layer, gemma_moe=gemma_moe):
                 raise RuntimeError(
                     f"Loaded MLX-LM layer {index} is sparse where the Aptus plan requires a dense MLP."
                 )
@@ -435,6 +472,13 @@ def build_mlx_model_parameter_census(
             if mlp is not None and any(
                 getattr(mlp, name, None) is not None
                 for name in ("switch_mlp", "num_experts", "top_k")
+            ):
+                raise RuntimeError(
+                    f"Loaded MLX-LM layer {index} is sparse where the Aptus plan requires dense topology."
+                )
+            if (
+                getattr(layer, "experts", None) is not None
+                or getattr(layer, "router", None) is not None
             ):
                 raise RuntimeError(
                     f"Loaded MLX-LM layer {index} is sparse where the Aptus plan requires dense topology."

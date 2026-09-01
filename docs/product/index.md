@@ -17,9 +17,10 @@
 - [Remainder program freeze](../superpowers/specs/2026-08-26-remainder-program-design.md)
   names Lanes 7–10 after Lane 6. [Remainder program plan](../superpowers/plans/2026-08-26-remainder-program.md)
   is the execution order. [Lane 7 unified spec](../superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md)
-  is proposed, not approved. [Remainder completion plan](../superpowers/plans/2026-08-31-remainder-completion.md)
+  is approved Exit B. [Lane 9 MoE spec](../superpowers/specs/2026-08-31-lane-9-gemma4-moe-design.md)
+  is the 26B-A4B identity. [Remainder completion plan](../superpowers/plans/2026-08-31-remainder-completion.md)
   is the Veriformis-style contract for finishing Lanes 7–10. Not M10. Not 0.3.
-  Not a 0.2 patch. This filing does not admit 12B, MoE, or vision.
+  Not a 0.2 patch. Lane 10 vision is not started.
 
 For exact method and backend support, use the normative
 [capability matrix](../reference/capability-matrix.md).

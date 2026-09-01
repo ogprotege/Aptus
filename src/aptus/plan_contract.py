@@ -54,6 +54,9 @@ EVIDENCE_REQUIREMENTS = {"pilot-required", "implementation-required"}
 QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
+GEMMA4_MOE_FAMILY = "gemma4_moe"
+GEMMA4_MOE_MODEL_TYPE = "gemma4_text"
+GEMMA4_MOE_ARCHITECTURE = "Gemma4ForConditionalGeneration"
 RECEIPT_FACT_FIELDS = {
     "architecture",
     "context_length",
@@ -104,8 +107,14 @@ MODEL_TARGET_MODULES[QWEN3_MOE_FAMILY] = [
     "v_proj",
     "o_proj",
 ]
+MODEL_TARGET_MODULES[GEMMA4_MOE_FAMILY] = [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+]
 MLX_SPARSE_LAYER_ADAPTER_TARGETS = frozenset({"k_proj", "v_proj"})
-MLX_SPARSE_ADAPTER_FAMILIES = frozenset({"gemma4"})
+MLX_SPARSE_ADAPTER_FAMILIES = frozenset({"gemma4", GEMMA4_MOE_FAMILY})
 
 
 MLX_PACKED_CHECKPOINT_OVERHEAD_FLOOR_BYTES = 2 * 1024**2
@@ -142,9 +151,9 @@ def mlx_trainable_target_instance_total(
 
     Each planned target must appear at least once and at most once per
     transformer layer. Default is every planned target in every layer.
-    Only Gemma 4 may omit k_proj/v_proj together on KV-shared layers.
-    Asymmetric k/v counts are refused; k-equals-v (omitted v_proj) is a
-    later named slice.
+    Only Gemma 4 families may omit k_proj/v_proj together on KV-shared
+    layers, and may omit v_proj alone on k-equals-v layers when k_proj
+    still appears at least once and v_count does not exceed k_count.
     """
 
     if (
@@ -187,9 +196,12 @@ def mlx_trainable_target_instance_total(
             and not isinstance(k_count, bool)
             and isinstance(v_count, int)
             and not isinstance(v_count, bool)
-            and k_count != v_count
+            and v_count > k_count
         ):
-            raise ValueError("Gemma 4 k_proj and v_proj adapter counts must match.")
+            raise ValueError(
+                "Gemma 4 k_proj and v_proj adapter counts cannot omit k_proj "
+                "while keeping v_proj."
+            )
     return total
 
 
@@ -241,6 +253,9 @@ EVIDENCE_RECORD_SHA256 = {
     ),
     "policy.gemma4-unified.mlx.v1": (
         "8fba1a85e361db082f72f8b5b417b86461ae7a71bb5a99c2149065abb1868f4e"
+    ),
+    "policy.gemma4-moe.mlx.v1": (
+        "983c9fc8258e0a1b051609cc335b970aea118dba4eca1147b085914003593781"
     ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": (
         "2b1905044b84b3473d536fbe73af31841af15857523f458bb58a6d34d89447bc"
@@ -1417,6 +1432,49 @@ def _reviewed_qwen3_moe_quantization_layout(layers: int) -> dict[str, Any]:
     }
 
 
+def _reviewed_gemma4_moe_quantization_layout(layers: int) -> dict[str, Any]:
+    if not _positive_int(layers):
+        raise ValueError("Reviewed Gemma 4 MoE quantization requires positive layers.")
+    return {
+        "default_bits": 4,
+        "default_group_size": 64,
+        "module_overrides": [
+            {
+                "module_path": f"model.layers.{index}.router.proj",
+                "bits": 8,
+                "group_size": 64,
+            }
+            for index in sorted(range(layers), key=lambda value: str(value))
+        ],
+    }
+
+
+def _strip_language_model_prefix(module_path: str) -> str:
+    prefix = "language_model."
+    if module_path.startswith(prefix):
+        return module_path[len(prefix) :]
+    return module_path
+
+
+def _is_reviewed_moe_identity(
+    model: Mapping[str, Any], *, model_type: Any, architecture: Any
+) -> str | None:
+    family = model.get("family")
+    if (
+        family == QWEN3_MOE_FAMILY
+        and model_type == QWEN3_MOE_MODEL_TYPE
+        and architecture == QWEN3_MOE_ARCHITECTURE
+    ):
+        return QWEN3_MOE_FAMILY
+    if (
+        family == GEMMA4_MOE_FAMILY
+        and model_type == GEMMA4_MOE_MODEL_TYPE
+        and architecture == GEMMA4_MOE_ARCHITECTURE
+    ):
+        return GEMMA4_MOE_FAMILY
+    return None
+
+
 def _canonical_config_quantization_layout(
     value: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -1425,7 +1483,7 @@ def _canonical_config_quantization_layout(
         "default_group_size": value.get("group_size"),
         "module_overrides": [
             {
-                "module_path": key,
+                "module_path": _strip_language_model_prefix(key),
                 "bits": item.get("bits") if isinstance(item, Mapping) else None,
                 "group_size": (
                     item.get("group_size") if isinstance(item, Mapping) else None
@@ -1595,28 +1653,30 @@ def expected_model_architecture_contract(
     if model.get("active_parameters") != active_parameters:
         raise ValueError("Model active_parameters does not match its topology.")
     if moe is not None:
-        if (
-            model.get("family") != QWEN3_MOE_FAMILY
-            or model_type != QWEN3_MOE_MODEL_TYPE
-            or architecture != QWEN3_MOE_ARCHITECTURE
-        ):
+        moe_family = _is_reviewed_moe_identity(
+            model, model_type=model_type, architecture=architecture
+        )
+        if moe_family is None:
             raise ValueError(
-                "Model MoE topology requires the exact reviewed Qwen3 MoE identity."
+                "Model MoE topology requires an exact reviewed MoE identity."
             )
         if moe["shared_expert_intermediate_size"] is not None:
             raise ValueError(
-                "The reviewed Qwen3 MoE runtime does not support a shared expert."
+                "The reviewed MoE runtime does not support a shared expert."
             )
         if quantization_bits != 4:
             raise ValueError(
-                "The reviewed Qwen3 MoE runtime requires explicit four-bit metadata."
+                "The reviewed MoE runtime requires explicit four-bit metadata."
             )
-        if quantization_layout != _reviewed_qwen3_moe_quantization_layout(
-            model["layers"]
-        ):
+        expected_layout = (
+            _reviewed_qwen3_moe_quantization_layout(model["layers"])
+            if moe_family == QWEN3_MOE_FAMILY
+            else _reviewed_gemma4_moe_quantization_layout(model["layers"])
+        )
+        if quantization_layout != expected_layout:
             raise ValueError(
-                "The reviewed Qwen3 MoE runtime requires the exact four-bit "
-                "group-64 layout with one eight-bit group-64 router-gate override "
+                "The reviewed MoE runtime requires the exact four-bit "
+                "group-64 layout with one eight-bit group-64 router override "
                 "for every layer."
             )
     quantization_layout_sha256 = (
@@ -1710,6 +1770,7 @@ def validate_model_config_against_plan(
     moe_config_names = (
         "num_experts",
         "num_experts_per_tok",
+        "top_k_experts",
         "moe_intermediate_size",
         "decoder_sparse_step",
         "mlp_only_layers",
@@ -1721,12 +1782,26 @@ def validate_model_config_against_plan(
     ):
         raise ValueError("Pinned model unexpectedly declares MoE topology.")
     if expected_moe is not None:
+        experts_per_token = source.get("num_experts_per_tok")
+        if experts_per_token is None:
+            experts_per_token = source.get("top_k_experts")
+        decoder_sparse_step = source.get("decoder_sparse_step")
+        mlp_only_layers = source.get("mlp_only_layers")
+        gemma_style = (
+            source.get("enable_moe_block") is True
+            or source.get("top_k_experts") is not None
+        )
+        if gemma_style:
+            if decoder_sparse_step is None:
+                decoder_sparse_step = 1
+            if mlp_only_layers is None:
+                mlp_only_layers = []
         observed_moe = {
             "expert_count": source.get("num_experts"),
-            "experts_per_token": source.get("num_experts_per_tok"),
+            "experts_per_token": experts_per_token,
             "expert_intermediate_size": source.get("moe_intermediate_size"),
-            "decoder_sparse_step": source.get("decoder_sparse_step"),
-            "mlp_only_layers": source.get("mlp_only_layers"),
+            "decoder_sparse_step": decoder_sparse_step,
+            "mlp_only_layers": mlp_only_layers,
             "shared_expert_intermediate_size": source.get(
                 "shared_expert_intermediate_size"
             ),
@@ -1980,7 +2055,10 @@ def mlx_quantized_storage_bytes_for_contract(
             or not module_path
             or module_path in seen_paths
             or not module_path.startswith("model.layers.")
-            or not module_path.endswith(".mlp.gate")
+            or not (
+                module_path.endswith(".mlp.gate")
+                or module_path.endswith(".router.proj")
+            )
             or not _positive_int(bits)
             or not _positive_int(group_size)
         ):
@@ -2348,12 +2426,13 @@ def _validate_plan_payload_impl(
         errors.append("Model model_type must be non-empty when supplied.")
     moe_identity = bool(
         model.get("family") == QWEN3_MOE_FAMILY
+        or model.get("family") == GEMMA4_MOE_FAMILY
         or model_type == QWEN3_MOE_MODEL_TYPE
         or architecture == QWEN3_MOE_ARCHITECTURE
         or model.get("moe") is not None
     )
     if moe_identity and model.get("moe") is None:
-        errors.append("Qwen3 MoE plans require complete expert topology facts.")
+        errors.append("MoE plans require complete expert topology facts.")
     try:
         expected_model_architecture_contract(model)
     except ValueError as error:
@@ -3246,18 +3325,27 @@ def _validate_plan_payload_impl(
                 f"{name} adapter method requires rank, alpha, and target modules."
             )
         if moe_identity:
+            moe_family = _is_reviewed_moe_identity(
+                model, model_type=model_type, architecture=architecture
+            )
+            expected_layout = None
+            if moe_family == QWEN3_MOE_FAMILY:
+                expected_layout = _reviewed_qwen3_moe_quantization_layout(
+                    model.get("layers")
+                )
+            elif moe_family == GEMMA4_MOE_FAMILY:
+                expected_layout = _reviewed_gemma4_moe_quantization_layout(
+                    model.get("layers")
+                )
             reviewed_moe_runtime = (
-                method == "qlora"
+                moe_family is not None
+                and method == "qlora"
                 and candidate.get("distribution") == "single"
                 and runtime_id == "mlx-lm"
                 and runtime_backend == "mps"
                 and quantization == "mlx-4bit-groupwise"
                 and model.get("quantization_bits") == 4
-                and model.get("quantization_layout")
-                == _reviewed_qwen3_moe_quantization_layout(model.get("layers"))
-                and model.get("family") == QWEN3_MOE_FAMILY
-                and model_type == QWEN3_MOE_MODEL_TYPE
-                and architecture == QWEN3_MOE_ARCHITECTURE
+                and model.get("quantization_layout") == expected_layout
                 and isinstance(model.get("moe"), dict)
                 and model["moe"].get("shared_expert_intermediate_size") is None
             )
@@ -3267,7 +3355,7 @@ def _validate_plan_payload_impl(
                 )
             if reviewed_moe_runtime and candidate.get("status") == "feasible":
                 errors.append(
-                    f"{name} Qwen3 MoE execution must remain conditional pending its measured pilot."
+                    f"{name} MoE execution must remain conditional pending its measured pilot."
                 )
         if (
             _known_text(candidate.get("status"), {"feasible", "conditional"})

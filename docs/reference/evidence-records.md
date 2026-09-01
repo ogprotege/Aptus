@@ -71,7 +71,7 @@ observation timestamp, digest, and detail are retained when present.
 feasibility. Its `subject_facts_sha256` covers only compatibility inputs. Stable
 reason codes and evidence IDs identify the result. A matched or blocked
 registered policy can also name a stable policy ID and semantic version. The
-registry currently contains four reviewed policies:
+registry currently contains five reviewed policies:
 
 - `model.qwen3-moe.mlx-qlora` binds the exact reviewed sparse identity and
   topology row to `mlx-lm.qlora.single.attention-qkvo.v1`.
@@ -93,6 +93,11 @@ registry currently contains four reviewed policies:
   `policy.gemma4-unified.mlx.v1` is implementation-reviewed. Bound MLX-LM
   does not load that architecture, so the identity is unsupported by the
   current compiler contract, not a `no-policy-match`.
+- `model.gemma4-moe.mlx.v1` binds declared Gemma 4 MoE
+  (`gemma4_moe` / `gemma4_text` / `Gemma4ForConditionalGeneration`) to
+  `mlx-lm.qlora.single.gemma4-moe.v1`. Evidence ID
+  `policy.gemma4-moe.mlx.v1` is implementation-reviewed. Attention-only
+  adapters; resident weight is not active parameters. Not CUDA MoE.
 
 The Qwen2 policy is a configuration-footprint decision, not an artifact
 allowlist or a transferable runtime attestation. A different model artifact can
@@ -187,6 +192,7 @@ The registry currently contains these records.
 | `policy.qwen2-24l.mlx-qlora.v1` | Aptus compatibility policy | `implementation-reviewed` | The reviewed 24-layer dense Qwen2 four-bit group-size-64 configuration maps to one single-device MLX-LM QLoRA path with seven dense targets; runtime gates remain mandatory |
 | `policy.gemma4.mlx.v1` | Aptus compatibility policy | `implementation-reviewed` | Dense Gemma 4 (`gemma4_text` / `Gemma4ForConditionalGeneration`) maps to MLX-LM LoRA and QLoRA family paths; size and bits come from the pin; runtime gates remain mandatory |
 | `policy.gemma4-unified.mlx.v1` | Aptus compatibility policy | `implementation-reviewed` | Second exact identity under family `gemma4` (`gemma4_unified_text` / `Gemma4UnifiedForConditionalGeneration`); bound MLX-LM does not load the architecture; compiler-contract unsupported, not `no-policy-match` |
+| `policy.gemma4-moe.mlx.v1` | Aptus compatibility policy | `implementation-reviewed` | Gemma 4 MoE (`gemma4_moe` / `gemma4_text` / `Gemma4ForConditionalGeneration`) maps to one MLX-LM QLoRA attention-qkvo path with 4-bit plus 8-bit `router.proj` overrides; resident weight is not active parameters; runtime gates remain mandatory |
 | `runtime.qwen2-0.5b.mlx-qlora.2026-07-27` | Measured runtime record | `measured-historical` | Two clean runs passed for the exact pinned Qwen2.5 0.5B artifact under training-plan v2 and bundle v2; this is not current v5/v3 acceptance and does not transfer to other matching artifacts |
 
 Canonical source URLs and revisions are serialized into each generated plan.

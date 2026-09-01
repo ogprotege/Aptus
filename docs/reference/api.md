@@ -423,6 +423,13 @@ The registry currently has three conditional MLX-LM policies:
   `Gemma4UnifiedForConditionalGeneration`. Bound MLX-LM does not load that
   architecture, so the row is unsupported by the current compiler contract,
   never `no-policy-match`.
+- Gemma 4 MoE policy `model.gemma4-moe.mlx.v1` version `1.0.0` requires
+  family `gemma4_moe`, provider type `gemma4_text`, architecture
+  `Gemma4ForConditionalGeneration`, four-bit group-64 defaults, one
+  eight-bit group-64 `model.layers.N.router.proj` override per layer, a
+  complete routed topology, and no shared expert. It emits path
+  `mlx-lm.qlora.single.gemma4-moe.v1` with profile `attention-qkvo.v1`.
+  This is not CUDA MoE and not "Aptus supports MoE."
 
 Registered rows that path-match report only gated conditional eligibility and require model-data,
 measured-preflight, and pilot validation. The

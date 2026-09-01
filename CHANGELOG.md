@@ -14,6 +14,18 @@ All notable changes are recorded here.
 
 ### Added
 
+- Lane 9 Gemma 4 26B-A4B MoE identity (`model.gemma4-moe.mlx.v1`): inspect
+  routes declared MoE on `gemma4_text` /
+  `Gemma4ForConditionalGeneration` to family `gemma4_moe`, never onto
+  dense `model.gemma4.mlx.v1`. One single-device MLX-LM QLoRA path uses
+  attention `q/k/v/o` only, a frozen 4-bit plus 8-bit `router.proj`
+  layout, and `top_k_experts` as `experts_per_token`. Lane 8 omit-`v_proj`
+  census is allowed for families `gemma4` and `gemma4_moe` when `v_count`
+  does not exceed `k_count`. Resident weight is not active parameters.
+  Conditional, pilot-required, not CUDA MoE, not quality, not
+  "Aptus supports MoE." Starting pin
+  `mlx-community/gemma-4-26b-a4b-it-4bit` @
+  `0d77464eeb233a2da68ebf9d7dc4edaac7db956d`.
 - Lane 7 Gemma 4 unified identity (`model.gemma4-unified.mlx.v1`): inspect
   maps `gemma4_unified_text` / `Gemma4UnifiedForConditionalGeneration` to
   family `gemma4` as a second exact identity. Bound MLX-LM 0.31.3 does not

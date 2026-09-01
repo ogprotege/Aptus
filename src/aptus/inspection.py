@@ -15,6 +15,7 @@ from urllib.request import (
 from . import __version__
 from .catalog import (
     DENSE_CAUSAL_LM_TARGET_MODULES,
+    GEMMA4_MOE_FAMILY,
     QWEN3_MOE_FAMILY,
     QWEN3_MOE_MODEL_TYPE,
     TARGET_MODULES,
@@ -57,6 +58,10 @@ _TEXT_ONLY_GEMMA3_ARCHITECTURES = {
 _UNIFIED_GEMMA4_ARCHITECTURES = {
     "Gemma4UnifiedForConditionalGeneration",
 }
+_DENSE_GEMMA4_ARCHITECTURES = {
+    "Gemma4ForConditionalGeneration",
+}
+_LANGUAGE_MODEL_PREFIX = "language_model."
 
 
 def _catalog_family(model_type: Any, architecture: Any) -> tuple[Any, str | None]:
@@ -103,6 +108,31 @@ def _catalog_family(model_type: Any, architecture: Any) -> tuple[Any, str | None
         f"family '{catalog_family}'. Raw provider identifiers remain in the "
         "model_type and architecture evidence fields."
     )
+
+
+def _route_gemma4_moe_family(
+    family: Any, architecture: Any, moe: dict[str, Any] | None
+) -> tuple[Any, str | None]:
+    """Route declared Gemma 4 MoE off the dense family before policy evaluation."""
+
+    if (
+        family != "gemma4"
+        or not isinstance(architecture, str)
+        or architecture not in _DENSE_GEMMA4_ARCHITECTURES
+        or moe is None
+    ):
+        return family, None
+    return GEMMA4_MOE_FAMILY, (
+        "Provider gemma4_text with declared MoE topology was routed to Aptus "
+        "family 'gemma4_moe'. Raw provider identifiers remain in the model_type "
+        "and architecture evidence fields."
+    )
+
+
+def _strip_language_model_prefix(module_path: str) -> str:
+    if module_path.startswith(_LANGUAGE_MODEL_PREFIX):
+        return module_path[len(_LANGUAGE_MODEL_PREFIX) :]
+    return module_path
 
 
 def _huggingface_origin(url: str) -> bool:
@@ -237,6 +267,11 @@ def _canonical_quantization_mapping(
                 "Provider quantization metadata contains an unsupported field or "
                 f"module override at {module_path!r}."
             )
+        canonical_path = _strip_language_model_prefix(module_path)
+        if not canonical_path:
+            return None, (
+                "Provider quantization metadata contains an invalid module path."
+            )
         override_bits = override.get("bits")
         override_group_size = override.get("group_size")
         if (
@@ -253,10 +288,16 @@ def _canonical_quantization_mapping(
             )
         overrides.append(
             {
-                "module_path": module_path,
+                "module_path": canonical_path,
                 "bits": override_bits,
                 "group_size": override_group_size,
             }
+        )
+    paths = [item["module_path"] for item in overrides]
+    if len(paths) != len(set(paths)):
+        return None, (
+            "Provider quantization metadata contains duplicate module paths "
+            "after language_model prefix normalization."
         )
     return {
         "default_bits": bits,
@@ -297,9 +338,23 @@ def _moe_facts(config: dict[str, Any]) -> dict[str, Any] | None:
     text = _text_config(config)
     if text.get("enable_moe_block") is False:
         return None
+    experts_per_token = text.get("num_experts_per_tok")
+    if experts_per_token is None:
+        experts_per_token = text.get("top_k_experts")
+    decoder_sparse_step = text.get("decoder_sparse_step")
+    mlp_only_layers = text.get("mlp_only_layers")
+    gemma_style = (
+        text.get("enable_moe_block") is True or text.get("top_k_experts") is not None
+    )
+    if gemma_style:
+        if decoder_sparse_step is None:
+            decoder_sparse_step = 1
+        if mlp_only_layers is None:
+            mlp_only_layers = []
     names = (
         "num_experts",
         "num_experts_per_tok",
+        "top_k_experts",
         "moe_intermediate_size",
         "decoder_sparse_step",
         "mlp_only_layers",
@@ -312,14 +367,16 @@ def _moe_facts(config: dict[str, Any]) -> dict[str, Any] | None:
             return isinstance(value, list) and bool(value)
         return isinstance(value, int) and not isinstance(value, bool)
 
-    if not any(_declared(name) for name in names):
+    if not any(_declared(name) for name in names) and not (
+        isinstance(experts_per_token, int) and not isinstance(experts_per_token, bool)
+    ):
         return None
     return {
         "expert_count": text.get("num_experts"),
-        "experts_per_token": text.get("num_experts_per_tok"),
+        "experts_per_token": experts_per_token,
         "expert_intermediate_size": text.get("moe_intermediate_size"),
-        "decoder_sparse_step": text.get("decoder_sparse_step"),
-        "mlp_only_layers": text.get("mlp_only_layers"),
+        "decoder_sparse_step": decoder_sparse_step,
+        "mlp_only_layers": mlp_only_layers,
         "shared_expert_intermediate_size": text.get("shared_expert_intermediate_size"),
     }
 
@@ -574,6 +631,9 @@ def inspect_huggingface_model(
         license_name = config.get("license")
         license_source = resolved_config_url if license_name else None
     moe = _moe_facts(config)
+    family, moe_family_warning = _route_gemma4_moe_family(family, architecture, moe)
+    if moe_family_warning is not None:
+        warnings.append(moe_family_warning)
     layers = _first(text_config, "num_hidden_layers", "n_layer", "num_layers")
     moe_error = _moe_topology_error(moe, layers) if moe is not None else None
     if moe_error is not None:

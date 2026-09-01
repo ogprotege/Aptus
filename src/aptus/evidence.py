@@ -154,6 +154,15 @@ EVIDENCE_REGISTRY: dict[str, EvidenceRecord] = {
         "implementation-reviewed",
         "1.0.0",
     ),
+    "policy.gemma4-moe.mlx.v1": EvidenceRecord(
+        "policy.gemma4-moe.mlx.v1",
+        "Aptus defines one Gemma 4 MoE MLX-LM QLoRA path as eligible for gated validation.",
+        "aptus://product/lane-9-gemma4-moe",
+        "aptus-compatibility-policy",
+        "Exact gemma4_moe / gemma4_text / Gemma4ForConditionalGeneration identity; 4-bit group-64 default plus 8-bit router.proj overrides; routed topology with no shared expert; attention-only q/k/v/o adapters. Resident weight is not active parameters. Runtime evidence remains artifact-scoped and pilot-required. Not quality. Not CUDA MoE.",
+        "implementation-reviewed",
+        "1.0.0",
+    ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": EvidenceRecord(
         "runtime.qwen2-0.5b.mlx-qlora.2026-07-27",
         "Two clean historical workflows for the exact pinned Qwen2.5 0.5B artifact reached measured-run-pass under Aptus training-plan v2 and bundle v2.",

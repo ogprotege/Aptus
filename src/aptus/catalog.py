@@ -12,6 +12,9 @@ QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
 QWEN3_MOE_QUANTIZATION_PROFILE = "qwen3-moe-4bit-group64-router-gates-8bit"
+GEMMA4_MOE_FAMILY = "gemma4_moe"
+GEMMA4_MOE_MODEL_TYPE = "gemma4_text"
+GEMMA4_MOE_ARCHITECTURE = "Gemma4ForConditionalGeneration"
 DENSE_CAUSAL_LM_TARGET_MODULES = (
     "q_proj",
     "k_proj",
@@ -22,6 +25,7 @@ DENSE_CAUSAL_LM_TARGET_MODULES = (
     "down_proj",
 )
 QWEN3_MOE_TARGET_MODULES = ("q_proj", "k_proj", "v_proj", "o_proj")
+GEMMA4_MOE_TARGET_MODULES = QWEN3_MOE_TARGET_MODULES
 
 
 def reviewed_qwen3_moe_quantization_layout(layers: int) -> QuantizationLayout:
@@ -43,11 +47,31 @@ def reviewed_qwen3_moe_quantization_layout(layers: int) -> QuantizationLayout:
     )
 
 
+def reviewed_gemma4_moe_quantization_layout(layers: int) -> QuantizationLayout:
+    """Return the exact 4-bit plus 8-bit router.proj map for Gemma 4 MoE."""
+
+    if not isinstance(layers, int) or isinstance(layers, bool) or layers <= 0:
+        raise ValueError("Reviewed Gemma 4 MoE quantization requires positive layers.")
+    return QuantizationLayout(
+        default_bits=4,
+        default_group_size=64,
+        module_overrides=tuple(
+            QuantizationOverride(
+                module_path=f"model.layers.{index}.router.proj",
+                bits=8,
+                group_size=64,
+            )
+            for index in sorted(range(layers), key=lambda value: str(value))
+        ),
+    )
+
+
 TARGET_MODULES: dict[str, tuple[str, ...]] = {
     family: DENSE_CAUSAL_LM_TARGET_MODULES
     for family in ("llama", "mistral", "gemma", "gemma4", "qwen")
 }
 TARGET_MODULES[QWEN3_MOE_FAMILY] = QWEN3_MOE_TARGET_MODULES
+TARGET_MODULES[GEMMA4_MOE_FAMILY] = GEMMA4_MOE_TARGET_MODULES
 
 MODULE_DIMENSION_FACTORS = {
     "q_proj": 2.0,
@@ -121,3 +145,25 @@ def has_reviewed_qwen3_moe_quantization_layout(
     """Return true only for the reviewed MLX mixed-precision layout."""
 
     return quantization_layout == reviewed_qwen3_moe_quantization_layout(layers)
+
+
+def is_exact_gemma4_moe(
+    *, family: str, model_type: str | None, architecture: str
+) -> bool:
+    """Return true only for the reviewed Gemma 4 MoE provider identity."""
+
+    return (
+        family.lower() == GEMMA4_MOE_FAMILY
+        and model_type == GEMMA4_MOE_MODEL_TYPE
+        and architecture == GEMMA4_MOE_ARCHITECTURE
+    )
+
+
+def has_reviewed_gemma4_moe_quantization_layout(
+    quantization_layout: QuantizationLayout | None,
+    *,
+    layers: int,
+) -> bool:
+    """Return true only for the reviewed Gemma 4 MoE mixed-precision layout."""
+
+    return quantization_layout == reviewed_gemma4_moe_quantization_layout(layers)

@@ -49,6 +49,10 @@ from tools.generate_cuda_campaign_fixture import (
 )
 
 from tests.aptus.helpers import (
+    GEMMA4_MOE_MODEL_ID,
+    GEMMA4_MOE_REVISION,
+    gemma4_moe_hub_quantization_config,
+    make_gemma4_moe_plan,
     make_plan,
     make_qwen2_runtime_footprint_plan,
     make_qwen3_moe_plan,
@@ -934,6 +938,101 @@ class BundleGenerationTests(unittest.TestCase):
         self.assertIn("logical active parameters", runbook)
         self.assertIn("MoE adapter policy: attention-only QLoRA", decision)
 
+    def test_gemma4_moe_bundle_allows_omitted_v_proj_on_k_eq_v_layers(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-bundle"
+            report = generate_bundle(make_gemma4_moe_plan(root), output)
+            self.assertEqual(report.state, ValidationState.STATIC_PASS)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_omit_v"
+            )
+            plan, candidate = module.load_contract()
+            layer_count = plan["model"]["layers"]
+            full_attention = {5, 11, 17, 23, 29}
+
+            class FakeLayer:
+                def __init__(self, layer_idx: int) -> None:
+                    modules = [
+                        ("self_attn.q_proj", object()),
+                        ("self_attn.k_proj", object()),
+                        ("self_attn.o_proj", object()),
+                    ]
+                    if layer_idx not in full_attention:
+                        modules.insert(2, ("self_attn.v_proj", object()))
+                    self._modules = modules
+
+                def named_modules(self):
+                    return list(self._modules)
+
+            model = types.SimpleNamespace(
+                layers=[FakeLayer(index) for index in range(layer_count)]
+            )
+            resolved, binding = module.resolve_lora_keys(
+                model, candidate, family="gemma4_moe"
+            )
+            names = []
+            for layer_index, layer in enumerate(model.layers):
+                present = {
+                    name.rsplit(".", 1)[-1] for name, _module in layer.named_modules()
+                }
+                for key in resolved:
+                    target = key.rsplit(".", 1)[-1]
+                    if target not in present:
+                        continue
+                    for suffix in ("lora_a", "lora_b"):
+                        names.append(f"model.layers.{layer_index}.{key}.{suffix}")
+            census = module.require_trainable_binding(
+                names, binding, family="gemma4_moe"
+            )
+            self.assertEqual(census["target_instance_counts"]["k_proj"], 30)
+            self.assertEqual(census["target_instance_counts"]["v_proj"], 25)
+            self.assertEqual(census["target_instance_counts"]["q_proj"], 30)
+            with self.assertRaisesRegex(RuntimeError, "every transformer layer"):
+                module.resolve_lora_keys(model, candidate, family="llama")
+
+    def test_generated_mlx_binds_gemma4_moe_router_proj_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-layout-bundle"
+            generate_bundle(make_gemma4_moe_plan(root), output)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_layout"
+            )
+            plan, candidate = module.load_contract()
+            model_path = root / "model"
+            model_path.mkdir()
+            config = {
+                "model_type": "gemma4",
+                "architectures": ["Gemma4ForConditionalGeneration"],
+                "quantization": gemma4_moe_hub_quantization_config(),
+                "text_config": {
+                    "model_type": "gemma4_text",
+                    "hidden_size": 2816,
+                    "intermediate_size": 2112,
+                    "num_hidden_layers": 30,
+                    "max_position_embeddings": 262144,
+                    "num_experts": 128,
+                    "top_k_experts": 8,
+                    "moe_intermediate_size": 704,
+                    "enable_moe_block": True,
+                },
+            }
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+            module.require_method_model(plan, candidate, model_path)
+            config["quantization"]["language_model.model.layers.0.router.proj"][
+                "bits"
+            ] = 4
+            (model_path / "config.json").write_text(
+                json.dumps(config), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(RuntimeError, "architecture"):
+                module.require_method_model(plan, candidate, model_path)
+
     def test_qwen2_runtime_footprint_compiles_and_binds_dense_model_data(
         self,
     ) -> None:
@@ -1550,6 +1649,119 @@ class BundleGenerationTests(unittest.TestCase):
                     observed_safetensors_bytes=observed_safetensors_bytes,
                     parameter_counter=lambda value: (
                         total + 1_000_001 if value is loaded_model else per_layer
+                    ),
+                )
+
+    def test_generated_mlx_census_accepts_gemma4_moe_router_experts_graph(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "gemma4-moe-census"
+            generate_bundle(make_gemma4_moe_plan(root), output)
+            module = self._load_generated(
+                output, "aptus_generated_mlx_gemma4_moe_census"
+            )
+            hidden_size = 4
+            expert_count = 4
+            experts_per_token = 2
+            expert_intermediate_size = 3
+            layer_count = 2
+            per_layer = expert_count * 3 * hidden_size * expert_intermediate_size
+            total = 10_000_000
+            inactive = per_layer * layer_count // 2
+            model_contract = {
+                "model_id": GEMMA4_MOE_MODEL_ID,
+                "revision": GEMMA4_MOE_REVISION,
+                "family": "gemma4_moe",
+                "parameters": total,
+                "hidden_size": hidden_size,
+                "intermediate_size": 12,
+                "layers": layer_count,
+                "context_length": 128,
+                "architecture": "Gemma4ForConditionalGeneration",
+                "model_type": "gemma4_text",
+                "quantization_bits": 4,
+                "quantization_layout": {
+                    "default_bits": 4,
+                    "default_group_size": 64,
+                    "module_overrides": [
+                        {
+                            "module_path": f"model.layers.{index}.router.proj",
+                            "bits": 8,
+                            "group_size": 64,
+                        }
+                        for index in range(layer_count)
+                    ],
+                },
+                "moe": {
+                    "expert_count": expert_count,
+                    "experts_per_token": experts_per_token,
+                    "expert_intermediate_size": expert_intermediate_size,
+                    "decoder_sparse_step": 1,
+                    "mlp_only_layers": [],
+                    "shared_expert_intermediate_size": None,
+                },
+                "sparse_layer_count": layer_count,
+                "active_parameters": total - inactive,
+            }
+            layers = [
+                types.SimpleNamespace(
+                    mlp=types.SimpleNamespace(),
+                    router=types.SimpleNamespace(
+                        config=types.SimpleNamespace(top_k_experts=experts_per_token)
+                    ),
+                    experts=types.SimpleNamespace(
+                        switch_glu=types.SimpleNamespace(num_experts=expert_count)
+                    ),
+                )
+                for _ in range(layer_count)
+            ]
+            loaded_model = types.SimpleNamespace(layers=layers)
+            switch_ids = {id(layer.experts.switch_glu) for layer in layers}
+
+            def count_parameters(value):
+                if value is loaded_model:
+                    return total
+                if id(value) in switch_ids:
+                    return per_layer
+                return 0
+
+            plan = {"model": model_contract, "recommended": {"method": "qlora"}}
+            expected_weight_bytes, expected_metadata_bytes = (
+                mlx_quantized_storage_bytes_for_contract(model_contract)
+            )
+            observed_safetensors_bytes = (
+                expected_weight_bytes + expected_metadata_bytes + 4096
+            )
+            binding = module.build_mlx_model_load_binding(
+                loaded_model,
+                plan,
+                observed_safetensors_bytes=observed_safetensors_bytes,
+                parameter_counter=count_parameters,
+            )
+            census = binding["parameter_census"]
+            self.assertEqual(census["observed_active_parameters"], total - inactive)
+            self.assertEqual(census["routed_expert_parameters"], per_layer * 2)
+            qwen_shaped = types.SimpleNamespace(
+                layers=[
+                    types.SimpleNamespace(
+                        mlp=types.SimpleNamespace(
+                            num_experts=expert_count,
+                            top_k=experts_per_token,
+                            switch_mlp=object(),
+                        )
+                    )
+                    for _ in range(layer_count)
+                ]
+            )
+            with self.assertRaisesRegex(RuntimeError, "planned expert topology"):
+                module.build_mlx_model_load_binding(
+                    qwen_shaped,
+                    plan,
+                    observed_safetensors_bytes=observed_safetensors_bytes,
+                    parameter_counter=lambda value: (
+                        total if value is qwen_shaped else per_layer
                     ),
                 )
 

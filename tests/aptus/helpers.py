@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from aptus.catalog import (
+    reviewed_gemma4_moe_quantization_layout,
     reviewed_qwen3_moe_quantization_layout,
 )
 from aptus.domain import (
@@ -20,6 +21,9 @@ QWEN3_MOE_MODEL_ID = "mlx-community/Qwen3-30B-A3B-Instruct-2507-4bit"
 QWEN3_MOE_REVISION = "e9675aa3ca5f900ccef55267914466d55ab325fa"
 QWEN2_5_ACCEPTANCE_MODEL_ID = "mlx-community/Qwen2.5-0.5B-Instruct-4bit"
 QWEN2_5_ACCEPTANCE_REVISION = "53a32aee5e9447773fd2b85988395066aef3700a"
+GEMMA4_MOE_MODEL_ID = "mlx-community/gemma-4-26b-a4b-it-4bit"
+GEMMA4_MOE_REVISION = "0d77464eeb233a2da68ebf9d7dc4edaac7db956d"
+GEMMA4_MOE_LAYERS = 30
 
 
 def make_dataset(
@@ -153,6 +157,57 @@ def make_qwen3_moe_plan(root: Path):
     return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
 
 
+def make_gemma4_moe_plan(root: Path):
+    dataset_path = make_dataset(root)
+    dataset = profile_dataset(dataset_path, sample_limit=64, sequence_length=128)
+    model = build_model_spec(
+        model_id=GEMMA4_MOE_MODEL_ID,
+        revision=GEMMA4_MOE_REVISION,
+        family="gemma4_moe",
+        parameters_b=25.2,
+        hidden_size=2816,
+        intermediate_size=2112,
+        layers=GEMMA4_MOE_LAYERS,
+        context_length=262144,
+        license_name="apache-2.0",
+        training_allowed=True,
+        architecture="Gemma4ForConditionalGeneration",
+        model_type="gemma4_text",
+        quantization_bits=4,
+        quantization_layout=reviewed_gemma4_moe_quantization_layout(GEMMA4_MOE_LAYERS),
+        moe={
+            "expert_count": 128,
+            "experts_per_token": 8,
+            "expert_intermediate_size": 704,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": (),
+            "shared_expert_intermediate_size": None,
+        },
+    )
+    hardware = build_hardware_spec(
+        backend=Backend.MPS,
+        gpu_count=1,
+        vram_gib=64,
+        supports_bf16=False,
+        supports_4bit=False,
+        host_ram_gib=64,
+        host_ram_free_gib=56,
+        reserve_gib=8,
+        disk_free_gib=500,
+    )
+    target = TrainingTarget(
+        objective=Objective.MEMORY,
+        sequence_length=128,
+        effective_batch_size=8,
+        max_epochs=1,
+        method_preference=None,
+        task="sft",
+        checkpoint_steps=10,
+        training_runtime=TrainingRuntime.MLX_LM,
+    )
+    return plan_training(model=model, dataset=dataset, hardware=hardware, target=target)
+
+
 def make_qwen2_runtime_footprint_plan(root: Path):
     """Return the reviewed Qwen2 runtime footprint using its evidence artifact.
 
@@ -219,5 +274,24 @@ def qwen3_moe_quantization_config() -> dict[str, object]:
                 "group_size": item.group_size,
             }
             for item in layout.module_overrides
+        },
+    }
+
+
+def gemma4_moe_hub_quantization_config(
+    layers: int = GEMMA4_MOE_LAYERS,
+) -> dict[str, object]:
+    """Return the Hub quantization map, including the language_model prefix."""
+
+    return {
+        "group_size": 64,
+        "bits": 4,
+        "mode": "affine",
+        **{
+            f"language_model.model.layers.{index}.router.proj": {
+                "group_size": 64,
+                "bits": 8,
+            }
+            for index in range(layers)
         },
     }

@@ -256,10 +256,10 @@ types, validation rules, side effects, and operational meaning.
 | `--model-id ID` | Yes | None | Provider repository identifier, not a local path |
 | `--revision HEX` | Yes | None | Immutable 40 to 64 character hexadecimal commit |
 | `--inspection-receipt PATH` | No | None | Successful `aptus inspect model` JSON or its nested receipt; every covered fact is revalidated |
-| `--family FAMILY` | Yes | None | Dense adapter catalog or exact inspected `qwen3_moe` row |
+| `--family FAMILY` | Yes | None | Dense adapter catalog, inspect-known `gemma4`, or exact inspected `qwen3_moe` / `gemma4_moe` rows. A named family is not runtime support |
 | `--parameters-b NUMBER` | Yes | None | Positive total resident parameter count in billions; never substitute active MoE parameters |
-| `--model-type TYPE` | No | `null` | Exact provider model type; required by registered policy matches, including dense Qwen2 and Qwen3 MoE |
-| `--architecture CLASS` | No | `null` | Exact provider architecture class; required by registered policy matches, including dense Qwen2 and Qwen3 MoE |
+| `--model-type TYPE` | No | `null` | Exact provider model type; required by registered policy matches, including dense Qwen2, Qwen3 MoE, dense Gemma 4, unified Gemma 4, and Gemma 4 MoE |
+| `--architecture CLASS` | No | `null` | Exact provider architecture class; required by registered policy matches, including dense Qwen2, Qwen3 MoE, dense Gemma 4, unified Gemma 4, and Gemma 4 MoE |
 | `--quantization-bits BITS` | No | `null` | Pinned checkpoint precision from 1 through 16 bits |
 | `--quantization-group-size INTEGER` | No | `null` | Positive default group size for a uniform layout with no module overrides; requires `--quantization-bits` and excludes a named layout profile |
 | `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map; the first MoE row requires `qwen3-moe-4bit-group64-router-gates-8bit` |
@@ -337,7 +337,8 @@ runtime explicitly, but the documented MPS inference rule selects it when the
 flag is omitted. `--prefer-method qlora` remains an optional tie-breaker because
 the exact policy makes every other MoE method unsupported. The policy also
 rejects shared experts and all placements except `single`. Every accepted row
-remains conditional and pilot-required.
+remains conditional and pilot-required. Gemma 4 MoE is a separate family path
+(`gemma4_moe`), not a second value of that Qwen3 layout-profile enum.
 
 The reviewed dense Qwen2 footprint uses `--model-type qwen2`,
 `--architecture Qwen2ForCausalLM`, 24 layers, `--quantization-bits 4`, and

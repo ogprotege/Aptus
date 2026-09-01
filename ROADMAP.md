@@ -139,14 +139,15 @@ conditional until its runtime gate is complete.
 
 ## First post-v0.2 milestone: exact MoE compatibility
 
-The first implementation slice recognizes only an exact `qwen3_moe` checkpoint
-whose architecture is `Qwen3MoeForCausalLM`, whose reviewed MLX layout uses
-four-bit group-64 defaults with one eight-bit group-64 router-gate override per
-layer, and which declares no shared expert. It carries the provider topology
-into `aptus.training-plan.v6`, derives active parameters and sparse-layer count,
-and permits only single-device MLX-LM QLoRA with attention `q_proj`, `k_proj`,
-`v_proj`, and `o_proj` adapters. Every candidate remains pilot-required. This
-slice is not released until a real target-host model run passes the gates below.
+The current contract recognizes two exact, fail-closed MLX-LM QLoRA MoE
+identities: `qwen3_moe` / `Qwen3MoeForCausalLM` on the reviewed Qwen3 layout
+(four-bit group-64 defaults with one eight-bit group-64 router-gate override
+per layer, no shared expert), and family `gemma4_moe` on declared Gemma 4
+experts with `router.proj` overrides. Neither is general MoE support. The
+recorded Qwen3 30B attempt stopped at the memory gate. Gemma 4 26B has no
+measured ladder. Each accepted row remains conditional and pilot-required. The
+Qwen3 slice is not released until a real target-host model run passes the gates
+below.
 
 Aptus still rejects unreviewed MoE families, prefix matches, multimodal models,
 shared-expert variants, non-four-bit Qwen3 MoE checkpoints, CUDA MoE execution,

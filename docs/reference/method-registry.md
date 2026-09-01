@@ -98,6 +98,12 @@ registers a fifth family, `qwen3_moe`, whose targets are attention-only
 (`q_proj`, `k_proj`, `v_proj`, `o_proj`) so that adapters never attach to routed
 expert or router-gate modules.
 
+Family `gemma4` uses the same seven dense projection names, with Lane 8
+omit-`v_proj` allowed when `v_count` does not exceed `k_count`. Family
+`gemma4_moe` uses the same attention-only targets as `qwen3_moe`. Naming those
+families is not runtime support. Unified Gemma 4 stays family `gemma4` and
+Exit B.
+
 Additional v0.2 gates:
 
 - real-model inspection must find the compiled target module suffixes;

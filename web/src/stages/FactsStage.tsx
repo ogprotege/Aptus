@@ -317,7 +317,7 @@ export function FactsStage({
               <div className="field">
                 <label htmlFor="family">Architecture family</label>
                 <input id="family" required value={draft.model.family} onChange={(event) => updateModel("family", event.target.value)} placeholder="llama" />
-                <small>Catalog families: llama, mistral, gemma, qwen, and exact inspected qwen3_moe checkpoints.</small>
+                <small>Catalog families: llama, mistral, gemma, gemma4, qwen, and exact inspected qwen3_moe and gemma4_moe checkpoints. A named family is not runtime support.</small>
               </div>
               <div className="field">
                 <label htmlFor="parameters">Total resident parameters</label>

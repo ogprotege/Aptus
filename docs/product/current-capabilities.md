@@ -321,6 +321,11 @@ acceptance remain open.
   parameters, backend-derived active parameters, and sparse-layer count.
   Its canonical mixed quantization layout is identity-bound. Adapter targets
   are limited to attention `q_proj`, `k_proj`, `v_proj`, and `o_proj` modules.
+- A narrow Gemma 4 MoE MLX-LM QLoRA path. It stays conditional, pilot-required,
+  and has no measured ladder. Adapter targets are attention `q_proj`, `k_proj`,
+  `v_proj`, and `o_proj` only. Layout is four-bit group-64 defaults plus one
+  eight-bit `router.proj` override per layer. Resident weight is not active
+  parameters.
 - A narrow dense Qwen2 24-layer MLX-LM QLoRA path. Its uniform four-bit
   group-size-64 layout with no overrides is identity-bound, and its adapter
   target census covers all seven attention and MLP projection modules. The
@@ -378,6 +383,13 @@ acceptance remain open.
   profile all match the exact contract. All checkpoint weights remain resident.
   Active parameters describe per-token computation and never replace total
   parameters in the base-weight memory budget.
+- The Gemma 4 MoE row, `model.gemma4-moe.mlx.v1`, is conditional only when
+  family `gemma4_moe`, declared experts on `gemma4_text` /
+  `Gemma4ForConditionalGeneration`, four-bit group-64 defaults, one eight-bit
+  `router.proj` override per layer, topology, runtime, compute backend, method,
+  placement, and adapter profile all match the exact contract. All checkpoint
+  weights remain resident. Active parameters never replace total parameters.
+  There is no measured ladder.
 - The Qwen2 24-layer row is conditional only when family, model type,
   architecture, layer count, dense topology, quantization bits, exact uniform
   layout, runtime, backend, method, placement, and dense adapter profile all
@@ -426,9 +438,10 @@ acceptance remain open.
 - Enforced maximum wall-time targets.
 - Full-training resume.
 - Multi-user or remotely exposed job service without an external boundary.
-- MoE architectures other than the exact Qwen3 row above, Qwen3 MoE checkpoints
-  with a shared expert or any other quantization layout, CUDA or distributed
-  MoE execution, and MoE methods other than single-device MLX-LM QLoRA.
+- MoE architectures other than the exact Qwen3 row above and the exact Gemma 4
+  MoE conditional row, Qwen3 or Gemma 4 MoE checkpoints with a shared expert
+  or any other quantization layout, CUDA or distributed MoE execution, and MoE
+  methods other than single-device MLX-LM QLoRA.
 
 ## Not implemented
 

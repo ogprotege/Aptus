@@ -52,7 +52,7 @@ Do not concatenate these. Do not let one policy row cover all three.
 | --- | --- | --- |
 | Dense Gemma 4 | Language-tower text SFT on `Gemma4ForConditionalGeneration` | Existing inspect / Compare / compile / emit-run |
 | Unified Gemma 4 | Language-tower text SFT on `Gemma4UnifiedForConditionalGeneration` | Lane 7 policy, then emit-run in a **new** work dir |
-| Gemma 4 MoE | Sparse 26B-A4B with real expert integers | Lane 9 only; Compare stays an honest no until that row exists |
+| Gemma 4 MoE | Sparse 26B-A4B with real expert integers | Lane 9 only; Compare stays an honest no until that row exists. Status: landed at 52a2daf. |
 
 Vision is not a fourth model identity. It is a **dataset-facts** path on an
 already-admitted pin (Lane 10). Text SFT on the language tower must keep

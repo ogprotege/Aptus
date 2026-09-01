@@ -93,8 +93,9 @@ bundle. They must not import the installed Aptus policy registry or claim that
 the frozen snapshot is still current. Installed Aptus owns the separate current
 registry check used by host admission and managed execution.
 
-The host currently serializes two ordered registry rows into that snapshot:
-Qwen3 MoE attention-only QLoRA and dense 24-layer Qwen2 QLoRA. Snapshot
+The host currently serializes five ordered registry rows into that snapshot:
+Qwen3 MoE attention-only QLoRA, dense 24-layer Qwen2 QLoRA, dense Gemma 4,
+Gemma 4 unified, and Gemma 4 MoE attention-only QLoRA. Snapshot
 generation and portable evaluation must remain registry-driven; generated code
 must not select a row through a policy-ID singleton branch. A policy's
 `any_identity` claims may cover only the exact-identity fields that distinguish
@@ -109,8 +110,8 @@ Every semantic value comes from `plan.json` or a versioned generated
 configuration bound to it. Generated programs revalidate plan and candidate
 identity before use.
 
-The policy snapshot has two current registered policy rows, one current path per
-row, and one canonical digest chain for the complete ordered snapshot:
+The policy snapshot has five current registered policy rows and one canonical
+digest chain for the complete ordered snapshot:
 
 - `policy/model-policy-snapshot.v1.json` contains the canonical snapshot bytes;
 - `plan.json` binds them as `model_policy_snapshot_sha256`;
@@ -122,12 +123,16 @@ saved decision. It cannot prove current host policy. Installed-host validation
 adds the fourth, current-registry digest comparison; a coherent v5 plan that is
 no longer current requires replanning and a newly compiled bundle.
 
-The current path identities are
+The current path identities include
 `mlx-lm.qlora.single.attention-qkvo.v1` with profile `attention-qkvo.v1` for
-Qwen3 MoE, and `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
-`dense-causal-lm.v1` for dense Qwen2. The dense row binds a uniform four-bit,
-group-size-64 layout with no module overrides and targets q/k/v/o plus
-gate/up/down projections. The
+Qwen3 MoE, `mlx-lm.qlora.single.dense-causal-lm.v1` with profile
+`dense-causal-lm.v1` for dense Qwen2, `mlx-lm.qlora.single.gemma4-dense.v1` for
+dense Gemma 4, `mlx-lm.qlora.single.gemma4-unified.v1` for unified Gemma 4
+(Exit B / compiler-contract unsupported), and
+`mlx-lm.qlora.single.gemma4-moe.v1` with profile `attention-qkvo.v1` for
+Gemma 4 MoE. Serialization is not runtime support. The dense Qwen2 row binds a
+uniform four-bit, group-size-64 layout with no module overrides and targets
+q/k/v/o plus gate/up/down projections. The
 [2026-08-05 Qwen2 MLX-LM exact-source refresh](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean current v5/v3 `measured-run-pass` repetitions for the
 exact pinned artifact, source commit

@@ -2651,7 +2651,8 @@
           "family-recognized",
           "unreviewed-sparse-model",
           "no-policy-match",
-          "unreviewed-runtime-operator-attested"
+          "unreviewed-runtime-operator-attested",
+          "compiler-contract-unsupported"
         ],
         "title": "ModelPolicyReasonCode",
         "type": "string"

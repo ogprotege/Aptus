@@ -299,6 +299,7 @@ class PolicySnapshotTests(unittest.TestCase):
                 "model.qwen3-moe.mlx-qlora",
                 "model.qwen2-24l.mlx-qlora",
                 "model.gemma4.mlx.v1",
+                "model.gemma4-unified.mlx.v1",
             },
         )
         qwen2 = policies["model.qwen2-24l.mlx-qlora"]
@@ -328,6 +329,31 @@ class PolicySnapshotTests(unittest.TestCase):
         self.assertEqual(
             qwen2["required_provenance_fields"],
             _qwen2_policy()["required_provenance_fields"],
+        )
+        gemma4 = policies["model.gemma4.mlx.v1"]
+        self.assertEqual(gemma4["policy_version"], "1.1.0")
+        self.assertEqual(
+            gemma4["claims"],
+            {
+                "any_identity": {
+                    "architecture": ["Gemma4ForConditionalGeneration"],
+                    "model_type": ["gemma4_text", "gemma4"],
+                }
+            },
+        )
+        unified = policies["model.gemma4-unified.mlx.v1"]
+        self.assertEqual(
+            unified["claims"],
+            {
+                "any_identity": {
+                    "architecture": ["Gemma4UnifiedForConditionalGeneration"],
+                    "model_type": ["gemma4_unified_text"],
+                }
+            },
+        )
+        self.assertIn(
+            "compiler_contract",
+            {constraint["kind"] for constraint in unified["constraints"]},
         )
 
     def test_claims_may_be_a_subset_of_exact_identity_without_family_capture(

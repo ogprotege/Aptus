@@ -1335,7 +1335,7 @@ export interface components {
          * ModelPolicyReasonCode
          * @enum {string}
          */
-        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match" | "unreviewed-runtime-operator-attested";
+        ModelPolicyReasonCode: "exact-reviewed-artifact" | "reviewed-runtime-path" | "pilot-not-yet-proven" | "invalid-compatibility-facts" | "identity-mismatch" | "layer-count-mismatch" | "quantization-layout-mismatch" | "topology-incomplete" | "dense-topology-required" | "shared-expert-unsupported" | "four-bit-required" | "family-recognized" | "unreviewed-sparse-model" | "no-policy-match" | "unreviewed-runtime-operator-attested" | "compiler-contract-unsupported";
         /** MoETopologyRequest */
         MoETopologyRequest: {
             /** Decoder Sparse Step */

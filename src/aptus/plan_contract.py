@@ -239,6 +239,9 @@ EVIDENCE_RECORD_SHA256 = {
     "policy.gemma4.mlx.v1": (
         "dec03ae4eee5ea8671ebd632907ca0d1d834a73db4192654813cc1e6bad81c59"
     ),
+    "policy.gemma4-unified.mlx.v1": (
+        "8fba1a85e361db082f72f8b5b417b86461ae7a71bb5a99c2149065abb1868f4e"
+    ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": (
         "2b1905044b84b3473d536fbe73af31841af15857523f458bb58a6d34d89447bc"
     ),

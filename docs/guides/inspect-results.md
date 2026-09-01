@@ -1,6 +1,6 @@
 # Inspect Results
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners and operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners and operators | **Authority:** Operational | **Applies to:** Aptus 0.2 | **Owner:** Runtime | **Last reviewed:** 2026-08-31 | **Review by:** 2026-10-22
 
 An Aptus result is a chain of bound records, not a single success message.
 Inspect the plan, validation report, managed job, run metrics, and final export
@@ -129,7 +129,11 @@ for every present planned-target instance, reject other trainables, and carry a
 stable descriptor digest. q_proj, o_proj, gate_proj, up_proj, and down_proj still
 cover every transformer layer. Only family `gemma4` may omit k_proj and v_proj
 together on KV-shared layers; those two counts must match. k-equals-v (omitted
-`v_proj`) is a later named slice. Also inspect completed optimizer updates, finite train
+`v_proj`) is a later named slice. Inspect persists provider `attention_k_eq_v`
+and `num_kv_shared_layers` when declared. Loaded `k_proj` / `v_proj` instance
+counts require a bound loader; Gemma 4 unified is recognized and unsupported
+by the current compiler contract, so that census is not a loaded fact yet.
+Also inspect completed optimizer updates, finite train
 and validation losses, positive adapter delta, positive MLX peak, and live
 unified-memory admission. Pilot requires at least two updates. Full requires at
 least one.

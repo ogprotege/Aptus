@@ -48,10 +48,14 @@ _PROVIDER_MODEL_TYPE_ALIASES = {
     "gemma3": "gemma",
     "gemma3_text": "gemma",
     "gemma4_text": "gemma4",
+    "gemma4_unified_text": "gemma4",
 }
 _TEXT_ONLY_GEMMA3_ARCHITECTURES = {
     "Gemma3ForCausalLM",
     "Gemma3TextModel",
+}
+_UNIFIED_GEMMA4_ARCHITECTURES = {
+    "Gemma4UnifiedForConditionalGeneration",
 }
 
 
@@ -79,6 +83,15 @@ def _catalog_family(model_type: Any, architecture: Any) -> tuple[Any, str | None
             "Provider model_type 'gemma3' was not mapped to catalog family "
             f"'gemma' because architecture {architecture!r} is not an explicitly "
             "supported text-only Gemma 3 architecture."
+        )
+    if (
+        normalized == "gemma4_unified_text"
+        and architecture not in _UNIFIED_GEMMA4_ARCHITECTURES
+    ):
+        return raw_model_type, (
+            "Provider model_type 'gemma4_unified_text' was not mapped to catalog "
+            f"family 'gemma4' because architecture {architecture!r} is not an "
+            "explicitly supported Gemma 4 unified architecture."
         )
     if TARGET_MODULES.get(catalog_family) != DENSE_CAUSAL_LM_TARGET_MODULES:
         return raw_model_type, (
@@ -569,6 +582,8 @@ def inspect_huggingface_model(
     quantization_layout, quantization_error = _quantization_layout(config)
     if quantization_error is not None:
         warnings.append(quantization_error)
+    attention_k_eq_v = text_config.get("attention_k_eq_v")
+    num_kv_shared_layers = text_config.get("num_kv_shared_layers")
     facts = {
         "architecture": architecture,
         "architectures": architectures or None,
@@ -588,6 +603,16 @@ def inspect_huggingface_model(
         "quantization_bits": quantization_bits,
         "quantization_layout": quantization_layout,
         "moe": moe,
+        "attention_k_eq_v": (
+            attention_k_eq_v if isinstance(attention_k_eq_v, bool) else None
+        ),
+        "num_kv_shared_layers": (
+            num_kv_shared_layers
+            if isinstance(num_kv_shared_layers, int)
+            and not isinstance(num_kv_shared_layers, bool)
+            and num_kv_shared_layers >= 0
+            else None
+        ),
         "license_name": license_name,
         "parameters": None,
         "training_allowed": None,

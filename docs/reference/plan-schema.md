@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler authors, reviewers, and integrators |
 | Authority | Normative field reference for `aptus.training-plan.v6` |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-08-31 |
 | Next review | 2026-11-01, or sooner when domain or plan-contract code changes |
 
 An Aptus plan is a canonical semantic record, not a loose set of launch flags.
@@ -144,10 +144,13 @@ The current registry contains three exact configuration rows:
 - Dense 24-layer Qwen2 uses policy `model.qwen2-24l.mlx-qlora` version
   `1.0.0`, path `mlx-lm.qlora.single.dense-causal-lm.v1`, and adapter profile
   `dense-causal-lm.v1`.
-- Dense Gemma 4 uses policy `model.gemma4.mlx.v1` version `1.0.0`, paths
+- Dense Gemma 4 uses policy `model.gemma4.mlx.v1` version `1.1.0`, paths
   `mlx-lm.qlora.single.gemma4-dense.v1` and
   `mlx-lm.lora.single.gemma4-dense.v1`, and adapter profile
   `dense-causal-lm.v1`.
+- Gemma 4 unified uses policy `model.gemma4-unified.mlx.v1` version `1.0.0`.
+  Bound MLX-LM does not load `Gemma4UnifiedForConditionalGeneration`, so that
+  identity is unsupported by the current compiler contract.
 
 The Qwen2 row requires family `qwen`, model type `qwen2`, architecture
 `Qwen2ForCausalLM`, exactly 24 layers, explicit four-bit metadata, a uniform

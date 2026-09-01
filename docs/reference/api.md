@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Workbench developers, local integrators, and API clients |
 | Authority | Normative reference for the Aptus v0.2 HTTP contract |
-| Last reviewed | 2026-08-06 |
+| Last reviewed | 2026-08-31 |
 | Next review | 2026-11-01, or sooner when `src/aptus/api.py`, `src/aptus/api_contracts.py`, or a client contract changes |
 
 The FastAPI service is an authenticated single-user local interface when
@@ -408,15 +408,23 @@ The registry currently has three conditional MLX-LM policies:
   shared expert. It emits path
   `mlx-lm.qlora.single.attention-qkvo.v1` with profile
   `attention-qkvo.v1`.
-- Dense Gemma 4 policy `model.gemma4.mlx.v1` version `1.0.0` requires family
-  `gemma4`, provider type `gemma4_text`, and architecture
+- Dense Gemma 4 policy `model.gemma4.mlx.v1` version `1.1.0` requires
+  provider type `gemma4_text` and architecture
   `Gemma4ForConditionalGeneration`, with no MoE topology. Size and bitwidth
   come from the pinned revision. It emits paths
   `mlx-lm.qlora.single.gemma4-dense.v1` and
   `mlx-lm.lora.single.gemma4-dense.v1`. QLoRA still needs declared bits 1
-  through 16 at plan time; LoRA needs an unquantized base.
+  through 16 at plan time; LoRA needs an unquantized base. Family `gemma4` is
+  an exact-identity constraint, not a broad claim, so unified pins do not
+  match this row.
+- Gemma 4 unified policy `model.gemma4-unified.mlx.v1` version `1.0.0` is a
+  second exact identity under family `gemma4`. It requires provider type
+  `gemma4_unified_text` and architecture
+  `Gemma4UnifiedForConditionalGeneration`. Bound MLX-LM does not load that
+  architecture, so the row is unsupported by the current compiler contract,
+  never `no-policy-match`.
 
-Both rows report only gated conditional eligibility and require model-data,
+Registered rows that path-match report only gated conditional eligibility and require model-data,
 measured-preflight, and pilot validation. The
 [2026-08-05 Qwen2 MLX-LM exact-source acceptance](../operations/evidence/2026-08-05-qwen2-mlx-lm-exact-source-refresh/README.md)
 records two fresh, clean `measured-run-pass` repetitions under

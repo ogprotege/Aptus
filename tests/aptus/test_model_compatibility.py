@@ -170,6 +170,62 @@ class ModelCompatibilityPolicyTests(unittest.TestCase):
             ["dense-topology-required"],
         )
 
+    def test_gemma4_unified_does_not_match_dense_policy(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4",
+            model_type="gemma4_unified_text",
+            architecture="Gemma4UnifiedForConditionalGeneration",
+            layers=48,
+            quantization_bits=4,
+            quantization_layout=QuantizationLayout(4, 64),
+            moe=None,
+        )
+        decision = evaluate_model_compatibility(subject)
+        self.assertNotEqual(decision.policy_id, GEMMA4_POLICY_ID)
+
+    def test_gemma4_unified_is_typed_compiler_contract_unsupported(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4",
+            model_type="gemma4_unified_text",
+            architecture="Gemma4UnifiedForConditionalGeneration",
+            layers=48,
+            quantization_bits=4,
+            quantization_layout=QuantizationLayout(4, 64),
+            moe=None,
+        )
+        decision = evaluate_model_compatibility(subject)
+        response = compatibility_response_v1(decision)
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.BLOCKED)
+        self.assertEqual(decision.policy_id, "model.gemma4-unified.mlx.v1")
+        self.assertEqual(decision.family, "gemma4")
+        self.assertEqual(
+            [item.value for item in decision.reason_codes],
+            ["compiler-contract-unsupported"],
+        )
+        self.assertEqual(response["status"], "unsupported")
+        self.assertEqual(response["supported_methods"], [])
+        self.assertIsNone(response["supported_runtime"])
+        self.assertNotEqual(
+            response["reason"],
+            "No exact Aptus model-family compatibility policy matches this "
+            "provider model type and architecture.",
+        )
+        self.assertIn("compiler contract", response["reason"].lower())
+
+    def test_dense_gemma4_still_matches_lane_6_policy(self) -> None:
+        subject = ModelCompatibilitySubject(
+            family="gemma4",
+            model_type="gemma4_text",
+            architecture="Gemma4ForConditionalGeneration",
+            layers=35,
+            quantization_bits=4,
+            quantization_layout=QuantizationLayout(4, 64),
+            moe=None,
+        )
+        decision = evaluate_model_compatibility(subject)
+        self.assertEqual(decision.kind, ModelPolicyDecisionKind.PATH_MATCHED)
+        self.assertEqual(decision.policy_id, GEMMA4_POLICY_ID)
+
     def test_qwen2_layer_mismatch_stays_blocked_without_operator_confirm(
         self,
     ) -> None:

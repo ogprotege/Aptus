@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Planner consumers, compiler and validator authors, operators, and security reviewers |
 | Authority | Normative reference for `aptus.model-policy-snapshot.v1` |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-08-31 |
 | Next review | 2026-11-01, or sooner when model-policy registry, snapshot, or validation code changes |
 
 An Aptus model-policy snapshot is the portable, data-only form of the host
@@ -96,6 +96,7 @@ the selected kind:
 | `sparse_topology` | None | Requires a structurally usable sparse cadence and at least one sparse decoder layer |
 | `no_shared_expert` | None | Requires an MoE mapping whose `shared_expert_intermediate_size` lookup is absent or JSON null |
 | `field_equals` | `field`, `value` | `field` is one of the fixed compatibility-subject fields; its subject lookup must compare equal to `value` using the evaluator's ordinary equality operation |
+| `compiler_contract` | None | Matches never. The identity is recognized; the bound compiler cannot execute it. |
 
 Unknown kinds, missing or additional operand fields, malformed templates, and
 undefined reasons invalidate the snapshot before evaluation.
@@ -123,9 +124,10 @@ when choosing a field and value.
 
 ## Current registry policies
 
-The snapshot currently carries these two registry-driven policies. Both emit a
-single-device MLX-LM QLoRA path and remain conditional on `model-data`,
-`measured-preflight`, and `pilot` validation.
+The snapshot currently carries four registry-driven policies. Path-matched
+rows emit single-device MLX-LM LoRA and/or QLoRA paths and remain conditional
+on `model-data`, `measured-preflight`, and `pilot` validation. The Gemma 4
+unified row is recognized and blocked by `compiler_contract`.
 
 ### Qwen3 MoE
 
@@ -169,7 +171,11 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
 
 ### Dense Gemma 4 family
 
-- Policy: `model.gemma4.mlx.v1`, version `1.0.0`.
+- Policy: `model.gemma4.mlx.v1`, version `1.1.0`.
+- Claims: provider model type `gemma4_text` or `gemma4`, or architecture
+  `Gemma4ForConditionalGeneration`. Family `gemma4` remains an
+  exact-identity constraint but is deliberately not a broad claim, so a
+  second identity under the same family can have its own policy.
 - Exact identity: family `gemma4`, model type `gemma4_text`, architecture
   `Gemma4ForConditionalGeneration`.
 - Dense topology: `moe` is null. Size and bitwidth are inspect-declared;
@@ -182,6 +188,22 @@ single-device MLX-LM QLoRA path and remain conditional on `model-data`,
   `quantization_bits` and `quantization_layout` are not required provenance
   because the LoRA path is unquantized. QLoRA still re-checks declared bits
   at plan and train.
+
+### Gemma 4 unified
+
+- Policy: `model.gemma4-unified.mlx.v1`, version `1.0.0`.
+- Claims: provider model type `gemma4_unified_text` or architecture
+  `Gemma4UnifiedForConditionalGeneration`.
+- Exact identity: family `gemma4`, model type `gemma4_unified_text`,
+  architecture `Gemma4UnifiedForConditionalGeneration`.
+- Dense topology: `moe` is null.
+- `compiler_contract` always fails on the bound MLX-LM 0.31.3 loader, which
+  has `gemma4` / `gemma4_text` and does not have `gemma4_unified`. Inspect
+  is therefore unsupported by the current compiler contract, never
+  `no-policy-match`.
+- Declared paths `mlx-lm.qlora.single.gemma4-unified.v1` and
+  `mlx-lm.lora.single.gemma4-unified.v1` name the Exit A contract if a later
+  mlx-lm loads this architecture. They are not executable today.
 
 The Qwen2 row describes a reviewed configuration footprint, not an artifact
 allowlist. A matched policy path and compiler establish conditional execution

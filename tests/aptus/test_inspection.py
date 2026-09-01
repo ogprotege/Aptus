@@ -360,6 +360,99 @@ class ModelInspectionTests(unittest.TestCase):
         self.assertIsNone(result["facts"]["moe"])
         self.assertEqual(result["compatibility"]["status"], "conditional")
 
+    def test_gemma4_unified_text_maps_to_gemma4_family(self) -> None:
+        commit = "a" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4_unified_text",
+                        "architectures": ["Gemma4UnifiedForConditionalGeneration"],
+                        "quantization": {
+                            "group_size": 64,
+                            "bits": 4,
+                            "mode": "affine",
+                        },
+                        "hidden_size": 3840,
+                        "intermediate_size": 15360,
+                        "num_hidden_layers": 48,
+                        "max_position_embeddings": 262144,
+                        "num_attention_heads": 16,
+                        "num_key_value_heads": 8,
+                        "vocab_size": 262144,
+                        "enable_moe_block": False,
+                        "num_experts": None,
+                        "attention_k_eq_v": False,
+                        "num_kv_shared_layers": 0,
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse(
+                    {"cardData": {"license": "apache-2.0"}},
+                    {"X-Repo-Commit": commit},
+                ),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            "mlx-community/gemma-4-12b-it-4bit",
+            "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            transport=transport,
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["facts"]["family"], "gemma4")
+        self.assertEqual(result["facts"]["model_type"], "gemma4_unified_text")
+        self.assertEqual(
+            result["facts"]["architecture"],
+            "Gemma4UnifiedForConditionalGeneration",
+        )
+        self.assertEqual(result["facts"]["layers"], 48)
+        self.assertIsNone(result["facts"]["moe"])
+        self.assertEqual(result["facts"]["attention_k_eq_v"], False)
+        self.assertEqual(result["facts"]["num_kv_shared_layers"], 0)
+        self.assertEqual(result["compatibility"]["status"], "unsupported")
+        self.assertEqual(result["compatibility"]["family"], "gemma4")
+        self.assertIsNone(result["compatibility"]["supported_runtime"])
+        self.assertIn("compiler contract", result["compatibility"]["reason"].lower())
+        self.assertNotEqual(
+            result["compatibility"]["reason"],
+            "No exact Aptus model-family compatibility policy matches this "
+            "provider model type and architecture.",
+        )
+        self.assertEqual(
+            result["inspection_receipt"]["decision"]["policy_id"],
+            "model.gemma4-unified.mlx.v1",
+        )
+        self.assertEqual(
+            result["inspection_receipt"]["decision"]["reason_codes"],
+            ["compiler-contract-unsupported"],
+        )
+
+    def test_gemma4_unified_wrong_architecture_is_not_mapped(self) -> None:
+        commit = "b" * 40
+        transport = SequenceTransport(
+            [
+                FakeResponse(
+                    {
+                        "model_type": "gemma4_unified_text",
+                        "architectures": ["Gemma4ForConditionalGeneration"],
+                        "num_hidden_layers": 48,
+                        "quantization": {"bits": 4, "group_size": 64},
+                    },
+                    {"X-Repo-Commit": commit},
+                ),
+                FakeResponse({}, {"X-Repo-Commit": commit}),
+            ]
+        )
+
+        result = inspect_huggingface_model(
+            "org/gemma4-unified-wrong-arch", "main", transport=transport
+        )
+
+        self.assertEqual(result["facts"]["family"], "gemma4_unified_text")
+        self.assertEqual(result["facts"]["model_type"], "gemma4_unified_text")
+
     def test_exact_four_bit_qwen3_moe_is_conditionally_supported(self) -> None:
         commit = QWEN3_MOE_REVISION
         transport = SequenceTransport(

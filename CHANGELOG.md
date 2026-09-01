@@ -14,6 +14,15 @@ All notable changes are recorded here.
 
 ### Added
 
+- Lane 7 Gemma 4 unified identity (`model.gemma4-unified.mlx.v1`): inspect
+  maps `gemma4_unified_text` / `Gemma4UnifiedForConditionalGeneration` to
+  family `gemma4` as a second exact identity. Bound MLX-LM 0.31.3 does not
+  load that architecture, so compatibility is unsupported by the current
+  compiler contract, never `no-policy-match`. Dense
+  `model.gemma4.mlx.v1` stays the E2B/E4B/31B language-tower path. This is
+  not "Aptus supports 12B" and is not quality. Lane 8 is skipped for the
+  starting 12B pin until a loader exists; inspect persists
+  `attention_k_eq_v` and `num_kv_shared_layers` when declared.
 - Remainder completion plan and proposed Lane 7 unified spec. Not owner
   "go." Not M10. Not 0.3. Not a 0.2 patch. Spec:
   `docs/superpowers/specs/2026-08-31-lane-7-gemma4-unified-design.md`. Plan:

@@ -145,6 +145,15 @@ EVIDENCE_REGISTRY: dict[str, EvidenceRecord] = {
         "implementation-reviewed",
         "1.0.0",
     ),
+    "policy.gemma4-unified.mlx.v1": EvidenceRecord(
+        "policy.gemma4-unified.mlx.v1",
+        "Aptus recognizes Gemma 4 unified as a second exact identity under family gemma4. Bound MLX-LM does not load that architecture.",
+        "aptus://product/lane-7-gemma4-unified",
+        "aptus-compatibility-policy",
+        "Exact gemma4 / gemma4_unified_text / Gemma4UnifiedForConditionalGeneration identity; dense topology; unsupported by the current compiler contract until mlx-lm loads this architecture. Not a no-policy-match. Not quality.",
+        "implementation-reviewed",
+        "1.0.0",
+    ),
     "runtime.qwen2-0.5b.mlx-qlora.2026-07-27": EvidenceRecord(
         "runtime.qwen2-0.5b.mlx-qlora.2026-07-27",
         "Two clean historical workflows for the exact pinned Qwen2.5 0.5B artifact reached measured-run-pass under Aptus training-plan v2 and bundle v2.",

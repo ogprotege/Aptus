@@ -12,6 +12,7 @@ QWEN3_MOE_FAMILY = "qwen3_moe"
 QWEN3_MOE_MODEL_TYPE = "qwen3_moe"
 QWEN3_MOE_ARCHITECTURE = "Qwen3MoeForCausalLM"
 QWEN3_MOE_QUANTIZATION_PROFILE = "qwen3-moe-4bit-group64-router-gates-8bit"
+GEMMA4_MOE_QUANTIZATION_PROFILE = "gemma4-moe-4bit-group64-router-proj-8bit"
 GEMMA4_MOE_FAMILY = "gemma4_moe"
 GEMMA4_MOE_MODEL_TYPE = "gemma4_text"
 GEMMA4_MOE_ARCHITECTURE = "Gemma4ForConditionalGeneration"
@@ -167,3 +168,18 @@ def has_reviewed_gemma4_moe_quantization_layout(
     """Return true only for the reviewed Gemma 4 MoE mixed-precision layout."""
 
     return quantization_layout == reviewed_gemma4_moe_quantization_layout(layers)
+
+
+QUANTIZATION_LAYOUT_PROFILES = {
+    QWEN3_MOE_QUANTIZATION_PROFILE: reviewed_qwen3_moe_quantization_layout,
+    GEMMA4_MOE_QUANTIZATION_PROFILE: reviewed_gemma4_moe_quantization_layout,
+}
+
+
+def quantization_layout_for_profile(profile: str, layers: int) -> QuantizationLayout:
+    """Return the reviewed mixed map bound to a named CLI layout profile."""
+
+    builder = QUANTIZATION_LAYOUT_PROFILES.get(profile)
+    if builder is None:
+        raise ValueError(f"Unknown quantization layout profile '{profile}'.")
+    return builder(layers)

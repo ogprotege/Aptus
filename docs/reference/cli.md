@@ -99,7 +99,7 @@ types, validation rules, side effects, and operational meaning.
       "--prefer-method": {"choices": ["full", "lora", "int8-lora", "qlora"], "default": null},
       "--quantization-bits": {"choices": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], "default": null},
       "--quantization-group-size": {"default": null},
-      "--quantization-layout-profile": {"choices": ["qwen3-moe-4bit-group64-router-gates-8bit"], "default": null},
+      "--quantization-layout-profile": {"choices": ["qwen3-moe-4bit-group64-router-gates-8bit", "gemma4-moe-4bit-group64-router-proj-8bit"], "default": null},
       "--reserve-gib": {"default": 2.0},
       "--revision": {"default": null},
       "--sample-limit": {"default": 512},
@@ -262,7 +262,7 @@ types, validation rules, side effects, and operational meaning.
 | `--architecture CLASS` | No | `null` | Exact provider architecture class; required by registered policy matches, including dense Qwen2, Qwen3 MoE, dense Gemma 4, unified Gemma 4, and Gemma 4 MoE |
 | `--quantization-bits BITS` | No | `null` | Pinned checkpoint precision from 1 through 16 bits |
 | `--quantization-group-size INTEGER` | No | `null` | Positive default group size for a uniform layout with no module overrides; requires `--quantization-bits` and excludes a named layout profile |
-| `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map; the first MoE row requires `qwen3-moe-4bit-group64-router-gates-8bit` |
+| `--quantization-layout-profile PROFILE` | No | `null` | Exact reviewed provider map. Qwen3 MoE requires `qwen3-moe-4bit-group64-router-gates-8bit`. Gemma 4 MoE requires `gemma4-moe-4bit-group64-router-proj-8bit`. The names are not interchangeable |
 | `--hidden-size INTEGER` | Yes | None | Positive hidden width |
 | `--intermediate-size INTEGER` | No | `null` | Positive MLP width; required for MLP adapter targets. Aptus does not invent `4 * hidden_size` |
 | `--moe-expert-count INTEGER` | For MoE | `null` | Positive total routed-expert count |
@@ -280,11 +280,13 @@ types, validation rules, side effects, and operational meaning.
 | `--sample-limit INTEGER` | No | `512` | Positive bound for sampled length statistics, not canonical compilation |
 
 Without `--inspection-receipt`, model facts and the policy-decision source are
-`user-attested`. A valid receipt changes only its covered provider-declared or
-inferred model fields and sets the source to `provider-inspection`. Parameter
-count and training permission remain user-attested and are excluded from the
-receipt. A present but invalid receipt fails; it never silently falls back to
-manual facts.
+`user-attested`. A valid receipt revalidates its covered provider-declared or
+inferred model fields against the supplied plan facts and sets the source to
+`provider-inspection`. It does not overlay missing flags. Mixed layouts must
+be named with `--quantization-layout-profile` or they will not match the
+receipt. Parameter count and training permission remain user-attested and are
+excluded from the receipt. A present but invalid receipt fails; it never
+silently falls back to manual facts.
 
 ### Hardware facts
 
@@ -332,19 +334,20 @@ Supplying any MoE topology option requires all four required MoE options. The
 first executable row also requires `--model-type qwen3_moe`,
 `--architecture Qwen3MoeForCausalLM`, `--quantization-bits 4`, `--backend mps`,
 `--quantization-layout-profile qwen3-moe-4bit-group64-router-gates-8bit`, an
-MLX-LM runtime, and a QLoRA candidate. `--training-runtime mlx-lm` can pin the
-runtime explicitly, but the documented MPS inference rule selects it when the
-flag is omitted. `--prefer-method qlora` remains an optional tie-breaker because
-the exact policy makes every other MoE method unsupported. The policy also
-rejects shared experts and all placements except `single`. Every accepted row
-remains conditional and pilot-required. Gemma 4 MoE is a separate family path
-(`gemma4_moe`), not a second value of that Qwen3 layout-profile enum.
+MLX-LM runtime, and a QLoRA candidate. Gemma 4 MoE is a separate family path
+(`gemma4_moe`) and uses `--quantization-layout-profile
+gemma4-moe-4bit-group64-router-proj-8bit`. That name is not the Qwen3 profile.
+`--training-runtime mlx-lm` can pin the runtime explicitly, but the documented
+MPS inference rule selects it when the flag is omitted. `--prefer-method qlora`
+remains an optional tie-breaker because the exact policy makes every other MoE
+method unsupported. The policy also rejects shared experts and all placements
+except `single`. Every accepted row remains conditional and pilot-required.
 
 The reviewed dense Qwen2 footprint uses `--model-type qwen2`,
 `--architecture Qwen2ForCausalLM`, 24 layers, `--quantization-bits 4`, and
 `--quantization-group-size 64`. The generic group-size flag emits an explicit
-uniform layout with an empty override list; it is mutually exclusive with the
-named Qwen3 MoE mixed-layout profile.
+uniform layout with an empty override list; it is mutually exclusive with a
+named mixed-layout profile.
 
 The CLI fixes `task` to `sft`. It exposes no maximum wall-time field and no
 full-training resume field.

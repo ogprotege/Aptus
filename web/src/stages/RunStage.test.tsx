@@ -78,6 +78,42 @@ describe("RunStage", () => {
     expect(screen.queryByText("No job has started.")).not.toBeInTheDocument();
   });
 
+  it("hands a CUDA bundle off when this host's execution backend is mps", () => {
+    render(
+      <RunStage
+        bundle={bundle}
+        report={pilotReport}
+        job={null}
+        busy={null}
+        demoMode={false}
+        supportedExecutionBackend="mps"
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.getByText("Continue on the CUDA machine.")).toBeInTheDocument();
+    expect(screen.getByText(/never submits CUDA work locally/i)).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start training" })).not.toBeInTheDocument();
+  });
+
+  it("keeps an MLX-LM bundle executable on an mps host without a desktop bridge", () => {
+    render(
+      <RunStage
+        bundle={mlxBundle}
+        report={{ state: "static-pass", findings: [], bindings: reportBindings }}
+        job={null}
+        busy={null}
+        demoMode={false}
+        supportedExecutionBackend="mps"
+        {...callbacks}
+      />,
+    );
+
+    expect(screen.queryByText("Continue on the CUDA machine.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Dependency check/i)).toBeChecked();
+  });
+
   it("keeps an MLX-LM bundle executable inside the Mac app", async () => {
     window.aptusDesktop = {
       platform: "macos",

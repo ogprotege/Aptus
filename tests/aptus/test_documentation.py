@@ -5145,6 +5145,90 @@ class DocumentationTests(unittest.TestCase):
             "`aptus inspect --model`",
         )
 
+    def test_maintained_docs_do_not_make_forbidden_support_claims(self) -> None:
+        forbidden = (
+            "Aptus supports Gemma 4",
+            "Aptus supports MoE",
+            "Aptus supports 12B",
+            "unified is dense Gemma 4",
+            "26B is the same as E2B",
+        )
+        offenders: list[str] = []
+        for document in maintained_documentation():
+            if "docs/superpowers/" in str(document.relative_to(REPOSITORY)):
+                continue
+            last_heading = ""
+            in_do_not_use = False
+            previous = ""
+            for line in document.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    last_heading = stripped
+                    in_do_not_use = False
+                if stripped.lower().startswith("do not use"):
+                    in_do_not_use = True
+                for phrase in forbidden:
+                    if phrase not in line:
+                        continue
+                    blob = re.sub(
+                        r"\s+",
+                        " ",
+                        f"{last_heading}\n{previous}\n{line}".lower(),
+                    )
+                    negated = in_do_not_use or any(
+                        marker in blob
+                        for marker in (
+                            "do not use",
+                            "do not call",
+                            "do not write",
+                            'not "',
+                            "not “",
+                            "not '",
+                            "never ",
+                            "no sentence",
+                            'no "',
+                            "no “",
+                            "non-goals",
+                        )
+                    )
+                    if not negated:
+                        offenders.append(
+                            f"{document.relative_to(REPOSITORY)}: {phrase}"
+                        )
+                previous = line
+        self.assertEqual(offenders, [], "Forbidden support claims must stay negated")
+
+    def test_remainder_updated_pages_have_current_last_reviewed_stamps(self) -> None:
+        remainder = "2026-08-31"
+        pages = (
+            REPOSITORY / "docs/reference/cli.md",
+            REPOSITORY / "docs/guides/model-dataset-hardware.md",
+            REPOSITORY / "CHANGELOG.md",
+            REPOSITORY / "docs/guides/choose-a-method.md",
+        )
+        stamp = re.compile(
+            r"(?:\*\*Last reviewed:\*\*|Last reviewed \|)\s*(\d{4}-\d{2}-\d{2})"
+        )
+        stale: list[str] = []
+        for page in pages:
+            text = page.read_text(encoding="utf-8")
+            match = stamp.search(text)
+            if match is None or match.group(1) < remainder:
+                stale.append(str(page.relative_to(REPOSITORY)))
+        self.assertEqual(
+            stale,
+            [],
+            "Remainder-updated pages must have Last reviewed on or after 2026-08-31",
+        )
+
+    def test_remainder_plan_does_not_call_lane_9_an_honest_compare_no(self) -> None:
+        plan = (
+            REPOSITORY / "docs/superpowers/plans/2026-08-31-remainder-completion.md"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("Compare stays an honest no", plan)
+        self.assertIn("model.gemma4-moe.mlx.v1", plan)
+        self.assertIn("envelope", plan.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

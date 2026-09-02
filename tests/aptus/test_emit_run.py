@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from aptus import cli as aptus_cli
 from aptus.cli import main
 from aptus.domain import Backend
 from aptus.emit_run import (
@@ -298,6 +299,13 @@ class EmitRunTests(unittest.TestCase):
                     ),
                     2,
                 )
+
+    def test_compile_flag_does_not_teach_a_dead_run_plan_requirement(self) -> None:
+        source = Path(aptus_cli.__file__).read_text(encoding="utf-8")
+        self.assertNotIn(
+            "pass --compile with --run-plan",
+            source,
+        )
 
 
 if __name__ == "__main__":

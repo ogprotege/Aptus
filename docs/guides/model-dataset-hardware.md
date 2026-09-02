@@ -1,6 +1,6 @@
 # Model, Dataset, and Hardware Facts
 
-> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-08-04 | **Review by:** 2026-10-22 or when fact contracts change
+> **Status:** Active | **Authority:** Operational fact guide | **Applies to:** Aptus 0.2 | **Audience:** Practitioners and operators | **Last reviewed:** 2026-09-02 | **Review by:** 2026-10-22 or when fact contracts change
 
 A plan is only as credible as its facts. Aptus records provenance and refuses to
 infer permission or unsupported hardware capability.

@@ -1457,8 +1457,6 @@ def _emit_run(arguments: argparse.Namespace) -> int:
         _print_plan_training_policy(plan)
         _print_plan_refusal_summary(plan)
     if arguments.compile:
-        if plan is None:
-            raise ValueError("Compile requires a plan; pass --compile with --run-plan.")
         compile_report = workdir / "compile.json"
         _refuse_existing(compile_report, "emit-run compile report")
         _write_json(_compile(plan, bundle_path), compile_report)

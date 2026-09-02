@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .catalog import (
+    GEMMA4_MOE_QUANTIZATION_PROFILE,
     QWEN3_MOE_QUANTIZATION_PROFILE,
-    reviewed_qwen3_moe_quantization_layout,
+    quantization_layout_for_profile,
 )
 from .domain import (
     Backend,
@@ -264,10 +265,15 @@ def _add_fact_arguments(
     )
     parser.add_argument(
         "--quantization-layout-profile",
-        choices=(QWEN3_MOE_QUANTIZATION_PROFILE,),
+        choices=(
+            QWEN3_MOE_QUANTIZATION_PROFILE,
+            GEMMA4_MOE_QUANTIZATION_PROFILE,
+        ),
         help=(
             "Exact reviewed provider quantization map. The Qwen3 MoE profile "
-            "binds four-bit group-64 defaults and one eight-bit router gate per layer."
+            "binds four-bit group-64 defaults and one eight-bit mlp.gate per "
+            "layer. The Gemma 4 MoE profile binds four-bit group-64 defaults "
+            "and one eight-bit router.proj per layer."
         ),
     )
     parser.add_argument(
@@ -984,7 +990,10 @@ def _make_plan(arguments: argparse.Namespace) -> Any:
             default_group_size=arguments.quantization_group_size,
         )
     if arguments.quantization_layout_profile is not None:
-        layout = reviewed_qwen3_moe_quantization_layout(arguments.layers)
+        layout = quantization_layout_for_profile(
+            arguments.quantization_layout_profile,
+            arguments.layers,
+        )
         model_arguments.setdefault("quantization_bits", layout.default_bits)
         model_arguments["quantization_layout"] = layout
     if moe is not None:

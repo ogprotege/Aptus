@@ -351,8 +351,8 @@ Expected: OK.
 
 ```bash
 # new dir; do not overwrite E2B/E4B
-.venv/bin/aptus inspect \
-  --model mlx-community/gemma-4-12b-it-4bit \
+.venv/bin/aptus inspect model \
+  --model-id mlx-community/gemma-4-12b-it-4bit \
   --revision 73bcf09092aa277861d5a191b989b666f7f32e8f
 ```
 

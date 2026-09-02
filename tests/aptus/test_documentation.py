@@ -5131,6 +5131,20 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("There is no", cut_note)
         self.assertIn("`aptus.product-cut.v1`", cut_note)
 
+    def test_maintained_docs_do_not_teach_inspect_model_flag(self) -> None:
+        stale = re.compile(r"aptus inspect(?:[^\n]*\\\s*\n)?\s*--model(?:\s|$)")
+        offenders: list[str] = []
+        for document in maintained_documentation():
+            text = document.read_text(encoding="utf-8")
+            if stale.search(text):
+                offenders.append(str(document.relative_to(REPOSITORY)))
+        self.assertEqual(
+            offenders,
+            [],
+            "Live inspect CLI is `aptus inspect model --model-id`, not "
+            "`aptus inspect --model`",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

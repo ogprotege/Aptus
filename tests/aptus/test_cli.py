@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from aptus.catalog import reviewed_gemma4_moe_quantization_layout
 from aptus.cli import main
 from aptus.domain import to_primitive
 from aptus.execution import JobDispositionError, JobPrerequisiteError
@@ -14,6 +15,11 @@ from aptus.model_compatibility import (
     subject_from_model,
 )
 from aptus.profiling import build_model_spec
+from tests.aptus.helpers import (
+    GEMMA4_MOE_LAYERS,
+    GEMMA4_MOE_MODEL_ID,
+    GEMMA4_MOE_REVISION,
+)
 
 
 def fact_arguments(dataset: Path) -> list[str]:
@@ -103,6 +109,122 @@ def inspection_receipt_payload() -> dict[str, object]:
                 "Aptus exact model-type compatibility mapping"
                 if field == "family"
                 else "https://huggingface.co/example/model/config.json"
+            ),
+            "observed_at": observed_at,
+            "resolved_revision": model.revision,
+        }
+        for field, value in facts.items()
+        if value is not None
+    }
+    return to_primitive(
+        create_model_inspection_receipt(
+            model_id=model.model_id,
+            resolved_revision=model.revision,
+            facts=facts,
+            provenance=provenance,
+            subject=subject_from_model(model),
+            evaluated_at=observed_at,
+        )
+    )
+
+
+GEMMA4_MOE_LAYOUT_PROFILE = "gemma4-moe-4bit-group64-router-proj-8bit"
+QWEN3_MOE_LAYOUT_PROFILE = "qwen3-moe-4bit-group64-router-gates-8bit"
+
+
+def gemma4_moe_fact_arguments(dataset: Path) -> list[str]:
+    arguments = fact_arguments(dataset)
+    replacements = {
+        "--model-id": GEMMA4_MOE_MODEL_ID,
+        "--revision": GEMMA4_MOE_REVISION,
+        "--family": "gemma4_moe",
+        "--parameters-b": "25.2",
+        "--hidden-size": "2816",
+        "--intermediate-size": "2112",
+        "--layers": str(GEMMA4_MOE_LAYERS),
+        "--context-length": "262144",
+        "--vram-gib": "64",
+        "--host-ram-gib": "64",
+        "--host-ram-free-gib": "56",
+    }
+    for flag, value in replacements.items():
+        arguments[arguments.index(flag) + 1] = value
+    arguments.extend(
+        (
+            "--prefer-method",
+            "qlora",
+            "--model-type",
+            "gemma4_text",
+            "--architecture",
+            "Gemma4ForConditionalGeneration",
+            "--quantization-bits",
+            "4",
+            "--moe-expert-count",
+            "128",
+            "--moe-experts-per-token",
+            "8",
+            "--moe-expert-intermediate-size",
+            "704",
+            "--moe-decoder-sparse-step",
+            "1",
+            "--backend",
+            "mps",
+            "--training-runtime",
+            "mlx-lm",
+        )
+    )
+    return arguments
+
+
+def gemma4_moe_inspection_receipt_payload() -> dict[str, object]:
+    model = build_model_spec(
+        model_id=GEMMA4_MOE_MODEL_ID,
+        revision=GEMMA4_MOE_REVISION,
+        family="gemma4_moe",
+        parameters_b=25.2,
+        hidden_size=2816,
+        intermediate_size=2112,
+        layers=GEMMA4_MOE_LAYERS,
+        context_length=262144,
+        license_name="apache-2.0",
+        training_allowed=True,
+        architecture="Gemma4ForConditionalGeneration",
+        model_type="gemma4_text",
+        quantization_bits=4,
+        quantization_layout=reviewed_gemma4_moe_quantization_layout(GEMMA4_MOE_LAYERS),
+        moe={
+            "expert_count": 128,
+            "experts_per_token": 8,
+            "expert_intermediate_size": 704,
+            "decoder_sparse_step": 1,
+            "mlp_only_layers": (),
+            "shared_expert_intermediate_size": None,
+        },
+    )
+    observed_at = "2026-09-02T12:00:00+00:00"
+    facts = {
+        field: getattr(model, field)
+        for field in (
+            "architecture",
+            "context_length",
+            "family",
+            "hidden_size",
+            "intermediate_size",
+            "layers",
+            "license_name",
+            "model_type",
+            "moe",
+            "quantization_bits",
+            "quantization_layout",
+        )
+    }
+    provenance = {
+        field: {
+            "kind": "inferred" if field == "family" else "provider-declared",
+            "source": (
+                "Aptus exact model-type compatibility mapping"
+                if field == "family"
+                else f"https://huggingface.co/{GEMMA4_MOE_MODEL_ID}/resolve/{GEMMA4_MOE_REVISION}/config.json"
             ),
             "observed_at": observed_at,
             "resolved_revision": model.revision,
@@ -569,6 +691,101 @@ class CliIntegrationTests(unittest.TestCase):
                 plan["recommended"]["runtime_contract"]["training_runtime"],
                 "mlx-lm",
             )
+
+    def test_gemma4_26b_inspect_layout_is_nameable_and_receipt_matched(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "gemma4-moe-plan.json"
+            receipt_path = root / "gemma4-moe-receipt.json"
+            receipt = gemma4_moe_inspection_receipt_payload()
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            expected_layout = to_primitive(
+                reviewed_gemma4_moe_quantization_layout(GEMMA4_MOE_LAYERS)
+            )
+
+            self.assertEqual(
+                main(
+                    [
+                        "spec-plan",
+                        *gemma4_moe_fact_arguments(dataset),
+                        "--quantization-layout-profile",
+                        GEMMA4_MOE_LAYOUT_PROFILE,
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(plan_path),
+                    ]
+                ),
+                0,
+            )
+
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(plan["model"]["family"], "gemma4_moe")
+            self.assertEqual(plan["model"]["quantization_layout"], expected_layout)
+            self.assertEqual(
+                plan["model"]["quantization_layout"]["module_overrides"][0][
+                    "module_path"
+                ],
+                "model.layers.0.router.proj",
+            )
+            self.assertTrue(
+                all(
+                    item["module_path"].endswith(".router.proj")
+                    for item in plan["model"]["quantization_layout"]["module_overrides"]
+                )
+            )
+            self.assertEqual(
+                plan["model_policy_decision"]["policy_id"],
+                "model.gemma4-moe.mlx.v1",
+            )
+            self.assertNotEqual(
+                plan["model_policy_decision"]["policy_id"],
+                "model.gemma4.mlx.v1",
+            )
+            self.assertEqual(
+                plan["inspection_receipt"]["receipt_id"],
+                receipt["receipt_id"],
+            )
+            self.assertEqual(
+                plan["model_policy_decision_source"],
+                "provider-inspection",
+            )
+
+    def test_qwen3_layout_profile_name_still_only_matches_qwen3(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset = root / "data.jsonl"
+            dataset.write_text('{"text":"example"}\n', encoding="utf-8")
+            plan_path = root / "qwen3-named-gemma-plan.json"
+            receipt_path = root / "gemma4-moe-receipt.json"
+            receipt_path.write_text(
+                json.dumps(gemma4_moe_inspection_receipt_payload()),
+                encoding="utf-8",
+            )
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stderr(stderr):
+                code = main(
+                    [
+                        "spec-plan",
+                        *gemma4_moe_fact_arguments(dataset),
+                        "--quantization-layout-profile",
+                        QWEN3_MOE_LAYOUT_PROFILE,
+                        "--inspection-receipt",
+                        str(receipt_path),
+                        "--output",
+                        str(plan_path),
+                    ]
+                )
+
+            self.assertEqual(code, 2)
+            self.assertIn(
+                "Inspection receipt observed facts do not match the plan facts.",
+                stderr.getvalue(),
+            )
+            self.assertFalse(plan_path.exists())
 
     def test_dense_quantization_group_size_plans_reviewed_qwen2_path(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

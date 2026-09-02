@@ -268,9 +268,10 @@ fresh-process adapter generation. Full training becomes available only after
 current `pilot-pass` evidence. The UI must never label MLX weight snapshots as
 resumable checkpoints.
 
-For a CUDA bundle, the Mac app presents target-host handoff instead of local
-run controls. This remains true when the operator enters manual CUDA facts for
-another host. PyTorch MPS must not appear executable until it has a compiler.
+For a CUDA bundle, a Mac host presents target-host handoff instead of local
+run controls, in the native app and in `aptus serve`. This remains true when
+the operator enters manual CUDA facts for another host. PyTorch MPS must not
+appear executable until it has a compiler.
 
 LM Studio and oMLX controls, when present, must say inference or evaluation.
 They must never satisfy a training-runtime field or evidence gate.

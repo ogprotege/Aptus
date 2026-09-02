@@ -297,6 +297,7 @@ export default function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [bootstrapReady, setBootstrapReady] = useState(false);
+  const [supportedExecutionBackend, setSupportedExecutionBackend] = useState<string | null>(null);
   const [serviceVersion, setServiceVersion] = useState<string | undefined>();
   const [demoMode, setDemoMode] = useState(false);
   const [hardwareScanned, setHardwareScanned] = useState(false);
@@ -355,6 +356,9 @@ export default function App() {
         setServiceVersion(bootstrap.service?.version ?? bootstrap.version);
         if (Array.isArray(bootstrap.capabilities?.method_catalog)) {
           setMethodCatalog(bootstrap.capabilities.method_catalog);
+        }
+        if (typeof bootstrap.capabilities?.supported_execution_backend === "string") {
+          setSupportedExecutionBackend(bootstrap.capabilities.supported_execution_backend);
         }
         setProjects(bootstrap.projects ?? []);
         setCurrentProject(bootstrap.project ?? null);
@@ -1235,6 +1239,7 @@ export default function App() {
               job={job}
               busy={busy}
               demoMode={demoMode}
+              supportedExecutionBackend={supportedExecutionBackend}
               onCreateJob={handleCreateJob}
               onRefreshJob={handleRefreshJob}
               onCancelJob={handleCancelJob}

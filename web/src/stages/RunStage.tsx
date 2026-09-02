@@ -17,6 +17,7 @@ interface RunStageProps {
   job: Job | null;
   busy: string | null;
   demoMode: boolean;
+  supportedExecutionBackend?: string | null;
   onCreateJob: (mode: "dependency" | "model-data" | "preflight" | "pilot" | "train") => Promise<void>;
   onRefreshJob: () => Promise<void>;
   onCancelJob: () => Promise<void>;
@@ -35,6 +36,7 @@ export function RunStage({
   job,
   busy,
   demoMode,
+  supportedExecutionBackend,
   onCreateJob,
   onRefreshJob,
   onCancelJob,
@@ -57,9 +59,10 @@ export function RunStage({
   const macDesktop = desktopBridge?.platform === "macos";
   const selectedRuntime = bundle?.runtime_contract?.training_runtime;
   const mlxRuntime = selectedRuntime === "mlx-lm";
-  const localAppleRuntime = macDesktop
+  const appleHost = macDesktop || supportedExecutionBackend === "mps";
+  const localAppleRuntime = appleHost
     && (selectedRuntime === "mlx-lm" || selectedRuntime === "pytorch-mps");
-  const desktopHandoff = macDesktop && !localAppleRuntime;
+  const desktopHandoff = appleHost && !localAppleRuntime;
 
   useEffect(() => {
     setConfirmed(false);
@@ -187,7 +190,7 @@ export function RunStage({
             <p className="eyebrow">Target-host handoff</p>
             <h3 id="target-host-handoff-title">Continue on the CUDA machine.</h3>
             <p>
-              The macOS app never submits CUDA work locally, including plans that describe a remote CUDA machine. Copy the complete bundle to that host, install Aptus there, then run each gate in order.
+              This Mac never submits CUDA work locally, including plans that describe a remote CUDA machine. Copy the complete bundle to that host, install Aptus there, then run each gate in order.
             </p>
             <pre className="handoff-commands" aria-label="CUDA host commands"><code>{handoffCommands}</code></pre>
           </section>

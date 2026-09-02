@@ -180,9 +180,11 @@ acceptance remain open.
   `gemma4_text` / `Gemma4ForConditionalGeneration` to family `gemma4_moe`.
   The only eligible tuple is single-device MLX-LM QLoRA with adapter
   profile `attention-qkvo.v1`. Layout is four-bit group-64 defaults plus
-  one eight-bit `model.layers.N.router.proj` override per layer. No shared
-  expert. Resident weight is not active parameters. Conditional,
-  pilot-required, not CUDA, not quality, not "Aptus supports MoE."
+  one eight-bit `model.layers.N.router.proj` override per layer, named
+  `gemma4-moe-4bit-group64-router-proj-8bit` on the CLI. That name is not
+  the Qwen3 profile. No shared expert. Resident weight is not active
+  parameters. Conditional, pilot-required, not CUDA, not quality, not
+  "Aptus supports MoE."
 - Persisted `aptus.training-plan.v6` compatibility provenance and the digest of
   one canonical `aptus.model-policy-snapshot.v1`. One
   `aptus.model-compatibility.v2` decision records stable reason and evidence
@@ -324,7 +326,8 @@ acceptance remain open.
 - A narrow Gemma 4 MoE MLX-LM QLoRA path. It stays conditional, pilot-required,
   and has no measured ladder. Adapter targets are attention `q_proj`, `k_proj`,
   `v_proj`, and `o_proj` only. Layout is four-bit group-64 defaults plus one
-  eight-bit `router.proj` override per layer. Resident weight is not active
+  eight-bit `router.proj` override per layer, CLI name
+  `gemma4-moe-4bit-group64-router-proj-8bit`. Resident weight is not active
   parameters.
 - A narrow dense Qwen2 24-layer MLX-LM QLoRA path. Its uniform four-bit
   group-size-64 layout with no overrides is identity-bound, and its adapter
@@ -368,7 +371,7 @@ acceptance remain open.
   artifact, read-only `aptus doctor`, and privacy-bounded diagnostic archives.
 - Local MLX-LM managed actions through pilot and explicitly confirmed
   full-duration adapter training. CUDA bundles remain explicit target-host
-  handoffs from the Mac app.
+  handoffs from a Mac host, including `aptus serve`.
 
 ## Conditional behavior
 

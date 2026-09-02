@@ -176,8 +176,149 @@ describe("FactsStage", () => {
     expect(screen.getByText(/router selects any 8 of 128 routed experts for each token/i)).toBeInTheDocument();
     expect(screen.getByText("30.5B")).toBeInTheDocument();
     expect(screen.getByText("3.3B")).toBeInTheDocument();
-    expect(screen.getByText("4-bit group 64; 1 override")).toBeInTheDocument();
+    expect(
+      screen.getByText("4-bit group 64; 1 8-bit model.layers.N.mlp.gate override"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/all checkpoint weights must remain resident/i)).toBeInTheDocument();
+  });
+
+  it("shows Gemma 4 MoE inspect layout as router.proj 8-bit overrides", () => {
+    const draft = structuredClone(EXAMPLE_DRAFT);
+    draft.model = {
+      ...draft.model,
+      model_id: "mlx-community/gemma-4-26b-a4b-it-4bit",
+      family: "gemma4_moe",
+      parameters_b: 25.2,
+      model_type: "gemma4_text",
+      architecture: "Gemma4ForConditionalGeneration",
+      quantization_bits: 4,
+      moe: {
+        expert_count: 128,
+        experts_per_token: 8,
+        expert_intermediate_size: 704,
+        decoder_sparse_step: 1,
+        mlp_only_layers: [],
+        shared_expert_intermediate_size: null,
+      },
+    };
+    draft.hardware.devices[0].backend = "mps";
+    draft.target.runtime = "mlx-lm";
+    const gemmaLayout = {
+      default_bits: 4,
+      default_group_size: 64,
+      module_overrides: Array.from({ length: 30 }, (_, index) => ({
+        module_path: `model.layers.${index}.router.proj`,
+        bits: 8,
+        group_size: 64,
+      })),
+    };
+
+    render(
+      <FactsStage
+        draft={draft}
+        setDraft={vi.fn()}
+        profile={null}
+        busy={null}
+        demoMode={false}
+        onLoadExample={vi.fn()}
+        onClearExample={vi.fn()}
+        onProfile={vi.fn(async () => undefined)}
+        onModelInspect={vi.fn(async () => undefined)}
+        onInvalidateModelInspection={vi.fn()}
+        onPlan={vi.fn(async () => undefined)}
+        onHardwareScan={vi.fn(async () => undefined)}
+        hardwareScanned
+        modelInspection={{
+          status: "ok",
+          model_id: "mlx-community/gemma-4-26b-a4b-it-4bit",
+          requested_revision: "main",
+          resolved_revision: "0d77464eeb233a2da68ebf9d7dc4edaac7db956d",
+          facts: {
+            family: "gemma4_moe",
+            model_type: "gemma4_text",
+            architecture: "Gemma4ForConditionalGeneration",
+            quantization_layout: gemmaLayout,
+          },
+          compatibility: {
+            status: "conditional",
+            family: "gemma4_moe",
+            supported_runtime: "mlx-lm",
+            compute_backend: "mps",
+            supported_methods: ["qlora"],
+            distribution: "single",
+            evidence_requirement: "pilot-required",
+            adapter_profile_id: "attention-qkvo.v1",
+            reason: "Exact model-data and pilot evidence are required.",
+          },
+        }}
+        modelPolicyPresentation={null}
+        methodCatalog={methods}
+      />,
+    );
+
+    expect(screen.getByText(/router\.proj/i)).toBeInTheDocument();
+    expect(screen.getByText(/8-bit/i)).toBeInTheDocument();
+    expect(screen.queryByText("4-bit group 64; 30 overrides")).not.toBeInTheDocument();
+    expect(screen.queryByText(/mlp\.gate/i)).not.toBeInTheDocument();
+  });
+
+  it("does not label Full executable when BF16 is off", () => {
+    const draft = structuredClone(EXAMPLE_DRAFT);
+    draft.hardware.devices[0].supports_bf16 = false;
+    const fullMethod: MethodDescriptor = {
+      schema_version: "aptus.method-descriptor.v1",
+      method_id: "full",
+      display_name: "Full fine-tuning",
+      summary: "Updates every model parameter.",
+      lifecycle: "gated-executable",
+      selectable: true,
+      parameter_scope: "all-parameters",
+      parameterization: "dense-full",
+      base_storage: "unquantized",
+      compiler_id: "transformers.full.v2",
+      export_kind: "full-model-safetensors",
+      supported_backends: ["cuda"],
+      supported_distributions: ["single", "ddp"],
+      evidence_ids: ["method.full.transformers"],
+      pilot_requirement: "A bounded pilot is required.",
+      runtime_bindings: [
+        {
+          schema_version: "aptus.runtime-binding.v1",
+          training_runtime: "transformers-peft-cuda",
+          compute_backend: "cuda",
+          compiler_id: "transformers.full.v2",
+          estimator_id: "aptus-memory-v2",
+          export_kind: "full-model-safetensors",
+          supported_distributions: ["single", "ddp"],
+          evidence_requirement: "pilot-required",
+        },
+      ],
+    };
+    render(
+      <FactsStage
+        draft={draft}
+        setDraft={vi.fn()}
+        profile={null}
+        busy={null}
+        demoMode={false}
+        onLoadExample={vi.fn()}
+        onClearExample={vi.fn()}
+        onProfile={vi.fn(async () => undefined)}
+        onModelInspect={vi.fn(async () => undefined)}
+        onInvalidateModelInspection={vi.fn()}
+        onPlan={vi.fn(async () => undefined)}
+        onHardwareScan={vi.fn(async () => undefined)}
+        hardwareScanned={false}
+        modelInspection={null}
+        modelPolicyPresentation={null}
+        methodCatalog={[fullMethod]}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Inspect method readiness"));
+    expect(screen.getByText("Full fine-tuning")).toBeInTheDocument();
+    expect(screen.getByText("Full FP16 is closed")).toBeInTheDocument();
+    expect(screen.queryByText("Executable behind gates")).not.toBeInTheDocument();
   });
 
   it("clears stale provider topology when an inspected model fact changes", async () => {

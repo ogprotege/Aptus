@@ -144,6 +144,27 @@ describe("CompareStage claim language", () => {
     expect(screen.queryByText(/safe plan/i)).not.toBeInTheDocument();
   });
 
+  it("does not say hard constraints decide what can run", () => {
+    render(
+      <CompareStage
+        plan={noFeasiblePlan}
+        selected={rejected}
+        busy={null}
+        demoMode={false}
+        modelPolicyPresentation={null}
+        onInspectCandidate={vi.fn()}
+        onSelectCandidate={vi.fn(async () => undefined)}
+        onCompile={vi.fn(async () => undefined)}
+        onReturnToFacts={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/what can run/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/which candidates remain in the enumerated set/i),
+    ).toBeInTheDocument();
+  });
+
   it("keeps unsupported candidates visible with the blocked evidence class", () => {
     render(
       <CompareStage

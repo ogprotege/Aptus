@@ -155,6 +155,67 @@ describe("provider model inspection", () => {
     expect(merged.quantization_layout).not.toBe(REVIEWED_QWEN3_LAYOUT);
   });
 
+  it("applies Gemma 4 MoE inspect layout as router.proj, not the Qwen3 profile", () => {
+    const current = structuredClone(EXAMPLE_DRAFT.model);
+    current.parameters_b = 25.2;
+    current.training_allowed = true;
+    const gemmaLayout = {
+      default_bits: 4,
+      default_group_size: 64,
+      module_overrides: Array.from({ length: 30 }, (_, index) => ({
+        module_path: `model.layers.${index}.router.proj`,
+        bits: 8,
+        group_size: 64,
+      })),
+    };
+
+    const merged = applyProviderModelInspection(current, {
+      status: "ok",
+      model_id: "mlx-community/gemma-4-26b-a4b-it-4bit",
+      requested_revision: "main",
+      resolved_revision: "0d77464eeb233a2da68ebf9d7dc4edaac7db956d",
+      facts: {
+        architecture: "Gemma4ForConditionalGeneration",
+        architectures: ["Gemma4ForConditionalGeneration"],
+        model_type: "gemma4_text",
+        family: "gemma4_moe",
+        hidden_size: 2816,
+        intermediate_size: 2112,
+        layers: 30,
+        context_length: 262144,
+        quantization_bits: 4,
+        quantization_layout: gemmaLayout,
+        moe: {
+          expert_count: 128,
+          experts_per_token: 8,
+          expert_intermediate_size: 704,
+          decoder_sparse_step: 1,
+          mlp_only_layers: [],
+          shared_expert_intermediate_size: null,
+        },
+      },
+    });
+
+    expect(merged.family).toBe("gemma4_moe");
+    expect(merged.family).not.toBe("gemma4");
+    expect(merged.model_type).toBe("gemma4_text");
+    expect(merged.architecture).toBe("Gemma4ForConditionalGeneration");
+    expect(merged.quantization_layout).toEqual(gemmaLayout);
+    expect(merged.quantization_layout?.module_overrides).toHaveLength(30);
+    expect(
+      merged.quantization_layout?.module_overrides.every(
+        (item) => item.module_path.endsWith(".router.proj") && item.bits === 8,
+      ),
+    ).toBe(true);
+    expect(
+      merged.quantization_layout?.module_overrides.some((item) =>
+        item.module_path.includes("mlp.gate"),
+      ),
+    ).toBe(false);
+    expect(merged.parameters_b).toBe(25.2);
+    expect(merged.training_allowed).toBe(true);
+  });
+
   it("applies derived MoE facts only from the matching v5 plan", () => {
     const current = structuredClone(EXAMPLE_DRAFT.model);
     current.model_id = "Qwen/Qwen3-30B-A3B";

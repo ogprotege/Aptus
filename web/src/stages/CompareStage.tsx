@@ -84,7 +84,7 @@ export function CompareStage({
       <StageHeader
         eyebrow="Stage 2 · Feasibility"
         title="Compare predicted fit."
-        lede="Hard constraints decide what can run. Your objective ranks only the strategies that survive."
+        lede="Hard constraints decide which candidates remain in the enumerated set. Your objective ranks only the strategies that survive."
         meta={demoMode ? <ProvenanceBadge kind="example" label="Example comparison" /> : <StatusBadge state={recommended ? candidateStatus(recommended) : "infeasible"} />}
       />
 

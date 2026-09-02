@@ -5,7 +5,7 @@
 | Status | Active |
 | Audience | Local operators, developers, and automation authors |
 | Authority | Normative reference for the Aptus v0.2 command-line contract |
-| Last reviewed | 2026-08-05 |
+| Last reviewed | 2026-09-02 |
 | Next review | 2026-11-01, or sooner when `src/aptus/cli.py` changes |
 
 The `aptus` executable is installed from `aptus.cli:main`. Commands write JSON

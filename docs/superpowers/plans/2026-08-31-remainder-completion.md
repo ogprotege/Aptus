@@ -52,7 +52,7 @@ Do not concatenate these. Do not let one policy row cover all three.
 | --- | --- | --- |
 | Dense Gemma 4 | Language-tower text SFT on `Gemma4ForConditionalGeneration` | Existing inspect / Compare / compile / emit-run |
 | Unified Gemma 4 | Language-tower text SFT on `Gemma4UnifiedForConditionalGeneration` | Lane 7 policy, then emit-run in a **new** work dir |
-| Gemma 4 MoE | Sparse 26B-A4B with real expert integers | Lane 9 only; Compare stays an honest no until that row exists. Status: landed at 52a2daf. |
+| Gemma 4 MoE | Sparse 26B-A4B with real expert integers | Lane 9 landed at 52a2daf (`model.gemma4-moe.mlx.v1`). Compare can path-match that row; this-host envelope may still refuse. |
 
 Vision is not a fourth model identity. It is a **dataset-facts** path on an
 already-admitted pin (Lane 10). Text SFT on the language tower must keep
@@ -454,8 +454,8 @@ Do not start until Lane 7 is closed and a Lane 9 spec is approved.
 3. Expert / router / adapter-target census.
 4. Sparse memory/disk estimator that does not substitute active for
    resident.
-5. One MLX QLoRA path, pilot-required. Compare stays an honest no until
-   the row exists.
+5. One MLX QLoRA path, pilot-required. Compare can path-match that row;
+   this-host envelope may still refuse.
 6. Measured ladder only if this Mac admits it. If not, conditional plus
    envelope refuse is success.
 

@@ -11,6 +11,7 @@ import { ModelPolicyPanel } from "../components/ModelPolicyPanel";
 import { StageHeader } from "../components/StageHeader";
 import { getDesktopBridge } from "../desktopBridge";
 import type { ModelPolicyPresentation } from "../lib/modelPolicy";
+import { formatInspectedQuantizationLayout } from "../lib/quantizationLayout";
 
 interface FactsStageProps {
   draft: FactDraft;
@@ -157,7 +158,6 @@ export function FactsStage({
 
   const profileFacts = profile?.facts ?? [];
   const inspectedQuantizationLayout = modelInspection?.facts?.quantization_layout;
-  const inspectedOverrideCount = inspectedQuantizationLayout?.module_overrides.length ?? 0;
   const inspectedModelFacts = modelInspection?.status === "ok" && modelInspection.facts
     ? [
         { key: "family", label: "Aptus catalog family", value: modelInspection.facts.family },
@@ -178,11 +178,7 @@ export function FactsStage({
           key: "quantization_layout",
           label: "Provider quantization layout",
           value: inspectedQuantizationLayout
-            ? [
-                `${inspectedQuantizationLayout.default_bits}-bit`,
-                `group ${inspectedQuantizationLayout.default_group_size};`,
-                `${inspectedOverrideCount} ${inspectedOverrideCount === 1 ? "override" : "overrides"}`,
-              ].join(" ")
+            ? formatInspectedQuantizationLayout(inspectedQuantizationLayout)
             : null,
         },
       ].filter((fact) => fact.value !== null && fact.value !== undefined)
@@ -549,6 +545,18 @@ export function FactsStage({
                   {methodCatalog.map((method) => {
                     const availableOnBackend = method.selectable
                       && method.supported_backends.includes(selectedBackend);
+                    const supportsBf16 = draft.hardware.devices.every(
+                      (device) => device.supports_bf16 === true,
+                    );
+                    const readinessLabel = method.lifecycle === "gated-executable"
+                      ? availableOnBackend
+                        ? method.method_id === "full" && !supportsBf16
+                          ? "Full FP16 is closed"
+                          : "Executable behind gates"
+                        : `Unavailable on ${selectedBackend.toUpperCase()}`
+                      : method.lifecycle === "experimental"
+                        ? "Experimental"
+                        : "Research only";
                     return (
                     <article key={method.method_id} className={`method-readiness-row lifecycle-${method.lifecycle}`}>
                       <header>
@@ -557,13 +565,7 @@ export function FactsStage({
                           <code>{method.method_id}</code>
                         </div>
                         <span>
-                          {method.lifecycle === "gated-executable"
-                            ? availableOnBackend
-                              ? "Executable behind gates"
-                              : `Unavailable on ${selectedBackend.toUpperCase()}`
-                            : method.lifecycle === "experimental"
-                              ? "Experimental"
-                              : "Research only"}
+                          {readinessLabel}
                         </span>
                       </header>
                       <p>{method.summary}</p>

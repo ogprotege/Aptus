@@ -1,6 +1,6 @@
 # Choose a Fine-Tuning Method
 
-> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-08-16 | **Review by:** 2026-10-22
+> **Status:** Active | **Audience:** Fine-tuning practitioners | **Authority:** Explanatory | **Applies to:** Aptus 0.2 | **Owner:** Planner | **Last reviewed:** 2026-09-02 | **Review by:** 2026-10-22
 
 Aptus compares a bounded method catalog against explicit model, dataset,
 hardware, and target facts. Method choice is one part of a candidate. Precision,

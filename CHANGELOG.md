@@ -1,6 +1,6 @@
 # Changelog
 
-> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-08-11 | **Review by:** Every release
+> **Status:** Active | **Authority:** Release record | **Applies to:** Aptus 0.2 | **Audience:** Users and maintainers | **Last reviewed:** 2026-09-02 | **Review by:** Every release
 
 All notable changes are recorded here.
 
